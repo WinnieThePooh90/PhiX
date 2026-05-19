@@ -132,6 +132,51 @@ p {
   font-size: 0.875rem;
 }
 
+/* Klassenlehrer: Geldlisten-Kopfzeile */
+.klassenlehrer-money-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.klassenlehrer-money-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.klassenlehrer-money-header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.klassenlehrer-money-title {
+  margin: 0;
+}
+
+.klassenlehrer-money-meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+}
+
+.klassenlehrer-money-header-stats {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.klassenlehrer-money-paid-count {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.klassenlehrer-money-paid-sum {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+
 /* Klassenlehrer: Geldlisten-Tabelle mit eigenem Scroll und schmaler Nr.-Spalte */
 .klassenlehrer-money-table-scroll {
   max-height: min(24rem, 55vh);

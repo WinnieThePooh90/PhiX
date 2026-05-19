@@ -179,17 +179,32 @@ export default function KlassenlehrerView() {
       {(moneyLists || []).map((list) => {
         const entries = list.entries || [];
         const paidCount = entries.filter((e) => e.paid).length;
+        const totalCount = entries.length;
+        const amountPerStudent = Number(list.amountPerStudent);
+        const paidAmount = paidCount * amountPerStudent;
+        const totalAmount = totalCount * amountPerStudent;
         return (
-          <div key={list.id} className="glass-panel program-view-panel" style={{ marginTop: '1.25rem' }}>
-            <h3 className="program-view-panel-heading" style={{ marginBottom: '0.35rem' }}>
-              {list.subject}
-            </h3>
-            <p className="text-muted program-view-panel-text" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              {formatEuro(list.amountPerStudent)} pro Schüler
-              {list.notes ? ` · ${list.notes}` : ''}
-              {' · '}
-              {paidCount} / {entries.length} bezahlt
-            </p>
+          <div key={list.id} className="glass-panel program-view-panel klassenlehrer-money-panel" style={{ marginTop: '1.25rem' }}>
+              <div className="klassenlehrer-money-header">
+              <div className="klassenlehrer-money-header-main">
+                <h3 className="program-view-panel-heading klassenlehrer-money-title">{list.subject}</h3>
+                {(list.notes || Number.isFinite(amountPerStudent)) && (
+                  <p className="text-muted program-view-panel-text klassenlehrer-money-meta">
+                    {Number.isFinite(amountPerStudent) ? `${formatEuro(amountPerStudent)} pro Schüler` : null}
+                    {list.notes && Number.isFinite(amountPerStudent) ? ' · ' : null}
+                    {list.notes || null}
+                  </p>
+                )}
+              </div>
+              <div className="klassenlehrer-money-header-stats">
+                <p className="program-view-panel-heading klassenlehrer-money-paid-count">
+                  {paidCount} / {totalCount} bezahlt
+                </p>
+                <p className="klassenlehrer-money-paid-sum">
+                  {formatEuro(paidAmount)} / {formatEuro(totalAmount)}
+                </p>
+              </div>
+            </div>
             <div className="klassenlehrer-money-table-scroll">
               <table className="data-table">
                 <thead>
