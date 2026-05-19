@@ -1,0 +1,630 @@
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  getNormalizedExamScore,
+  getStudentEffectiveExamFieldCount,
+  gradeToNotenpunkte,
+  notenpunkteToGrade,
+  normalizeCourseGradeSystem,
+} from '../utils/calculator';
+
+function barColorForClassicRounded(rounded1to6) {
+  return rounded1to6 >= 4 ? 'var(--danger)' : 'var(--success)';
+}
+
+/** Farbe für NP-Säule anhand der zugeordneten Schulnote dieser NP-Stufe */
+function barColorForNpBucket(np) {
+  const g = notenpunkteToGrade(np);
+  if (g === null) return 'hsl(var(--muted))';
+  if (g > 4) return 'var(--danger)';
+  if (g >= 3.25 && g <= 4) return '#f59e0b';
+  if (g > 3 && g < 3.25) return '#fde68a';
+  return 'var(--success)';
+}
+
+/**
+ * Klausur-Diagramme: Notenverteilung, Bestehensquote, Aufgabenanalyse.
+ * `examRowStats(studentId)` liefert effN, fields, counted, total, maxPts, grade.
+ */
+export default function ExamChartsPanels({
+  students,
+  exam,
+  examRowStats,
+  tooltipGrade,
+  setTooltipGrade,
+  pieTooltip,
+  setPieTooltip,
+  displayFieldCount,
+  gradeSystem = 'classic',
+  showTaskAnalysis = true,
+}) {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const classicBuckets = [1, 2, 3, 4, 5, 6];
+  const npBuckets = Array.from({ length: 16 }, (_, i) => i);
+
+  const distributionKeys = gs === 'points' ? npBuckets : classicBuckets;
+
+  const countForBucket = (key) =>
+    students.reduce((acc, s) => {
+      const { counted, grade: g } = examRowStats(s.id);
+      if (!counted || g === null) return acc;
+      if (gs === 'points') {
+        const np = gradeToNotenpunkte(g);
+        return np === key ? acc + 1 : acc;
+      }
+      return Math.round(g) === key ? acc + 1 : acc;
+    }, 0);
+
+  const maxCount = Math.max(...distributionKeys.map((k) => countForBucket(k)), 1);
+
+  /** Genug Höhe für Y-Skala; Zähler oberhalb der Balken bleiben im sichtbaren Bereich */
+  const distributionChartHeight = 'min(300px, min(42dvh, 360px))';
+  const taskChartHeight = 'min(280px, min(38dvh, 340px))';
+
+  const barPopoverStudents = useMemo(() => {
+    if (tooltipGrade === null || tooltipGrade === undefined) return [];
+    return students.filter((s) => {
+      const { counted, grade: g } = examRowStats(s.id);
+      if (!counted || g === null) return false;
+      if (gs === 'points') return gradeToNotenpunkte(g) === tooltipGrade;
+      return Math.round(g) === tooltipGrade;
+    });
+  }, [tooltipGrade, students, examRowStats, gs]);
+
+  const studentsGood = useMemo(
+    () =>
+      students.filter((s) => {
+        const { counted, grade: g } = examRowStats(s.id);
+        return counted && g !== null && g <= 3.0;
+      }),
+    [students, examRowStats],
+  );
+
+  const studentsBad = useMemo(
+    () =>
+      students.filter((s) => {
+        const { counted, grade: g } = examRowStats(s.id);
+        return counted && g !== null && g > 3.0;
+      }),
+    [students, examRowStats],
+  );
+
+  const [barPopoverGeom, setBarPopoverGeom] = useState(null);
+  const [piePopoverGeom, setPiePopoverGeom] = useState(null);
+
+  useLayoutEffect(() => {
+    if (tooltipGrade === null || tooltipGrade === undefined || barPopoverStudents.length === 0) {
+      setBarPopoverGeom(null);
+      return;
+    }
+    const update = () => {
+      const el = document.querySelector(`[data-exam-distribution-anchor="${tooltipGrade}"]`);
+      if (!el) {
+        setBarPopoverGeom(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const panelW = Math.min(260, window.innerWidth - 16);
+      const cx = r.left + r.width / 2;
+      const approxH = Math.min(320, 140 + barPopoverStudents.length * 22);
+      const margin = 12;
+      let top = r.bottom + 8;
+      if (top + approxH > window.innerHeight - margin) {
+        top = Math.max(margin, r.top - approxH - 8);
+      }
+      setBarPopoverGeom({ cx, top, width: panelW });
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [tooltipGrade, barPopoverStudents.length]);
+
+  useLayoutEffect(() => {
+    if (!pieTooltip) {
+      setPiePopoverGeom(null);
+      return;
+    }
+    const update = () => {
+      const el = document.querySelector('[data-exam-pie-anchor]');
+      if (!el) {
+        setPiePopoverGeom(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const listLen = (pieTooltip === 'good' ? studentsGood : studentsBad).length;
+      const approxH = Math.min(320, 140 + listLen * 22);
+      const margin = 12;
+      let top = r.bottom + 10;
+      if (top + approxH > window.innerHeight - margin) {
+        top = Math.max(margin, r.top - approxH - 10);
+      }
+      setPiePopoverGeom({ cx: r.left + r.width / 2, top, width: Math.min(260, window.innerWidth - 16) });
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [pieTooltip, studentsGood.length, studentsBad.length]);
+
+  useEffect(() => {
+    const open = (tooltipGrade !== null && tooltipGrade !== undefined) || pieTooltip;
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setTooltipGrade(null);
+        setPieTooltip(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [tooltipGrade, pieTooltip, setTooltipGrade, setPieTooltip]);
+
+  const closePopovers = () => {
+    setTooltipGrade(null);
+    setPieTooltip(null);
+  };
+
+  const goodLabelShort = gs === 'points' ? 'NP ≥ 6' : '≤ 3.0';
+  const badLabelShort = gs === 'points' ? 'NP < 6' : '> 3.0';
+  const goodTooltipTitle = gs === 'points' ? 'Note besser/gleich 3,0 (NP mindestens 6)' : 'Besser/Gleich 3.0';
+  const badTooltipTitle = gs === 'points' ? 'Note schlechter als 3,0 (NP unter 6)' : 'Schlechter als 3.0';
+
+  const showBarPortal =
+    tooltipGrade !== null && tooltipGrade !== undefined && barPopoverStudents.length > 0 && barPopoverGeom;
+  const pieList = pieTooltip === 'good' ? studentsGood : studentsBad;
+  const showPiePortal = Boolean(pieTooltip && piePopoverGeom && pieList.length > 0);
+
+  const barPortalBorder = showBarPortal
+    ? gs === 'points'
+      ? barColorForNpBucket(tooltipGrade)
+      : barColorForClassicRounded(tooltipGrade)
+    : '';
+  const barPortalTitle = showBarPortal
+    ? gs === 'points'
+      ? `NP ${tooltipGrade}`
+      : `Note ${tooltipGrade}`
+    : '';
+  const barListMaxH = barPopoverGeom
+    ? Math.max(120, Math.min(360, window.innerHeight - barPopoverGeom.top - 110))
+    : 200;
+  const pieListMaxH = piePopoverGeom
+    ? Math.max(120, Math.min(360, window.innerHeight - piePopoverGeom.top - 110))
+    : 200;
+  const pieBorder = showPiePortal ? (pieTooltip === 'good' ? 'var(--success)' : 'var(--danger)') : '';
+  const pieTitle = showPiePortal ? (pieTooltip === 'good' ? goodTooltipTitle : badTooltipTitle) : '';
+
+  const popoverPortal =
+    showBarPortal || showPiePortal
+      ? createPortal(
+          <>
+            <div className="exam-charts-popover-backdrop" aria-hidden onClick={closePopovers} />
+            {showBarPortal && (
+              <div
+                className="exam-charts-popover-panel"
+                role="dialog"
+                aria-label={barPortalTitle}
+                style={{
+                  left: barPopoverGeom.cx,
+                  top: barPopoverGeom.top,
+                  transform: 'translateX(-50%)',
+                  width: barPopoverGeom.width,
+                  borderColor: barPortalBorder,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    color: barPortalBorder,
+                    marginBottom: '0.5rem',
+                    borderBottom: '1px solid var(--border)',
+                    paddingBottom: '0.25rem',
+                  }}
+                >
+                  {barPortalTitle}
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    maxHeight: barListMaxH,
+                    overflowY: 'auto',
+                  }}
+                >
+                  {barPopoverStudents.map((s) => (
+                    <li key={s.id} style={{ padding: '0.1rem 0' }}>
+                      {s.lastName}, {s.firstName}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setTooltipGrade(null)}
+                  style={{
+                    marginTop: '0.5rem',
+                    width: '100%',
+                    fontSize: '0.7rem',
+                    padding: '0.35rem',
+                    background: 'hsl(var(--muted))',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Schließen
+                </button>
+              </div>
+            )}
+            {showPiePortal && (
+              <div
+                className="exam-charts-popover-panel"
+                role="dialog"
+                aria-label={pieTitle}
+                style={{
+                  left: piePopoverGeom.cx,
+                  top: piePopoverGeom.top,
+                  transform: 'translateX(-50%)',
+                  width: piePopoverGeom.width,
+                  borderColor: pieBorder,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    color: pieBorder,
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  {pieTitle}
+                </div>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    maxHeight: pieListMaxH,
+                    overflowY: 'auto',
+                  }}
+                >
+                  {pieList.map((s) => (
+                    <li key={s.id} style={{ padding: '0.1rem 0' }}>
+                      {s.lastName}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setPieTooltip(null)}
+                  style={{
+                    marginTop: '0.5rem',
+                    width: '100%',
+                    fontSize: '0.7rem',
+                    padding: '0.35rem',
+                    background: 'hsl(var(--muted))',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Schließen
+                </button>
+              </div>
+            )}
+          </>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      {popoverPortal}
+      <div className={`${showTaskAnalysis ? 'grid-3' : 'grid-2'} gap-8 exam-charts-grid`}>
+        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
+          <h3 className="mb-6">Notenverteilung</h3>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              height: distributionChartHeight,
+              gap: gs === 'points' ? '0.15rem' : '0.5rem',
+              padding: '0.35rem 0.25rem 0',
+              marginTop: '0.25rem',
+              overflowX: gs === 'points' ? 'auto' : undefined,
+              overflowY: 'visible',
+            }}
+          >
+            {distributionKeys.map((bucketKey) => {
+              const counts = countForBucket(bucketKey);
+              const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
+              const barColor =
+                gs === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicRounded(bucketKey);
+              const isTooltipActive = tooltipGrade === bucketKey;
+
+              const axisLabel = gs === 'points' ? String(bucketKey) : `N${bucketKey}`;
+
+              return (
+                <div
+                  key={bucketKey}
+                  data-exam-distribution-anchor={String(bucketKey)}
+                  style={{
+                    flex: gs === 'points' ? '0 0 auto' : 1,
+                    minWidth: gs === 'points' ? '1.1rem' : 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    height: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      width: '100%',
+                      minHeight: 0,
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      paddingTop: '1.1rem',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div
+                      onClick={() => setTooltipGrade(isTooltipActive ? null : bucketKey)}
+                      style={{
+                        width: gs === 'points' ? '70%' : '80%',
+                        height: heightPercent > 0 ? `${heightPercent}%` : '4px',
+                        background: counts > 0 ? barColor : '#eee',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease, opacity 0.2s',
+                        position: 'relative',
+                        cursor: counts > 0 ? 'pointer' : 'default',
+                        opacity:
+                          tooltipGrade !== null && tooltipGrade !== undefined && !isTooltipActive ? 0.3 : 1,
+                        boxShadow: isTooltipActive ? `0 0 0 3px white, 0 0 0 5px ${barColor}` : 'none',
+                        zIndex: isTooltipActive ? 10 : 1,
+                      }}
+                    >
+                      {counts > 0 && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          {counts}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      fontWeight: 'bold',
+                      borderTop: '2px solid #eee',
+                      width: '100%',
+                      textAlign: 'center',
+                      paddingTop: '0.5rem',
+                      fontSize: gs === 'points' ? '0.65rem' : '0.8rem',
+                    }}
+                  >
+                    {axisLabel}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {gs === 'points' && (
+            <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
+              Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.
+            </p>
+          )}
+        </div>
+
+        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
+          <h3 className="mb-6">Bestehensquote</h3>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            {(() => {
+              let goodCount = 0;
+              let badCount = 0;
+              students.forEach((s) => {
+                const { counted, grade: g } = examRowStats(s.id);
+                if (counted && g !== null) {
+                  if (g <= 3.0) goodCount++;
+                  else badCount++;
+                }
+              });
+              const total = goodCount + badCount;
+              const goodPercent = total > 0 ? (goodCount / total) * 100 : 0;
+
+              return (
+                <>
+                  <div data-exam-pie-anchor style={{ position: 'relative', flexShrink: 0 }}>
+                    <svg width="140" height="140" viewBox="0 0 100 100" style={{ cursor: 'pointer', transform: 'rotate(-90deg)' }}>
+                      {total > 0 ? (
+                        <>
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="transparent"
+                            stroke="var(--danger)"
+                            strokeWidth="20"
+                            style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                            onClick={() => setPieTooltip(pieTooltip === 'bad' ? null : 'bad')}
+                          />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="transparent"
+                            stroke="var(--success)"
+                            strokeWidth="20"
+                            strokeDasharray={`${goodPercent * 2.513} 251.3`}
+                            style={{ transition: 'stroke-dasharray 0.3s ease', pointerEvents: 'stroke', cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPieTooltip(pieTooltip === 'good' ? null : 'good');
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <circle cx="50" cy="50" r="40" fill="transparent" stroke="#eee" strokeWidth="20" />
+                      )}
+                      <circle cx="50" cy="50" r="30" fill="white" />
+                    </svg>
+
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{total}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem' }}>
+                    <div
+                      onClick={() => setPieTooltip('good')}
+                      style={{
+                        cursor: 'pointer',
+                        opacity: pieTooltip === 'bad' ? 0.4 : 1,
+                        transition: '0.2s',
+                        padding: '4px',
+                        borderRadius: '4px',
+                        background: pieTooltip === 'good' ? '#f0fff0' : 'transparent',
+                      }}
+                    >
+                      <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{goodCount}</span> {goodLabelShort}
+                    </div>
+                    <div
+                      onClick={() => setPieTooltip('bad')}
+                      style={{
+                        cursor: 'pointer',
+                        opacity: pieTooltip === 'good' ? 0.4 : 1,
+                        transition: '0.2s',
+                        padding: '4px',
+                        borderRadius: '4px',
+                        background: pieTooltip === 'bad' ? '#fff5f5' : 'transparent',
+                      }}
+                    >
+                      <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>{badCount}</span> {badLabelShort}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {showTaskAnalysis ? (
+        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)' }}>
+          <h3 className="mb-6">Aufgabenanalyse</h3>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              height: taskChartHeight,
+              gap: '0.3rem',
+              padding: '0.35rem 0.3rem 0',
+              overflowY: 'visible',
+            }}
+          >
+            {[...Array(displayFieldCount)].map((_, i) => {
+              const maxForTask = parseFloat(exam.fieldMaxPoints[i]) || 0;
+              const totalAchieved = students.reduce((acc, s) => {
+                const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+                if (i >= effN) return acc;
+                const { counted, fields } = getNormalizedExamScore(exam.scores?.[s.id], effN);
+                if (counted) return acc + (parseFloat(fields[i]) || 0);
+                return acc;
+              }, 0);
+
+              const countedStudents = students.filter((s) => {
+                const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+                if (i >= effN) return false;
+                return getNormalizedExamScore(exam.scores?.[s.id], effN).counted;
+              }).length;
+              const maxPossible = maxForTask * countedStudents;
+              const successPercent = maxPossible > 0 ? (totalAchieved / maxPossible) * 100 : 0;
+
+              const barColor = successPercent >= 75 ? 'var(--success)' : successPercent >= 50 ? '#f59e0b' : 'var(--danger)';
+
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+                  <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div
+                      title={`Durchschnittlicher Erfolg: ${successPercent.toFixed(1)}%`}
+                      style={{
+                        width: '80%',
+                        height: `${Math.max(successPercent, 2)}%`,
+                        background: barColor,
+                        borderRadius: '2px 2px 0 0',
+                        transition: 'height 0.3s ease',
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      fontWeight: 'bold',
+                      borderTop: '2px solid #eee',
+                      width: '100%',
+                      textAlign: 'center',
+                      paddingTop: '0.5rem',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    A{i + 1}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(successPercent)}%</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        ) : null}
+      </div>
+    </>
+  );
+}

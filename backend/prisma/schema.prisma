@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/** Anmeldung für die App (Passwort nur als bcrypt-Hash). */
+model AppUser {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Config {
+  id        Int      @id @default(autoincrement())
+  year      String
+  className String
+  subject   String
+  hours     Int
+  weighting Json
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  year      String
+  className String
+  subject   String
+  hours     Int
+  weighting Json
+  /** Notensystem: classic = 1–6 wie bisher; points = Punktesystem (Erweiterung) */
+  gradeSystem String @default("classic")
+  /** Favorit in der linken Navigationsleiste (oben, alphabetisch; unabhängig vom Schuljahres-Filter). */
+  isFavorite Boolean @default(false)
+  /** Benannte eigene Notenschlüssel: [{ id, name, referenceMaxPoints, bands: [{ g, lo, hi }] }] */
+  customGradingKeys Json @default("[]")
+  /** Wenn false: Tab „Tests“ im Kurs ausblenden (z. B. keine geschriebenen Tests). */
+  testsWritten Boolean @default(true)
+  /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
+  gfsAccepted Boolean @default(true)
+  /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
+  ownerUsername String @default("admin")
+
+  students   Student[]
+  exams      Exam[]
+  orals      Oral[]
+  tests      Test[]
+  gfsEntries GfsEntry[]
+
+  @@index([ownerUsername])
+}
+
+/** Schuljahr in der Schülerverwaltung (z. B. „2026/2027“). */
+model SchoolRosterYear {
+  id        Int      @id @default(autoincrement())
+  label     String   @unique
+  createdAt DateTime @default(now())
+
+  students SchoolRosterStudent[]
+}
+
+/** Schulweite Stammliste (Klassenstufe 5–13); nicht mit Kurs-Teilnehmern verknüpft. */
+model SchoolRosterStudent {
+  id         Int      @id @default(autoincrement())
+  /** Klassenstufe / Schulstufe (5 … 13) */
+  gradeLevel Int
+  firstName  String
+  lastName   String
+  createdAt  DateTime @default(now())
+
+  schoolYearId Int
+  schoolYear   SchoolRosterYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  @@index([schoolYearId, gradeLevel])
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  frontendId BigInt? @unique
+  firstName String
+  lastName  String
+  /** Stabile, fortlaufende Schülernummer innerhalb des Kurses (Anzeige in Tabellen). */
+  studentNumber Int
+  /** Manuelle Endnote in der Gesamtübersicht (leer = nicht gesetzt); Dezimalzahl als Text */
+  summaryEndNote String @default("")
+  courseId  Int?
+  course    Course?  @relation(fields: [courseId], references: [id])
+
+  gfsEntries GfsEntry[]
+}
+
+model GfsEntry {
+  id        Int     @id @default(autoincrement())
+  thema     String  @default("")
+  art       String  @default("")
+  date      String  @default("")
+  gehalten  Boolean @default(false)
+  halbjahr  String  @default("1")
+  note      String  @default("")
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  Int?
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Exam {
+  id             Int      @id @default(autoincrement())
+  examNumber     Int
+  active         Boolean
+  maxPoints      Float
+  numFields      Int
+  fieldMaxPoints Json
+  keyType        String
+  date           String   @default("")
+  halbjahr       String   @default("1")
+  name           String
+  scores         Json
+  courseId       Int?
+  course         Course?  @relation(fields: [courseId], references: [id])
+}
+
+model Oral {
+  id          Int      @id @default(autoincrement())
+  oralNumber  Int
+  active      Boolean  @default(true)
+  name        String
+  date        String   @default("")
+  halbjahr    String   @default("1")
+  extended    Boolean  @default(false)
+  weekCount   Int      @default(1)
+  /** Beste erreichbare Note (erweitert): 1, 1.25, 1.5, 1.75, 2 */
+  bestNote    Float    @default(1)
+  /** Schlechteste Note (erweitert): 4 … 6 in 0,25-Schritten */
+  worstNote   Float    @default(6)
+  /** Streuung 0–1 (Schritt 0,1) für Wochen-/Berechnungslogik */
+  weekSpread  Float    @default(0.5)
+  grades      Json
+  courseId    Int?
+  course      Course?  @relation(fields: [courseId], references: [id])
+}
+
+model Test {
+  id         Int      @id @default(autoincrement())
+  testNumber Int
+  active     Boolean
+  /** Maximale Punktzahl des Tests (Nenner für den Notenschlüssel, wie Klausur-Maximum). */
+  maxPoints  Float    @default(10)
+  keyType    String
+  date       String   @default("")
+  halbjahr   String   @default("1")
+  name       String
+  /** Pro Schüler: erreichte Punkte (Text/Zahl) + optional _counted, _nachschreiber — wie Klausur-Scores. */
+  scores     Json
+  courseId   Int?
+  course     Course?  @relation(fields: [courseId], references: [id])
+}

@@ -1,0 +1,7 @@
+{
+  "pgPort": 5432,
+  "httpPort": 3000,
+  "dbName": "notenauswertung",
+  "dbUser": "noten_user",
+  "dbPassword": "noten_password"
+}

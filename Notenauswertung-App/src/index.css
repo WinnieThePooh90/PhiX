@@ -1,0 +1,2659 @@
+/* Equiphi-inspiriertes Theme */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --border-hsl: 214 32% 91%;
+  --ring: 222 47% 11%;
+  --danger-hsl: 0 84% 60%;
+  --success-hsl: 142 71% 45%;
+
+  --bg-color: hsl(var(--background));
+  --surface: hsl(var(--card));
+  --surface-muted: hsl(var(--muted));
+  --surface-hover: hsl(var(--accent));
+  --text-main: hsl(var(--foreground));
+  --text-muted: hsl(var(--muted-foreground));
+  --border: hsl(var(--border-hsl));
+  --primary: hsl(var(--foreground));
+  --primary-hover: hsl(var(--foreground) / 0.9);
+  --danger: hsl(var(--danger-hsl));
+  --success: hsl(var(--success-hsl));
+
+  /** Klausuren / Mündlich: einheitliche Höhe für Eingaben und Tab-Buttons in der Einstellungszeile */
+  --course-meta-control-height: 2.125rem;
+
+  --radius: 0.5rem;
+  --transition: all 0.15s ease-in-out;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+/* Volle Viewport-Höhe: sonst wachsen Flex-Kinder mit dem Inhalt und overflow:auto scrollt nie */
+html {
+  height: 100%;
+}
+
+@supports (height: 100dvh) {
+  html {
+    height: 100dvh;
+  }
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+.glass-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+.program-view {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 1.5rem 2rem;
+}
+
+.program-view-title {
+  margin: 0 0 0.5rem;
+}
+
+.program-view-intro {
+  margin: 0 0 1.25rem;
+}
+
+.program-view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.program-view-stack > .glass-panel,
+.program-view-panel {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.program-view-panel {
+  padding: 1.25rem;
+}
+
+.program-view-panel-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.program-view-panel-text {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+
+.program-view-panel-cta {
+  width: 100%;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.app-info-section {
+  min-width: 0;
+}
+
+.app-info-registration-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.app-info-registration-header .program-view-panel-heading {
+  margin: 0;
+}
+
+.app-info-unregister-btn {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.app-info-registration-status-block {
+  margin: 1.75rem 0 0;
+}
+
+.app-info-registration-status {
+  margin: 0;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.app-info-registration-thanks {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.program-view-section-heading {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.app-info-version-panel {
+  margin-bottom: 0.5rem;
+}
+
+.app-info-version-number {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.app-info-version-build {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.program-view-intro--tight {
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.legal-content-line {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.legal-content-line:last-of-type {
+  margin-bottom: 0;
+}
+
+.legal-content-paragraph {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.legal-content-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.legal-content-section .program-view-panel-heading {
+  margin-bottom: 0.65rem;
+}
+
+.app-info-registration-status--registered {
+  color: hsl(142 45% 42%);
+}
+
+.app-info-registration-status--unregistered {
+  color: #e11d48;
+}
+
+.app-info-registration-desc {
+  margin-bottom: 0.75rem;
+}
+
+.app-info-inline-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+
+.app-info-inline-link:hover {
+  color: var(--primary-hover);
+}
+
+.app-info-inline-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.support-phix-register-feedback {
+  margin: 0.65rem 0 0;
+  font-size: 0.875rem;
+}
+
+.support-phix-register-feedback--success {
+  color: hsl(142 45% 42%);
+}
+
+.support-phix-register-feedback--error {
+  color: hsl(var(--destructive, 0 72% 51%));
+}
+
+.app-info-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.app-info-table th,
+.app-info-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-info-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-info-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.app-info-table td:nth-child(3) {
+  min-width: 12rem;
+}
+
+.app-info-code {
+  font-size: 0.8125rem;
+  word-break: break-word;
+}
+
+.app-info-license-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app-info-license-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.app-info-license-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.program-user-mgmt {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.program-user-mgmt-page-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.program-user-mgmt-intro {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
+}
+
+.program-user-mgmt-section {
+  width: 100%;
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: hsl(var(--background));
+}
+
+.program-user-mgmt-section-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.program-user-mgmt-section-alert {
+  margin: 0 0 0.75rem;
+}
+
+.program-user-mgmt-list--wide {
+  gap: 0;
+}
+
+.program-user-mgmt-list--wide .program-user-mgmt-list-item {
+  padding: 0.65rem 0.85rem;
+  margin: 0 -0.15rem;
+  border-radius: calc(var(--radius) - 2px);
+  border-bottom: 1px solid var(--border);
+}
+
+.program-user-mgmt-list--wide .program-user-mgmt-list-item:last-child {
+  border-bottom: none;
+}
+
+.program-user-mgmt-list--wide .program-user-mgmt-list-item:hover {
+  background: hsl(var(--muted));
+}
+
+.program-user-mgmt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.program-user-mgmt-modal-dialog {
+  width: 100%;
+  max-width: min(24rem, 100%);
+  max-height: min(90vh, 100%);
+  overflow: auto;
+  padding: 1.25rem 1.35rem;
+}
+
+.program-user-mgmt-modal-title {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.program-user-mgmt-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.program-user-mgmt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.program-user-mgmt-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.program-user-mgmt-input {
+  padding: 0.5rem 0.6rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  color: var(--text-main);
+}
+
+.program-user-mgmt-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.12);
+}
+
+.program-user-mgmt-submit {
+  align-self: flex-start;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--primary);
+  color: hsl(var(--background));
+  cursor: pointer;
+}
+
+.program-user-mgmt-submit:hover {
+  filter: brightness(1.05);
+}
+
+.program-user-mgmt-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.program-user-mgmt-success {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--success);
+}
+
+.program-user-mgmt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.program-user-mgmt-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.program-user-mgmt-list-item:last-child {
+  border-bottom: none;
+}
+
+.program-user-mgmt-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.program-user-mgmt-you {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.program-user-mgmt-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.program-user-mgmt-delete-btn {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid hsl(var(--danger-hsl) / 0.45);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+}
+
+.program-user-mgmt-delete-btn:hover:not(:disabled) {
+  background: hsl(var(--danger-hsl) / 0.08);
+}
+
+.program-user-mgmt-delete-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.program-user-mgmt-link-btn {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--primary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+}
+
+.program-user-mgmt-link-btn:hover {
+  background: hsl(var(--muted));
+}
+
+.program-user-mgmt-link-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/** SettingsView: Tests / GFS nebeneinander unter Notensystem */
+.settings-course-check-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.settings-course-check-options .settings-tests-written-option {
+  margin-top: 0;
+}
+
+/** SettingsView: „Tests werden geschrieben“ — kompakt, nicht volle Spaltenbreite, Text in einer Zeile */
+.settings-tests-written-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: hsl(var(--muted) / 0.45);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.settings-tests-written-option:hover {
+  background: hsl(var(--muted) / 0.75);
+  border-color: hsl(var(--muted-foreground) / 0.35);
+}
+
+.settings-tests-written-option input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  margin: 0;
+  border-radius: 0.3rem;
+  accent-color: hsl(221 83% 53%);
+  cursor: pointer;
+  flex-shrink: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+.settings-tests-written-option input[type="checkbox"]:focus,
+.settings-tests-written-option input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.settings-tests-written-option span {
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--text-main);
+  user-select: none;
+}
+
+.grading-key-table__header {
+  background-color: hsl(var(--background));
+}
+
+.grading-key-table__thead {
+  background-color: hsl(var(--background));
+}
+
+.grading-key-table__thead th {
+  background: hsl(var(--background));
+}
+
+.grading-key-table__chart {
+  background: hsl(var(--background));
+}
+
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 55;
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1.5rem 0.65rem;
+  margin-bottom: 1.25rem;
+  /* Kein overflow: hidden — sonst wird overflow-y zu auto und kann Menüs / zweite Tab-Zeile abschneiden */
+  overflow: visible;
+}
+
+.header-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: hsl(var(--muted) / 0.45);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-search-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: min(100%, 18rem);
+  max-width: none;
+}
+
+.header-search-lucide {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+.header-lucide-icon {
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  height: 2.5rem;
+  padding-left: 2.1rem;
+  border-radius: 9999px;
+  background: hsl(var(--background));
+  border-color: var(--border);
+  font-size: 0.875rem;
+}
+
+input,
+select,
+button,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: hsl(var(--background));
+  color: var(--text-main);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  transition: var(--transition);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: hsl(var(--foreground) / 0.3);
+  box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.2);
+}
+
+button {
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: hsl(var(--background));
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.2);
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+
+button.secondary:hover {
+  background: var(--surface-hover);
+}
+
+button.danger {
+  background: hsl(var(--danger-hsl) / 0.08);
+  border-color: hsl(var(--danger-hsl) / 0.35);
+  color: hsl(var(--danger-hsl));
+}
+
+button.danger:hover {
+  background: hsl(var(--danger-hsl) / 0.15);
+}
+
+.table-container {
+  overflow: visible;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 0;
+}
+
+th,
+td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+th {
+  background: hsl(var(--muted) / 0.7);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+tbody tr:hover td {
+  background: hsl(var(--accent) / 0.5);
+}
+
+tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+tfoot td {
+  background: hsl(var(--muted) / 0.8) !important;
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+}
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-muted { color: var(--text-muted); }
+
+.bad-grade {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.sticky-header .tabs.equiphi-tabs {
+  overflow-x: auto;
+  overflow-y: visible;
+  flex-wrap: wrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.sticky-header .tabs.equiphi-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.equiphi-tabs {
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.tab {
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: hsl(var(--accent));
+  color: var(--text-main);
+}
+
+.tab.active {
+  background: var(--primary);
+  color: hsl(var(--background));
+}
+
+.header-settings-menu-wrap {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-self: center;
+}
+
+.header-user-menu-wrap {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-self: center;
+}
+
+.equiphi-user-btn {
+  padding: 0.6rem 0.65rem;
+}
+
+.header-user-menu-info {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.header-user-menu-info strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.app-login-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: hsl(var(--background));
+}
+
+.app-login-card {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.75rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.app-login-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.app-login-subtitle {
+  margin: 0.35rem 0 1.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.app-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.app-login-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.app-login-input {
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9375rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  color: var(--text-main);
+}
+
+.app-login-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.15);
+}
+
+.app-login-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.app-login-submit {
+  margin-top: 0.25rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--primary);
+  color: hsl(var(--background));
+  cursor: pointer;
+}
+
+.app-login-submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.app-login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.app-main-empty-state-user {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+}
+
+.header-settings-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  min-width: 9.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.1);
+}
+
+.header-settings-dropdown--portal {
+  position: fixed;
+  left: auto;
+  z-index: 10000;
+}
+
+.header-settings-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.header-settings-dropdown button:hover {
+  background: hsl(var(--muted));
+}
+
+.header-settings-dropdown button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.18);
+}
+
+.header-settings-dropdown-divider {
+  margin: 0.15rem 0.2rem;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.header-settings-dropdown button.header-settings-dropdown-item--with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.header-settings-dropdown-icon {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.flex { display: flex; }
+.justify-between { justify-content: space-between; }
+.items-center { align-items: center; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-8 { margin-top: 2rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.w-full { width: 100%; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+/** Gewichtung Schriftlich : Mündlich : Tests — Doppelpunkte auf Höhe der Felder (zweite Zeile nur Inputs) */
+.weighting-ratio-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.35rem;
+  align-items: center;
+}
+
+.weighting-ratio-grid__colon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.75rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.weighting-ratio-grid__sep-slot {
+  min-width: 0;
+  width: 100%;
+}
+
+.sidebar-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.sidebar-layout > .main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-layout > .sidebar {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .sidebar-layout {
+    flex-direction: column;
+  }
+  .sidebar-layout > .sidebar {
+    width: 100%;
+  }
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 2.25rem;
+  height: 1.25rem;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #cbd5e1;
+  transition: var(--transition);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 0.9rem;
+  width: 0.9rem;
+  left: 0.18rem;
+  top: 0.17rem;
+  border-radius: 9999px;
+  background: white;
+  transition: var(--transition);
+}
+
+input:checked + .slider {
+  background: var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(1rem);
+}
+
+/* Kompakter, dezenter Schalter in Tabellen (#-Spalte mit Nummer + „Werten“) */
+.table-num-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-content: flex-start;
+}
+
+.table-num-switch__num {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.15rem;
+  text-align: right;
+  line-height: 1;
+}
+
+.switch.switch--table-row {
+  width: 2rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+/* Aus = dezent rot („nicht gewertet“), Ein = dezent grün */
+.switch.switch--table-row .slider {
+  background: hsl(var(--danger-hsl) / 0.22);
+  border: 1px solid hsl(var(--danger-hsl) / 0.4);
+}
+
+.switch.switch--table-row .slider:before {
+  height: 0.72rem;
+  width: 0.72rem;
+  left: 0.18rem;
+  top: 0.14rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.switch.switch--table-row input:checked + .slider {
+  background: hsl(var(--success-hsl) / 0.38);
+  border-color: hsl(var(--success-hsl) / 0.55);
+}
+
+.switch.switch--table-row input:checked + .slider:before {
+  transform: translateX(0.82rem);
+}
+
+.switch.switch--table-row input:focus-visible + .slider {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.12);
+}
+
+.app-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-color);
+}
+
+.app-sidebar {
+  width: 250px;
+  background: hsl(var(--muted) / 0.45);
+  border-right: 1px solid var(--border);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  backdrop-filter: blur(8px);
+}
+
+.app-sidebar.collapsed {
+  width: 60px;
+  overflow: hidden;
+}
+
+.app-sidebar-header {
+  padding: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.app-sidebar.collapsed .app-sidebar-header {
+  justify-content: center;
+  align-items: center;
+  margin: 0.35rem 0.25rem 0;
+  padding: 0.35rem 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  min-height: 2.5rem;
+}
+
+.app-sidebar.collapsed button.equiphi-sidebar-toggle {
+  margin-left: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.app-sidebar.collapsed button.equiphi-sidebar-toggle:hover {
+  background: hsl(var(--muted) / 0.55);
+  border-color: hsl(var(--border-hsl) / 0.65);
+}
+
+.app-sidebar.collapsed button.equiphi-sidebar-toggle:focus-visible {
+  border-color: hsl(var(--foreground) / 0.2);
+  background: hsl(var(--muted) / 0.35);
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.18);
+}
+
+.app-sidebar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.01em;
+  min-width: 0;
+}
+
+.sidebar-header-icon {
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
+button.equiphi-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  padding: 0;
+  margin: 0;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  flex-shrink: 0;
+  box-shadow: none;
+}
+
+button.equiphi-sidebar-toggle:hover {
+  background: hsl(var(--muted));
+}
+
+button.equiphi-sidebar-toggle:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.18);
+}
+
+.sidebar-lucide-icon {
+  color: hsl(var(--foreground));
+}
+
+.app-sidebar-nav {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-sidebar-nav-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.app-sidebar-footer {
+  flex-shrink: 0;
+  padding: 0.5rem 0.65rem 0.65rem;
+  border-top: 1px solid var(--border);
+  background: hsl(var(--muted) / 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.app-sidebar-course-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.app-sidebar-course-search-icon {
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+.app-sidebar-course-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 2rem;
+  padding: 0.25rem 0.45rem 0.25rem 1.65rem;
+  font-size: 0.8rem;
+  border-radius: 0.4rem;
+  background: hsl(var(--background));
+  border: 1px solid var(--border);
+}
+
+.app-sidebar-course-search-input:focus {
+  outline: none;
+  border-color: hsl(var(--foreground) / 0.25);
+  box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.08);
+}
+
+.app-sidebar-new-course-btn {
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.5rem;
+  margin: 0;
+}
+
+.app-sidebar-support-btn {
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.5rem;
+  margin: 0;
+}
+
+.app-sidebar-support-btn--active {
+  border-color: hsl(var(--foreground) / 0.2);
+  background: hsl(var(--accent));
+  color: var(--text-main);
+}
+
+.app-sidebar-thanks {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  box-sizing: border-box;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  background: hsl(var(--accent) / 0.45);
+  text-align: center;
+}
+
+.app-sidebar-thanks__line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-main);
+}
+
+.app-sidebar-thanks__heart {
+  flex-shrink: 0;
+  color: #e11d48;
+  fill: #e11d48;
+}
+
+.support-phix-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.support-phix-section {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 1.25rem;
+}
+
+.support-phix-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.support-phix-prose {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.support-phix-prose p {
+  margin: 0 0 0.85rem;
+}
+
+.support-phix-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.support-phix-license-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.support-phix-license-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.support-phix-license-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  width: 100%;
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+button.support-phix-register-btn,
+button.support-phix-register-btn.tab,
+button.support-phix-register-btn.tab.active {
+  flex-shrink: 0;
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+/* PayPal-Spendenbutton (Markenfarben, Link zur Hosted-Spendenseite) */
+.support-phix-donate-text {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.support-phix-paypal-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+a.support-phix-paypal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1.75rem;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  border-radius: 1.375rem;
+  background: linear-gradient(180deg, #ffd96a 0%, #ffc439 55%, #f5ba30 100%);
+  border: 1px solid #e8ad2a;
+  color: #003087;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+a.support-phix-paypal-btn:hover {
+  background: linear-gradient(180deg, #ffe082 0%, #ffd04d 55%, #f7c43a 100%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+  color: #003087;
+  transform: translateY(-1px);
+}
+
+a.support-phix-paypal-btn:focus-visible {
+  outline: 2px solid #003087;
+  outline-offset: 3px;
+}
+
+a.support-phix-paypal-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.support-phix-paypal-btn__mark {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.support-phix-paypal-btn__text {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #003087;
+}
+
+.course-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.course-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.course-item-fav {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  margin: -0.2rem 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  border-radius: 6px;
+  line-height: 0;
+}
+
+.course-item-fav:hover {
+  background: hsl(var(--accent));
+}
+
+.course-item-fav--on {
+  color: #d4af37;
+}
+
+.course-item:hover {
+  background: hsl(var(--accent));
+}
+
+.course-item.active {
+  background: hsl(var(--background));
+  border-color: hsl(var(--foreground) / 0.22);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.course-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.course-item-meta {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-main {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Hauptbereich unter dem Header: begrenzte Höhe, damit view-generic-scroll / view-table-scroll scrollen können */
+.app-main-content-wrap {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0 2rem 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.app-main-views {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tabellen-Views ohne eigenes view-page-scroll: Resthöhe füllen, inneres view-table-scroll kann scrollen */
+.view-root-fill {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-main-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+  padding: 0 2rem 2rem;
+}
+
+.app-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Gesamtübersicht, Einstellungen, Schlüssel: gesamter View-Inhalt scrollt */
+.view-generic-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Gesamtübersicht: undurchsichtiger Tabellenkopf (globale th nutzen sonst halbtransparentes Muted) */
+.summary-overview .table-container thead {
+  position: static;
+}
+
+.summary-overview .table-container thead th {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  /* vollständiges `background` überschreibt globales th (sonst halbtransparentes Muted) */
+  background: hsl(var(--muted));
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* Gesamtübersicht: helle vertikale Linien zwischen Spalten (wie Mündlich) */
+.summary-overview .table-container thead th:not(:last-child),
+.summary-overview .table-container tbody td:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.app-main-empty-state {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+/* Nur Tabellenbereich scrollt; Toolbar bleibt sichtbar (Klausuren / Mündlich / Tests) */
+.view-page-scroll {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.view-toolbar-block {
+  flex-shrink: 0;
+}
+
+.view-table-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Klausur-Scroll: Tabelle (mit Max-Button) + Diagramme untereinander */
+.exams-body-scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabellen-Host nur so hoch wie Inhalt; Reihenfolge = DOM (Tabelle zuerst, Diagramme darunter) */
+.exams-body-scroll > .table-max-host {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Gesamtübersicht: Host für maximierte Tabelle */
+.summary-overview.view-generic-scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+.view-table-scroll > .table-max-host,
+.summary-overview > .table-max-host {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Tabelle optional vollbild; Button rechts oben */
+.table-max-host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.table-max-host--maximized {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: hsl(var(--background));
+  padding: 0.65rem 1rem 1rem;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+}
+
+.table-max-host__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+/* Eingebettet: Toolbar ohne Höhe — Button-Position kommt aus JS (fixed am Scroll-Viewport, über dem Scrollbalken) */
+.table-max-host:not(.table-max-host--maximized) .table-max-host__toolbar {
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.table-max-host__title {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: none;
+}
+
+.table-max-host--maximized .table-max-host__title {
+  display: block;
+}
+
+.table-max-host--maximized .table-max-host__toolbar {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  pointer-events: auto;
+}
+
+.table-max-host__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Kompakt (ca. halb so groß wie zuvor), nur in eingebetteter Ansicht — Lage per fixed + top/right aus JS */
+.table-max-host:not(.table-max-host--maximized) .table-max-host__toggle {
+  pointer-events: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  border-radius: 0.28rem;
+  background: hsl(var(--background) / 0.94);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.table-max-host:not(.table-max-host--maximized) .table-max-host__toggle svg {
+  width: 11px;
+  height: 11px;
+}
+
+.table-max-host--maximized .table-max-host__toggle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+}
+
+.table-max-host__toggle:hover {
+  background: hsl(var(--muted) / 0.55);
+}
+
+.table-max-host:not(.table-max-host--maximized) .table-max-host__toggle:hover {
+  background: hsl(var(--muted) / 0.65);
+}
+
+.table-max-host__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-max-host--maximized .table-max-host__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.table-max-host:not(.table-max-host--maximized) .table-max-host__body {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/*
+ * Wird per JS auf den Scroll-Parent gelegt (neben MaximizableTableSection).
+ * WebKit/Blink: vertikaler Track oben verkürzen, damit Pfeil/Thumb nicht unter dem Max-Button liegt.
+ * (Firefox: nur vertikaler Button-Offset per JS.)
+ */
+.table-max-scroll--reserve-corner::-webkit-scrollbar-track {
+  margin-top: 2.5rem;
+}
+
+.table-max-scroll--reserve-corner {
+  scrollbar-width: thin;
+}
+
+.view-page-scroll > .view-table-scroll {
+  min-height: var(--student-table-min-height);
+}
+
+.view-table-scroll th,
+.view-table-scroll td {
+  padding-top: 1.05rem;
+  padding-bottom: 1.05rem;
+}
+
+.view-table-scroll .table-container {
+  margin-top: 0;
+}
+
+.exams-toolbar,
+.oral-toolbar,
+.tests-toolbar {
+  padding-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: hsl(var(--background));
+}
+
+/* ——— Einstellungszeile Klausuren / Mündlich: gleiche Control-Höhe, Spalten unten bündig ——— */
+.course-meta-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.course-meta-settings-row .course-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.course-meta-settings-row .course-meta-field__label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+  min-height: 1.05rem;
+}
+
+.course-meta-settings-row .course-meta-field__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: var(--course-meta-control-height);
+}
+
+.course-meta-settings-row .course-meta-control,
+.course-meta-settings-row input.course-meta-control:not([type='checkbox']),
+.course-meta-settings-row select.course-meta-control {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  padding: 0 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: hsl(var(--background));
+  color: var(--text-main);
+}
+
+.course-meta-settings-row select.course-meta-control {
+  padding-right: 0.65rem;
+}
+
+.course-meta-settings-row .oral-extended-controls-rail select.course-meta-control {
+  padding-left: 0.4rem;
+  padding-right: 1.35rem;
+}
+
+.course-meta-settings-row .course-meta-inline-btn.tab,
+.course-meta-settings-row button.course-meta-inline-btn.tab {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+/* Schülerverwaltung: Buttons auf Höhe der Eingabefelder (nicht der Label-Zeile) */
+.school-roster-inline-actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.school-roster-inline-actions__label-spacer {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.school-roster-inline-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Schülerverwaltung: Formularzeile — Eingaben und Buttons gleiche Höhe */
+.school-roster-add-form input,
+.school-roster-add-form select {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.school-roster-years-row select,
+.settings-roster-transfer-row select,
+.settings-roster-transfer-row input[type='search'] {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+/* Schülerverwaltung: Aktions-Buttons in Höhe der Eingabefelder */
+button.school-roster-control-btn,
+button.school-roster-control-btn.tab,
+button.school-roster-control-btn.tab.active,
+button.school-roster-control-btn.tab.secondary,
+button.school-roster-control-btn.danger {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.exams-active-body {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.exams-active-body.sidebar-layout {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1.5rem;
+}
+
+.exams-main-stack {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tabelle im Hauptbereich; Toolbar der Seite bleibt fix */
+.exams-main-stack > .exams-body-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.exam-charts-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.exam-charts-modal-dialog {
+  background: hsl(var(--background));
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: min(1200px, 100%);
+  max-height: min(96dvh, calc(100vh - 1.5rem));
+  overflow: auto;
+  width: 100%;
+}
+
+.exam-charts-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: hsl(var(--background));
+  z-index: 2;
+}
+
+.exam-charts-modal-body {
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+
+/* Platz über den Balkendiagrammen: Zähler über den Balken + weniger Abschneiden am Dialogrand */
+.exam-charts-modal-body--charts {
+  padding-top: 1.75rem;
+  padding-bottom: 2rem;
+}
+
+/* Klausur-Analyse: keine gleich hohen Karten — vermeidet unnötiges Scrollen in Spalten */
+.exam-charts-grid {
+  align-items: start;
+}
+
+/* Klick-Popover über dem Modal (Portal), nicht von .exam-charts-modal-dialog overflow abgeschnitten */
+.exam-charts-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4500;
+  background: transparent;
+}
+
+.exam-charts-popover-panel {
+  position: fixed;
+  z-index: 4501;
+  box-sizing: border-box;
+  min-width: 11rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: hsl(var(--background));
+  border: 2px solid var(--border);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 18px 40px rgba(0, 0, 0, 0.14);
+}
+
+/* Mündlich: Hilfe-Dialog „Berechnungsvorschrift“ */
+.oral-formula-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.oral-formula-modal-dialog {
+  background: hsl(var(--background));
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+  max-width: min(32rem, calc(100vw - 2rem));
+  max-height: min(85dvh, 100%);
+  overflow: auto;
+  width: 100%;
+}
+
+.oral-formula-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: hsl(var(--background));
+  z-index: 1;
+}
+
+.oral-formula-modal-body {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.sidebar-layout > .exams-main-stack.main-content {
+  flex: 1 1 0%;
+}
+
+/* Schlüssel neben der Tabelle: begrenzte Höhe (Zeile mit main-stack), Inhalt scrollbar */
+.exams-key-sidebar {
+  flex-shrink: 0;
+  width: 250px;
+  min-height: 0;
+  align-self: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1100px) {
+  .exams-active-body.sidebar-layout {
+    flex-direction: column;
+  }
+
+  .exams-key-sidebar {
+    width: 100%;
+    /* Unter der Tabelle: eigener Scrollbereich, Rest nicht von view-page-scroll abgeschnitten */
+    max-height: min(55vh, 28rem);
+  }
+}
+
+/* Klausuren: zweizeiliges thead nur vertikal im Scroll-Container kleben */
+.exam-table-scroll thead th.exam-th-r1,
+.exam-table-scroll thead th.exam-th-r2 {
+  position: sticky;
+  background: hsl(var(--muted) / 0.95);
+}
+
+.exam-table-scroll thead tr:first-child th.exam-th-r1 {
+  top: 0;
+  z-index: 3;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.exam-table-scroll thead tr:nth-child(2) th.exam-th-r2 {
+  top: 2.75rem;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* Zweite Kopfzeile: nur die scrollenden Mittelfelder niedrig — unter # / NAME (sticky) */
+.exam-table-scroll thead tr:nth-child(2) th.exam-th-r2:not(.exam-th-sticky-left):not(.exam-th-sticky-right) {
+  z-index: 1;
+}
+
+/*
+ * Sticky-Ecken: erste Zeile über zweiter (vertikaler Überlapp), beide über scrollenden Zellen.
+ * Spezifität höher als tr:nth-child(2) th.exam-th-r2, damit z-index nicht auf 2 erzwungen wird.
+ */
+.exam-table-scroll thead tr:first-child th.exam-th-sticky-left,
+.exam-table-scroll thead tr:first-child th.exam-th-sticky-right {
+  z-index: 9;
+}
+
+.exam-table-scroll thead tr:nth-child(2) th.exam-th-sticky-left,
+.exam-table-scroll thead tr:nth-child(2) th.exam-th-sticky-right {
+  z-index: 8;
+}
+
+.exam-table-scroll thead th.exam-th-sticky-left {
+  border-right: 1px solid var(--border);
+}
+
+.exam-table-scroll thead th.exam-th-sticky-right {
+  border-left: 1px solid var(--border);
+}
+
+/* Klausuren: helle vertikale Linien zwischen Spalten (wie Mündlich) */
+.exam-table-scroll .table-container thead th:not(:last-child),
+.exam-table-scroll .table-container tbody td:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+/* #-Spalte Klausur: Lesezeichen (Tooltip per Portal in ExamsView, nicht per ::after) */
+.exam-index-flag {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  z-index: 5;
+  line-height: 0;
+  cursor: default;
+}
+
+.exam-table-scroll input.exam-score-input--out-of-range {
+  background: hsl(var(--danger-hsl) / 0.12) !important;
+  border: 1px solid hsl(var(--danger-hsl) / 0.5) !important;
+  color: var(--danger);
+}
+
+/* GFS: „Gehalten“ — Zelle einfärben (unchecked: accent-color wirkt im Browser oft kaum) */
+.gfs-gehalten-td {
+  padding: 0.4rem 0.5rem !important;
+}
+
+.gfs-gehalten-td--unchecked {
+  background: hsl(32 100% 93%) !important;
+  box-shadow: inset 0 0 0 1px hsl(32 60% 82%);
+}
+
+.gfs-gehalten-td--unchecked .gfs-gehalten-checkbox {
+  accent-color: hsl(28 80% 44%);
+}
+
+.gfs-gehalten-td--checked {
+  background: hsl(142 48% 91%) !important;
+  box-shadow: inset 0 0 0 1px hsl(142 40% 78%);
+}
+
+.gfs-gehalten-td--checked .gfs-gehalten-checkbox {
+  accent-color: hsl(142 55% 34%);
+}
+
+.gfs-gehalten-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.gfs-gehalten-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* Zeilen-Hover würde sonst die Zellfarbe überschreiben */
+tbody tr:hover td.gfs-gehalten-td--unchecked {
+  background: hsl(32 100% 91%) !important;
+  box-shadow: inset 0 0 0 1px hsl(32 58% 80%);
+}
+
+tbody tr:hover td.gfs-gehalten-td--checked {
+  background: hsl(142 50% 89%) !important;
+  box-shadow: inset 0 0 0 1px hsl(142 40% 76%);
+}
+
+/* GFS-Notenfeld: zentriert; schlechter als 4 wie Klausur-Außerhalb-Bereich */
+.gfs-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.gfs-note-input--worse-than-4 {
+  background: hsl(var(--danger-hsl) / 0.12) !important;
+  border: 1px solid hsl(var(--danger-hsl) / 0.5) !important;
+  color: var(--danger);
+}
+
+/* Klausur-Fähnchen: Tooltip am document.body, unabhängig von Tabellen-overflow */
+.exam-index-tooltip-portal {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--text-main);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.view-table-scroll:not(.exam-table-scroll):not(.oral-table-scroll) thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: hsl(var(--muted) / 0.95);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* Mündlich: horizontale Sticky-Spalten; Kopfzeile klebt vertikal im Scroll-Container */
+.oral-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: hsl(var(--muted) / 0.95);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.oral-table-scroll thead th.oral-th-sticky-left,
+.oral-table-scroll thead th.oral-th-sticky-right {
+  z-index: 5;
+  background: hsl(var(--muted) / 0.95);
+}
+
+.oral-table-scroll thead th.oral-th-sticky-left {
+  border-right: 1px solid var(--border);
+}
+
+.oral-table-scroll thead th.oral-th-sticky-right {
+  border-left: 1px solid var(--border);
+}
+
+@media (max-width: 980px) {
+  .header-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-search-wrap {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/*
+ * Smartphone & schmale Viewports (≤640px): Layout und Tabellen nutzbar machen.
+ * Keine Regeln oberhalb dieses Breakpoints ändern — Desktop bleibt unverändert.
+ */
+@media (max-width: 640px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100% !important;
+    height: auto;
+    max-height: min(38dvh, 260px);
+    min-height: 0;
+    flex-shrink: 0;
+    position: relative;
+    top: auto;
+    align-self: stretch;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .app-sidebar.collapsed {
+    width: 100% !important;
+    max-height: 3.5rem;
+    overflow: hidden;
+  }
+
+  .app-main {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .app-main-content-wrap {
+    padding: 0 max(0.65rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px))
+      max(0.65rem, env(safe-area-inset-left, 0px));
+  }
+
+  .app-main-inner {
+    padding-left: max(0.65rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.65rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .sticky-header {
+    padding: 0.4rem max(0.6rem, env(safe-area-inset-right, 0px)) 0.5rem max(0.6rem, env(safe-area-inset-left, 0px));
+    margin-bottom: 0.65rem;
+  }
+
+  .sticky-header h1 {
+    font-size: 1.125rem;
+    line-height: 1.25;
+  }
+
+  /* Kopfzeile: Klassentitel volle Breite, Navigation darunter */
+  .sticky-header > div > div:first-child {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.5rem;
+  }
+
+  .sticky-header .tabs.equiphi-tabs {
+    justify-content: flex-start;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Seiten-Toolbars (Klausuren, Mündlich, Tests, …): keine gequetschte Zeile */
+  .app-main-views .flex.justify-between.items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.65rem;
+  }
+
+  .exams-toolbar .course-meta-settings-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .app-main-views .flex.items-end.gap-6 {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .oral-meta-panel.course-meta-settings-row {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .oral-extended-controls-rail {
+    margin-left: 0 !important;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .app-main-views h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Breite Tabellen: horizontal wischen, natürliche Spaltenbreiten */
+  .table-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .view-table-scroll table,
+  .table-container table,
+  .summary-overview .table-container table {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
+  th,
+  td {
+    padding: 0.5rem 0.45rem;
+    font-size: 0.8125rem;
+  }
+
+  .view-table-scroll th,
+  .view-table-scroll td {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
+  .exam-charts-modal-backdrop {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .exam-charts-modal-dialog {
+    max-height: 95dvh;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .exam-charts-modal-body {
+    padding: 0.85rem;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

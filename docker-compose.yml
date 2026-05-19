@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./Notenauswertung-App
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-1990}:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=postgresql://noten_user:noten_password@db:5432/notenauswertung?schema=public
+      # Optional (nur bei leerer AppUser-Tabelle): - BOOTSTRAP_ADMIN_PASSWORD=…
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: noten_user
+      POSTGRES_PASSWORD: noten_password
+      POSTGRES_DB: notenauswertung
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  pgdata:
