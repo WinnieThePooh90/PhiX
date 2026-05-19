@@ -29,11 +29,11 @@ import KeysView from './views/KeysView';
 import SupportPhiXView from './views/SupportPhiXView';
 import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
-
-const MOBILE_MEDIA = '(max-width: 768px)';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
+
+const MOBILE_MEDIA = '(max-width: 768px)';
 
 /** Schuljahres-String z. B. „2025/2026“ → erstes Jahr für Sortierung (höher = neuer = weiter oben). */
 function schoolYearStartForSort(yearRaw) {
@@ -74,6 +74,20 @@ function App() {
   const { registered: phixRegistered } = usePhiXRegistration();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const [activeTab, setActiveTab] = useState('summary');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
+  );
+  const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [selectedYearFilter, setSelectedYearFilter] = useState('');
+  const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
+  const [headerSearch, setHeaderSearch] = useState('');
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [settingsMenuPos, setSettingsMenuPos] = useState(null);
+  const settingsMenuRef = useRef(null);
+  const settingsGearRef = useRef(null);
+  const settingsDropdownRef = useRef(null);
 
   const showTestsTab = config?.testsWritten !== false;
   const showGfsTab = config?.gfsAccepted !== false;
@@ -108,20 +122,6 @@ function App() {
     setMobileCoursesOpen(false);
     setMobileSettingsOpen(false);
   }, [activeTab, isNewCoursePage]);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
-  );
-  const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
-  const [selectedYearFilter, setSelectedYearFilter] = useState('');
-  const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
-  const [headerSearch, setHeaderSearch] = useState('');
-  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
-  const [settingsMenuPos, setSettingsMenuPos] = useState(null);
-  const settingsMenuRef = useRef(null);
-  const settingsGearRef = useRef(null);
-  const settingsDropdownRef = useRef(null);
 
   const uniqueYears = [...new Set(courses.map((c) => c.year))].sort().reverse();
 
