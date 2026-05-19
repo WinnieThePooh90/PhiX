@@ -81,7 +81,7 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
       }
       logout();
       window.alert(
-        'PhiX wird heruntergefahren. Sie können das Browserfenster schließen; bei nativer Installation auch die Konsolenfenster.',
+        'PhiX wird heruntergefahren. Alle Container werden gestoppt – Sie können das Browserfenster schließen.',
       );
     } catch (err) {
       window.alert(`Herunterfahren fehlgeschlagen: ${err?.message || err}`);

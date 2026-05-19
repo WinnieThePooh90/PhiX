@@ -1,3 +1,8 @@
+# Fester Projektname: „Herunterfahren“ im Backend-Container ruft
+# docker compose … down mit derselben Datei auf – sonst passt der Name nicht
+# (Host nutzt den Ordnernamen, im Container wäre es sonst nur „compose“).
+name: phix
+
 version: '3.8'
 
 services:
@@ -21,6 +26,7 @@ services:
       - DATABASE_URL=postgresql://noten_user:noten_password@db:5432/notenauswertung?schema=public
       - PHIX_DOCKER_SHUTDOWN=1
       - PHIX_COMPOSE_DIR=/compose
+      - PHIX_COMPOSE_PROJECT_NAME=phix
       # Optional (nur bei leerer AppUser-Tabelle): - BOOTSTRAP_ADMIN_PASSWORD=…
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

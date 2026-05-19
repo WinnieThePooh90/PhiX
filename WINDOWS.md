@@ -45,7 +45,9 @@ Docker Compose bleibt die empfohlene Variante (unveraendert). Zusaetzlich koenne
 2. `start_docker.bat` doppelklicken  
 3. Browser: **http://localhost:1990**
 
-Stoppen: `stop_docker.bat` oder `docker compose down`
+Stoppen: `stop_docker.bat`, **Herunterfahren** im Benutzermenü (rechts oben) oder `docker compose down`
+
+Nach Aenderungen am Shutdown: einmal `docker compose build backend` und `docker compose up -d` (fester Projektname `phix` in `docker-compose.yml`).
 
 Ports in `.env` (Vorlage: `.env.example`):
 
