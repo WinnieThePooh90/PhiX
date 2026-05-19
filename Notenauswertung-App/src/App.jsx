@@ -670,24 +670,26 @@ function App() {
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="app-mobile-page-settings-toggle"
-                  onClick={() => setMobilePageSettingsExpanded((e) => !e)}
-                  aria-expanded={mobilePageSettingsExpanded}
-                  aria-label={
-                    mobilePageSettingsExpanded
-                      ? 'Einstellungen dieser Seite einklappen'
-                      : 'Einstellungen dieser Seite ausklappen'
-                  }
-                >
-                  {mobilePageSettingsExpanded ? (
-                    <ChevronUp size={20} strokeWidth={2.25} aria-hidden />
-                  ) : (
-                    <ChevronDown size={20} strokeWidth={2.25} aria-hidden />
-                  )}
-                  <span>Einstellungen</span>
-                </button>
+                {activeTab !== 'summary' && (
+                  <button
+                    type="button"
+                    className="app-mobile-page-settings-toggle"
+                    onClick={() => setMobilePageSettingsExpanded((e) => !e)}
+                    aria-expanded={mobilePageSettingsExpanded}
+                    aria-label={
+                      mobilePageSettingsExpanded
+                        ? 'Einstellungen dieser Seite einklappen'
+                        : 'Einstellungen dieser Seite ausklappen'
+                    }
+                  >
+                    {mobilePageSettingsExpanded ? (
+                      <ChevronUp size={20} strokeWidth={2.25} aria-hidden />
+                    ) : (
+                      <ChevronDown size={20} strokeWidth={2.25} aria-hidden />
+                    )}
+                    <span>Einstellungen</span>
+                  </button>
+                )}
               </MobileAppHeader>
             ) : (
               <div className="sticky-header">
