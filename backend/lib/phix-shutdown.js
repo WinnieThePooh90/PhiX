@@ -1,12 +1,20 @@
 const path = require('path');
 const fs = require('fs');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
 
 function pgCtlPath(pgBin) {
   return path.join(pgBin, process.platform === 'win32' ? 'pg_ctl.exe' : 'pg_ctl');
+}
+
+function dockerCmd() {
+  return process.platform === 'win32' ? 'docker.exe' : 'docker';
+}
+
+function composeProjectName() {
+  return process.env.COMPOSE_PROJECT_NAME || process.env.PHIX_COMPOSE_PROJECT_NAME || 'phix';
 }
 
 /** Repository-Root mit docker-compose.yml (Backend läuft aus …/backend). */
@@ -22,6 +30,11 @@ function resolveComposeDir() {
     return fromEnv;
   }
   return defaultComposeDir();
+}
+
+function composeBaseArgs(composeFile) {
+  const args = ['compose', '-p', composeProjectName(), '-f', composeFile];
+  return args;
 }
 
 /** Portable Windows: mitgelieferte PostgreSQL-Instanz stoppen. */
@@ -45,21 +58,25 @@ async function stopDockerComposeDb() {
   if (!composeDir) return;
 
   const composeFile = path.join(composeDir, 'docker-compose.yml');
-  const dockerCmd = process.platform === 'win32' ? 'docker.exe' : 'docker';
+  const cmd = dockerCmd();
 
   try {
-    await execFileAsync(
-      dockerCmd,
-      ['compose', '-f', composeFile, 'stop', 'db'],
-      { cwd: composeDir, timeout: 60000 },
-    );
+    await execFileAsync(cmd, [...composeBaseArgs(composeFile), 'stop', 'db'], {
+      cwd: composeDir,
+      timeout: 60000,
+      env: process.env,
+    });
     console.log('[shutdown] PostgreSQL-Container (docker compose db) gestoppt.');
   } catch (err) {
     console.warn('[shutdown] docker compose stop db:', err.message || err);
   }
 }
 
-/** Docker Compose: gesamten Stack stoppen (Backend-Container mit Socket). */
+/**
+ * Stack per Docker Compose beenden.
+ * „down“ darf nicht synchron im Backend-Container laufen: Compose stoppt dabei
+ * zuerst den Backend-Container und bricht ab – oft bleibt nur phix-db-1 laufen.
+ */
 async function stopDockerComposeStack() {
   const composeDir = resolveComposeDir();
   if (!composeDir) {
@@ -68,26 +85,41 @@ async function stopDockerComposeStack() {
   }
 
   const composeFile = path.join(composeDir, 'docker-compose.yml');
-  const dockerCmd = process.platform === 'win32' ? 'docker.exe' : 'docker';
-  const projectFromEnv = process.env.COMPOSE_PROJECT_NAME || process.env.PHIX_COMPOSE_PROJECT_NAME;
-  const downArgs = ['compose'];
-  if (projectFromEnv) {
-    downArgs.push('-p', projectFromEnv);
-  }
-  downArgs.push('-f', composeFile, 'down', '--remove-orphans');
+  const cmd = dockerCmd();
+  const base = composeBaseArgs(composeFile).join(' ');
+  const downLine = `${cmd} ${base} down --remove-orphans`;
 
+  // DB und Frontend zuerst (dieser Prozess läuft noch im Backend-Container).
   try {
-    await execFileAsync(dockerCmd, downArgs, {
-      cwd: composeDir,
-      timeout: 120000,
-      env: process.env,
-    });
-    console.log('[shutdown] Docker Compose gestoppt.');
-    return true;
+    await execFileAsync(
+      cmd,
+      [...composeBaseArgs(composeFile), 'stop', 'db', 'frontend'],
+      { cwd: composeDir, timeout: 60000, env: process.env },
+    );
+    console.log('[shutdown] db und frontend gestoppt.');
   } catch (err) {
-    console.warn('[shutdown] docker compose down:', err.message || err);
-    return false;
+    console.warn('[shutdown] docker compose stop db frontend:', err.message || err);
   }
+
+  // Restlichen Stack im Hintergrund abbauen (überlebt Ende dieses Containers).
+  const shellScript = `sleep 1 && ${downLine}`;
+
+  return new Promise((resolve) => {
+    try {
+      const child = spawn('sh', ['-c', shellScript], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: composeDir,
+        env: process.env,
+      });
+      child.unref();
+      console.log('[shutdown] docker compose down (Hintergrund) gestartet.');
+      resolve(true);
+    } catch (err) {
+      console.warn('[shutdown] Hintergrund-down:', err.message || err);
+      resolve(false);
+    }
+  });
 }
 
 /**
@@ -111,8 +143,8 @@ async function shutdownPhix(deps = {}) {
     });
   }
 
-  // PostgreSQL: immer bestmöglich beenden (eingebettet +/oder Docker-DB).
   await stopEmbeddedPostgres();
+
   let composeDownOk = true;
   if (fullDockerShutdown) {
     composeDownOk = await stopDockerComposeStack();
@@ -120,15 +152,13 @@ async function shutdownPhix(deps = {}) {
     await stopDockerComposeDb();
   }
 
-  // Bei Docker-Shutdown: compose down muss greifen. Sonst beendet sich nur Node,
-  // und restart:unless-stopped startet den Backend-Container sofort wieder.
   if (fullDockerShutdown && !composeDownOk) {
-    console.error('[shutdown] Abbruch: Stack nicht gestoppt (siehe Logs oben).');
+    console.error('[shutdown] Abbruch: Stack-Herunterfahren konnte nicht gestartet werden.');
     process.exit(1);
     return;
   }
 
-  setTimeout(() => process.exit(0), 200);
+  setTimeout(() => process.exit(0), 300);
 }
 
 module.exports = { shutdownPhix };

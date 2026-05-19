@@ -47,7 +47,7 @@ Docker Compose bleibt die empfohlene Variante (unveraendert). Zusaetzlich koenne
 
 Stoppen: `stop_docker.bat`, **Herunterfahren** im Benutzermenü (rechts oben) oder `docker compose down`
 
-Nach Aenderungen am Shutdown: einmal `docker compose build backend` und `docker compose up -d` (fester Projektname `phix` in `docker-compose.yml`).
+Nach Aenderungen am Shutdown: einmal `docker compose build backend` und `docker compose up -d` (fester Projektname `phix` in `docker-compose.yml`). Herunterfahren stoppt zuerst DB/Frontend, danach `compose down` im Hintergrund (sonst bleibt oft nur `phix-db-1` laufen).
 
 Ports in `.env` (Vorlage: `.env.example`):
 
