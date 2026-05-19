@@ -210,8 +210,8 @@ export default function KlassenlehrerView() {
                 <thead>
                   <tr>
                     <th className="text-center klassenlehrer-num-col">Nr.</th>
-                    <th>Name</th>
-                    <th>Vorname</th>
+                    <th className="klassenlehrer-name-col">Name</th>
+                    <th className="klassenlehrer-name-col">Vorname</th>
                     <th className="text-center klassenlehrer-paid-col">Bezahlt</th>
                   </tr>
                 </thead>
@@ -222,8 +222,12 @@ export default function KlassenlehrerView() {
                     return (
                       <tr key={row.id}>
                         <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
-                        <td>{row.lastName || '—'}</td>
-                        <td>{row.firstName || '—'}</td>
+                        <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
+                          {row.lastName || '—'}
+                        </td>
+                        <td className="klassenlehrer-name-col" title={row.firstName || undefined}>
+                          {row.firstName || '—'}
+                        </td>
                         <td
                           className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
                           title={paid ? 'Bezahlt' : 'Noch nicht bezahlt'}

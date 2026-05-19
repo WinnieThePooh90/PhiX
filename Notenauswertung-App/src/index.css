@@ -190,6 +190,7 @@ p {
 
 .klassenlehrer-money-table-scroll .data-table {
   width: 100%;
+  table-layout: fixed;
 }
 
 .klassenlehrer-money-table-scroll thead th {
@@ -212,13 +213,25 @@ p {
   box-sizing: border-box;
 }
 
+.klassenlehrer-money-table-scroll th.klassenlehrer-name-col,
+.klassenlehrer-money-table-scroll td.klassenlehrer-name-col {
+  width: 5.5rem;
+  max-width: 5.5rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
 .klassenlehrer-money-table-scroll th.klassenlehrer-paid-col,
 .klassenlehrer-money-table-scroll td.klassenlehrer-paid-col {
-  width: 4.25rem;
-  min-width: 4.25rem;
-  max-width: 4.25rem;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
+  width: 5.75rem;
+  min-width: 5.75rem;
+  max-width: 5.75rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
   box-sizing: border-box;
 }
 
