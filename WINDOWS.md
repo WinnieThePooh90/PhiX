@@ -53,7 +53,9 @@ Ports in `.env` (Vorlage: `.env.example`):
 
 - `FRONTEND_PORT` (Standard 1990)
 - `BACKEND_PORT` (Standard 3000)
-- `DB_PORT` (Standard 5432)
+- `DB_PORT` (Standard 5432) – nur der **Host**-Port; im Docker-Netz bleibt die DB intern auf 5432
+
+**Fehler `Bind for 0.0.0.0:5432 failed: port is already allocated`:** Port 5432 ist auf dem PC schon belegt (alter `phix-db`-Container, `start_db_docker.bat`, oder lokale PostgreSQL). Lösung: `stop_docker.bat`, in Docker Desktop alle Postgres-Container stoppen, oder in `.env` z. B. `DB_PORT=5433` setzen und erneut `docker compose up -d`.
 
 ## Variante 2: Nativ mit Datenbank in Docker
 
