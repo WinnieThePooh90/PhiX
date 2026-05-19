@@ -2797,9 +2797,15 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .app-container--mobile .view-page-scroll > .view-toolbar-block,
   .app-container--mobile .view-root-fill > .view-toolbar-block {
     max-height: min(42dvh, 320px);
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .app-container--mobile .view-toolbar-block .course-meta-settings-row {
+    width: max-content;
+    max-width: none;
+    min-width: min(100%, max-content);
   }
 
   .app-container--mobile .course-meta-settings-row:not(.oral-meta-panel) {
@@ -3066,12 +3072,22 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     font-size: 1.2rem;
   }
 
-  /* Breite Tabellen: ein Scroll-Container, horizontales & vertikales Wischen */
+  /* Breite Tabellen: Host wächst mit Tabelleninhalt (nicht schmaler als Inhalt) */
+  .app-container--mobile .view-table-scroll > .table-max-host:not(.table-max-host--maximized),
+  .app-container--mobile .gfs-table-scroll > .table-max-host:not(.table-max-host--maximized) {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
   .app-container--mobile .view-table-scroll .table-container,
   .app-container--mobile .gfs-table-scroll .table-container,
   .app-container--mobile .view-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body,
   .app-container--mobile .gfs-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
     overflow: visible;
+    width: max-content;
+    min-width: 100%;
     max-width: none;
   }
 
@@ -3171,10 +3187,47 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     max-width: none;
     padding: 0.35rem 0.4rem;
     font-size: 0.8125rem;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .gfs-table-scroll tbody td input[type='text'] {
+    min-width: 5.5rem;
   }
 
   .app-container--mobile .gfs-table-scroll tbody td input[type='date'] {
-    min-width: 9rem;
+    min-width: 9.25rem;
+  }
+
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(2) {
+    min-width: 5.5rem !important;
+  }
+
+  .app-container--mobile .gfs-table-scroll thead th:nth-child(3),
+  .app-container--mobile .gfs-table-scroll thead th:nth-child(4),
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(3),
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(4) {
+    min-width: 5.5rem !important;
+  }
+
+  .app-container--mobile .gfs-table-scroll thead th:nth-child(5),
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(5) {
+    min-width: 9.25rem !important;
+  }
+
+  .app-container--mobile .gfs-table-scroll thead th:nth-child(7),
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(7) {
+    min-width: 4.5rem !important;
+  }
+
+  .app-container--mobile .gfs-table-scroll thead th:nth-child(8),
+  .app-container--mobile .gfs-table-scroll tbody td:nth-child(8) {
+    min-width: 4.25rem !important;
+  }
+
+  .app-container--mobile .view-generic-scroll--gfs > .view-page-chrome {
+    width: max-content;
+    max-width: 100%;
+    min-width: min(100%, max-content);
   }
 
   .exam-charts-modal-backdrop {

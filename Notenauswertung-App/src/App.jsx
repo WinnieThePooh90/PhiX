@@ -322,6 +322,9 @@ function App() {
     settingsOpen: mobileSettingsOpen,
   };
 
+  const showMobilePageSettingsToggle =
+    activeTab === 'exams' || activeTab === 'oral' || activeTab === 'tests' || activeTab === 'gfs';
+
   const renderMainTabsNav = (className = '') => (
     <nav
       className={`tabs equiphi-tabs${className ? ` ${className}` : ''}`.trim()}
@@ -670,7 +673,7 @@ function App() {
                     />
                   </div>
                 </div>
-                {activeTab !== 'summary' && (
+                {showMobilePageSettingsToggle && (
                   <button
                     type="button"
                     className="app-mobile-page-settings-toggle"
