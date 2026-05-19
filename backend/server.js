@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
+const { shutdownPhix } = require('./lib/phix-shutdown');
 require('dotenv').config();
 
 const app = express();
@@ -879,6 +880,20 @@ app.delete('/api/gfs/:id', async (req, res) => {
   res.status(204).send();
 });
 
+app.post('/api/shutdown', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+
+  res.json({ ok: true, message: 'PhiX wird heruntergefahren.' });
+
+  setImmediate(() => {
+    shutdownPhix({ prisma, server: httpServer }).catch((err) => {
+      console.error('[shutdown] Fehler:', err);
+      process.exit(1);
+    });
+  });
+});
+
 /** Standalone-Windows: gebautes Frontend vom Backend ausliefern (ein Prozess, Port 3000). */
 function setupStandaloneFrontend() {
   const standalone =
@@ -910,7 +925,7 @@ function setupStandaloneFrontend() {
 setupStandaloneFrontend();
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+const httpServer = app.listen(PORT, async () => {
   await migrateData();
   await ensureAppUsers();
   console.log(`Server running on port ${PORT}`);

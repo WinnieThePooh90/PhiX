@@ -1078,6 +1078,14 @@ tfoot td {
   background: hsl(var(--muted));
 }
 
+.header-settings-dropdown button.header-settings-dropdown-item--danger {
+  color: hsl(0 72% 42%);
+}
+
+.header-settings-dropdown button.header-settings-dropdown-item--danger:hover {
+  background: hsl(0 72% 42% / 0.1);
+}
+
 .header-settings-dropdown button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.18);

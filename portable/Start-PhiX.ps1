@@ -65,11 +65,15 @@ $backendEnv = Join-Path $backendDir '.env'
 DATABASE_URL="$dbUrl"
 PHIX_STANDALONE=1
 PORT=$($config.httpPort)
+PHIX_PGDATA=$pgData
+PHIX_PGBIN=$pgBin
 "@ | Set-Content -Path $backendEnv -Encoding UTF8
 
 $env:DATABASE_URL = $dbUrl
 $env:PHIX_STANDALONE = '1'
 $env:PHIX_FRONTEND_DIST = $frontendDist
+$env:PHIX_PGDATA = $pgData
+$env:PHIX_PGBIN = $pgBin
 $env:PORT = [string]$config.httpPort
 
 $url = "http://127.0.0.1:$($config.httpPort)/"

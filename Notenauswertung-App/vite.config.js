@@ -6,12 +6,11 @@ function shutdownPlugin() {
   return {
     name: 'shutdown-plugin',
     configureServer(server) {
-      server.middlewares.use('/shutdown', (req, res) => {
+      server.middlewares.use('/shutdown', (req, res, next) => {
+        if (req.method !== 'POST') return next();
         res.statusCode = 200;
-        res.end('Sever killed');
-        setTimeout(() => {
-          process.exit(0);
-        }, 500);
+        res.end('Vite dev server stopped');
+        setTimeout(() => process.exit(0), 300);
       });
     }
   }

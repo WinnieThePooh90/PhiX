@@ -58,6 +58,36 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [open]);
 
+  const handleShutdown = async () => {
+    if (
+      !window.confirm(
+        'PhiX wirklich herunterfahren?\n\nServer, Datenbank und alle zugehörigen Dienste werden beendet.',
+      )
+    ) {
+      return;
+    }
+    setMenuOpen(false);
+    const headers = { 'Content-Type': 'application/json' };
+    if (currentUser?.username) headers['X-Acting-User'] = currentUser.username;
+
+    try {
+      if (import.meta.env.DEV) {
+        fetch('/shutdown', { method: 'POST' }).catch(() => {});
+      }
+      const res = await fetch('/api/shutdown', { method: 'POST', headers });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      logout();
+      window.alert(
+        'PhiX wird heruntergefahren. Sie können das Browserfenster schließen; bei nativer Installation auch die Konsolenfenster.',
+      );
+    } catch (err) {
+      window.alert(`Herunterfahren fehlgeschlagen: ${err?.message || err}`);
+    }
+  };
+
   if (!currentUser) return null;
 
   return (
@@ -100,6 +130,14 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
               }}
             >
               Abmelden
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="header-settings-dropdown-item--danger"
+              onClick={handleShutdown}
+            >
+              Herunterfahren
             </button>
           </div>,
           document.body,

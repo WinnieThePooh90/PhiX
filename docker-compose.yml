@@ -9,7 +9,7 @@ services:
       - "${FRONTEND_PORT:-1990}:80"
     depends_on:
       - backend
-    restart: always
+    restart: unless-stopped
 
   backend:
     build:
@@ -19,10 +19,15 @@ services:
       - "${BACKEND_PORT:-3000}:3000"
     environment:
       - DATABASE_URL=postgresql://noten_user:noten_password@db:5432/notenauswertung?schema=public
+      - PHIX_DOCKER_SHUTDOWN=1
+      - PHIX_COMPOSE_DIR=/compose
       # Optional (nur bei leerer AppUser-Tabelle): - BOOTSTRAP_ADMIN_PASSWORD=…
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/compose:ro
     depends_on:
       - db
-    restart: always
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine
@@ -34,7 +39,7 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: always
+    restart: unless-stopped
 
 volumes:
   pgdata:
