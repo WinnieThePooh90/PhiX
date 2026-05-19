@@ -240,6 +240,19 @@ export const DataProvider = ({ children }) => {
     return undefined;
   }, [activeCourseId, currentUser?.username, fetchWithActing]);
 
+  const refreshMoneyLists = useCallback(async () => {
+    if (!activeCourseId) {
+      setMoneyLists([]);
+      return;
+    }
+    try {
+      const data = await fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json());
+      setMoneyLists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to refresh money lists', err);
+    }
+  }, [activeCourseId, fetchWithActing]);
+
   const apiCall = useCallback(async (url, method, body) => {
     try {
       const res = await fetchWithActing(url, {
@@ -379,6 +392,7 @@ export const DataProvider = ({ children }) => {
     const created = await apiCall('/api/students', 'POST', { ...student, frontendId: tempId, courseId: activeCourseId });
     if (created) {
       setStudents(prev => prev.map(s => s.frontendId == tempId ? created : s));
+      await refreshMoneyLists();
     }
   };
 
@@ -392,6 +406,7 @@ export const DataProvider = ({ children }) => {
       if (!activeCourseId) return;
       const studentsRes = await fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json());
       setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
+      await refreshMoneyLists();
     } catch (err) {
       console.error(err);
     }
@@ -401,14 +416,21 @@ export const DataProvider = ({ children }) => {
     if (!activeCourseId) return;
     await apiCall(`/api/students?courseId=${activeCourseId}`, 'DELETE');
     setStudents([]);
+    await refreshMoneyLists();
   };
   
   const updateStudentConfig = (id, field, value) => {
+    const syncMoneyListsAfterSave =
+      field === 'firstName' || field === 'lastName' || field === 'studentNumber';
     setStudents((prev) => {
       const student = prev.find((s) => s.id === id);
       if (!student) return prev;
       const merged = { ...student, [field]: value };
-      apiCall(`/api/students/${id}`, 'PUT', { ...merged, courseId: merged.courseId ?? activeCourseId });
+      void apiCall(`/api/students/${id}`, 'PUT', { ...merged, courseId: merged.courseId ?? activeCourseId }).then(
+        () => {
+          if (syncMoneyListsAfterSave) refreshMoneyLists();
+        },
+      );
       return prev.map((s) => (s.id === id ? merged : s));
     });
   };

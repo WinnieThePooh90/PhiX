@@ -552,6 +552,7 @@ app.delete('/api/students', async (req, res) => {
   const ok = await assertCourseAccess(req, res, courseId);
   if (!ok) return;
   await prisma.student.deleteMany({ where: { courseId } });
+  await syncMoneyListEntriesForCourse(courseId);
   res.status(204).send();
 });
 
@@ -579,6 +580,7 @@ app.post('/api/students', async (req, res) => {
       frontendId: frontendId ? BigInt(frontendId) : null,
     }
   });
+  await syncMoneyListEntriesForCourse(targetCourseId);
   res.json({ ...student, frontendId: student.frontendId ? student.frontendId.toString() : null });
 });
 
@@ -641,6 +643,7 @@ app.delete('/api/students/:id', async (req, res) => {
         }),
       ),
     );
+    await syncMoneyListEntriesForCourse(courseId);
   }
 
   res.status(204).send();
@@ -880,6 +883,45 @@ app.delete('/api/gfs/:id', async (req, res) => {
   await prisma.gfsEntry.delete({ where: { id } });
   res.status(204).send();
 });
+
+/** Geldlisten-Zeilen an die aktuelle Kurs-Schülerliste anpassen (hinzufügen / entfernen). */
+async function syncMoneyListEntriesForCourse(courseId) {
+  if (!Number.isFinite(courseId)) return;
+
+  const [lists, students] = await Promise.all([
+    prisma.moneyList.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.student.findMany({ where: { courseId }, select: { id: true } }),
+  ]);
+  if (lists.length === 0) return;
+
+  const studentIds = new Set(students.map((s) => s.id));
+
+  for (const list of lists) {
+    const existing = await prisma.moneyListEntry.findMany({
+      where: { moneyListId: list.id },
+      select: { id: true, studentId: true },
+    });
+    const existingStudentIds = new Set(existing.map((e) => e.studentId));
+
+    const missingStudentIds = students
+      .map((s) => s.id)
+      .filter((sid) => !existingStudentIds.has(sid));
+    if (missingStudentIds.length > 0) {
+      await prisma.moneyListEntry.createMany({
+        data: missingStudentIds.map((studentId) => ({
+          moneyListId: list.id,
+          studentId,
+          paid: false,
+        })),
+      });
+    }
+
+    const orphanIds = existing.filter((e) => !studentIds.has(e.studentId)).map((e) => e.id);
+    if (orphanIds.length > 0) {
+      await prisma.moneyListEntry.deleteMany({ where: { id: { in: orphanIds } } });
+    }
+  }
+}
 
 function serializeMoneyList(list) {
   const entries = (list.entries || [])
