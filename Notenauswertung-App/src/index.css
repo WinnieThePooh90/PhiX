@@ -2725,23 +2725,34 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     width: 100%;
   }
 
-  /* Einstellungszeilen (Klausur/Test/Mündlich) im Seiteninhalt scrollbar */
+  /* Tabellen-Views: Höhe begrenzen, Scroll nur im Tabellenbereich */
   .app-container--mobile .app-main-views {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .view-page-scroll,
+  .app-container--mobile .view-root-fill {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .view-page-scroll > .view-toolbar-block,
+  .app-container--mobile .view-root-fill > .view-page-nav,
+  .app-container--mobile .view-root-fill > .view-toolbar-block,
+  .app-container--mobile .view-root-fill > .oral-meta-panel {
+    flex-shrink: 0;
+  }
+
+  .app-container--mobile .view-page-scroll > .view-toolbar-block {
+    max-height: min(42dvh, 320px);
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .app-container--mobile:not(.app-mobile-header-collapsed) .view-page-scroll,
-  .app-container--mobile:not(.app-mobile-header-collapsed) .view-root-fill {
-    overflow: visible;
-    flex: 0 0 auto;
-    min-height: 0;
-  }
-
-  .app-container--mobile .view-toolbar-block {
-    overflow: visible;
-    flex-shrink: 0;
   }
 
   .app-container--mobile .course-meta-settings-row,
@@ -2749,10 +2760,36 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     overflow: visible;
   }
 
-  .app-container--mobile .view-table-scroll {
-    flex: 1 1 auto;
-    min-height: min(42dvh, 380px);
+  .app-container--mobile .view-page-scroll > .exams-active-body,
+  .app-container--mobile .view-root-fill > .view-table-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .exams-active-body .exams-main-stack {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .view-table-scroll,
+  .app-container--mobile .exams-body-scroll.view-table-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .app-container--mobile .view-page-scroll > .view-table-scroll {
+    min-height: var(--student-table-min-height, 12rem);
   }
 
   .app-main--mobile-header {
@@ -2848,9 +2885,11 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .app-main--mobile-header .app-main-content-wrap {
     margin-top: 0;
-    overflow: visible;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .sticky-header h1 {
@@ -2952,22 +2991,25 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     font-size: 1.2rem;
   }
 
-  /* Breite Tabellen: horizontal wischen, natürliche Spaltenbreiten */
-  .table-container {
+  /* Breite Tabellen: ein Scroll-Container (.view-table-scroll), horizontales Wischen */
+  .app-container--mobile .view-table-scroll .table-container,
+  .app-container--mobile .view-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
+    overflow: visible;
+    max-width: none;
+  }
+
+  .app-container--mobile .view-table-scroll table {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .summary-overview .table-container {
     overflow-x: auto;
-    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
   }
 
-  .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
-    overflow-x: auto;
-    max-width: 100%;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .view-table-scroll table,
-  .table-container table,
   .summary-overview .table-container table {
     width: max-content;
     min-width: 100%;
@@ -2980,10 +3022,41 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     font-size: 0.8125rem;
   }
 
-  .view-table-scroll th,
-  .view-table-scroll td {
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
+  .app-container--mobile .view-table-scroll th,
+  .app-container--mobile .view-table-scroll td {
+    padding: 0.5rem 0.45rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .app-container--mobile .view-table-scroll tbody td input,
+  .app-container--mobile .view-table-scroll tbody td select {
+    width: auto;
+    min-width: 2.75rem;
+    max-width: 5rem;
+    padding: 0.35rem 0.4rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Sticky-Spalten: top bezieht sich auf Tabellen-Scroll, nicht App-Header */
+  .app-container--mobile .exam-table-scroll thead tr:first-child th[style*='right:'] {
+    top: 0 !important;
+    z-index: 9 !important;
+    background: hsl(var(--muted) / 0.95) !important;
+  }
+
+  .app-container--mobile .exam-table-scroll thead tr:nth-child(2) th[style*='right:'] {
+    top: 2.25rem !important;
+    z-index: 8 !important;
+    background: hsl(var(--muted) / 0.95) !important;
+  }
+
+  .app-container--mobile .exam-table-scroll thead tr:nth-child(2) th.exam-th-r2 {
+    top: 2.25rem;
+  }
+
+  .app-container--mobile .oral-table-scroll thead th {
+    top: 0;
   }
 
   .exam-charts-modal-backdrop {
