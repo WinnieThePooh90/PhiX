@@ -2721,8 +2721,48 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .app-mobile-tabs,
   .app-mobile-header-body .equiphi-tabs {
     justify-content: flex-start !important;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
     width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-mobile-tabs::-webkit-scrollbar,
+  .app-mobile-header-body .equiphi-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-mobile-tabs .tab,
+  .app-mobile-header-body .equiphi-tabs .tab {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.42rem;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .app-mobile-page-settings-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+    margin-top: 0.15rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted) / 0.45);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+
+  .app-mobile-page-settings-toggle:hover {
+    background: hsl(var(--muted) / 0.75);
   }
 
   /* Tabellen-Views: Höhe begrenzen, Scroll nur im Tabellenbereich */
@@ -2828,21 +2868,21 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     display: none;
   }
 
-  /* Header eingeklappt: nur Tabellen (Klausuren, Tests, Mündlich, GFS) */
-  .app-container--mobile.app-mobile-header-collapsed .view-toolbar-block,
-  .app-container--mobile.app-mobile-header-collapsed .view-page-nav,
-  .app-container--mobile.app-mobile-header-collapsed .course-meta-settings-row,
-  .app-container--mobile.app-mobile-header-collapsed .oral-meta-panel,
-  .app-container--mobile.app-mobile-header-collapsed .view-page-chrome,
-  .app-container--mobile.app-mobile-header-collapsed .exams-key-sidebar {
+  /* Seiteneinstellungen eingeklappt (Pfeil unter Suchleiste): mehr Platz für Tabellen */
+  .app-container--mobile.app-mobile-page-settings-collapsed .view-toolbar-block,
+  .app-container--mobile.app-mobile-page-settings-collapsed .view-page-nav,
+  .app-container--mobile.app-mobile-page-settings-collapsed .course-meta-settings-row,
+  .app-container--mobile.app-mobile-page-settings-collapsed .oral-meta-panel,
+  .app-container--mobile.app-mobile-page-settings-collapsed .view-page-chrome,
+  .app-container--mobile.app-mobile-page-settings-collapsed .exams-key-sidebar {
     display: none !important;
   }
 
-  .app-container--mobile.app-mobile-header-collapsed .exams-active-body.sidebar-layout {
+  .app-container--mobile.app-mobile-page-settings-collapsed .exams-active-body.sidebar-layout {
     display: block;
   }
 
-  .app-container--mobile.app-mobile-header-collapsed .exams-main-stack.main-content {
+  .app-container--mobile.app-mobile-page-settings-collapsed .exams-main-stack.main-content {
     width: 100%;
     max-width: 100%;
   }

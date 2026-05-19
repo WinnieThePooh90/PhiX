@@ -8,6 +8,8 @@ import {
   Heart,
   PanelLeft,
   X,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import MobileAppHeader from './components/MobileAppHeader';
 import { useData } from './store/DataContext';
@@ -81,6 +83,7 @@ function App() {
   const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(true);
+  const [mobilePageSettingsExpanded, setMobilePageSettingsExpanded] = useState(true);
   const mobileHeaderRef = useRef(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState('');
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
@@ -255,6 +258,7 @@ function App() {
   }, [
     isMobile,
     mobileHeaderExpanded,
+    mobilePageSettingsExpanded,
     activeTab,
     config,
     isNewCoursePage,
@@ -398,7 +402,7 @@ function App() {
       className={[
         'app-container',
         isMobile ? 'app-container--mobile' : '',
-        isMobile && !mobileHeaderExpanded ? 'app-mobile-header-collapsed' : '',
+        isMobile && !mobilePageSettingsExpanded ? 'app-mobile-page-settings-collapsed' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -666,6 +670,24 @@ function App() {
                     />
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="app-mobile-page-settings-toggle"
+                  onClick={() => setMobilePageSettingsExpanded((e) => !e)}
+                  aria-expanded={mobilePageSettingsExpanded}
+                  aria-label={
+                    mobilePageSettingsExpanded
+                      ? 'Einstellungen dieser Seite einklappen'
+                      : 'Einstellungen dieser Seite ausklappen'
+                  }
+                >
+                  {mobilePageSettingsExpanded ? (
+                    <ChevronUp size={20} strokeWidth={2.25} aria-hidden />
+                  ) : (
+                    <ChevronDown size={20} strokeWidth={2.25} aria-hidden />
+                  )}
+                  <span>Einstellungen</span>
+                </button>
               </MobileAppHeader>
             ) : (
               <div className="sticky-header">

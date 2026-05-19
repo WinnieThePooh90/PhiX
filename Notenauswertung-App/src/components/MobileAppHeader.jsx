@@ -2,7 +2,8 @@ import React from 'react';
 import { PanelLeft, Settings, ChevronUp, ChevronDown } from 'lucide-react';
 
 /**
- * Fester Smartphone-Header: Fächer links, Einklappen/Ausklappen Mitte, Einstellungen rechts.
+ * Fester Smartphone-Header: Fächer links, Kopfbereich ein/aus (Mitte), App-Einstellungen rechts.
+ * Seiteneinstellungen (KA/Test/…) werden separat unter der Suchleiste in App.jsx umgeschaltet.
  */
 export default function MobileAppHeader({
   headerRef,
@@ -35,7 +36,7 @@ export default function MobileAppHeader({
           className="app-mobile-header-btn app-mobile-header-btn--toggle"
           onClick={onToggleExpanded}
           aria-expanded={expanded}
-          aria-label={expanded ? 'Kopfzeile einklappen' : 'Kopfzeile ausklappen'}
+          aria-label={expanded ? 'Titel, Tabs und Suche einklappen' : 'Titel, Tabs und Suche ausklappen'}
         >
           {expanded ? (
             <ChevronUp size={22} strokeWidth={2.25} aria-hidden />
