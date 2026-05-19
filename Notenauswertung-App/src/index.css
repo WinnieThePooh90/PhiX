@@ -2778,7 +2778,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .view-table-scroll,
-  .app-container--mobile .exams-body-scroll.view-table-scroll {
+  .app-container--mobile .exams-body-scroll.view-table-scroll,
+  .app-container--mobile .gfs-table-scroll {
     flex: 1 1 0%;
     min-height: 0;
     min-width: 0;
@@ -2786,6 +2787,23 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-x pan-y;
+  }
+
+  .app-container--mobile .view-generic-scroll--gfs {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .view-generic-scroll--gfs > .view-page-chrome {
+    flex-shrink: 0;
+  }
+
+  .app-container--mobile .view-generic-scroll--gfs > .gfs-table-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
   }
 
   .app-container--mobile .view-page-scroll > .view-table-scroll {
@@ -2991,17 +3009,52 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     font-size: 1.2rem;
   }
 
-  /* Breite Tabellen: ein Scroll-Container (.view-table-scroll), horizontales Wischen */
+  /* Breite Tabellen: ein Scroll-Container, horizontales & vertikales Wischen */
   .app-container--mobile .view-table-scroll .table-container,
-  .app-container--mobile .view-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
+  .app-container--mobile .gfs-table-scroll .table-container,
+  .app-container--mobile .view-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body,
+  .app-container--mobile .gfs-table-scroll .table-max-host:not(.table-max-host--maximized) .table-max-host__body {
     overflow: visible;
     max-width: none;
   }
 
-  .app-container--mobile .view-table-scroll table {
+  .app-container--mobile .view-table-scroll table,
+  .app-container--mobile .gfs-table-scroll table {
     width: max-content;
     min-width: 100%;
     max-width: none;
+    table-layout: auto;
+  }
+
+  /*
+   * Smartphone: keine fixen / sticky Spalten (Klausuren, Tests, Mündlich, GFS).
+   * Inline-Styles aus den Views werden hier überschrieben.
+   */
+  .app-container--mobile .exam-table-scroll thead,
+  .app-container--mobile .exam-table-scroll tfoot,
+  .app-container--mobile .oral-table-scroll thead,
+  .app-container--mobile .oral-table-scroll tfoot,
+  .app-container--mobile .gfs-table-scroll thead,
+  .app-container--mobile .gfs-table-scroll tfoot {
+    position: static !important;
+  }
+
+  .app-container--mobile .exam-table-scroll th,
+  .app-container--mobile .exam-table-scroll td,
+  .app-container--mobile .oral-table-scroll th,
+  .app-container--mobile .oral-table-scroll td,
+  .app-container--mobile .gfs-table-scroll th,
+  .app-container--mobile .gfs-table-scroll td {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    z-index: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
   }
 
   .summary-overview .table-container {
@@ -3023,40 +3076,27 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .view-table-scroll th,
-  .app-container--mobile .view-table-scroll td {
+  .app-container--mobile .view-table-scroll td,
+  .app-container--mobile .gfs-table-scroll th,
+  .app-container--mobile .gfs-table-scroll td {
     padding: 0.5rem 0.45rem;
     font-size: 0.8125rem;
     white-space: nowrap;
   }
 
   .app-container--mobile .view-table-scroll tbody td input,
-  .app-container--mobile .view-table-scroll tbody td select {
-    width: auto;
+  .app-container--mobile .view-table-scroll tbody td select,
+  .app-container--mobile .gfs-table-scroll tbody td input,
+  .app-container--mobile .gfs-table-scroll tbody td select {
+    width: auto !important;
     min-width: 2.75rem;
-    max-width: 5rem;
+    max-width: none;
     padding: 0.35rem 0.4rem;
     font-size: 0.8125rem;
   }
 
-  /* Sticky-Spalten: top bezieht sich auf Tabellen-Scroll, nicht App-Header */
-  .app-container--mobile .exam-table-scroll thead tr:first-child th[style*='right:'] {
-    top: 0 !important;
-    z-index: 9 !important;
-    background: hsl(var(--muted) / 0.95) !important;
-  }
-
-  .app-container--mobile .exam-table-scroll thead tr:nth-child(2) th[style*='right:'] {
-    top: 2.25rem !important;
-    z-index: 8 !important;
-    background: hsl(var(--muted) / 0.95) !important;
-  }
-
-  .app-container--mobile .exam-table-scroll thead tr:nth-child(2) th.exam-th-r2 {
-    top: 2.25rem;
-  }
-
-  .app-container--mobile .oral-table-scroll thead th {
-    top: 0;
+  .app-container--mobile .gfs-table-scroll tbody td input[type='date'] {
+    min-width: 9rem;
   }
 
   .exam-charts-modal-backdrop {
