@@ -347,7 +347,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                           PUNKTE
                         </th>
                         <th
-                          className="text-center exam-th-r1"
+                          className="text-center exam-th-r1 test-gesamt-col"
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -393,7 +393,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         </th>
                         <th className="text-center exam-th-r2" style={{ textTransform: 'none' }} />
                         <th
-                          className="text-center exam-th-r2"
+                          className="text-center exam-th-r2 test-gesamt-col"
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -554,7 +554,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                 />
                               </td>
                               <td
-                                className="text-center"
+                                className="text-center test-gesamt-col"
                                 style={{
                                   width: '100px',
                                   minWidth: '100px',

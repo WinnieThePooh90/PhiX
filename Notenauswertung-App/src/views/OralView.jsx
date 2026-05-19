@@ -508,7 +508,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                     </th>
                   ))}
                   <th
-                    className="oral-th-sticky-right text-center"
+                    className="oral-th-sticky-right oral-gesamt-col text-center"
                     title="Gesamtpunktzahl (alle Wochen)"
                     style={{
                       position: 'sticky',
@@ -699,7 +699,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                           </td>
                         ))}
                         <td
-                          className="text-center"
+                          className="text-center oral-gesamt-col"
                           style={{
                             position: 'sticky',
                             right: `${ORAL_RIGHT_STICKY_OFFSET}px`,

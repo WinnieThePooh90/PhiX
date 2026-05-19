@@ -3132,9 +3132,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   /* Klausuren: Aufgabenspalten A1…Ax — schmal, zweistellige Werte */
   .app-container--mobile .exam-table-scroll th.exam-task-col,
-  .app-container--mobile .exam-table-scroll td.exam-task-col,
-  .app-container--mobile .exam-table-scroll th.test-points-col,
-  .app-container--mobile .exam-table-scroll td.test-points-col {
+  .app-container--mobile .exam-table-scroll td.exam-task-col {
     width: 3rem !important;
     min-width: 3rem !important;
     max-width: 3rem !important;
@@ -3144,8 +3142,28 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .exam-table-scroll th.exam-task-col input,
-  .app-container--mobile .exam-table-scroll td.exam-task-col input,
-  .app-container--mobile .exam-table-scroll th.test-points-col input,
+  .app-container--mobile .exam-table-scroll td.exam-task-col input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0.28rem 0.08rem !important;
+    font-size: 0.8125rem;
+    box-sizing: border-box;
+  }
+
+  /* Tests: Punkte und Gesamt gleiche Breite (100px) */
+  .app-container--mobile .exam-table-scroll th.test-points-col,
+  .app-container--mobile .exam-table-scroll td.test-points-col,
+  .app-container--mobile .exam-table-scroll th.test-gesamt-col,
+  .app-container--mobile .exam-table-scroll td.test-gesamt-col {
+    width: 6.25rem !important;
+    min-width: 6.25rem !important;
+    max-width: 6.25rem !important;
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+    box-sizing: border-box;
+  }
+
   .app-container--mobile .exam-table-scroll td.test-points-col input {
     width: 100% !important;
     min-width: 0 !important;
@@ -3155,14 +3173,16 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     box-sizing: border-box;
   }
 
-  /* Mündlich: Note-Spalte (~¼ der Desktop-Breite 112px) */
+  /* Mündlich: Note und Gesamt gleiche Breite (88px) */
+  .app-container--mobile .oral-table-scroll th.oral-gesamt-col,
+  .app-container--mobile .oral-table-scroll td.oral-gesamt-col,
   .app-container--mobile .oral-table-scroll th.oral-note-col,
   .app-container--mobile .oral-table-scroll td.oral-note-col {
-    width: 1.75rem !important;
-    min-width: 1.75rem !important;
-    max-width: 1.75rem !important;
-    padding-left: 0.1rem !important;
-    padding-right: 0.1rem !important;
+    width: 5.5rem !important;
+    min-width: 5.5rem !important;
+    max-width: 5.5rem !important;
+    padding-left: 0.15rem !important;
+    padding-right: 0.15rem !important;
     box-sizing: border-box;
   }
 
@@ -3170,7 +3190,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 0.28rem 0.06rem !important;
+    padding: 0.28rem 0.08rem !important;
     font-size: 0.8125rem;
     box-sizing: border-box;
   }
