@@ -7,9 +7,9 @@ import {
   Star,
   Heart,
   PanelLeft,
-  PanelRight,
   X,
 } from 'lucide-react';
+import MobileAppHeader from './components/MobileAppHeader';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
@@ -80,6 +80,8 @@ function App() {
   );
   const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(true);
+  const mobileHeaderRef = useRef(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState('');
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
   const [headerSearch, setHeaderSearch] = useState('');
@@ -220,6 +222,47 @@ function App() {
     setMobileSettingsOpen(false);
   };
 
+  const openMobileCourses = () => {
+    setMobileSettingsOpen(false);
+    setMobileCoursesOpen((o) => !o);
+  };
+
+  const openMobileSettings = () => {
+    setMobileCoursesOpen(false);
+    setMobileSettingsOpen((o) => !o);
+  };
+
+  useLayoutEffect(() => {
+    if (!isMobile) {
+      document.documentElement.style.removeProperty('--app-mobile-header-height');
+      return undefined;
+    }
+    const el = mobileHeaderRef.current;
+    if (!el) return undefined;
+    const sync = () => {
+      document.documentElement.style.setProperty(
+        '--app-mobile-header-height',
+        `${el.offsetHeight}px`,
+      );
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--app-mobile-header-height');
+    };
+  }, [
+    isMobile,
+    mobileHeaderExpanded,
+    activeTab,
+    config,
+    isNewCoursePage,
+    headerSearch,
+    showTestsTab,
+    showGfsTab,
+  ]);
+
   const handleNewCourseClick = () => {
     navigate('/courses/new');
   };
@@ -264,6 +307,91 @@ function App() {
     if (isNewCoursePage) navigate('/');
     if (isMobile) setMobileCoursesOpen(false);
   };
+
+  const mobileHeaderProps = {
+    headerRef: mobileHeaderRef,
+    expanded: mobileHeaderExpanded,
+    onToggleExpanded: () => setMobileHeaderExpanded((e) => !e),
+    onOpenCourses: openMobileCourses,
+    onOpenSettings: openMobileSettings,
+    coursesOpen: mobileCoursesOpen,
+    settingsOpen: mobileSettingsOpen,
+  };
+
+  const renderMainTabsNav = (className = '') => (
+    <nav
+      className={`tabs equiphi-tabs${className ? ` ${className}` : ''}`.trim()}
+      style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}
+    >
+      <button type="button" className={`tab ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>
+        Übersicht
+      </button>
+      <button type="button" className={`tab ${activeTab === 'exams' ? 'active' : ''}`} onClick={() => setActiveTab('exams')}>
+        Klausuren
+      </button>
+      <button type="button" className={`tab ${activeTab === 'oral' ? 'active' : ''}`} onClick={() => setActiveTab('oral')}>
+        Mündlich
+      </button>
+      {showTestsTab && (
+        <button type="button" className={`tab ${activeTab === 'tests' ? 'active' : ''}`} onClick={() => setActiveTab('tests')}>
+          Tests
+        </button>
+      )}
+      {showGfsTab && (
+        <button type="button" className={`tab ${activeTab === 'gfs' ? 'active' : ''}`} onClick={() => setActiveTab('gfs')}>
+          GFS
+        </button>
+      )}
+      {!isMobile && (
+        <>
+          <div className="header-settings-menu-wrap app-desktop-only" ref={settingsMenuRef}>
+            <button
+              ref={settingsGearRef}
+              type="button"
+              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
+              onClick={() => setSettingsMenuOpen((o) => !o)}
+              title="Einstellungen"
+              aria-label="Einstellungen öffnen"
+              aria-expanded={settingsMenuOpen}
+              aria-haspopup="menu"
+            >
+              <Settings className="header-lucide-icon" size={18} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          <div className="app-desktop-only">
+            <HeaderUserMenu
+              settingsMenuOpen={settingsMenuOpen}
+              onMenuOpenChange={(o) => {
+                if (o) setSettingsMenuOpen(false);
+              }}
+            />
+          </div>
+          {settingsMenuOpen &&
+            settingsMenuPos &&
+            createPortal(
+              <div
+                ref={settingsDropdownRef}
+                className="header-settings-dropdown header-settings-dropdown--portal"
+                role="menu"
+                aria-label="Einstellungen"
+                style={{
+                  top: settingsMenuPos.top,
+                  right: settingsMenuPos.right,
+                }}
+              >
+                <SettingsNavMenu
+                  isAdminUser={isAdminUser}
+                  onSelect={openMainTab}
+                  onNewCourse={handleNewCourseClick}
+                  onClose={() => setSettingsMenuOpen(false)}
+                />
+              </div>,
+              document.body,
+            )}
+        </>
+      )}
+    </nav>
+  );
 
   return (
     <div className={`app-container${isMobile ? ' app-container--mobile' : ''}`}>
@@ -442,69 +570,50 @@ function App() {
         </aside>
       )}
 
-      {isMobile && (
-        <>
-          <button
-            type="button"
-            className="app-mobile-rail app-mobile-rail--left"
-            onClick={() => {
-              setMobileSettingsOpen(false);
-              setMobileCoursesOpen((o) => !o);
-            }}
-            aria-expanded={mobileCoursesOpen}
-            aria-label={mobileCoursesOpen ? 'Fächer schließen' : 'Fächer öffnen'}
-          >
-            <PanelLeft size={22} strokeWidth={2} aria-hidden />
-            <span className="app-mobile-rail-label">Fächer</span>
-          </button>
-          <button
-            type="button"
-            className="app-mobile-rail app-mobile-rail--right"
-            onClick={() => {
-              setMobileCoursesOpen(false);
-              setMobileSettingsOpen((o) => !o);
-            }}
-            aria-expanded={mobileSettingsOpen}
-            aria-label={mobileSettingsOpen ? 'Einstellungen schließen' : 'Einstellungen öffnen'}
-          >
-            <PanelRight size={22} strokeWidth={2} aria-hidden />
-            <span className="app-mobile-rail-label">Mehr</span>
-          </button>
-        </>
-      )}
-
-      <div className="app-main">
+      <div className={`app-main${isMobile ? ' app-main--mobile-header' : ''}`}>
         {isNewCoursePage ? (
           <>
-            <div className="sticky-header">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '0.75rem',
-                }}
-              >
-                <header style={{ textAlign: 'left' }}>
-                  <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>Neues Fach anlegen</h1>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                    Schuljahr, Klasse, Fach und Gewichtung erfassen
-                  </p>
+            {isMobile ? (
+              <MobileAppHeader {...mobileHeaderProps}>
+                <header className="app-mobile-header-course-title">
+                  <h1>Neues Fach anlegen</h1>
+                  <p>Schuljahr, Klasse, Fach und Gewichtung erfassen</p>
                 </header>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                  <button type="button" className="secondary" onClick={() => navigate('/')}>
-                    Zurück
-                  </button>
-                  <HeaderUserMenu
-                    settingsMenuOpen={settingsMenuOpen}
-                    onMenuOpenChange={(o) => {
-                      if (o) setSettingsMenuOpen(false);
-                    }}
-                  />
+                <button type="button" className="secondary app-mobile-header-back" onClick={() => navigate('/')}>
+                  Zurück
+                </button>
+              </MobileAppHeader>
+            ) : (
+              <div className="sticky-header">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <header style={{ textAlign: 'left' }}>
+                    <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>Neues Fach anlegen</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                      Schuljahr, Klasse, Fach und Gewichtung erfassen
+                    </p>
+                  </header>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                    <button type="button" className="secondary" onClick={() => navigate('/')}>
+                      Zurück
+                    </button>
+                    <HeaderUserMenu
+                      settingsMenuOpen={settingsMenuOpen}
+                      onMenuOpenChange={(o) => {
+                        if (o) setSettingsMenuOpen(false);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="app-main-content-wrap">
               <main className="app-main-views">
                 <NewCourseForm />
@@ -513,16 +622,53 @@ function App() {
           </>
         ) : config ? (
           <>
-            <div className="sticky-header">
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
-                  alignItems: 'stretch',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            {isMobile ? (
+              <MobileAppHeader {...mobileHeaderProps}>
+                <header className="app-mobile-header-course-title">
+                  <h1>
+                    {config.subject} {config.className || config.class}
+                  </h1>
+                  <p>
+                    Schuljahr: {config.year}
+                    {config.weighting != null && (
+                      <>
+                        {' · '}
+                        Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
+                      </>
+                    )}
+                    {isAdminUser && config.ownerUsername ? (
+                      <>
+                        {' · '}
+                        {config.ownerUsername}
+                      </>
+                    ) : null}
+                  </p>
+                </header>
+                {renderMainTabsNav('app-mobile-tabs')}
+                <div className="header-controls-row">
+                  <div className="header-search-wrap">
+                    <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
+                    <input
+                      className="header-search-input"
+                      type="search"
+                      placeholder="Schüler suchen (Name, Nr.)…"
+                      value={headerSearch}
+                      onChange={(e) => setHeaderSearch(e.target.value)}
+                      aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
+                    />
+                  </div>
+                </div>
+              </MobileAppHeader>
+            ) : (
+              <div className="sticky-header">
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    alignItems: 'stretch',
+                  }}
+                >
                   <header style={{ textAlign: 'left' }}>
                     <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>
                       {config.subject} {config.className || config.class}
@@ -543,98 +689,39 @@ function App() {
                       ) : null}
                     </p>
                   </header>
-
-                  <nav className="tabs equiphi-tabs" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
-                    <button type="button" className={`tab ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>
-                      Übersicht
-                    </button>
-                    <button type="button" className={`tab ${activeTab === 'exams' ? 'active' : ''}`} onClick={() => setActiveTab('exams')}>
-                      Klausuren
-                    </button>
-                    <button type="button" className={`tab ${activeTab === 'oral' ? 'active' : ''}`} onClick={() => setActiveTab('oral')}>
-                      Mündlich
-                    </button>
-                    {showTestsTab && (
-                      <button type="button" className={`tab ${activeTab === 'tests' ? 'active' : ''}`} onClick={() => setActiveTab('tests')}>
-                        Tests
-                      </button>
-                    )}
-                    {showGfsTab && (
-                      <button type="button" className={`tab ${activeTab === 'gfs' ? 'active' : ''}`} onClick={() => setActiveTab('gfs')}>
-                        GFS
-                      </button>
-                    )}
-                    <div className="header-settings-menu-wrap app-desktop-only" ref={settingsMenuRef}>
-                      <button
-                        ref={settingsGearRef}
-                        type="button"
-                        className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
-                        onClick={() => setSettingsMenuOpen((o) => !o)}
-                        title="Einstellungen"
-                        aria-label="Einstellungen öffnen"
-                        aria-expanded={settingsMenuOpen}
-                        aria-haspopup="menu"
-                      >
-                        <Settings className="header-lucide-icon" size={18} strokeWidth={2} aria-hidden />
-                      </button>
+                  {renderMainTabsNav()}
+                  {!sidebarCollapsed && (
+                    <div className="header-controls-row">
+                      <div className="header-search-wrap">
+                        <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
+                        <input
+                          className="header-search-input"
+                          type="search"
+                          placeholder="Schüler suchen (Name, Nr.)…"
+                          value={headerSearch}
+                          onChange={(e) => setHeaderSearch(e.target.value)}
+                          aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
+                        />
+                      </div>
                     </div>
-                    <div className="app-desktop-only">
-                      <HeaderUserMenu
-                        settingsMenuOpen={settingsMenuOpen}
-                        onMenuOpenChange={(o) => {
-                          if (o) setSettingsMenuOpen(false);
-                        }}
-                      />
-                    </div>
-                    {!isMobile &&
-                      settingsMenuOpen &&
-                      settingsMenuPos &&
-                      createPortal(
-                        <div
-                          ref={settingsDropdownRef}
-                          className="header-settings-dropdown header-settings-dropdown--portal"
-                          role="menu"
-                          aria-label="Einstellungen"
-                          style={{
-                            top: settingsMenuPos.top,
-                            right: settingsMenuPos.right,
-                          }}
-                        >
-                          <SettingsNavMenu
-                            isAdminUser={isAdminUser}
-                            onSelect={openMainTab}
-                            onNewCourse={handleNewCourseClick}
-                            onClose={() => setSettingsMenuOpen(false)}
-                          />
-                        </div>,
-                        document.body,
-                      )}
-                  </nav>
+                  )}
                 </div>
-
-                {(isMobile || !sidebarCollapsed) && (
-                  <div className="header-controls-row">
-                    <div className="header-search-wrap">
-                      <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
-                      <input
-                        className="header-search-input"
-                        type="search"
-                        placeholder="Schüler suchen (Name, Nr.)…"
-                        value={headerSearch}
-                        onChange={(e) => setHeaderSearch(e.target.value)}
-                        aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
-
+            )}
             <div className="app-main-content-wrap">
               <main className="app-main-views">{renderView()}</main>
             </div>
           </>
         ) : (
+          <>
+            {isMobile && (
+              <MobileAppHeader {...mobileHeaderProps}>
+                <header className="app-mobile-header-course-title">
+                  <h1>Kein Fach ausgewählt</h1>
+                  <p>Wähle ein Fach oder lege ein neues an.</p>
+                </header>
+              </MobileAppHeader>
+            )}
           <div
             className="app-main-empty-state"
             style={{
@@ -676,6 +763,7 @@ function App() {
               </button>
             </div>
           </div>
+          </>
         )}
       </div>
     </div>
