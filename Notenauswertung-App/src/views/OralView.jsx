@@ -182,9 +182,10 @@ export default function OralView({ studentIdFilterSet = null }) {
   };
 
   return (
-    <div className="view-root-fill">
-      <div className="flex justify-between items-center mb-8 view-page-nav">
-        <h2>Mündliche Noten</h2>
+    <div className="view-page-scroll">
+      <div className="view-toolbar-block oral-toolbar">
+      <div className="flex justify-between items-center mb-4 pt-2 view-page-nav">
+        <h2 style={{ margin: 0 }}>Mündliche Noten</h2>
         <div className="flex gap-2" style={{ overflowX: 'auto', paddingBottom: '4px', flexWrap: 'wrap' }}>
           {oralNumbers.map(num => (
             <button 
@@ -210,7 +211,7 @@ export default function OralView({ studentIdFilterSet = null }) {
       </div>
 
       <div
-        className="flex gap-4 mb-8 flex-wrap oral-meta-panel course-meta-settings-row"
+        className="flex gap-4 flex-wrap oral-meta-panel course-meta-settings-row"
         style={{
           background: 'var(--surface)',
           padding: '1rem',
@@ -465,6 +466,7 @@ export default function OralView({ studentIdFilterSet = null }) {
         </div>
           </>
         )}
+      </div>
       </div>
 
       {oralIsActive ? (

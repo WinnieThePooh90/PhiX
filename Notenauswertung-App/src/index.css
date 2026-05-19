@@ -2743,8 +2743,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .app-container--mobile .view-page-scroll > .view-toolbar-block,
   .app-container--mobile .view-root-fill > .view-page-nav,
-  .app-container--mobile .view-root-fill > .view-toolbar-block,
-  .app-container--mobile .view-root-fill > .oral-meta-panel {
+  .app-container--mobile .view-root-fill > .view-toolbar-block {
     flex-shrink: 0;
   }
 
@@ -2756,26 +2755,28 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     -webkit-overflow-scrolling: touch;
   }
 
-  .app-container--mobile .view-root-fill > .oral-meta-panel {
-    max-height: min(45dvh, 380px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .app-container--mobile .course-meta-settings-row {
+  .app-container--mobile .course-meta-settings-row:not(.oral-meta-panel) {
     overflow: visible;
   }
 
   .app-container--mobile .view-page-scroll > .exams-active-body,
-  .app-container--mobile .view-root-fill > .exams-active-body,
-  .app-container--mobile .view-root-fill > .view-table-scroll {
+  .app-container--mobile .view-root-fill > .exams-active-body {
     flex: 1 1 0%;
     min-height: 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+
+  /* Tabellen-Scrollbereich: nur Flex-Layout hier — overflow: auto kommt von .view-table-scroll */
+  .app-container--mobile .view-page-scroll > .view-table-scroll,
+  .app-container--mobile .view-root-fill > .view-table-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .app-container--mobile .exams-active-body .exams-main-stack {
@@ -2814,7 +2815,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     min-height: 0;
   }
 
-  .app-container--mobile .view-page-scroll > .view-table-scroll {
+  .app-container--mobile .view-page-scroll > .view-table-scroll,
+  .app-container--mobile .view-root-fill > .view-table-scroll {
     min-height: var(--student-table-min-height, 12rem);
   }
 
