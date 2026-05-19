@@ -48,7 +48,8 @@ model Course {
   exams      Exam[]
   orals      Oral[]
   tests      Test[]
-  gfsEntries GfsEntry[]
+  gfsEntries   GfsEntry[]
+  moneyLists   MoneyList[]
 
   @@index([ownerUsername])
 }
@@ -89,7 +90,33 @@ model Student {
   courseId  Int?
   course    Course?  @relation(fields: [courseId], references: [id])
 
-  gfsEntries GfsEntry[]
+  gfsEntries       GfsEntry[]
+  moneyListEntries MoneyListEntry[]
+}
+
+model MoneyList {
+  id               Int      @id @default(autoincrement())
+  subject          String
+  amountPerStudent Float
+  notes            String   @default("")
+  courseId         Int
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  entries          MoneyListEntry[]
+  createdAt        DateTime @default(now())
+
+  @@index([courseId])
+}
+
+model MoneyListEntry {
+  id          Int       @id @default(autoincrement())
+  paid        Boolean   @default(false)
+  studentId   Int
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  moneyListId Int
+  moneyList   MoneyList @relation(fields: [moneyListId], references: [id], onDelete: Cascade)
+
+  @@unique([moneyListId, studentId])
+  @@index([moneyListId])
 }
 
 model GfsEntry {

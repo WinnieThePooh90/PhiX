@@ -24,6 +24,9 @@ export default function SettingsNavMenu({
       <button type="button" role="menuitem" onClick={() => pick('analysis')}>
         Analyse
       </button>
+      <button type="button" role="menuitem" onClick={() => pick('klassenlehrer')}>
+        Klassenlehrer
+      </button>
       <hr className="header-settings-dropdown-divider" aria-hidden />
       <button type="button" role="menuitem" onClick={() => pick('keys')}>
         Notenschlüssel

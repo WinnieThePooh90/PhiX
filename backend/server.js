@@ -352,7 +352,8 @@ app.delete('/api/courses/:id', async (req, res) => {
   await prisma.oral.deleteMany({ where: { courseId } });
   await prisma.test.deleteMany({ where: { courseId } });
   await prisma.gfsEntry.deleteMany({ where: { courseId } });
-  
+  await prisma.moneyList.deleteMany({ where: { courseId } });
+
   await prisma.course.delete({ where: { id: courseId } });
   res.status(204).send();
 });
@@ -878,6 +879,131 @@ app.delete('/api/gfs/:id', async (req, res) => {
   }
   await prisma.gfsEntry.delete({ where: { id } });
   res.status(204).send();
+});
+
+function serializeMoneyList(list) {
+  const entries = (list.entries || [])
+    .map((e) => ({
+      id: e.id,
+      paid: Boolean(e.paid),
+      studentId: e.studentId,
+      studentNumber: e.student?.studentNumber ?? null,
+      firstName: e.student?.firstName ?? '',
+      lastName: e.student?.lastName ?? '',
+    }))
+    .sort((a, b) => {
+      const an = a.studentNumber;
+      const bn = b.studentNumber;
+      const anOk = an !== undefined && an !== null;
+      const bnOk = bn !== undefined && bn !== null;
+      if (anOk && bnOk) return an - bn;
+      if (anOk && !bnOk) return -1;
+      if (!anOk && bnOk) return 1;
+      return a.id - b.id;
+    });
+  return {
+    id: list.id,
+    subject: list.subject,
+    amountPerStudent: list.amountPerStudent,
+    notes: list.notes ?? '',
+    courseId: list.courseId,
+    createdAt: list.createdAt,
+    entries,
+  };
+}
+
+// Geldlisten (Klassenlehrer)
+app.get('/api/money-lists', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const lists = await prisma.moneyList.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+    include: {
+      entries: {
+        include: { student: true },
+      },
+    },
+  });
+  res.json(lists.map(serializeMoneyList));
+});
+
+app.post('/api/money-lists', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const subject = String(req.body.subject ?? '').trim();
+  if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+
+  const amountRaw = req.body.amountPerStudent;
+  const amountPerStudent = typeof amountRaw === 'number' ? amountRaw : parseFloat(String(amountRaw).replace(',', '.'));
+  if (!Number.isFinite(amountPerStudent) || amountPerStudent < 0) {
+    return res.status(400).json({ error: 'Ungültiger Betrag' });
+  }
+
+  const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+
+  const courseStudents = await prisma.student.findMany({
+    where: { courseId },
+    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+  });
+
+  const list = await prisma.moneyList.create({
+    data: {
+      courseId,
+      subject,
+      amountPerStudent,
+      notes,
+      entries: {
+        create: courseStudents.map((s) => ({
+          studentId: s.id,
+          paid: false,
+        })),
+      },
+    },
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.status(201).json(serializeMoneyList(list));
+});
+
+app.put('/api/money-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.moneyListEntry.findUnique({
+    where: { id },
+    include: { moneyList: { include: { course: true } }, student: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.moneyList?.course || !canAccessCourse(existing.moneyList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const data = {};
+  if (req.body.paid !== undefined) data.paid = Boolean(req.body.paid);
+
+  const updated = await prisma.moneyListEntry.update({
+    where: { id },
+    data,
+    include: { student: true },
+  });
+
+  res.json({
+    id: updated.id,
+    paid: updated.paid,
+    studentId: updated.studentId,
+    studentNumber: updated.student?.studentNumber ?? null,
+    firstName: updated.student?.firstName ?? '',
+    lastName: updated.student?.lastName ?? '',
+    moneyListId: updated.moneyListId,
+  });
 });
 
 app.post('/api/shutdown', async (req, res) => {

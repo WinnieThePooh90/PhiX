@@ -75,6 +75,7 @@ export const DataProvider = ({ children }) => {
   const [orals, setOrals] = useState({});
   const [tests, setTests] = useState({});
   const [gfsEntries, setGfsEntries] = useState([]);
+  const [moneyLists, setMoneyLists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses and migrate
@@ -215,18 +216,20 @@ export const DataProvider = ({ children }) => {
     setLoading(true);
     const fetchCourseData = async () => {
       try {
-        const [studentsRes, examsRes, oralsRes, testsRes, gfsRes] = await Promise.all([
+        const [studentsRes, examsRes, oralsRes, testsRes, gfsRes, moneyListsRes] = await Promise.all([
           fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/exams?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/orals?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/tests?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/gfs?courseId=${activeCourseId}`).then((r) => r.json()),
+          fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json()),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
         setOrals(oralsRes);
         setTests(testsRes);
         setGfsEntries(Array.isArray(gfsRes) ? gfsRes : []);
+        setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -898,6 +901,33 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/gfs/${entryId}`, 'DELETE');
   };
 
+  const createMoneyList = async ({ subject, amountPerStudent, notes }) => {
+    if (!activeCourseId) return null;
+    const created = await apiCall('/api/money-lists', 'POST', {
+      courseId: activeCourseId,
+      subject,
+      amountPerStudent,
+      notes: notes ?? '',
+    });
+    if (created?.id) {
+      setMoneyLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateMoneyListEntryPaid = (listId, entryId, paid) => {
+    setMoneyLists((prev) =>
+      prev.map((list) => {
+        if (list.id !== listId) return list;
+        return {
+          ...list,
+          entries: (list.entries || []).map((e) => (e.id === entryId ? { ...e, paid } : e)),
+        };
+      }),
+    );
+    apiCall(`/api/money-list-entries/${entryId}`, 'PUT', { paid });
+  };
+
   const addSchoolRosterYear = async (label) => {
     const created = await apiCall('/api/school-roster-years', 'POST', { label });
     if (created?.error) return created;
@@ -1017,6 +1047,7 @@ export const DataProvider = ({ children }) => {
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
+      moneyLists, createMoneyList, updateMoneyListEntryPaid,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,
