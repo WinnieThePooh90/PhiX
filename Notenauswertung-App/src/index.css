@@ -2870,30 +2870,82 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     gap: 0.65rem;
   }
 
-  .exams-toolbar .course-meta-settings-row {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 0.75rem;
-  }
-
   .app-main-views .flex.items-end.gap-6 {
     flex-direction: column;
     align-items: stretch !important;
   }
 
-  .oral-meta-panel.course-meta-settings-row {
-    flex-direction: column;
-    align-items: stretch !important;
+  /* Einstellungszeile: schmale Controls, mehrere Felder nebeneinander */
+  .app-container--mobile .course-meta-settings-row,
+  .app-container--mobile .oral-meta-panel.course-meta-settings-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end !important;
+    gap: 0.5rem 0.65rem;
+    justify-content: flex-start;
   }
 
-  .oral-extended-controls-rail {
+  .app-container--mobile .course-meta-settings-row .course-meta-field {
+    flex: 0 1 auto;
+    width: auto;
+    max-width: 100%;
     margin-left: 0 !important;
-    width: 100%;
-    justify-content: flex-start;
   }
 
-  .app-container--mobile .course-meta-settings-row {
+  .app-container--mobile .course-meta-settings-row input.course-meta-control:not([type='checkbox']),
+  .app-container--mobile .course-meta-settings-row select.course-meta-control {
+    width: auto !important;
+    max-width: 100%;
+  }
+
+  .app-container--mobile .course-meta-settings-row select.course-meta-control[id*='-hj-'] {
+    width: 3.5rem !important;
+    min-width: 3.5rem;
+    max-width: 4.25rem;
+  }
+
+  .app-container--mobile .course-meta-settings-row input.course-meta-control[type='number'] {
+    width: 4.5rem !important;
+    min-width: 4.5rem;
+    max-width: 6rem;
+  }
+
+  .app-container--mobile .course-meta-settings-row input.course-meta-control[type='date'] {
+    width: auto !important;
+    min-width: 9.25rem;
+    max-width: min(100%, 11.25rem);
+  }
+
+  .app-container--mobile .course-meta-settings-row .course-meta-field:has(select[id*='-key-']) {
+    flex: 1 1 100%;
+    min-width: min(100%, 14rem);
+  }
+
+  .app-container--mobile .course-meta-settings-row .course-meta-field:has(select[id*='-key-']) select.course-meta-control {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .app-container--mobile .oral-meta-panel > .flex.items-end {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: flex-end !important;
+    width: auto;
+    flex: 0 1 auto;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .app-container--mobile .oral-extended-controls-rail {
+    margin-left: 0 !important;
+    width: auto;
+    flex: 1 1 100%;
     justify-content: flex-start;
+    align-items: flex-end;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .app-container--mobile .oral-extended-controls-rail .course-meta-control {
+    width: auto !important;
   }
 
   .app-main-views h2 {
