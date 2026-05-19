@@ -228,7 +228,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     <>
     <div className="view-page-scroll">
       <div className="view-toolbar-block exams-toolbar">
-        <div className="flex justify-between items-center mb-4 pt-2">
+        <div className="flex justify-between items-center mb-4 pt-2 view-page-nav">
           <h2 style={{ margin: 0 }}>Schriftliche Noten (Klausuren)</h2>
           <div className="flex gap-2" style={{ overflowX: 'auto', paddingBottom: '4px', flexWrap: 'wrap' }}>
             {examNumbers.map(num => (

@@ -394,7 +394,15 @@ function App() {
   );
 
   return (
-    <div className={`app-container${isMobile ? ' app-container--mobile' : ''}`}>
+    <div
+      className={[
+        'app-container',
+        isMobile ? 'app-container--mobile' : '',
+        isMobile && !mobileHeaderExpanded ? 'app-mobile-header-collapsed' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {isMobile && (mobileCoursesOpen || mobileSettingsOpen) && (
         <button
           type="button"

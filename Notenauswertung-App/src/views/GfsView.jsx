@@ -51,7 +51,7 @@ export default function GfsView() {
 
   return (
     <div className="view-generic-scroll">
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4 view-page-chrome">
         <div>
           <h2 style={{ margin: 0 }}>GFS</h2>
         </div>

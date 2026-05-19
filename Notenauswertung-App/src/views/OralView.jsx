@@ -183,7 +183,7 @@ export default function OralView({ studentIdFilterSet = null }) {
 
   return (
     <div className="view-root-fill">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 view-page-nav">
         <h2>Mündliche Noten</h2>
         <div className="flex gap-2" style={{ overflowX: 'auto', paddingBottom: '4px', flexWrap: 'wrap' }}>
           {oralNumbers.map(num => (

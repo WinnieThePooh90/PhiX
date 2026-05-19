@@ -2697,6 +2697,25 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     display: none;
   }
 
+  /* Header eingeklappt: nur Tabellen (Klausuren, Tests, Mündlich, GFS) */
+  .app-container--mobile.app-mobile-header-collapsed .view-toolbar-block,
+  .app-container--mobile.app-mobile-header-collapsed .view-page-nav,
+  .app-container--mobile.app-mobile-header-collapsed .course-meta-settings-row,
+  .app-container--mobile.app-mobile-header-collapsed .oral-meta-panel,
+  .app-container--mobile.app-mobile-header-collapsed .view-page-chrome,
+  .app-container--mobile.app-mobile-header-collapsed .exams-key-sidebar {
+    display: none !important;
+  }
+
+  .app-container--mobile.app-mobile-header-collapsed .exams-active-body.sidebar-layout {
+    display: block;
+  }
+
+  .app-container--mobile.app-mobile-header-collapsed .exams-main-stack.main-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .app-mobile-panel-header {
     display: flex;
     align-items: center;
