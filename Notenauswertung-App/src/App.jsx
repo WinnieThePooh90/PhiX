@@ -4,9 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   Settings,
-  Plus,
   Star,
   Heart,
+  PanelLeft,
+  PanelRight,
+  X,
 } from 'lucide-react';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
@@ -26,6 +28,9 @@ import SummaryView from './views/SummaryView';
 import KeysView from './views/KeysView';
 import SupportPhiXView from './views/SupportPhiXView';
 import HeaderUserMenu from './components/HeaderUserMenu';
+import SettingsNavMenu from './components/SettingsNavMenu';
+
+const MOBILE_MEDIA = '(max-width: 768px)';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
@@ -77,7 +82,38 @@ function App() {
     if (!showTestsTab && activeTab === 'tests') setActiveTab('summary');
     if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary');
   }, [showTestsTab, showGfsTab, activeTab]);
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MEDIA);
+    const onChange = () => {
+      setIsMobile(mq.matches);
+      if (!mq.matches) {
+        setMobileCoursesOpen(false);
+        setMobileSettingsOpen(false);
+      }
+    };
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    const open = mobileCoursesOpen || mobileSettingsOpen;
+    document.body.classList.toggle('app-mobile-drawer-open', open);
+    return () => document.body.classList.remove('app-mobile-drawer-open');
+  }, [isMobile, mobileCoursesOpen, mobileSettingsOpen]);
+
+  useEffect(() => {
+    setMobileCoursesOpen(false);
+    setMobileSettingsOpen(false);
+  }, [activeTab, isNewCoursePage]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
+  );
+  const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [selectedYearFilter, setSelectedYearFilter] = useState('');
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
   const [headerSearch, setHeaderSearch] = useState('');
@@ -164,6 +200,24 @@ function App() {
   const openMainTab = (tab) => {
     if (isNewCoursePage) navigate('/');
     setActiveTab(tab);
+    setMobileSettingsOpen(false);
+    setMobileCoursesOpen(false);
+  };
+
+  const sidebarShowsNav = !sidebarCollapsed || isMobile;
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setMobileSettingsOpen(false);
+      setMobileCoursesOpen((o) => !o);
+      return;
+    }
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const closeMobileDrawers = () => {
+    setMobileCoursesOpen(false);
+    setMobileSettingsOpen(false);
   };
 
   const handleNewCourseClick = () => {
@@ -205,23 +259,49 @@ function App() {
     }
   };
 
+  const selectCourse = (courseId) => {
+    setActiveCourseId(courseId);
+    if (isNewCoursePage) navigate('/');
+    if (isMobile) setMobileCoursesOpen(false);
+  };
+
   return (
-    <div className="app-container">
-      <div className={`app-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className={`app-container${isMobile ? ' app-container--mobile' : ''}`}>
+      {isMobile && (mobileCoursesOpen || mobileSettingsOpen) && (
+        <button
+          type="button"
+          className="app-mobile-backdrop"
+          aria-label="Menü schließen"
+          onClick={closeMobileDrawers}
+        />
+      )}
+
+      <aside
+        className={[
+          'app-sidebar',
+          !isMobile && sidebarCollapsed ? 'collapsed' : '',
+          isMobile ? 'app-sidebar--mobile' : '',
+          isMobile && mobileCoursesOpen ? 'app-sidebar--open' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-hidden={isMobile && !mobileCoursesOpen}
+      >
         <div className="app-sidebar-header">
-          {!sidebarCollapsed && <span>Meine Fächer</span>}
+          {sidebarShowsNav && <span>Meine Fächer</span>}
           <button
             type="button"
-            className={sidebarCollapsed ? 'equiphi-sidebar-toggle' : undefined}
-            style={{ padding: '0.25rem 0.5rem', marginLeft: sidebarCollapsed ? '0' : 'auto' }}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title="Sidebar einklappen/ausklappen"
+            className={!isMobile && sidebarCollapsed ? 'equiphi-sidebar-toggle' : undefined}
+            style={{ padding: '0.25rem 0.5rem', marginLeft: sidebarShowsNav && !isMobile ? 'auto' : undefined }}
+            onClick={toggleSidebar}
+            title={isMobile ? 'Fächer schließen' : 'Sidebar einklappen/ausklappen'}
+            aria-expanded={isMobile ? mobileCoursesOpen : !sidebarCollapsed}
           >
-            {sidebarCollapsed ? '➔' : '☰'}
+            {isMobile ? <X size={20} strokeWidth={2} aria-hidden /> : sidebarCollapsed ? '➔' : '☰'}
           </button>
         </div>
         <div className="app-sidebar-nav">
-          {!sidebarCollapsed && (
+          {sidebarShowsNav && (
             <>
               <div className="app-sidebar-nav-scroll">
                 {uniqueYears.length > 0 && (
@@ -251,15 +331,11 @@ function App() {
                         role="button"
                         tabIndex={0}
                         className="course-item-main"
-                        onClick={() => {
-                          setActiveCourseId(course.id);
-                          if (isNewCoursePage) navigate('/');
-                        }}
+                        onClick={() => selectCourse(course.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setActiveCourseId(course.id);
-                            if (isNewCoursePage) navigate('/');
+                            selectCourse(course.id);
                           }
                         }}
                       >
@@ -330,7 +406,72 @@ function App() {
             </>
           )}
         </div>
-      </div>
+      </aside>
+
+      {isMobile && (
+        <aside
+          className={`app-mobile-settings-panel${mobileSettingsOpen ? ' is-open' : ''}`}
+          aria-hidden={!mobileSettingsOpen}
+        >
+          <div className="app-mobile-panel-header">
+            <span>Einstellungen</span>
+            <button
+              type="button"
+              className="app-mobile-panel-close"
+              onClick={() => setMobileSettingsOpen(false)}
+              aria-label="Einstellungen schließen"
+            >
+              <X size={20} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          <SettingsNavMenu
+            className="settings-nav-menu--panel"
+            isAdminUser={isAdminUser}
+            onSelect={openMainTab}
+            onNewCourse={handleNewCourseClick}
+            onClose={() => setMobileSettingsOpen(false)}
+          />
+          <div className="app-mobile-panel-footer">
+            <HeaderUserMenu
+              settingsMenuOpen={settingsMenuOpen}
+              onMenuOpenChange={(o) => {
+                if (o) setSettingsMenuOpen(false);
+              }}
+            />
+          </div>
+        </aside>
+      )}
+
+      {isMobile && (
+        <>
+          <button
+            type="button"
+            className="app-mobile-rail app-mobile-rail--left"
+            onClick={() => {
+              setMobileSettingsOpen(false);
+              setMobileCoursesOpen((o) => !o);
+            }}
+            aria-expanded={mobileCoursesOpen}
+            aria-label={mobileCoursesOpen ? 'Fächer schließen' : 'Fächer öffnen'}
+          >
+            <PanelLeft size={22} strokeWidth={2} aria-hidden />
+            <span className="app-mobile-rail-label">Fächer</span>
+          </button>
+          <button
+            type="button"
+            className="app-mobile-rail app-mobile-rail--right"
+            onClick={() => {
+              setMobileCoursesOpen(false);
+              setMobileSettingsOpen((o) => !o);
+            }}
+            aria-expanded={mobileSettingsOpen}
+            aria-label={mobileSettingsOpen ? 'Einstellungen schließen' : 'Einstellungen öffnen'}
+          >
+            <PanelRight size={22} strokeWidth={2} aria-hidden />
+            <span className="app-mobile-rail-label">Mehr</span>
+          </button>
+        </>
+      )}
 
       <div className="app-main">
         {isNewCoursePage ? (
@@ -423,7 +564,7 @@ function App() {
                         GFS
                       </button>
                     )}
-                    <div className="header-settings-menu-wrap" ref={settingsMenuRef}>
+                    <div className="header-settings-menu-wrap app-desktop-only" ref={settingsMenuRef}>
                       <button
                         ref={settingsGearRef}
                         type="button"
@@ -437,13 +578,16 @@ function App() {
                         <Settings className="header-lucide-icon" size={18} strokeWidth={2} aria-hidden />
                       </button>
                     </div>
-                    <HeaderUserMenu
-                      settingsMenuOpen={settingsMenuOpen}
-                      onMenuOpenChange={(o) => {
-                        if (o) setSettingsMenuOpen(false);
-                      }}
-                    />
-                    {settingsMenuOpen &&
+                    <div className="app-desktop-only">
+                      <HeaderUserMenu
+                        settingsMenuOpen={settingsMenuOpen}
+                        onMenuOpenChange={(o) => {
+                          if (o) setSettingsMenuOpen(false);
+                        }}
+                      />
+                    </div>
+                    {!isMobile &&
+                      settingsMenuOpen &&
                       settingsMenuPos &&
                       createPortal(
                         <div
@@ -456,123 +600,19 @@ function App() {
                             right: settingsMenuPos.right,
                           }}
                         >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              openMainTab('settings');
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            Klasse
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              openMainTab('analysis');
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            Analyse
-                          </button>
-                          <hr className="header-settings-dropdown-divider" aria-hidden />
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              openMainTab('keys');
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            Notenschlüssel
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              openMainTab('schoolRoster');
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            Schülerverwaltung
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              openMainTab('userManagement');
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            Benutzerverwaltung
-                          </button>
-                          {isAdminUser ? (
-                            <>
-                              <hr className="header-settings-dropdown-divider" aria-hidden />
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  openMainTab('appInfo');
-                                  setSettingsMenuOpen(false);
-                                }}
-                              >
-                                Info
-                              </button>
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  openMainTab('impressum');
-                                  setSettingsMenuOpen(false);
-                                }}
-                              >
-                                Impressum
-                              </button>
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  openMainTab('dependencies');
-                                  setSettingsMenuOpen(false);
-                                }}
-                              >
-                                Dependencies
-                              </button>
-                              <hr className="header-settings-dropdown-divider" aria-hidden />
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => {
-                                openMainTab('impressum');
-                                setSettingsMenuOpen(false);
-                              }}
-                            >
-                              Impressum
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="header-settings-dropdown-item--with-icon"
-                            onClick={() => {
-                              handleNewCourseClick();
-                              setSettingsMenuOpen(false);
-                            }}
-                          >
-                            <Plus className="header-settings-dropdown-icon" size={16} strokeWidth={2} aria-hidden />
-                            Neues Fach
-                          </button>
+                          <SettingsNavMenu
+                            isAdminUser={isAdminUser}
+                            onSelect={openMainTab}
+                            onNewCourse={handleNewCourseClick}
+                            onClose={() => setSettingsMenuOpen(false)}
+                          />
                         </div>,
                         document.body,
                       )}
                   </nav>
                 </div>
 
-                {!sidebarCollapsed && (
+                {(isMobile || !sidebarCollapsed) && (
                   <div className="header-controls-row">
                     <div className="header-search-wrap">
                       <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
@@ -607,7 +647,7 @@ function App() {
               position: 'relative',
             }}
           >
-            <div className="app-main-empty-state-user">
+            <div className="app-main-empty-state-user app-desktop-only">
               <HeaderUserMenu
                 settingsMenuOpen={settingsMenuOpen}
                 onMenuOpenChange={(o) => {

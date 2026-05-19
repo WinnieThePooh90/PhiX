@@ -1,0 +1,70 @@
+import React from 'react';
+import { Plus } from 'lucide-react';
+
+/**
+ * Einstellungs-Navigation (Desktop-Dropdown & mobile rechte Leiste).
+ */
+export default function SettingsNavMenu({
+  isAdminUser,
+  onSelect,
+  onNewCourse,
+  onClose,
+  className = '',
+}) {
+  const pick = (tab) => {
+    onSelect(tab);
+    onClose?.();
+  };
+
+  return (
+    <nav className={`settings-nav-menu ${className}`.trim()} role="menu" aria-label="Einstellungen">
+      <button type="button" role="menuitem" onClick={() => pick('settings')}>
+        Klasse
+      </button>
+      <button type="button" role="menuitem" onClick={() => pick('analysis')}>
+        Analyse
+      </button>
+      <hr className="header-settings-dropdown-divider" aria-hidden />
+      <button type="button" role="menuitem" onClick={() => pick('keys')}>
+        Notenschlüssel
+      </button>
+      <button type="button" role="menuitem" onClick={() => pick('schoolRoster')}>
+        Schülerverwaltung
+      </button>
+      <button type="button" role="menuitem" onClick={() => pick('userManagement')}>
+        Benutzerverwaltung
+      </button>
+      {isAdminUser ? (
+        <>
+          <hr className="header-settings-dropdown-divider" aria-hidden />
+          <button type="button" role="menuitem" onClick={() => pick('appInfo')}>
+            Info
+          </button>
+          <button type="button" role="menuitem" onClick={() => pick('impressum')}>
+            Impressum
+          </button>
+          <button type="button" role="menuitem" onClick={() => pick('dependencies')}>
+            Dependencies
+          </button>
+          <hr className="header-settings-dropdown-divider" aria-hidden />
+        </>
+      ) : (
+        <button type="button" role="menuitem" onClick={() => pick('impressum')}>
+          Impressum
+        </button>
+      )}
+      <button
+        type="button"
+        role="menuitem"
+        className="header-settings-dropdown-item--with-icon"
+        onClick={() => {
+          onNewCourse();
+          onClose?.();
+        }}
+      >
+        <Plus className="header-settings-dropdown-icon" size={16} strokeWidth={2} aria-hidden />
+        Neues Fach
+      </button>
+    </nav>
+  );
+}

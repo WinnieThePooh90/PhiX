@@ -2506,32 +2506,185 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 }
 
+/* Einstellungsliste (gemeinsam Desktop-Dropdown & mobile rechte Leiste) */
+.settings-nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-nav-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.settings-nav-menu button:hover {
+  background: hsl(var(--muted));
+}
+
 /*
- * Smartphone & schmale Viewports (≤640px): Layout und Tabellen nutzbar machen.
- * Keine Regeln oberhalb dieses Breakpoints ändern — Desktop bleibt unverändert.
+ * Smartphone & Tablet schmal (≤768px): linke Fächer-Leiste, rechte Einstellungen, Tabellen mittig.
  */
-@media (max-width: 640px) {
-  .app-container {
-    flex-direction: column;
+@media (max-width: 768px) {
+  .app-desktop-only {
+    display: none !important;
   }
 
-  .app-sidebar {
-    width: 100% !important;
-    height: auto;
-    max-height: min(38dvh, 260px);
-    min-height: 0;
-    flex-shrink: 0;
-    position: relative;
-    top: auto;
-    align-self: stretch;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .app-sidebar.collapsed {
-    width: 100% !important;
-    max-height: 3.5rem;
+  body.app-mobile-drawer-open {
     overflow: hidden;
+  }
+
+  .app-container--mobile {
+    flex-direction: row;
+  }
+
+  .app-sidebar--mobile {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1300;
+    width: min(88vw, 300px) !important;
+    max-height: none;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .app-sidebar--mobile.app-sidebar--open {
+    transform: translateX(0);
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .app-mobile-settings-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1300;
+    width: min(88vw, 300px);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .app-mobile-settings-panel.is-open {
+    transform: translateX(0);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .app-mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.42);
+    cursor: pointer;
+  }
+
+  .app-mobile-rail {
+    position: fixed;
+    z-index: 1100;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.55rem 0.3rem;
+    min-width: 2.25rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: hsl(var(--foreground));
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+  }
+
+  .app-mobile-rail--left {
+    left: 0;
+    border-radius: 0 10px 10px 0;
+    border-left: none;
+  }
+
+  .app-mobile-rail--right {
+    right: 0;
+    border-radius: 10px 0 0 10px;
+    border-right: none;
+  }
+
+  .app-mobile-rail-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+  }
+
+  .app-mobile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .app-mobile-panel-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: hsl(var(--foreground));
+    cursor: pointer;
+  }
+
+  .app-mobile-panel-close:hover {
+    background: hsl(var(--muted));
+  }
+
+  .settings-nav-menu--panel {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-mobile-panel-footer {
+    flex-shrink: 0;
+    padding: 0.65rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .app-mobile-panel-footer .header-user-menu-wrap {
+    width: 100%;
   }
 
   .app-main {
@@ -2541,13 +2694,13 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-main-content-wrap {
-    padding: 0 max(0.65rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px))
-      max(0.65rem, env(safe-area-inset-left, 0px));
+    padding: 0 max(2.35rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px))
+      max(2.35rem, env(safe-area-inset-left, 0px));
   }
 
   .app-main-inner {
-    padding-left: max(0.65rem, env(safe-area-inset-left, 0px));
-    padding-right: max(0.65rem, env(safe-area-inset-right, 0px));
+    padding-left: max(2.35rem, env(safe-area-inset-left, 0px));
+    padding-right: max(2.35rem, env(safe-area-inset-right, 0px));
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
 
