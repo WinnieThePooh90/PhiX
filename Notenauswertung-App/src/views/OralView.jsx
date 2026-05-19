@@ -577,7 +577,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                 </>
               )}
               <th
-                className="oral-th-sticky-right text-center"
+                className="oral-th-sticky-right oral-note-col text-center"
                 style={{
                   position: 'sticky',
                   right: 0,
@@ -800,7 +800,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                       </>
                     )}
                     <td
-                      className="text-center"
+                      className="text-center oral-note-col"
                       style={{
                         position: 'sticky',
                         right: 0,

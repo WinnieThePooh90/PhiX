@@ -3132,7 +3132,9 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   /* Klausuren: Aufgabenspalten A1…Ax — schmal, zweistellige Werte */
   .app-container--mobile .exam-table-scroll th.exam-task-col,
-  .app-container--mobile .exam-table-scroll td.exam-task-col {
+  .app-container--mobile .exam-table-scroll td.exam-task-col,
+  .app-container--mobile .exam-table-scroll th.test-points-col,
+  .app-container--mobile .exam-table-scroll td.test-points-col {
     width: 3rem !important;
     min-width: 3rem !important;
     max-width: 3rem !important;
@@ -3142,11 +3144,33 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .exam-table-scroll th.exam-task-col input,
-  .app-container--mobile .exam-table-scroll td.exam-task-col input {
+  .app-container--mobile .exam-table-scroll td.exam-task-col input,
+  .app-container--mobile .exam-table-scroll th.test-points-col input,
+  .app-container--mobile .exam-table-scroll td.test-points-col input {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
     padding: 0.28rem 0.08rem !important;
+    font-size: 0.8125rem;
+    box-sizing: border-box;
+  }
+
+  /* Mündlich: Note-Spalte (~¼ der Desktop-Breite 112px) */
+  .app-container--mobile .oral-table-scroll th.oral-note-col,
+  .app-container--mobile .oral-table-scroll td.oral-note-col {
+    width: 1.75rem !important;
+    min-width: 1.75rem !important;
+    max-width: 1.75rem !important;
+    padding-left: 0.1rem !important;
+    padding-right: 0.1rem !important;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .oral-table-scroll td.oral-note-col input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0.28rem 0.06rem !important;
     font-size: 0.8125rem;
     box-sizing: border-box;
   }

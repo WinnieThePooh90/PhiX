@@ -343,7 +343,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         >
                           NAME
                         </th>
-                        <th className="text-center exam-th-r1" style={{ width: '88px', minWidth: '80px' }}>
+                        <th className="text-center exam-th-r1 test-points-col" style={{ width: '88px', minWidth: '80px' }}>
                           PUNKTE
                         </th>
                         <th
@@ -537,7 +537,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                               >
                                 {s.lastName}, {s.firstName}
                               </td>
-                              <td className="text-center" style={{ verticalAlign: 'middle' }}>
+                              <td className="text-center test-points-col" style={{ verticalAlign: 'middle' }}>
                                 <input
                                   type="text"
                                   inputMode="decimal"
