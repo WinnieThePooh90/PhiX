@@ -179,7 +179,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
   };
 
   return (
-    <div className="view-root-fill">
+    <div className="view-page-scroll">
       <div className="view-toolbar-block tests-toolbar">
         <div className="flex justify-between items-center mb-4 pt-2 view-page-nav">
           <h2 style={{ margin: 0 }}>Tests</h2>

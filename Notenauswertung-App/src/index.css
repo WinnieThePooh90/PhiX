@@ -2748,19 +2748,27 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     flex-shrink: 0;
   }
 
-  .app-container--mobile .view-page-scroll > .view-toolbar-block {
+  .app-container--mobile .view-page-scroll > .view-toolbar-block,
+  .app-container--mobile .view-root-fill > .view-toolbar-block {
     max-height: min(42dvh, 320px);
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  .app-container--mobile .course-meta-settings-row,
-  .app-container--mobile .oral-meta-panel {
+  .app-container--mobile .view-root-fill > .oral-meta-panel {
+    max-height: min(45dvh, 380px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-container--mobile .course-meta-settings-row {
     overflow: visible;
   }
 
   .app-container--mobile .view-page-scroll > .exams-active-body,
+  .app-container--mobile .view-root-fill > .exams-active-body,
   .app-container--mobile .view-root-fill > .view-table-scroll {
     flex: 1 1 0%;
     min-height: 0;
