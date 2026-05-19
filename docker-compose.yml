@@ -33,7 +33,9 @@ services:
       - .:/compose:ro
     depends_on:
       - db
-    restart: unless-stopped
+    # Kein Auto-Restart: nach „Herunterfahren“ soll der Container stehen bleiben
+    # (unless-stopped würde bei process.exit sofort neu starten).
+    restart: "no"
 
   db:
     image: postgres:15-alpine

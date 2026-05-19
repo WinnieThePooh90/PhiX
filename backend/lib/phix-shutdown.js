@@ -101,8 +101,9 @@ async function stopDockerComposeStack() {
     console.warn('[shutdown] docker compose stop db frontend:', err.message || err);
   }
 
-  // Restlichen Stack im Hintergrund abbauen (überlebt Ende dieses Containers).
-  const shellScript = `sleep 1 && ${downLine}`;
+  // Backend im Hintergrund mit stoppen/down (dieser Prozess darf nicht synchron „down“ ausführen).
+  const shellScript =
+    `sleep 1 && ${cmd} ${base} stop backend db frontend 2>/dev/null; ${downLine}`;
 
   return new Promise((resolve) => {
     try {
@@ -120,6 +121,35 @@ async function stopDockerComposeStack() {
       resolve(false);
     }
   });
+}
+
+/** Verhindert Restart-Schleife, falls der Service noch restart: unless-stopped hat. */
+async function preventBackendRestartLoop() {
+  const containerId = process.env.HOSTNAME;
+  if (!containerId) return;
+  try {
+    await execFileAsync(dockerCmd(), ['update', '--restart=no', containerId], {
+      timeout: 10000,
+    });
+    console.log('[shutdown] Auto-Restart für Backend deaktiviert.');
+  } catch (err) {
+    console.warn('[shutdown] docker update --restart=no:', err.message || err);
+  }
+}
+
+/** Container sauber stoppen statt nur process.exit (sonst startet Docker ihn neu). */
+async function stopOwnContainer() {
+  const containerId = process.env.HOSTNAME;
+  if (!containerId) {
+    setTimeout(() => process.exit(0), 300);
+    return;
+  }
+  try {
+    await execFileAsync(dockerCmd(), ['stop', '-t', '3', containerId], { timeout: 20000 });
+  } catch (err) {
+    console.warn('[shutdown] docker stop (self):', err.message || err);
+    setTimeout(() => process.exit(0), 300);
+  }
 }
 
 /**
@@ -152,9 +182,12 @@ async function shutdownPhix(deps = {}) {
     await stopDockerComposeDb();
   }
 
-  if (fullDockerShutdown && !composeDownOk) {
-    console.error('[shutdown] Abbruch: Stack-Herunterfahren konnte nicht gestartet werden.');
-    process.exit(1);
+  if (fullDockerShutdown) {
+    if (!composeDownOk) {
+      console.error('[shutdown] Hintergrund-down nicht gestartet – stoppe Backend trotzdem.');
+    }
+    await preventBackendRestartLoop();
+    await stopOwnContainer();
     return;
   }
 
