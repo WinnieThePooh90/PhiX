@@ -673,6 +673,38 @@ p {
   overflow: visible;
 }
 
+.sticky-header-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.sticky-header-top-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.sticky-header-course-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.sticky-header-top-row .sticky-header-tabs.equiphi-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 .header-controls-row {
   display: flex;
   align-items: center;
@@ -2660,9 +2692,11 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     flex-direction: column;
     gap: 0.5rem;
     padding: 0 0.65rem 0.65rem;
-    max-height: min(52dvh, 420px);
+    max-height: min(58dvh, 480px);
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .app-mobile-header-course-title h1 {
@@ -2684,9 +2718,41 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     width: auto;
   }
 
-  .app-mobile-tabs {
+  .app-mobile-tabs,
+  .app-mobile-header-body .equiphi-tabs {
+    justify-content: flex-start !important;
     flex-wrap: wrap;
     width: 100%;
+  }
+
+  /* Einstellungszeilen (Klausur/Test/Mündlich) im Seiteninhalt scrollbar */
+  .app-container--mobile .app-main-views {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-container--mobile:not(.app-mobile-header-collapsed) .view-page-scroll,
+  .app-container--mobile:not(.app-mobile-header-collapsed) .view-root-fill {
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .app-container--mobile .view-toolbar-block {
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  .app-container--mobile .course-meta-settings-row,
+  .app-container--mobile .oral-meta-panel {
+    overflow: visible;
+  }
+
+  .app-container--mobile .view-table-scroll {
+    flex: 1 1 auto;
+    min-height: min(42dvh, 380px);
+    overflow: auto;
   }
 
   .app-main--mobile-header {
@@ -2782,24 +2848,14 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .app-main--mobile-header .app-main-content-wrap {
     margin-top: 0;
+    overflow: visible;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .sticky-header h1 {
     font-size: 1.125rem;
     line-height: 1.25;
-  }
-
-  /* Kopfzeile: Klassentitel volle Breite, Navigation darunter */
-  .sticky-header > div > div:first-child {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 0.5rem;
-  }
-
-  .sticky-header .tabs.equiphi-tabs {
-    justify-content: flex-start;
-    width: 100%;
-    flex-wrap: wrap;
   }
 
   .tab {
@@ -2833,7 +2889,11 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .oral-extended-controls-rail {
     margin-left: 0 !important;
     width: 100%;
-    justify-content: flex-end;
+    justify-content: flex-start;
+  }
+
+  .app-container--mobile .course-meta-settings-row {
+    justify-content: flex-start;
   }
 
   .app-main-views h2 {

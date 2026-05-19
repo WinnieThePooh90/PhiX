@@ -669,35 +669,30 @@ function App() {
               </MobileAppHeader>
             ) : (
               <div className="sticky-header">
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                    alignItems: 'stretch',
-                  }}
-                >
-                  <header style={{ textAlign: 'left' }}>
-                    <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>
-                      {config.subject} {config.className || config.class}
-                    </h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                      Schuljahr: {config.year}
-                      {config.weighting != null && (
-                        <>
-                          {' · '}
-                          Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
-                        </>
-                      )}
-                      {isAdminUser && config.ownerUsername ? (
-                        <>
-                          {' · '}
-                          {config.ownerUsername}
-                        </>
-                      ) : null}
-                    </p>
-                  </header>
-                  {renderMainTabsNav()}
+                <div className="sticky-header-inner">
+                  <div className="sticky-header-top-row">
+                    <header className="sticky-header-course-title">
+                      <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>
+                        {config.subject} {config.className || config.class}
+                      </h1>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
+                        Schuljahr: {config.year}
+                        {config.weighting != null && (
+                          <>
+                            {' · '}
+                            Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
+                          </>
+                        )}
+                        {isAdminUser && config.ownerUsername ? (
+                          <>
+                            {' · '}
+                            {config.ownerUsername}
+                          </>
+                        ) : null}
+                      </p>
+                    </header>
+                    {renderMainTabsNav('sticky-header-tabs')}
+                  </div>
                   {!sidebarCollapsed && (
                     <div className="header-controls-row">
                       <div className="header-search-wrap">
