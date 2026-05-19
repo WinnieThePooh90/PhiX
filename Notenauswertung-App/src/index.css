@@ -132,6 +132,51 @@ p {
   font-size: 0.875rem;
 }
 
+/* Klassenlehrer: Geldlisten-Tabelle mit eigenem Scroll und schmaler Nr.-Spalte */
+.klassenlehrer-money-table-scroll {
+  max-height: min(24rem, 55vh);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.klassenlehrer-money-table-scroll .data-table {
+  width: 100%;
+}
+
+.klassenlehrer-money-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: hsl(var(--muted));
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.klassenlehrer-money-table-scroll th.klassenlehrer-num-col,
+.klassenlehrer-money-table-scroll td.klassenlehrer-num-col {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.klassenlehrer-money-table-scroll th.klassenlehrer-paid-col,
+.klassenlehrer-money-table-scroll td.klassenlehrer-paid-col {
+  width: 4.25rem;
+  min-width: 4.25rem;
+  max-width: 4.25rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  box-sizing: border-box;
+}
+
 .program-view-panel-cta {
   width: 100%;
   justify-content: center;

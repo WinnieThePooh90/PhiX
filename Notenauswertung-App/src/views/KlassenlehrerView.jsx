@@ -190,14 +190,14 @@ export default function KlassenlehrerView() {
               {' · '}
               {paidCount} / {entries.length} bezahlt
             </p>
-            <div className="view-table-scroll klassenlehrer-money-table-scroll">
+            <div className="klassenlehrer-money-table-scroll">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th className="text-center">Schülernummer</th>
+                    <th className="text-center klassenlehrer-num-col">Nr.</th>
                     <th>Name</th>
                     <th>Vorname</th>
-                    <th className="text-center">Bezahlt</th>
+                    <th className="text-center klassenlehrer-paid-col">Bezahlt</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -206,11 +206,11 @@ export default function KlassenlehrerView() {
                     const paid = row.paid === true;
                     return (
                       <tr key={row.id}>
-                        <td className="text-center">{row.studentNumber ?? '—'}</td>
+                        <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
                         <td>{row.lastName || '—'}</td>
                         <td>{row.firstName || '—'}</td>
                         <td
-                          className={`text-center gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
+                          className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
                           title={paid ? 'Bezahlt' : 'Noch nicht bezahlt'}
                         >
                           <label className="gfs-gehalten-label">
