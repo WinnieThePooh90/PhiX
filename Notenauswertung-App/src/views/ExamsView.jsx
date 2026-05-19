@@ -384,7 +384,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     <th className="exam-th-sticky-left exam-th-r1" style={{ width: `${EXAM_INDEX_COL_PX}px`, minWidth: `${EXAM_INDEX_COL_PX}px`, left: 0 }}>#</th>
                     <th className="exam-th-sticky-left exam-th-r1" style={{ left: `${EXAM_INDEX_COL_PX}px` }}>NAME</th>
                     {[...Array(displayFieldCount)].map((_, i) => (
-                      <th key={i} className="text-center exam-th-r1" style={{ width: '80px', minWidth: '80px' }}>A{i + 1}</th>
+                      <th key={i} className="text-center exam-th-r1 exam-task-col" style={{ width: '80px', minWidth: '80px' }}>A{i + 1}</th>
                     ))}
                     <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
                     <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
@@ -393,7 +393,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
                     <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${EXAM_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
                     {[...Array(displayFieldCount)].map((_, i) => (
-                      <th key={i} className="text-center exam-th-r2" style={{ textTransform: 'none', background: i >= numFields ? 'rgba(79, 70, 229, 0.06)' : undefined }} title={i >= numFields ? 'Max-Punkte für Zusatzaufgaben (z. B. Nachschreiber)' : undefined}>
+                      <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'rgba(79, 70, 229, 0.06)' : undefined }} title={i >= numFields ? 'Max-Punkte für Zusatzaufgaben (z. B. Nachschreiber)' : undefined}>
                         <input 
                           type="number" 
                           value={exam.fieldMaxPoints?.[i] ?? ''}
@@ -510,7 +510,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                             const maxRule = getExamTaskMaxRule(exam, fieldIndex);
                             const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
                             return (
-                              <td key={fieldIndex} className="text-center" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
+                              <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
                                 {beyond ? (
                                   <span className="text-muted" title="Für diesen Schüler nicht gewertet">—</span>
                                 ) : (
