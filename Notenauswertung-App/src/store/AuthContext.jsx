@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { apiFetch } from '../utils/apiBase';
 
 const STORAGE_SESSION_KEY = 'notenauswertung_session_username';
 /** Alte Klartext-Speicherung — wird einmalig an den Server übergeben und entfernt. */
@@ -53,7 +54,7 @@ async function tryMigrateLegacyUsersFromBrowser() {
     .map((u) => ({ username: String(u.username).trim(), password: String(u.password) }));
   if (users.length === 0) return;
   try {
-    const res = await fetch('/api/users/migrate-from-localstorage', {
+    const res = await apiFetch('/api/users/migrate-from-localstorage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ users }),
@@ -80,7 +81,7 @@ export const AuthProvider = ({ children }) => {
     }
     const n = ++usersListNonce.current;
     try {
-      const res = await fetch('/api/users', { headers: authHeaders(u) });
+      const res = await apiFetch('/api/users', { headers: authHeaders(u) });
       if (!res.ok) {
         if (n === usersListNonce.current) setUsersList([]);
         return;
@@ -105,7 +106,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
-        const res = await fetch('/api/auth/session', { headers: authHeaders(sessionName) });
+        const res = await apiFetch('/api/auth/session', { headers: authHeaders(sessionName) });
         if (cancelled) return;
         if (res.ok) {
           const body = await res.json();
@@ -145,7 +146,7 @@ export const AuthProvider = ({ children }) => {
       return { ok: false, error: 'Benutzername und Passwort eingeben.' };
     }
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: usernameIn, password }),
@@ -189,7 +190,7 @@ export const AuthProvider = ({ children }) => {
       const acting = currentUser?.username;
       if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
       try {
-        const res = await fetch('/api/users', {
+        const res = await apiFetch('/api/users', {
           method: 'POST',
           headers: jsonHeadersWithActing(acting),
           body: JSON.stringify({ username, password }),
@@ -216,7 +217,7 @@ export const AuthProvider = ({ children }) => {
       const acting = currentUser?.username;
       if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(userId)}/password`, {
+        const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/password`, {
           method: 'PATCH',
           headers: jsonHeadersWithActing(acting),
           body: JSON.stringify({ newPassword }),
@@ -236,7 +237,7 @@ export const AuthProvider = ({ children }) => {
       const acting = currentUser?.username;
       if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+        const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}`, {
           method: 'DELETE',
           headers: authHeaders(acting),
         });

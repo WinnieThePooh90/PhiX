@@ -4,10 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node -r dotenv/config node_modules/prisma/build/index.js db push && node server.js",
-    "start:standalone": "node -r dotenv/config node_modules/prisma/build/index.js db push && node server.js",
+    "postinstall": "node scripts/prisma-generate-all.js",
+    "start": "node server.js",
+    "start:standalone": "node server.js",
     "dev": "nodemon server.js",
-    "set-admin-password": "node scripts/set-admin-password.js"
+    "set-admin-password": "node scripts/set-admin-password.js",
+    "prisma:generate-all": "node scripts/prisma-generate-all.js",
+    "ci:smoke": "node scripts/ci-smoke.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",

@@ -9,7 +9,7 @@
  */
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { PrismaClient } = require('@prisma/client');
+const { createPrismaClient } = require('../lib/prisma-factory');
 
 const BCRYPT_ROUNDS = 10;
 
@@ -25,7 +25,7 @@ async function main() {
     process.exit(1);
   }
 
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
   try {
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = await prisma.appUser.upsert({

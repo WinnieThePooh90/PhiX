@@ -1,0 +1,174 @@
+// SQLite-Variante — Modelle müssen mit prisma/schema.prisma (Postgres) synchron gehalten werden.
+// Generate: npx prisma generate --schema=prisma/sqlite/schema.prisma
+// Push:     npx prisma db push --schema=prisma/sqlite/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma-sqlite"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AppUser {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Config {
+  id        Int      @id @default(autoincrement())
+  year      String
+  className String
+  subject   String
+  hours     Int
+  weighting Json
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  year      String
+  className String
+  subject   String
+  hours     Int
+  weighting Json
+  gradeSystem String @default("classic")
+  isFavorite Boolean @default(false)
+  customGradingKeys Json @default("[]")
+  testsWritten Boolean @default(true)
+  gfsAccepted Boolean @default(true)
+  ownerUsername String @default("admin")
+
+  students   Student[]
+  exams      Exam[]
+  orals      Oral[]
+  tests      Test[]
+  gfsEntries   GfsEntry[]
+  moneyLists   MoneyList[]
+
+  @@index([ownerUsername])
+}
+
+model SchoolRosterYear {
+  id        Int      @id @default(autoincrement())
+  label     String   @unique
+  createdAt DateTime @default(now())
+
+  students SchoolRosterStudent[]
+}
+
+model SchoolRosterStudent {
+  id         Int      @id @default(autoincrement())
+  gradeLevel Int
+  firstName  String
+  lastName   String
+  createdAt  DateTime @default(now())
+
+  schoolYearId Int
+  schoolYear   SchoolRosterYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  @@index([schoolYearId, gradeLevel])
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  frontendId BigInt? @unique
+  firstName String
+  lastName  String
+  studentNumber Int
+  summaryEndNote String @default("")
+  courseId  Int?
+  course    Course?  @relation(fields: [courseId], references: [id])
+
+  gfsEntries       GfsEntry[]
+  moneyListEntries MoneyListEntry[]
+}
+
+model MoneyList {
+  id               Int      @id @default(autoincrement())
+  subject          String
+  amountPerStudent Float
+  notes            String   @default("")
+  courseId         Int
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  entries          MoneyListEntry[]
+  createdAt        DateTime @default(now())
+
+  @@index([courseId])
+}
+
+model MoneyListEntry {
+  id          Int       @id @default(autoincrement())
+  paid        Boolean   @default(false)
+  studentId   Int
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  moneyListId Int
+  moneyList   MoneyList @relation(fields: [moneyListId], references: [id], onDelete: Cascade)
+
+  @@unique([moneyListId, studentId])
+  @@index([moneyListId])
+}
+
+model GfsEntry {
+  id        Int     @id @default(autoincrement())
+  thema     String  @default("")
+  art       String  @default("")
+  date      String  @default("")
+  gehalten  Boolean @default(false)
+  halbjahr  String  @default("1")
+  note      String  @default("")
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  Int?
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Exam {
+  id             Int      @id @default(autoincrement())
+  examNumber     Int
+  active         Boolean
+  maxPoints      Float
+  numFields      Int
+  fieldMaxPoints Json
+  keyType        String
+  date           String   @default("")
+  halbjahr       String   @default("1")
+  name           String
+  scores         Json
+  courseId       Int?
+  course         Course?  @relation(fields: [courseId], references: [id])
+}
+
+model Oral {
+  id          Int      @id @default(autoincrement())
+  oralNumber  Int
+  active      Boolean  @default(true)
+  name        String
+  date        String   @default("")
+  halbjahr    String   @default("1")
+  extended    Boolean  @default(false)
+  weekCount   Int      @default(1)
+  bestNote    Float    @default(1)
+  worstNote   Float    @default(6)
+  weekSpread  Float    @default(0.5)
+  grades      Json
+  courseId    Int?
+  course      Course?  @relation(fields: [courseId], references: [id])
+}
+
+model Test {
+  id         Int      @id @default(autoincrement())
+  testNumber Int
+  active     Boolean
+  maxPoints  Float    @default(10)
+  keyType    String
+  date       String   @default("")
+  halbjahr   String   @default("1")
+  name       String
+  scores     Json
+  courseId   Int?
+  course     Course?  @relation(fields: [courseId], references: [id])
+}

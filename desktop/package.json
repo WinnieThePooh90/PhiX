@@ -1,0 +1,41 @@
+{
+  "name": "phix-desktop",
+  "private": true,
+  "version": "0.0.1",
+  "description": "PhiX Desktop-Hülle (Electron) – startet das Node-Backend und zeigt die Web-UI.",
+  "author": "PhiX",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env ELECTRON_DEV_SERVER=http://127.0.0.1:5173 electron .",
+    "check-backend": "node scripts/check-backend-for-pack.js",
+    "dist": "npm run check-backend && electron-builder --win zip portable",
+    "dist:dir": "npm run check-backend && electron-builder --dir"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "de.equiphi.phix.desktop",
+    "productName": "PhiX",
+    "copyright": "Copyright © PhiX",
+    "directories": {
+      "output": "dist-pack"
+    },
+    "files": ["main.cjs", "package.json"],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": ["**/*", "!.env", "!**/.env", "!node_modules/.cache/**"]
+      }
+    ],
+    "win": {
+      "target": ["zip", "portable"],
+      "artifactName": "${productName}-Desktop-${version}-${os}-${arch}.${ext}"
+    }
+  }
+}

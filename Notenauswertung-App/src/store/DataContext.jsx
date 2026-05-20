@@ -8,6 +8,7 @@ import {
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
 import { sortSchoolYears } from '../utils/schoolYear';
+import { apiFetch } from '../utils/apiBase';
 
 const ORAL_WEEK_COL_CAP = 24;
 
@@ -56,7 +57,7 @@ export const DataProvider = ({ children }) => {
     (url, init = {}) => {
       const headers = new Headers(init.headers || {});
       if (currentUser?.username) headers.set('X-Acting-User', currentUser.username);
-      return fetch(url, { ...init, headers });
+      return apiFetch(url, { ...init, headers });
     },
     [currentUser?.username],
   );
@@ -168,7 +169,7 @@ export const DataProvider = ({ children }) => {
 
   const refreshSchoolRosterYears = useCallback(async () => {
     try {
-      const res = await fetch('/api/school-roster-years');
+      const res = await apiFetch('/api/school-roster-years');
       const data = await res.json();
       const list = Array.isArray(data) ? sortSchoolYears(data) : [];
       setSchoolRosterYears(list);
@@ -195,7 +196,7 @@ export const DataProvider = ({ children }) => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/school-roster-students?schoolYearId=${encodeURIComponent(activeSchoolRosterYearId)}`,
         );
         const data = await res.json();
@@ -1034,7 +1035,7 @@ export const DataProvider = ({ children }) => {
   const clearSchoolRosterStudents = async (schoolYearId) => {
     const yearId = schoolYearId ?? activeSchoolRosterYearId;
     if (!yearId) return;
-    await fetch(`/api/school-roster-students?schoolYearId=${encodeURIComponent(yearId)}`, { method: 'DELETE' });
+    await apiFetch(`/api/school-roster-students?schoolYearId=${encodeURIComponent(yearId)}`, { method: 'DELETE' });
     if (Number(yearId) === Number(activeSchoolRosterYearId)) {
       setSchoolRosterStudents([]);
     }

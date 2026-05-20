@@ -17,6 +17,8 @@ Alles Weitere: **`installer/RELEASE.md`**
 
 ## Installation fuer Entwickler (mit Node.js)
 
+Smoke-Tests und Baseline: **`docs/SMOKE_WEB_BASELINE.md`**
+
 1. [Node.js LTS](https://nodejs.org/) installieren.
 2. Optional: [Docker Desktop](https://www.docker.com/products/docker-desktop/) (fuer Docker-Modus).
 3. **`Installieren.bat`** doppelklicken und den Anweisungen folgen.
@@ -60,6 +62,8 @@ Ports in `.env` (Vorlage: `.env.example`):
 ## Variante 2: Nativ mit Datenbank in Docker
 
 Gut fuer Entwicklung: App laeuft direkt in Node, nur PostgreSQL im Container.
+
+Optional **Desktop-Entwicklung (Electron):** `desktop/README.md` — startet Backend + Fenster; Vite separat.
 
 1. `install_windows.bat`
 2. `start_db_docker.bat` (PostgreSQL starten)

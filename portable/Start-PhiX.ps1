@@ -64,6 +64,7 @@ $backendEnv = Join-Path $backendDir '.env'
 @"
 DATABASE_URL="$dbUrl"
 PHIX_STANDALONE=1
+APP_MODE=desktop
 PORT=$($config.httpPort)
 PHIX_PGDATA=$pgData
 PHIX_PGBIN=$pgBin
@@ -71,6 +72,7 @@ PHIX_PGBIN=$pgBin
 
 $env:DATABASE_URL = $dbUrl
 $env:PHIX_STANDALONE = '1'
+$env:APP_MODE = 'desktop'
 $env:PHIX_FRONTEND_DIST = $frontendDist
 $env:PHIX_PGDATA = $pgData
 $env:PHIX_PGBIN = $pgBin

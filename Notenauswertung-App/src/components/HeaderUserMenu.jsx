@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
+import { apiFetch } from '../utils/apiBase';
 
 /**
  * @param {object} props
@@ -74,7 +75,7 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
       if (import.meta.env.DEV) {
         fetch('/shutdown', { method: 'POST' }).catch(() => {});
       }
-      const res = await fetch('/api/shutdown', { method: 'POST', headers });
+      const res = await apiFetch('/api/shutdown', { method: 'POST', headers });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);
