@@ -51,12 +51,12 @@ Siehe `Notenauswertung-App/src/utils/apiBase.js`.
 
 Siehe `backend/.env.example`.
 
-## CI (GitHub Actions)
+## CI / gleiche Pruefungen lokal (ohne GitHub-Workflow)
 
-Workflow `.github/workflows/ci.yml` (manuell auch per **Actions → CI → Run workflow**):
+Es liegt **kein** `.github/workflows/ci.yml` im Repository (Upload auf GitHub war blockiert). Die folgenden Schritte entsprechen der frueheren CI-Logik und koennen **manuell** oder in einem eigenen Runner ausgefuehrt werden:
 
-- **backend-postgres:** `npm ci`, `npm test` (Node eingebauter Testrunner), `prisma migrate deploy`, `npm run ci:smoke` gegen den Postgres-Service.
-- **backend-sqlite:** `npm ci`, `npm test`, `prisma db push` mit `prisma/sqlite/schema.prisma`, `npm run ci:smoke` mit `DATABASE_URL=file:./ci-smoke.sqlite`.
-- **frontend-build:** `npm ci` und `npm run build` im Ordner `Notenauswertung-App`.
+- **Backend Postgres:** im Ordner `backend/`: `npm ci`, `npm test`, `npx prisma migrate deploy`, `npm run ci:smoke` mit `DATABASE_URL=postgresql://…` (laufende Postgres-Instanz).
+- **Backend SQLite:** im Ordner `backend/`: `npm ci`, `npm test`, `npx prisma db push --schema=prisma/sqlite/schema.prisma`, `npm run ci:smoke` mit z. B. `DATABASE_URL=file:./ci-smoke.sqlite`.
+- **Frontend:** im Ordner `Notenauswertung-App/`: `npm ci` und `npm run build`.
 
-Lokal im Backend: `npm test` (ohne Datenbank) und bei gesetztem `DATABASE_URL`: `npm run ci:smoke`.
+Immer im Backend: `npm test` (ohne Datenbank) und bei gesetztem `DATABASE_URL`: `npm run ci:smoke`.

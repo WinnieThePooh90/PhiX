@@ -89,13 +89,14 @@ Leitprinzip: **Ein gemeinsamer Codekern**, zwei Laufzeitprofile (`web`, `desktop
 
 ### D1. Automatisierte Pruefungen
 - [ ] Unit/Integration fuer geteilte Fachlogik.
-- [x] API-Smoketests fuer beide Profile (`backend/scripts/ci-smoke.js`, GitHub Actions).
+- [x] API-Smoketests fuer beide Profile (`backend/scripts/ci-smoke.js`, lokal ausfuehrbar).
 - [ ] UI-Smoke (mindestens Login + Kernflow) fuer Web und Desktop.
 
 ### D2. CI-Matrix
-- [x] Job `backend-postgres` (`.github/workflows/ci.yml`).
-- [x] Job `backend-sqlite` (`.github/workflows/ci.yml`).
-- [x] Job `frontend-build` (Vite `npm run build`).
+- [ ] GitHub Actions Workflow (`.github/workflows/ci.yml`) — **nicht im Repo** (Upload auf GitHub war blockiert); bei Bedarf lokal dieselben Schritte fahren oder Workflow wieder hinzufuegen.
+- [ ] Job `backend-postgres` (migrate deploy + `npm run ci:smoke`) — wie frueher im entfernten Workflow.
+- [ ] Job `backend-sqlite` (`db push` SQLite + `npm run ci:smoke`) — wie frueher im entfernten Workflow.
+- [ ] Job `frontend-build` (`Notenauswertung-App`: `npm ci` + `npm run build`) — manuell oder spaeter per CI.
 - [ ] Artefakte + Logs pro Job speichern (optional, z. B. bei Fehlern).
 
 **Abnahme Phase D:**
@@ -130,9 +131,9 @@ Leitprinzip: **Ein gemeinsamer Codekern**, zwei Laufzeitprofile (`web`, `desktop
 2. **B1/B2** umsetzen (Dual-Mode + Desktop-Shell) ✅  
 3. **B3** Packaging stabilisieren ✅  
 4. **C1** SQLite-Migrationsdesign finalisieren (ADR ✅, Ordner-/Backup-Konvention ✅)  
-5. **C2** Prisma/DB-Layer fuer SQLite implementieren ✅ (Verifikation/CI: `ci:smoke` + Workflow)  
+5. **C2** Prisma/DB-Layer fuer SQLite implementieren ✅ (Verifikation: lokal `npm run ci:smoke` / `npm test`)  
 6. **C3** Datenuebernahme + Validierung — Konzept/Doku ✅ (`docs/SQLITE_IMPORT.md`); Import-Skript + Stichproben offen  
-7. **D1/D2** Testmatrix und CI absichern — CI Postgres/SQLite + Frontend-Build + `npm test` (Node, `test/*.test.js`) ✅; weitere Integration/UI-Smoke + Artefakte (D2) offen  
+7. **D1/D2** Testmatrix und CI absichern — `npm test` + `ci:smoke`-Skript ✅; GitHub-Workflow entfernt (Push-Block); Matrix/Artefakte/UI-Smoke offen  
 8. **E1-E3** Releaseprozess + Rollback + Betriebsdoku
 
 ---
