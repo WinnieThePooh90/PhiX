@@ -1,21 +1,28 @@
 {
   "name": "phix-desktop",
   "private": true,
-  "version": "0.0.1",
+  "version": "8.0.0",
   "description": "PhiX Desktop-Hülle (Electron) – startet das Node-Backend und zeigt die Web-UI.",
   "author": "PhiX",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
     "dev": "cross-env ELECTRON_DEV_SERVER=http://127.0.0.1:5173 electron .",
+    "prepare-pack": "node scripts/prepare-pack.js",
     "check-backend": "node scripts/check-backend-for-pack.js",
-    "dist": "npm run check-backend && electron-builder --win zip portable",
-    "dist:dir": "npm run check-backend && electron-builder --dir"
+    "install-deps": "node scripts/install-deps.js",
+    "dist": "npm run prepare-pack && npm run check-backend && electron-builder --win zip portable",
+    "dist:dir": "npm run prepare-pack && npm run check-backend && electron-builder --dir"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "electron": "^34.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1"
+  },
+  "overrides": {
+    "tar": "^7.5.15",
+    "rimraf": "^6.1.3",
+    "glob": "^13.0.6"
   },
   "build": {
     "appId": "de.equiphi.phix.desktop",
@@ -31,6 +38,11 @@
         "from": "../backend",
         "to": "backend",
         "filter": ["**/*", "!.env", "!**/.env", "!node_modules/.cache/**"]
+      },
+      {
+        "from": "../Notenauswertung-App/dist",
+        "to": "frontend-dist",
+        "filter": ["**/*"]
       }
     ],
     "win": {

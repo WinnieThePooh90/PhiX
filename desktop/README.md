@@ -23,6 +23,13 @@ Die Umgebungsvariable **`PHI_X_USERDATA_DIR`** wird beim Start des Backends gese
 
 ## Einmalig
 
+**Projektordner liegt in Dropbox (oder anderer Sync-Software)?** Dann können bei `npm install` **EBUSY**-Meldungen und `cleanup Failed to remove` vorkommen (Electron entpackt große Binaries unter `node_modules`). Empfohlen:
+
+- **`install-deps.bat`** im Ordner `desktop/` per Doppelklick oder in der **Eingabeaufforderung (cmd)** ausführen — legt `ELECTRON_CACHE` und `npm`-Cache unter **`%LOCALAPPDATA%\PhiX\`** ab (außerhalb von Dropbox), danach `npm install`.
+- Oder plattformübergreifend: `cd desktop` und **`npm run install-deps`** (nutzt `scripts/install-deps.js` mit demselben Prinzip).
+
+Sonst / zusätzlich: Dropbox-Sync für den Projektordner **kurz pausieren**, dann `npm install` erneut.
+
 ```bash
 cd desktop
 npm install
@@ -74,7 +81,7 @@ Vor dem Packen:
 
 1. `cd backend && npm install && npx prisma generate`
 2. Optional: gebautes Frontend in `Notenauswertung-App/dist` und `PHIX_STANDALONE=1` testen (siehe Portable-Doku).
-3. `cd desktop && npm run dist`
+3. `cd desktop && npm run dist` (führt `prepare-pack` aus: baut `Notenauswertung-App` falls nötig, packt `frontend-dist` + `backend` mit)
 
 Ergebnis liegt unter **`desktop/dist-pack/`** (u. a. **ZIP** und **portable .exe**).
 
@@ -91,4 +98,11 @@ Legt beim Packen zusätzlich unter **`resources/node/`** die gleiche Struktur wi
 ## Hinweise
 
 - Beim Schließen des Fensters wird der Backend-Prozess beendet.
+- **Gepackte App:** Backend startet über **`ELECTRON_RUN_AS_NODE`** (kein separates `node.exe` nötig). Logs: **`%APPDATA%\PhiX\logs\`**. Bei Startfehlern erscheint ein **Fehlerdialog** mit Hinweis auf die Log-Datei.
 - Ports: Backend standard **3000**, Vite standard **5173** — bei Konflikten `PORT` setzen.
+
+## Abhängigkeiten & Sicherheit
+
+Stand im Repo: **Electron 42**, **electron-builder 26**, **`overrides`** für **`tar`**, **`rimraf`**, **`glob`** (aktuellere transitive Versionen, weniger Deprecation-Warnungen). Nach `npm install` sollte **`npm audit`** **0 vulnerabilities** melden.
+
+**`npm audit fix --force`** ist nicht nötig, solange `package-lock.json` zum Projektstand passt. Nach einem Pull: `cd desktop` und `npm install` (bei Dropbox: `install-deps.bat`).

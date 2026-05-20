@@ -1,0 +1,29 @@
+# Abhängigkeiten & Build-Artefakte (überall im Repo)
+node_modules/
+dist/
+dist-pack/
+dist-ssr/
+release/*
+!release/.gitignore
+installer/output/
+
+# Prisma / DB (lokal)
+*.sqlite
+.prisma-generate-dummy.sqlite
+backend/generated/
+
+# Vite / Tools
+.vite/
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Lokale Umgebung (nicht committen)
+.env
+backend/.env

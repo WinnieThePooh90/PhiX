@@ -173,19 +173,76 @@ Wichtige Hinweise aus der Projektdoku:
 
 ### Variante B: Electron-Desktop-App
 
-**Ziel:** Eine **Desktop-Anwendung** (Electron), die das **Node-Backend** startet und die Web-Oberfläche im **Programmfenster** zeigt — sinnvoll für „echte“ Desktop-Nutzung und SQLite im Benutzerprofil.
+**Ziel:** Eine **Desktop-Anwendung** (Electron), die das **Node-Backend** als eigenen Prozess startet und die Web-Oberfläche im **Programmfenster** anzeigt. Typisch für den **SQLite-Desktop-Fall** (lokale Datei unter `%APPDATA%\PhiX\phix.db`), ohne separaten Postgres auf dem Zielrechner.
 
-**Doku:** `desktop/README.md`, SQLite: `docs/SQLITE_DESKTOP.md`
+**Doku:** `desktop/README.md`, `desktop/main.cjs`, SQLite: `docs/SQLITE_DESKTOP.md`
 
 #### B.1 Voraussetzungen zum Bauen
 
-- **Windows** (laut `desktop/README.md` baut **`npm run dist`** die Windows-Ziele zuverlässig unter Windows).
+- **Windows** (laut `desktop/README.md` baut **`npm run dist`** die Windows-Ziele zuverlässig **unter Windows**).
 - **Node.js** (LTS, z. B. 20+) im PATH.
-- Im Ordner **`backend/`** mindestens einmal **`npm install`** ausgeführt (Postinstall generiert u. a. Postgres- und SQLite-Prisma-Clients).
+- Im Ordner **`backend/`** mindestens einmal **`npm install`** ausgeführt — das installiert Abhängigkeiten und (per `postinstall`) die **Prisma-Clients** für Postgres und SQLite.
 
-#### B.2 Packen
+#### B.2 Vor dem Packen (einmalig pro „frischem“ Stand)
 
-In der Eingabeaufforderung:
+1. **Backend vorbereiten** (im Projektroot):
+
+   ```bat
+   cd backend
+   npm install
+   ```
+
+   Fehlt das, bricht der Pack-Schritt später mit einer klaren Meldung ab (siehe nächster Abschnitt).
+
+2. **Optional – gebautes Frontend im Backend (ohne Vite):**  
+   Gepackte Electron-App setzt **kein** `ELECTRON_DEV_SERVER`. Das Fenster lädt **`http://127.0.0.1:<PORT>`** (Standard **3000**) — also genau das, was das **Backend** ausliefert. Wenn das Backend die **statische** Web-App ausgeben soll (wie bei Portable/Standalone), müssen **`PHIX_STANDALONE=1`** und **`PHIX_FRONTEND_DIST`** (Pfad zum `dist` der React-App) **vor dem Packen** sinnvoll gesetzt sein — z. B. nach `npm run build` in `Notenauswertung-App\` und Verweis auf diesen `dist`-Ordner. Details: `desktop/README.md` („Nur Electron“) und Backend-`.env.example`.  
+   **Entwicklung mit Vite** bleibt davon unberührt: zwei Terminals, siehe **B.5**.
+
+#### B.3 Was passiert beim Packen ganz konkret? (`npm run dist`)
+
+Im Ordner **`desktop/`** ist in `package.json` definiert:
+
+```text
+npm run dist  →  npm run check-backend  &&  electron-builder --win zip portable
+```
+
+**Schritt 1 – `check-backend` (`desktop/scripts/check-backend-for-pack.js`):**
+
+- Prüft, ob **`backend/node_modules`** (u. a. `@prisma/client`) existiert.
+- Prüft, ob der **SQLite-Prisma-Client** unter **`backend/generated/prisma-sqlite/index.js`** existiert.  
+- Wenn etwas fehlt: **Abbruch** mit Hinweis, zuerst im Backend `npm install` bzw. `npm run prisma:generate-all` auszuführen.
+
+**Schritt 2 – `electron-builder`:**
+
+- Liest die **`build`-Sektion** in `desktop/package.json` (u. a. `appId`, `productName` **PhiX**, Ausgabeordner **`dist-pack`**).
+- Packt die **Electron-Hülle** (`main.cjs`, `package.json` der Desktop-App) in eine **`asar`**-Archivdatei innerhalb der Windows-App.
+- Kopiert den Ordner **`backend/`** (inkl. `node_modules`, Prisma-Schema, generierte Clients — **ohne** `.env`-Dateien laut Filter) nach **`resources/backend/`** neben die App („extraResources“). So liegt das Backend **zur Laufzeit** neben der Electron-Binary und ist **nicht** im asar eingeschlossen (Node startet dort `server.js` mit normalem Dateisystem-Zugriff).
+- Erzeugt für Windows typischerweise:
+  - eine **ZIP** (entpackbare Struktur),
+  - eine **portable `.exe`** (ein Dateiname nach Muster `PhiX-Desktop-<version>-win-x64.<ext>` in `desktop/package.json`).
+
+**Ausgabe:** alles unter **`desktop\dist-pack\`**.
+
+**Kurzablauf zur Laufzeit** (nach dem Start der gebauten App, siehe `desktop/main.cjs`):
+
+1. Electron setzt den **User-Data-Pfad** auf **`%APPDATA%\PhiX`** (Windows).
+2. Es wird **`node`** (gebündelte `resources\node\node.exe`, falls vorhanden, sonst **systemweites** `node`) mit Argument **`server.js`** gestartet, Arbeitsverzeichnis = **`resources\backend`** (gepackt) bzw. `..\backend` (Entwicklung).
+3. Umgebung u. a. **`APP_MODE=desktop`**, **`PHI_X_USERDATA_DIR`**, **`PORT`** (Standard 3000).  
+   Ist **keine** `DATABASE_URL` gesetzt, wird **`file:…/phix.db`** unter dem User-Data-Ordner gesetzt (**SQLite**).
+4. Das Fenster wartet, bis **`/api/auth/session`** erreichbar ist, und lädt dann **`http://127.0.0.1:3000`** — sofern Sie nicht im Dev-Modus `ELECTRON_DEV_SERVER` (Vite) nutzen.
+
+#### B.4 Befehle zum Packen
+
+**Ordner `desktop\` im Repository** (nicht die Windows-Arbeitsfläche) — siehe `desktop/README.md`.
+
+Liegt das Projekt in **Dropbox** und erscheinen **EBUSY** / `cleanup Failed` bei `npm install`, zuerst eines davon:
+
+- **`desktop\install-deps.bat`** in der **Eingabeaufforderung (cmd)** ausführen, **oder**
+- `cd desktop` und **`npm run install-deps`** (legt Electron- und npm-Cache unter `%LOCALAPPDATA%\PhiX\` außerhalb von Dropbox).
+
+**Sauberer Neustart (ohne alte Build-Reste):** im Projektroot **`clean-build.bat`** (Windows) oder **`scripts/clean-build.sh`** — entfernt `node_modules`, `dist`, `dist-pack`, Release-ZIPs usw. (behält Quellcode und `package-lock.json`).
+
+Dann wie gewohnt (baut bei Bedarf automatisch das Frontend und packt es mit ein):
 
 ```bat
 cd desktop
@@ -193,20 +250,22 @@ npm install
 npm run dist
 ```
 
-**Artefakte:** typischerweise unter **`desktop\dist-pack\`** (laut `desktop/package.json` u. a. **ZIP** und **portable .exe**; Dateinamen enthalten u. a. `PhiX-Desktop` und Version).
+**Nach dem Start der .exe:** Bei Problemen Logs unter **`%APPDATA%\PhiX\logs\`** (z. B. `backend-*.log`, `desktop.log`). Fehlerdialoge verweisen dorthin. Gepackte Apps nutzen **Electron als Node** (`ELECTRON_RUN_AS_NODE`) — separates `node` im PATH ist dafür **nicht** nötig.
 
-**Hinweis:** Auf **Linux/macOS** können Sie für Layout-Tests **`npm run dist:dir`** nutzen; vollständige Windows-Installer-Ziele sind dort nicht das Hauptziel.
+**PowerShell:** Wenn `npm` wegen `npm.ps1` / Execution Policy scheitert, **cmd** nutzen oder `RemoteSigned` für den Benutzer setzen (siehe Projekt-Diskussion / `desktop/README.md`).
 
-#### B.3 Testweise als Benutzer
+**Hinweis:** Auf **Linux/macOS** eignet sich für Strukturtests eher **`npm run dist:dir`** (entpackte App unter `dist-pack/`), nicht die vollständigen Windows-Installer-Ziele.
 
-1. ZIP entpacken oder die portable **`.exe`** starten.
-2. App-Fenster öffnet sich; Backend startet mit.
-3. **SQLite:** Wenn **keine** `DATABASE_URL` gesetzt ist, legt Electron typischerweise **`phix.db`** unter **`%APPDATA%\PhiX`** an (als `file:`-URL). Details und Backup: `docs/SQLITE_DESKTOP.md`.
-4. **Hinweis zum gepackten Backend:** `electron-builder` kopiert **`backend/`** ohne **`.env`**-Dateien. Postgres-Betrieb im Paket erfordert daher eine **eigene** Konfiguration der `DATABASE_URL` für Ihre Verteilung; für den üblichen **SQLite-Desktop-Fall** ist das oft nicht nötig.
+#### B.5 Testweise als Benutzer
 
-#### B.4 Entwicklung statt Installer-Paket
+1. ZIP aus **`desktop\dist-pack\`** entpacken **oder** die portable **`.exe`** starten.
+2. App-Fenster öffnet sich; im Hintergrund läuft das Backend aus **`resources\backend`**.
+3. **SQLite:** ohne eigene `DATABASE_URL` liegt **`phix.db`** unter **`%APPDATA%\PhiX`**. Backup: `docs/SQLITE_DESKTOP.md`.
+4. **`.env` im Paket:** wird **nicht** mitkopiert — sensible Werte müssen Sie anders verteilen oder es bleibt bei den Desktop-Defaults (SQLite).
 
-Wenn Sie nur **lokal testen** wollen (zwei Terminals): Frontend `npm run dev` in `Notenauswertung-App/`, danach `npm run dev` in `desktop/` — siehe `desktop/README.md`.
+#### B.6 Entwicklung statt Installer-Paket
+
+Wenn Sie nur **lokal** testen wollen (zwei Terminals): Frontend **`npm run dev`** in `Notenauswertung-App/`, danach **`npm run dev`** in `desktop/` — siehe `desktop/README.md`.
 
 ---
 

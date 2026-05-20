@@ -1,0 +1,28 @@
+---
+description: Build +1 und Datum; package.json version = PHIX_BUILD.0.0
+alwaysApply: true
+---
+
+# Produktversion bei jeder Nutzer-Nachricht
+
+Gilt für **Agent-Modus** (wenn du Dateien ändern darfst). Im **Ask-Modus** keine Versionsänderung.
+
+## Ablauf (zu Beginn der Bearbeitung, vor anderen Code-Änderungen)
+
+1. **`docs/APP_VERSION.md`** lesen: Zeilen `PHIX_BUILD=…` und `PHIX_LETZTE_AENDERUNG=…` (falls fehlend: `PHIX_BUILD=0` annehmen und Datei anlegen).
+2. **`PHIX_BUILD`** um **1** erhöhen (reine Ganzzahl, **ohne** Punkte oder Kommas).
+3. **`PHIX_LETZTE_AENDERUNG`** auf das **heutige Datum** setzen, Format **`YYYY-MM-DD`** (autoritativ: Nutzerkontext „Today's date“, sonst Systemdatum der Umgebung).
+4. **`docs/APP_VERSION.md`** aktualisieren:
+   - die beiden `PHIX_*`-Zeilen,
+   - die Tabelle **Build** / **Letzte Änderung** mit denselben Werten.
+5. **Sichtbare Build-Nummer** = nur **`PHIX_BUILD`** (eine Zahl). In **`backend/package.json`**, **`Notenauswertung-App/package.json`**, **`desktop/package.json`** das Feld **`"version"`** auf **`"<PHIX_BUILD>.0.0"`** setzen (Beispiel: Build `42` → `"42.0.0"`). Grund: **electron-builder** und npm verlangen SemVer; die laufende Nummer bleibt die **Major**-Komponente.
+6. In den **`package-lock.json`** derselben drei Ordner **nur** die Root-**`version`** und unter **`packages[""].version`** auf **dieselbe** SemVer-Zeichenkette setzen — **nicht** per `replace_all` auf die gesamte Datei.
+
+## Ausnahmen
+
+- Wenn die Nutzeranfrage ausdrücklich **keine** Repo-Änderungen erlaubt: nichts an Version oder Datum ändern.
+
+## Hinweise
+
+- Keine Git-Tags oder Releases automatisch anlegen.
+- Keine weiteren Versionierungsorte anfassen, außer der Nutzer verlangt es ausdrücklich.

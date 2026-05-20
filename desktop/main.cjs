@@ -1,23 +1,21 @@
 /**
  * Electron-Main: startet das Backend (backend/server.js) und öffnet ein Fenster.
- *
- * Dev: Vite separat starten (Port 5173), dann `npm run dev` hier — lädt ELECTRON_DEV_SERVER.
- * Ohne Dev-URL: lädt http://127.0.0.1:<PORT> (Backend muss gebautes Frontend ausliefern, z. B. PHIX_STANDALONE=1).
- *
- * Gepackt (npm run pack): Backend liegt unter process.resourcesPath/backend/; Node optional
- * unter process.resourcesPath/node/ (siehe README).
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 
-/** %APPDATA%/PhiX (Windows) — Logs, später SQLite-Datei; vor app.ready setzen */
 const PHI_X_USERDATA = path.join(app.getPath('appData'), 'PhiX');
+const LOG_DIR = path.join(PHI_X_USERDATA, 'logs');
+
 try {
   if (!fs.existsSync(PHI_X_USERDATA)) {
     fs.mkdirSync(PHI_X_USERDATA, { recursive: true });
+  }
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
   }
 } catch {
   /* ignorieren */
@@ -31,61 +29,150 @@ function resolveBackendDir() {
   return path.join(__dirname, '..', 'backend');
 }
 
-function resolveNodeExecutable() {
-  const bundledWin = path.join(process.resourcesPath, 'node', 'node.exe');
-  const bundledNix = path.join(process.resourcesPath, 'node', 'bin', 'node');
-  if (process.platform === 'win32' && fs.existsSync(bundledWin)) {
-    return bundledWin;
-  }
-  if (fs.existsSync(bundledNix)) {
-    return bundledNix;
-  }
-  return process.platform === 'win32' ? 'node' : 'node';
-}
-
 const BACKEND_DIR = resolveBackendDir();
 
 let backendProc = null;
 let mainWindow = null;
+let backendLogStream = null;
+let appReady = false;
+
+function logPath(name) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(LOG_DIR, `${name}-${stamp}.log`);
+}
+
+function writeDesktopLog(line) {
+  try {
+    const p = path.join(LOG_DIR, 'desktop.log');
+    fs.appendFileSync(p, `${new Date().toISOString()} ${line}\n`, 'utf8');
+  } catch {
+    /* ignorieren */
+  }
+}
+
+function showFatal(title, message) {
+  writeDesktopLog(`${title}: ${message}`);
+  try {
+    if (app.isReady()) {
+      dialog.showErrorBox(title, `${message}\n\nLog: ${LOG_DIR}`);
+    }
+  } catch {
+    /* vor app.ready */
+  }
+}
 
 function backendPort() {
   return String(process.env.PORT || '3000').trim() || '3000';
 }
 
-function startBackend() {
-  const nodeCmd = resolveNodeExecutable();
+function buildBackendEnv() {
   const env = {
     ...process.env,
     APP_MODE: 'desktop',
     PORT: backendPort(),
-    /** Log-Datei optional im User-Data-Ordner (Backend kann später nutzen) */
     PHI_X_USERDATA_DIR: PHI_X_USERDATA,
   };
   if (!String(env.DATABASE_URL || '').trim()) {
     const dbPath = path.join(PHI_X_USERDATA, 'phix.db');
     env.DATABASE_URL = pathToFileURL(dbPath).href;
   }
-  backendProc = spawn(nodeCmd, ['server.js'], {
+  if (app.isPackaged) {
+    env.PHIX_STANDALONE = '1';
+    const frontendDist = path.join(process.resourcesPath, 'frontend-dist');
+    if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
+      env.PHIX_FRONTEND_DIST = frontendDist;
+    }
+  }
+  return env;
+}
+
+/** Gepackt: Electron als Node (kein separates node.exe nötig), sonst node.exe oder PATH-node. */
+function resolveBackendLaunch() {
+  const serverJs = path.join(BACKEND_DIR, 'server.js');
+  if (!fs.existsSync(serverJs)) {
+    throw new Error(`Backend fehlt im Paket: ${serverJs}`);
+  }
+
+  const bundledWin = path.join(process.resourcesPath, 'node', 'node.exe');
+  const bundledNix = path.join(process.resourcesPath, 'node', 'bin', 'node');
+
+  if (app.isPackaged && process.platform === 'win32' && fs.existsSync(bundledWin)) {
+    return { cmd: bundledWin, args: [serverJs], extraEnv: {} };
+  }
+  if (app.isPackaged && fs.existsSync(bundledNix)) {
+    return { cmd: bundledNix, args: [serverJs], extraEnv: {} };
+  }
+  if (app.isPackaged) {
+    return {
+      cmd: process.execPath,
+      args: [serverJs],
+      extraEnv: { ELECTRON_RUN_AS_NODE: '1' },
+    };
+  }
+  return { cmd: process.platform === 'win32' ? 'node' : 'node', args: ['server.js'], extraEnv: {} };
+}
+
+function startBackend() {
+  const { cmd, args, extraEnv } = resolveBackendLaunch();
+  const env = { ...buildBackendEnv(), ...extraEnv };
+
+  writeDesktopLog(`Backend start: ${cmd} ${args.join(' ')} cwd=${BACKEND_DIR}`);
+
+  try {
+    backendLogStream = fs.createWriteStream(logPath('backend'), { flags: 'a' });
+  } catch {
+    backendLogStream = null;
+  }
+
+  const stdio = app.isPackaged
+    ? ['ignore', backendLogStream || 'ignore', backendLogStream || 'ignore']
+    : 'inherit';
+
+  backendProc = spawn(cmd, args, {
     cwd: BACKEND_DIR,
     env,
-    stdio: 'inherit',
-    windowsHide: false,
+    stdio,
+    windowsHide: app.isPackaged,
+    shell: false,
   });
+
+  backendProc.on('error', (err) => {
+    const msg = `Backend-Prozess konnte nicht gestartet werden (${cmd}): ${err.message}`;
+    writeDesktopLog(msg);
+    if (!mainWindow) {
+      showFatal('PhiX – Startfehler', msg);
+      app.quit();
+    }
+  });
+
   backendProc.on('exit', (code, signal) => {
     backendProc = null;
-    if (code != null && code !== 0) {
-      console.error(`[desktop] Backend beendet mit Code ${code}`);
+    if (backendLogStream) {
+      backendLogStream.end();
+      backendLogStream = null;
     }
-    if (signal) {
-      console.error(`[desktop] Backend beendet durch Signal ${signal}`);
+    const msg = `Backend beendet (code=${code}, signal=${signal || '—'})`;
+    writeDesktopLog(msg);
+    if (code != null && code !== 0 && !mainWindow) {
+      showFatal(
+        'PhiX – Backend abgestürzt',
+        `${msg}\nDetails: ${path.join(LOG_DIR, 'backend-*.log')} (neueste Datei)`,
+      );
+      app.quit();
+    } else if (mainWindow && code != null && code !== 0) {
+      showFatal('PhiX – Backend beendet', msg);
+      app.quit();
     }
   });
 }
 
-async function waitForBackend(baseUrl, timeoutMs = 60000) {
+async function waitForBackend(baseUrl, timeoutMs = 90000) {
   const deadline = Date.now() + timeoutMs;
   const ping = `${baseUrl.replace(/\/+$/, '')}/api/auth/session`;
   while (Date.now() < deadline) {
+    if (!backendProc) {
+      throw new Error('Backend-Prozess ist vorzeitig beendet worden.');
+    }
     try {
       const r = await fetch(ping, { method: 'GET', headers: { 'X-Acting-User': '__electron_ping__' } });
       if (r.status === 401 || r.status === 200) return;
@@ -94,7 +181,7 @@ async function waitForBackend(baseUrl, timeoutMs = 60000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
-  throw new Error(`Backend unter ${baseUrl} nicht erreichbar (Timeout ${timeoutMs} ms).`);
+  throw new Error(`Backend unter ${baseUrl} nicht erreichbar (Timeout ${timeoutMs / 1000}s). Log: ${LOG_DIR}`);
 }
 
 function killBackend() {
@@ -123,11 +210,13 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 840,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
+  mainWindow.once('ready-to-show', () => mainWindow.show());
   await mainWindow.loadURL(loadURL);
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -135,8 +224,11 @@ async function createWindow() {
 }
 
 app.whenReady().then(() => {
+  appReady = true;
   createWindow().catch((err) => {
-    console.error('[desktop]', err);
+    const msg = err?.message || String(err);
+    writeDesktopLog(`createWindow: ${msg}`);
+    showFatal('PhiX – Startfehler', msg);
     killBackend();
     app.quit();
   });
