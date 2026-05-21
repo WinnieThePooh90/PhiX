@@ -358,6 +358,7 @@ app.delete('/api/courses/:id', async (req, res) => {
   await prisma.gfsEntry.deleteMany({ where: { courseId } });
   await prisma.moneyList.deleteMany({ where: { courseId } });
   await prisma.attendanceList.deleteMany({ where: { courseId } });
+  await prisma.collectionList.deleteMany({ where: { courseId } });
 
   await prisma.course.delete({ where: { id: courseId } });
   res.status(204).send();
@@ -559,6 +560,7 @@ app.delete('/api/students', async (req, res) => {
   await prisma.student.deleteMany({ where: { courseId } });
   await syncMoneyListEntriesForCourse(courseId);
   await syncAttendanceListEntriesForCourse(courseId);
+  await syncCollectionListEntriesForCourse(courseId);
   res.status(204).send();
 });
 
@@ -588,6 +590,7 @@ app.post('/api/students', async (req, res) => {
   });
   await syncMoneyListEntriesForCourse(targetCourseId);
   await syncAttendanceListEntriesForCourse(targetCourseId);
+  await syncCollectionListEntriesForCourse(targetCourseId);
   res.json({ ...student, frontendId: student.frontendId ? student.frontendId.toString() : null });
 });
 
@@ -652,6 +655,7 @@ app.delete('/api/students/:id', async (req, res) => {
     );
     await syncMoneyListEntriesForCourse(courseId);
     await syncAttendanceListEntriesForCourse(courseId);
+    await syncCollectionListEntriesForCourse(courseId);
   }
 
   res.status(204).send();
@@ -893,6 +897,37 @@ app.delete('/api/gfs/:id', async (req, res) => {
 });
 
 /** Geldlisten-Zeilen an die aktuelle Kurs-Schülerliste anpassen (hinzufügen / entfernen). */
+async function syncCollectionListEntriesForCourse(courseId) {
+  const [lists, students] = await Promise.all([
+    prisma.collectionList.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.student.findMany({ where: { courseId }, select: { id: true } }),
+  ]);
+  const studentIds = new Set(students.map((s) => s.id));
+
+  for (const list of lists) {
+    const existing = await prisma.collectionListEntry.findMany({
+      where: { collectionListId: list.id },
+      select: { id: true, studentId: true },
+    });
+    const existingStudentIds = new Set(existing.map((e) => e.studentId));
+    const toAdd = [...studentIds].filter((sid) => !existingStudentIds.has(sid));
+    const orphanIds = existing.filter((e) => !studentIds.has(e.studentId)).map((e) => e.id);
+
+    if (toAdd.length > 0) {
+      await prisma.collectionListEntry.createMany({
+        data: toAdd.map((studentId) => ({
+          collectionListId: list.id,
+          studentId,
+          collected: false,
+        })),
+      });
+    }
+    if (orphanIds.length > 0) {
+      await prisma.collectionListEntry.deleteMany({ where: { id: { in: orphanIds } } });
+    }
+  }
+}
+
 async function syncAttendanceListEntriesForCourse(courseId) {
   const [lists, students] = await Promise.all([
     prisma.attendanceList.findMany({ where: { courseId }, select: { id: true } }),
@@ -1346,6 +1381,181 @@ app.put('/api/attendance-list-entries/:id', async (req, res) => {
     firstName: updated.student?.firstName ?? '',
     lastName: updated.student?.lastName ?? '',
     attendanceListId: updated.attendanceListId,
+  });
+});
+
+function serializeCollectionList(list) {
+  const entries = (list.entries || [])
+    .map((e) => ({
+      id: e.id,
+      collected: Boolean(e.collected),
+      studentId: e.studentId,
+      studentNumber: e.student?.studentNumber ?? null,
+      firstName: e.student?.firstName ?? '',
+      lastName: e.student?.lastName ?? '',
+    }))
+    .sort((a, b) => {
+      const an = a.studentNumber;
+      const bn = b.studentNumber;
+      const anOk = an !== undefined && an !== null;
+      const bnOk = bn !== undefined && bn !== null;
+      if (anOk && bnOk) return an - bn;
+      if (anOk && !bnOk) return -1;
+      if (!anOk && bnOk) return 1;
+      return a.id - b.id;
+    });
+  return {
+    id: list.id,
+    subject: list.subject,
+    sessionDate: list.sessionDate,
+    notes: list.notes ?? '',
+    courseId: list.courseId,
+    createdAt: list.createdAt,
+    entries,
+  };
+}
+
+// Sammellisten (Klassenlehrer)
+app.get('/api/collection-lists', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const lists = await prisma.collectionList.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+    include: {
+      entries: {
+        include: { student: true },
+      },
+    },
+  });
+  res.json(lists.map(serializeCollectionList));
+});
+
+app.post('/api/collection-lists', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const subject = String(req.body.subject ?? '').trim();
+  if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+
+  const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+  if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
+
+  const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+
+  const courseStudents = await prisma.student.findMany({
+    where: { courseId },
+    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+  });
+
+  const list = await prisma.collectionList.create({
+    data: {
+      courseId,
+      subject,
+      sessionDate: dateParsed.value,
+      notes,
+      entries: {
+        create: courseStudents.map((s) => ({
+          studentId: s.id,
+          collected: false,
+        })),
+      },
+    },
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.status(201).json(serializeCollectionList(list));
+});
+
+app.put('/api/collection-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.collectionList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  const data = {};
+
+  if (req.body.subject !== undefined) {
+    const subject = String(req.body.subject ?? '').trim();
+    if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+    data.subject = subject;
+  }
+
+  if (req.body.sessionDate !== undefined) {
+    const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+    if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
+    data.sessionDate = dateParsed.value;
+  }
+
+  if (req.body.notes !== undefined) {
+    data.notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  }
+
+  const list = await prisma.collectionList.update({
+    where: { id },
+    data,
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.json(serializeCollectionList(list));
+});
+
+app.delete('/api/collection-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.collectionList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  await prisma.collectionList.delete({ where: { id } });
+  res.status(204).end();
+});
+
+app.put('/api/collection-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.collectionListEntry.findUnique({
+    where: { id },
+    include: { collectionList: { include: { course: true } }, student: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.collectionList?.course || !canAccessCourse(existing.collectionList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const data = {};
+  if (req.body.collected !== undefined) data.collected = Boolean(req.body.collected);
+
+  const updated = await prisma.collectionListEntry.update({
+    where: { id },
+    data,
+    include: { student: true },
+  });
+
+  res.json({
+    id: updated.id,
+    collected: updated.collected,
+    studentId: updated.studentId,
+    studentNumber: updated.student?.studentNumber ?? null,
+    firstName: updated.student?.firstName ?? '',
+    lastName: updated.student?.lastName ?? '',
+    collectionListId: updated.collectionListId,
   });
 });
 

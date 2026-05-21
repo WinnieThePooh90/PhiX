@@ -36,7 +36,30 @@ function tabDomId(key) {
   return `klassenlehrer-tab-${key.replace(':', '-')}`;
 }
 
-function buildMergedTabs(moneyLists, attendanceLists) {
+const LIST_DEFAULT_LABELS = {
+  money: 'Geldliste',
+  attendance: 'Anwesenheitsliste',
+  collection: 'Sammelliste',
+};
+
+function entryDone(entry, type) {
+  if (type === 'money') return entry.paid === true;
+  if (type === 'attendance') return entry.present === true;
+  return entry.collected === true;
+}
+
+function isListComplete(list, type) {
+  const entries = list.entries || [];
+  return entries.length > 0 && entries.every((e) => entryDone(e, type));
+}
+
+function listStatusLine(type, doneCount, totalCount) {
+  if (type === 'money') return `${doneCount} / ${totalCount} bezahlt`;
+  if (type === 'attendance') return `${doneCount} / ${totalCount} anwesend`;
+  return `${doneCount} / ${totalCount} eingesammelt`;
+}
+
+function buildMergedTabs(moneyLists, attendanceLists, collectionLists) {
   const tabs = [
     ...(moneyLists || []).map((list) => ({
       type: 'money',
@@ -50,32 +73,24 @@ function buildMergedTabs(moneyLists, attendanceLists) {
       list,
       sortTime: list.createdAt ? new Date(list.createdAt).getTime() : list.id,
     })),
+    ...(collectionLists || []).map((list) => ({
+      type: 'collection',
+      key: listTabKey('collection', list.id),
+      list,
+      sortTime: list.createdAt ? new Date(list.createdAt).getTime() : list.id,
+    })),
   ];
   return tabs.sort((a, b) => a.sortTime - b.sortTime || a.key.localeCompare(b.key));
-}
-
-function isMoneyListComplete(list) {
-  const entries = list.entries || [];
-  return entries.length > 0 && entries.every((e) => e.paid === true);
-}
-
-function isAttendanceListComplete(list) {
-  const entries = list.entries || [];
-  return entries.length > 0 && entries.every((e) => e.present === true);
 }
 
 function KlassenlehrerListTabButton({ tab, isActive, onSelect }) {
   const { type, list, key } = tab;
   const entries = list.entries || [];
-  const doneCount = entries.filter((e) => (type === 'money' ? e.paid : e.present)).length;
+  const doneCount = entries.filter((e) => entryDone(e, type)).length;
   const totalCount = entries.length;
-  const tabLabel =
-    list.subject?.trim() || (type === 'money' ? 'Geldliste' : 'Anwesenheitsliste');
-  const complete = type === 'money' ? isMoneyListComplete(list) : isAttendanceListComplete(list);
-  const statusLine =
-    type === 'money'
-      ? `${doneCount} / ${totalCount} bezahlt`
-      : `${doneCount} / ${totalCount} anwesend`;
+  const tabLabel = list.subject?.trim() || LIST_DEFAULT_LABELS[type] || 'Liste';
+  const complete = isListComplete(list, type);
+  const statusLine = listStatusLine(type, doneCount, totalCount);
 
   return (
     <button
@@ -249,6 +264,90 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, o
                           updateAttendanceListEntryPresent(list.id, row.id, ev.target.checked)
                         }
                         aria-label={`Anwesend für ${name}`}
+                      />
+                    </label>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="klassenlehrer-money-panel-actions">
+        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
+          Bearbeiten
+        </button>
+        <button type="button" className="danger" onClick={() => onDelete(list)}>
+          Löschen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CollectionListPanel({ list, updateCollectionListEntryCollected, onEdit, onDelete }) {
+  const entries = list.entries || [];
+  const collectedCount = entries.filter((e) => e.collected).length;
+  const totalCount = entries.length;
+  const dateLabel = formatListDate(list.sessionDate);
+
+  return (
+    <div className="glass-panel program-view-panel klassenlehrer-money-panel">
+      <div className="klassenlehrer-money-header">
+        <div className="klassenlehrer-money-header-main">
+          {list.notes ? (
+            <p className="text-muted program-view-panel-text klassenlehrer-money-meta">{list.notes}</p>
+          ) : null}
+        </div>
+        <div className="klassenlehrer-money-header-stats">
+          <div className="klassenlehrer-money-paid-due-row">
+            <p className="program-view-panel-heading klassenlehrer-money-paid-count">
+              {collectedCount} / {totalCount} eingesammelt
+            </p>
+            {dateLabel ? (
+              <p className="program-view-panel-heading klassenlehrer-money-due-inline">
+                Datum: {dateLabel}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="klassenlehrer-money-table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="text-center klassenlehrer-num-col">Nr.</th>
+              <th className="klassenlehrer-name-col">Name</th>
+              <th className="klassenlehrer-name-col">Vorname</th>
+              <th className="text-center klassenlehrer-paid-col">Eingesammelt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((row) => {
+              const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
+              const collected = row.collected === true;
+              return (
+                <tr key={row.id}>
+                  <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
+                  <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
+                    {row.lastName || '—'}
+                  </td>
+                  <td className="klassenlehrer-name-col" title={row.firstName || undefined}>
+                    {row.firstName || '—'}
+                  </td>
+                  <td
+                    className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${collected ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
+                    title={collected ? 'Eingesammelt' : 'Noch nicht eingesammelt'}
+                  >
+                    <label className="gfs-gehalten-label">
+                      <input
+                        type="checkbox"
+                        className="gfs-gehalten-checkbox"
+                        checked={collected}
+                        onChange={(ev) =>
+                          updateCollectionListEntryCollected(list.id, row.id, ev.target.checked)
+                        }
+                        aria-label={`Eingesammelt für ${name}`}
                       />
                     </label>
                   </td>
@@ -488,11 +587,113 @@ function AttendanceListFormModal({
   );
 }
 
+function CollectionListFormModal({
+  open,
+  mode,
+  formSubject,
+  setFormSubject,
+  formSessionDate,
+  setFormSessionDate,
+  formNotes,
+  setFormNotes,
+  formError,
+  setFormError,
+  busy,
+  subjectInputRef,
+  onClose,
+  onSubmit,
+}) {
+  if (!open) return null;
+
+  const title = mode === 'edit' ? 'Sammelliste bearbeiten' : 'Sammelliste erstellen';
+  const submitLabel =
+    busy ? (mode === 'edit' ? 'Speichern…' : 'Erstellen…') : mode === 'edit' ? 'Speichern' : 'Erstellen';
+
+  return createPortal(
+    <div
+      className="program-user-mgmt-modal-backdrop"
+      role="presentation"
+      onMouseDown={(ev) => {
+        if (ev.target === ev.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="program-user-mgmt-modal-dialog glass-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="collection-list-modal-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <h2 id="collection-list-modal-title" className="program-user-mgmt-modal-title">
+          {title}
+        </h2>
+        <form className="program-user-mgmt-form" onSubmit={onSubmit}>
+          <label className="program-user-mgmt-label">
+            Betreff
+            <input
+              ref={subjectInputRef}
+              className="program-user-mgmt-input"
+              value={formSubject}
+              onChange={(ev) => {
+                setFormSubject(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              placeholder="z. B. Unterschriftenliste"
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Datum
+            <input
+              className="program-user-mgmt-input"
+              type="date"
+              value={formSessionDate}
+              onChange={(ev) => {
+                setFormSessionDate(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              disabled={busy}
+              required
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Notizen <span className="text-muted">(optional)</span>
+            <textarea
+              className="program-user-mgmt-input"
+              rows={3}
+              value={formNotes}
+              onChange={(ev) => setFormNotes(ev.target.value)}
+              placeholder="Zusätzliche Hinweise …"
+              disabled={busy}
+            />
+          </label>
+          {formError ? (
+            <p className="program-user-mgmt-error" role="alert">
+              {formError}
+            </p>
+          ) : null}
+          <div className="program-user-mgmt-modal-actions">
+            <button type="submit" className="program-user-mgmt-submit" disabled={busy}>
+              {submitLabel}
+            </button>
+            <button type="button" className="secondary" onClick={onClose} disabled={busy}>
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function KlassenlehrerView() {
   const {
     config,
     moneyLists,
     attendanceLists,
+    collectionLists,
     createMoneyList,
     updateMoneyList,
     deleteMoneyList,
@@ -501,14 +702,18 @@ export default function KlassenlehrerView() {
     updateAttendanceList,
     deleteAttendanceList,
     updateAttendanceListEntryPresent,
+    createCollectionList,
+    updateCollectionList,
+    deleteCollectionList,
+    updateCollectionListEntryCollected,
   } = useData();
   const subject = config?.subject ?? '—';
   const classLabel = config?.className || config?.class || '—';
   const year = config?.year ?? '—';
 
   const mergedTabs = useMemo(
-    () => buildMergedTabs(moneyLists, attendanceLists),
-    [moneyLists, attendanceLists],
+    () => buildMergedTabs(moneyLists, attendanceLists, collectionLists),
+    [moneyLists, attendanceLists, collectionLists],
   );
 
   const [activeTabKey, setActiveTabKey] = useState(null);
@@ -533,6 +738,16 @@ export default function KlassenlehrerView() {
   const [attendanceFormError, setAttendanceFormError] = useState('');
   const [attendanceModalBusy, setAttendanceModalBusy] = useState(false);
   const attendanceSubjectInputRef = useRef(null);
+
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [collectionModalMode, setCollectionModalMode] = useState('create');
+  const [collectionEditingId, setCollectionEditingId] = useState(null);
+  const [collectionFormSubject, setCollectionFormSubject] = useState('');
+  const [collectionFormSessionDate, setCollectionFormSessionDate] = useState('');
+  const [collectionFormNotes, setCollectionFormNotes] = useState('');
+  const [collectionFormError, setCollectionFormError] = useState('');
+  const [collectionModalBusy, setCollectionModalBusy] = useState(false);
+  const collectionSubjectInputRef = useRef(null);
 
   useEffect(() => {
     if (mergedTabs.length === 0) {
@@ -578,6 +793,21 @@ export default function KlassenlehrerView() {
     requestAnimationFrame(() => attendanceSubjectInputRef.current?.focus());
   }, [resetAttendanceForm]);
 
+  const resetCollectionForm = useCallback(() => {
+    setCollectionFormSubject('');
+    setCollectionFormSessionDate('');
+    setCollectionFormNotes('');
+    setCollectionFormError('');
+    setCollectionEditingId(null);
+  }, []);
+
+  const openCreateCollectionModal = useCallback(() => {
+    resetCollectionForm();
+    setCollectionModalMode('create');
+    setCollectionModalOpen(true);
+    requestAnimationFrame(() => collectionSubjectInputRef.current?.focus());
+  }, [resetCollectionForm]);
+
   const openEditMoneyModal = useCallback(
     (list) => {
       setMoneyFormSubject(list.subject ?? '');
@@ -604,6 +834,17 @@ export default function KlassenlehrerView() {
     requestAnimationFrame(() => attendanceSubjectInputRef.current?.focus());
   }, []);
 
+  const openEditCollectionModal = useCallback((list) => {
+    setCollectionFormSubject(list.subject ?? '');
+    setCollectionFormSessionDate(toInputDateValue(list.sessionDate));
+    setCollectionFormNotes(list.notes ?? '');
+    setCollectionFormError('');
+    setCollectionEditingId(list.id);
+    setCollectionModalMode('edit');
+    setCollectionModalOpen(true);
+    requestAnimationFrame(() => collectionSubjectInputRef.current?.focus());
+  }, []);
+
   const closeMoneyModal = useCallback(() => {
     if (moneyModalBusy) return;
     setMoneyModalOpen(false);
@@ -617,6 +858,13 @@ export default function KlassenlehrerView() {
     setAttendanceFormError('');
     setAttendanceEditingId(null);
   }, [attendanceModalBusy]);
+
+  const closeCollectionModal = useCallback(() => {
+    if (collectionModalBusy) return;
+    setCollectionModalOpen(false);
+    setCollectionFormError('');
+    setCollectionEditingId(null);
+  }, [collectionModalBusy]);
 
   const validateMoneyForm = () => {
     const betreff = moneyFormSubject.trim();
@@ -745,6 +993,69 @@ export default function KlassenlehrerView() {
     }
   };
 
+  const validateCollectionForm = () => {
+    const betreff = collectionFormSubject.trim();
+    if (!betreff) {
+      setCollectionFormError('Bitte einen Betreff eingeben.');
+      return null;
+    }
+    const sessionDate = collectionFormSessionDate.trim();
+    if (!sessionDate) {
+      setCollectionFormError('Bitte ein Datum eingeben.');
+      return null;
+    }
+    return {
+      subject: betreff,
+      sessionDate,
+      notes: collectionFormNotes.trim(),
+    };
+  };
+
+  const handleCollectionFormSubmit = async (e) => {
+    e.preventDefault();
+    const payload = validateCollectionForm();
+    if (!payload) return;
+
+    setCollectionModalBusy(true);
+    setCollectionFormError('');
+    try {
+      if (collectionModalMode === 'edit' && collectionEditingId != null) {
+        const updated = await updateCollectionList(collectionEditingId, payload);
+        if (updated?.error) {
+          setCollectionFormError(updated.error);
+          return;
+        }
+        if (!updated?.id) {
+          setCollectionFormError('Sammelliste konnte nicht gespeichert werden.');
+          return;
+        }
+        setActiveTabKey(listTabKey('collection', updated.id));
+        setCollectionModalOpen(false);
+        return;
+      }
+
+      const created = await createCollectionList(payload);
+      if (created?.error) {
+        setCollectionFormError(created.error);
+        return;
+      }
+      if (!created?.id) {
+        setCollectionFormError('Sammelliste konnte nicht erstellt werden.');
+        return;
+      }
+      setActiveTabKey(listTabKey('collection', created.id));
+      setCollectionModalOpen(false);
+    } catch {
+      setCollectionFormError(
+        collectionModalMode === 'edit'
+          ? 'Sammelliste konnte nicht gespeichert werden.'
+          : 'Sammelliste konnte nicht erstellt werden.',
+      );
+    } finally {
+      setCollectionModalBusy(false);
+    }
+  };
+
   const handleDeleteMoney = async (list) => {
     const label = list.subject?.trim() || 'Geldliste';
     const ok = window.confirm(`Geldliste „${label}“ wirklich löschen?`);
@@ -758,6 +1069,14 @@ export default function KlassenlehrerView() {
     const ok = window.confirm(`Anwesenheitsliste „${label}“ wirklich löschen?`);
     if (!ok) return;
     const res = await deleteAttendanceList(list.id);
+    if (res?.error) window.alert(res.error);
+  };
+
+  const handleDeleteCollection = async (list) => {
+    const label = list.subject?.trim() || 'Sammelliste';
+    const ok = window.confirm(`Sammelliste „${label}“ wirklich löschen?`);
+    if (!ok) return;
+    const res = await deleteCollectionList(list.id);
     if (res?.error) window.alert(res.error);
   };
 
@@ -797,6 +1116,22 @@ export default function KlassenlehrerView() {
         onClose={closeAttendanceModal}
         onSubmit={handleAttendanceFormSubmit}
       />
+      <CollectionListFormModal
+        open={collectionModalOpen}
+        mode={collectionModalMode}
+        formSubject={collectionFormSubject}
+        setFormSubject={setCollectionFormSubject}
+        formSessionDate={collectionFormSessionDate}
+        setFormSessionDate={setCollectionFormSessionDate}
+        formNotes={collectionFormNotes}
+        setFormNotes={setCollectionFormNotes}
+        formError={collectionFormError}
+        setFormError={setCollectionFormError}
+        busy={collectionModalBusy}
+        subjectInputRef={collectionSubjectInputRef}
+        onClose={closeCollectionModal}
+        onSubmit={handleCollectionFormSubmit}
+      />
 
       <h2 className="program-view-title">Klassenlehrer</h2>
       <p className="text-muted program-view-intro">
@@ -817,6 +1152,9 @@ export default function KlassenlehrerView() {
           </button>
           <button type="button" className="tab secondary" onClick={openCreateAttendanceModal}>
             + Anwesenheitsliste erstellen
+          </button>
+          <button type="button" className="tab secondary" onClick={openCreateCollectionModal}>
+            + Sammelliste erstellen
           </button>
         </div>
 
@@ -847,12 +1185,19 @@ export default function KlassenlehrerView() {
                     onEdit={openEditMoneyModal}
                     onDelete={handleDeleteMoney}
                   />
-                ) : (
+                ) : activeTab.type === 'attendance' ? (
                   <AttendanceListPanel
                     list={activeTab.list}
                     updateAttendanceListEntryPresent={updateAttendanceListEntryPresent}
                     onEdit={openEditAttendanceModal}
                     onDelete={handleDeleteAttendance}
+                  />
+                ) : (
+                  <CollectionListPanel
+                    list={activeTab.list}
+                    updateCollectionListEntryCollected={updateCollectionListEntryCollected}
+                    onEdit={openEditCollectionModal}
+                    onDelete={handleDeleteCollection}
                   />
                 )}
               </div>

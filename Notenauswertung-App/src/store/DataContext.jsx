@@ -78,6 +78,7 @@ export const DataProvider = ({ children }) => {
   const [gfsEntries, setGfsEntries] = useState([]);
   const [moneyLists, setMoneyLists] = useState([]);
   const [attendanceLists, setAttendanceLists] = useState([]);
+  const [collectionLists, setCollectionLists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses and migrate
@@ -218,8 +219,16 @@ export const DataProvider = ({ children }) => {
     setLoading(true);
     const fetchCourseData = async () => {
       try {
-        const [studentsRes, examsRes, oralsRes, testsRes, gfsRes, moneyListsRes, attendanceListsRes] =
-          await Promise.all([
+        const [
+          studentsRes,
+          examsRes,
+          oralsRes,
+          testsRes,
+          gfsRes,
+          moneyListsRes,
+          attendanceListsRes,
+          collectionListsRes,
+        ] = await Promise.all([
           fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/exams?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/orals?courseId=${activeCourseId}`).then((r) => r.json()),
@@ -227,6 +236,7 @@ export const DataProvider = ({ children }) => {
           fetchWithActing(`/api/gfs?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) => r.json()),
+          fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`).then((r) => r.json()),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -235,6 +245,7 @@ export const DataProvider = ({ children }) => {
         setGfsEntries(Array.isArray(gfsRes) ? gfsRes : []);
         setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
+        setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -273,9 +284,24 @@ export const DataProvider = ({ children }) => {
     }
   }, [activeCourseId, fetchWithActing]);
 
+  const refreshCollectionLists = useCallback(async () => {
+    if (!activeCourseId) {
+      setCollectionLists([]);
+      return;
+    }
+    try {
+      const data = await fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`).then((r) =>
+        r.json(),
+      );
+      setCollectionLists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to refresh collection lists', err);
+    }
+  }, [activeCourseId, fetchWithActing]);
+
   const refreshKlassenlehrerLists = useCallback(async () => {
-    await Promise.all([refreshMoneyLists(), refreshAttendanceLists()]);
-  }, [refreshMoneyLists, refreshAttendanceLists]);
+    await Promise.all([refreshMoneyLists(), refreshAttendanceLists(), refreshCollectionLists()]);
+  }, [refreshMoneyLists, refreshAttendanceLists, refreshCollectionLists]);
 
   const apiCall = useCallback(async (url, method, body) => {
     try {
@@ -1045,6 +1071,54 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/attendance-list-entries/${entryId}`, 'PUT', { present });
   };
 
+  const createCollectionList = async ({ subject, sessionDate, notes }) => {
+    if (!activeCourseId) return null;
+    const created = await apiCall('/api/collection-lists', 'POST', {
+      courseId: activeCourseId,
+      subject,
+      sessionDate,
+      notes: notes ?? '',
+    });
+    if (created?.id) {
+      setCollectionLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateCollectionList = async (id, { subject, sessionDate, notes }) => {
+    const updated = await apiCall(`/api/collection-lists/${id}`, 'PUT', {
+      subject,
+      sessionDate,
+      notes: notes ?? '',
+    });
+    if (updated?.id) {
+      setCollectionLists((prev) =>
+        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
+  const deleteCollectionList = async (id) => {
+    const res = await apiCall(`/api/collection-lists/${id}`, 'DELETE');
+    if (res?.error) return res;
+    setCollectionLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
+  };
+
+  const updateCollectionListEntryCollected = (listId, entryId, collected) => {
+    setCollectionLists((prev) =>
+      prev.map((list) => {
+        if (list.id !== listId) return list;
+        return {
+          ...list,
+          entries: (list.entries || []).map((e) => (e.id === entryId ? { ...e, collected } : e)),
+        };
+      }),
+    );
+    apiCall(`/api/collection-list-entries/${entryId}`, 'PUT', { collected });
+  };
+
   const addSchoolRosterYear = async (label) => {
     const created = await apiCall('/api/school-roster-years', 'POST', { label });
     if (created?.error) return created;
@@ -1167,6 +1241,8 @@ export const DataProvider = ({ children }) => {
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,
       updateAttendanceListEntryPresent,
+      collectionLists, createCollectionList, updateCollectionList, deleteCollectionList,
+      updateCollectionListEntryCollected,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,
