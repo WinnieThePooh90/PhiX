@@ -927,6 +927,15 @@ async function syncMoneyListEntriesForCourse(courseId) {
   }
 }
 
+function parseMoneyListDueDate(raw) {
+  if (raw === undefined) return { skip: true };
+  if (raw === null || raw === '') return { value: null };
+  const s = String(raw).trim();
+  const d = new Date(s.includes('T') ? s : `${s}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return { error: 'Ungültiges Fälligkeitsdatum' };
+  return { value: d };
+}
+
 function serializeMoneyList(list) {
   const entries = (list.entries || [])
     .map((e) => ({
@@ -952,6 +961,7 @@ function serializeMoneyList(list) {
     subject: list.subject,
     amountPerStudent: list.amountPerStudent,
     notes: list.notes ?? '',
+    dueDate: list.dueDate ?? null,
     courseId: list.courseId,
     createdAt: list.createdAt,
     entries,
@@ -993,6 +1003,9 @@ app.post('/api/money-lists', async (req, res) => {
 
   const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
 
+  const dueParsed = parseMoneyListDueDate(req.body.dueDate);
+  if (dueParsed.error) return res.status(400).json({ error: dueParsed.error });
+
   const courseStudents = await prisma.student.findMany({
     where: { courseId },
     orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
@@ -1004,6 +1017,7 @@ app.post('/api/money-lists', async (req, res) => {
       subject,
       amountPerStudent,
       notes,
+      dueDate: dueParsed.skip ? null : dueParsed.value,
       entries: {
         create: courseStudents.map((s) => ({
           studentId: s.id,
@@ -1017,6 +1031,69 @@ app.post('/api/money-lists', async (req, res) => {
   });
 
   res.status(201).json(serializeMoneyList(list));
+});
+
+app.put('/api/money-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.moneyList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  const data = {};
+
+  if (req.body.subject !== undefined) {
+    const subject = String(req.body.subject ?? '').trim();
+    if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+    data.subject = subject;
+  }
+
+  if (req.body.amountPerStudent !== undefined) {
+    const amountRaw = req.body.amountPerStudent;
+    const amountPerStudent =
+      typeof amountRaw === 'number' ? amountRaw : parseFloat(String(amountRaw).replace(',', '.'));
+    if (!Number.isFinite(amountPerStudent) || amountPerStudent < 0) {
+      return res.status(400).json({ error: 'Ungültiger Betrag' });
+    }
+    data.amountPerStudent = amountPerStudent;
+  }
+
+  if (req.body.notes !== undefined) {
+    data.notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  }
+
+  if (req.body.dueDate !== undefined) {
+    const dueParsed = parseMoneyListDueDate(req.body.dueDate);
+    if (dueParsed.error) return res.status(400).json({ error: dueParsed.error });
+    data.dueDate = dueParsed.value;
+  }
+
+  const list = await prisma.moneyList.update({
+    where: { id },
+    data,
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.json(serializeMoneyList(list));
+});
+
+app.delete('/api/money-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.moneyList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  await prisma.moneyList.delete({ where: { id } });
+  res.status(204).end();
 });
 
 app.put('/api/money-list-entries/:id', async (req, res) => {

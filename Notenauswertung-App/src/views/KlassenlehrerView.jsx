@@ -7,7 +7,57 @@ function formatEuro(amount) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
 }
 
-function MoneyListPanel({ list, updateMoneyListEntryPaid }) {
+function formatDueDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
+}
+
+function toInputDateValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function MoneyListTabButton({ list, isActive, onSelect }) {
+  const entries = list.entries || [];
+  const paidCount = entries.filter((e) => e.paid).length;
+  const totalCount = entries.length;
+  const tabLabel = list.subject?.trim() || 'Geldliste';
+  const dueLabel = formatDueDate(list.dueDate);
+
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={`money-list-tab-${list.id}`}
+      aria-selected={isActive}
+      aria-controls={`money-list-panel-${list.id}`}
+      className={`tab klassenlehrer-money-tab-btn ${isActive ? 'active' : 'secondary'}`}
+      onClick={() => onSelect(list.id)}
+      title={tabLabel}
+    >
+      <span className="klassenlehrer-money-tab-title">{tabLabel}</span>
+      <span className="klassenlehrer-money-tab-line">
+        {paidCount} / {totalCount} bezahlt
+      </span>
+      {dueLabel ? (
+        <span className="klassenlehrer-money-tab-line">Fällig: {dueLabel}</span>
+      ) : null}
+    </button>
+  );
+}
+
+function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
   const entries = list.entries || [];
   const paidCount = entries.filter((e) => e.paid).length;
   const totalCount = entries.length;
@@ -79,12 +129,144 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid }) {
           </tbody>
         </table>
       </div>
+      <div className="klassenlehrer-money-panel-actions">
+        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
+          Bearbeiten
+        </button>
+        <button type="button" className="danger" onClick={() => onDelete(list)}>
+          Löschen
+        </button>
+      </div>
     </div>
   );
 }
 
+function MoneyListFormModal({
+  open,
+  mode,
+  formSubject,
+  setFormSubject,
+  formAmount,
+  setFormAmount,
+  formNotes,
+  setFormNotes,
+  formDueDate,
+  setFormDueDate,
+  formError,
+  setFormError,
+  busy,
+  subjectInputRef,
+  onClose,
+  onSubmit,
+}) {
+  if (!open) return null;
+
+  const title = mode === 'edit' ? 'Geldliste bearbeiten' : 'Geldliste erstellen';
+  const submitLabel = busy ? (mode === 'edit' ? 'Speichern…' : 'Erstellen…') : mode === 'edit' ? 'Speichern' : 'Erstellen';
+
+  return createPortal(
+    <div
+      className="program-user-mgmt-modal-backdrop"
+      role="presentation"
+      onMouseDown={(ev) => {
+        if (ev.target === ev.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="program-user-mgmt-modal-dialog glass-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="money-list-modal-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <h2 id="money-list-modal-title" className="program-user-mgmt-modal-title">
+          {title}
+        </h2>
+        <form className="program-user-mgmt-form" onSubmit={onSubmit}>
+          <label className="program-user-mgmt-label">
+            Betreff
+            <input
+              ref={subjectInputRef}
+              className="program-user-mgmt-input"
+              value={formSubject}
+              onChange={(ev) => {
+                setFormSubject(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              placeholder="z. B. Klassenfahrt"
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Betrag pro Schüler (€)
+            <input
+              className="program-user-mgmt-input"
+              type="text"
+              inputMode="decimal"
+              value={formAmount}
+              onChange={(ev) => {
+                setFormAmount(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              placeholder="z. B. 15,00"
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Fällig
+            <input
+              className="program-user-mgmt-input"
+              type="date"
+              value={formDueDate}
+              onChange={(ev) => {
+                setFormDueDate(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              disabled={busy}
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Notizen <span className="text-muted">(optional)</span>
+            <textarea
+              className="program-user-mgmt-input"
+              rows={3}
+              value={formNotes}
+              onChange={(ev) => setFormNotes(ev.target.value)}
+              placeholder="Zusätzliche Hinweise …"
+              disabled={busy}
+            />
+          </label>
+          {formError ? (
+            <p className="program-user-mgmt-error" role="alert">
+              {formError}
+            </p>
+          ) : null}
+          <div className="program-user-mgmt-modal-actions">
+            <button type="submit" className="program-user-mgmt-submit" disabled={busy}>
+              {submitLabel}
+            </button>
+            <button type="button" className="secondary" onClick={onClose} disabled={busy}>
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function KlassenlehrerView() {
-  const { config, moneyLists, createMoneyList, updateMoneyListEntryPaid } = useData();
+  const {
+    config,
+    moneyLists,
+    createMoneyList,
+    updateMoneyList,
+    deleteMoneyList,
+    updateMoneyListEntryPaid,
+  } = useData();
   const subject = config?.subject ?? '—';
   const classLabel = config?.className || config?.class || '—';
   const year = config?.year ?? '—';
@@ -92,11 +274,14 @@ export default function KlassenlehrerView() {
   const lists = moneyLists || [];
   const [activeListId, setActiveListId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [editingListId, setEditingListId] = useState(null);
   const [formSubject, setFormSubject] = useState('');
   const [formAmount, setFormAmount] = useState('');
   const [formNotes, setFormNotes] = useState('');
+  const [formDueDate, setFormDueDate] = useState('');
   const [formError, setFormError] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [modalBusy, setModalBusy] = useState(false);
   const subjectInputRef = useRef(null);
 
   useEffect(() => {
@@ -112,42 +297,83 @@ export default function KlassenlehrerView() {
 
   const activeList = lists.find((l) => l.id === activeListId) ?? null;
 
-  const openModal = useCallback(() => {
+  const resetForm = useCallback(() => {
     setFormSubject('');
     setFormAmount('');
     setFormNotes('');
+    setFormDueDate('');
     setFormError('');
+    setEditingListId(null);
+  }, []);
+
+  const openCreateModal = useCallback(() => {
+    resetForm();
+    setModalMode('create');
+    setModalOpen(true);
+    requestAnimationFrame(() => subjectInputRef.current?.focus());
+  }, [resetForm]);
+
+  const openEditModal = useCallback((list) => {
+    setFormSubject(list.subject ?? '');
+    setFormAmount(String(list.amountPerStudent ?? ''));
+    setFormNotes(list.notes ?? '');
+    setFormDueDate(toInputDateValue(list.dueDate));
+    setFormError('');
+    setEditingListId(list.id);
+    setModalMode('edit');
     setModalOpen(true);
     requestAnimationFrame(() => subjectInputRef.current?.focus());
   }, []);
 
   const closeModal = useCallback(() => {
-    if (creating) return;
+    if (modalBusy) return;
     setModalOpen(false);
     setFormError('');
-  }, [creating]);
+    setEditingListId(null);
+  }, [modalBusy]);
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const validateForm = () => {
     const betreff = formSubject.trim();
     if (!betreff) {
       setFormError('Bitte einen Betreff eingeben.');
-      return;
+      return null;
     }
     const amountPerStudent = parseFloat(String(formAmount).replace(',', '.'));
     if (!Number.isFinite(amountPerStudent) || amountPerStudent < 0) {
       setFormError('Bitte einen gültigen Betrag pro Schüler eingeben.');
-      return;
+      return null;
     }
+    return {
+      subject: betreff,
+      amountPerStudent,
+      notes: formNotes.trim(),
+      dueDate: formDueDate.trim() || null,
+    };
+  };
 
-    setCreating(true);
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    const payload = validateForm();
+    if (!payload) return;
+
+    setModalBusy(true);
     setFormError('');
     try {
-      const created = await createMoneyList({
-        subject: betreff,
-        amountPerStudent,
-        notes: formNotes.trim(),
-      });
+      if (modalMode === 'edit' && editingListId != null) {
+        const updated = await updateMoneyList(editingListId, payload);
+        if (updated?.error) {
+          setFormError(updated.error);
+          return;
+        }
+        if (!updated?.id) {
+          setFormError('Geldliste konnte nicht gespeichert werden.');
+          return;
+        }
+        setModalOpen(false);
+        return;
+      }
+
+      const created = await createMoneyList(payload);
       if (created?.error) {
         setFormError(created.error);
         return;
@@ -159,97 +385,47 @@ export default function KlassenlehrerView() {
       setActiveListId(created.id);
       setModalOpen(false);
     } catch {
-      setFormError('Geldliste konnte nicht erstellt werden.');
+      setFormError(
+        modalMode === 'edit'
+          ? 'Geldliste konnte nicht gespeichert werden.'
+          : 'Geldliste konnte nicht erstellt werden.',
+      );
     } finally {
-      setCreating(false);
+      setModalBusy(false);
     }
   };
 
-  const modal =
-    modalOpen &&
-    createPortal(
-      <div
-        className="program-user-mgmt-modal-backdrop"
-        role="presentation"
-        onMouseDown={(ev) => {
-          if (ev.target === ev.currentTarget) closeModal();
-        }}
-      >
-        <div
-          className="program-user-mgmt-modal-dialog glass-panel"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="money-list-modal-title"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <h2 id="money-list-modal-title" className="program-user-mgmt-modal-title">
-            Geldliste erstellen
-          </h2>
-          <form className="program-user-mgmt-form" onSubmit={handleCreate}>
-            <label className="program-user-mgmt-label">
-              Betreff
-              <input
-                ref={subjectInputRef}
-                className="program-user-mgmt-input"
-                value={formSubject}
-                onChange={(ev) => {
-                  setFormSubject(ev.target.value);
-                  if (formError) setFormError('');
-                }}
-                placeholder="z. B. Klassenfahrt"
-                disabled={creating}
-                autoComplete="off"
-              />
-            </label>
-            <label className="program-user-mgmt-label">
-              Betrag pro Schüler (€)
-              <input
-                className="program-user-mgmt-input"
-                type="text"
-                inputMode="decimal"
-                value={formAmount}
-                onChange={(ev) => {
-                  setFormAmount(ev.target.value);
-                  if (formError) setFormError('');
-                }}
-                placeholder="z. B. 15,00"
-                disabled={creating}
-                autoComplete="off"
-              />
-            </label>
-            <label className="program-user-mgmt-label">
-              Notizen <span className="text-muted">(optional)</span>
-              <textarea
-                className="program-user-mgmt-input"
-                rows={3}
-                value={formNotes}
-                onChange={(ev) => setFormNotes(ev.target.value)}
-                placeholder="Zusätzliche Hinweise …"
-                disabled={creating}
-              />
-            </label>
-            {formError ? (
-              <p className="program-user-mgmt-error" role="alert">
-                {formError}
-              </p>
-            ) : null}
-            <div className="program-user-mgmt-modal-actions">
-              <button type="submit" className="program-user-mgmt-submit" disabled={creating}>
-                {creating ? 'Erstellen…' : 'Erstellen'}
-              </button>
-              <button type="button" className="secondary" onClick={closeModal} disabled={creating}>
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>,
-      document.body,
-    );
+  const handleDelete = async (list) => {
+    const label = list.subject?.trim() || 'Geldliste';
+    const ok = window.confirm(`Geldliste „${label}“ wirklich löschen?`);
+    if (!ok) return;
+
+    const res = await deleteMoneyList(list.id);
+    if (res?.error) {
+      window.alert(res.error);
+    }
+  };
 
   return (
     <div className="view-generic-scroll program-view">
-      {modal}
+      <MoneyListFormModal
+        open={modalOpen}
+        mode={modalMode}
+        formSubject={formSubject}
+        setFormSubject={setFormSubject}
+        formAmount={formAmount}
+        setFormAmount={setFormAmount}
+        formNotes={formNotes}
+        setFormNotes={setFormNotes}
+        formDueDate={formDueDate}
+        setFormDueDate={setFormDueDate}
+        formError={formError}
+        setFormError={setFormError}
+        busy={modalBusy}
+        subjectInputRef={subjectInputRef}
+        onClose={closeModal}
+        onSubmit={handleFormSubmit}
+      />
       <h2 className="program-view-title">Klassenlehrer</h2>
       <p className="text-muted program-view-intro">
         Zusätzliche Werkzeuge und Übersichten für die Klassenführung im aktuellen Fach.
@@ -263,36 +439,21 @@ export default function KlassenlehrerView() {
       </div>
 
       <section className="klassenlehrer-geldlisten-section">
-        <button type="button" className="tab secondary" onClick={openModal}>
+        <button type="button" className="tab secondary" onClick={openCreateModal}>
           + Geldliste erstellen
         </button>
 
         {lists.length > 0 ? (
           <>
-            <div
-              className="klassenlehrer-money-tabs"
-              role="tablist"
-              aria-label="Geldlisten"
-            >
-              {lists.map((list) => {
-                const tabLabel = list.subject?.trim() || 'Geldliste';
-                const isActive = list.id === activeListId;
-                return (
-                  <button
-                    key={list.id}
-                    type="button"
-                    role="tab"
-                    id={`money-list-tab-${list.id}`}
-                    aria-selected={isActive}
-                    aria-controls={`money-list-panel-${list.id}`}
-                    className={`tab ${isActive ? 'active' : 'secondary'}`}
-                    onClick={() => setActiveListId(list.id)}
-                    title={tabLabel}
-                  >
-                    {tabLabel}
-                  </button>
-                );
-              })}
+            <div className="klassenlehrer-money-tabs" role="tablist" aria-label="Geldlisten">
+              {lists.map((list) => (
+                <MoneyListTabButton
+                  key={list.id}
+                  list={list}
+                  isActive={list.id === activeListId}
+                  onSelect={setActiveListId}
+                />
+              ))}
             </div>
 
             {activeList ? (
@@ -302,7 +463,12 @@ export default function KlassenlehrerView() {
                 aria-labelledby={`money-list-tab-${activeList.id}`}
                 className="klassenlehrer-money-tabpanel"
               >
-                <MoneyListPanel list={activeList} updateMoneyListEntryPaid={updateMoneyListEntryPaid} />
+                <MoneyListPanel
+                  list={activeList}
+                  updateMoneyListEntryPaid={updateMoneyListEntryPaid}
+                  onEdit={openEditModal}
+                  onDelete={handleDelete}
+                />
               </div>
             ) : null}
           </>

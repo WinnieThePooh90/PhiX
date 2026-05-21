@@ -88,10 +88,11 @@ model Student {
 }
 
 model MoneyList {
-  id               Int      @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   subject          String
   amountPerStudent Float
-  notes            String   @default("")
+  notes            String    @default("")
+  dueDate          DateTime?
   courseId         Int
   course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   entries          MoneyListEntry[]

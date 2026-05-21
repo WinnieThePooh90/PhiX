@@ -924,18 +924,41 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/gfs/${entryId}`, 'DELETE');
   };
 
-  const createMoneyList = async ({ subject, amountPerStudent, notes }) => {
+  const createMoneyList = async ({ subject, amountPerStudent, notes, dueDate }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/money-lists', 'POST', {
       courseId: activeCourseId,
       subject,
       amountPerStudent,
       notes: notes ?? '',
+      dueDate: dueDate ?? null,
     });
     if (created?.id) {
       setMoneyLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
     }
     return created;
+  };
+
+  const updateMoneyList = async (id, { subject, amountPerStudent, notes, dueDate }) => {
+    const updated = await apiCall(`/api/money-lists/${id}`, 'PUT', {
+      subject,
+      amountPerStudent,
+      notes: notes ?? '',
+      dueDate: dueDate ?? null,
+    });
+    if (updated?.id) {
+      setMoneyLists((prev) =>
+        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
+  const deleteMoneyList = async (id) => {
+    const res = await apiCall(`/api/money-lists/${id}`, 'DELETE');
+    if (res?.error) return res;
+    setMoneyLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
   };
 
   const updateMoneyListEntryPaid = (listId, entryId, paid) => {
@@ -1070,7 +1093,7 @@ export const DataProvider = ({ children }) => {
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
-      moneyLists, createMoneyList, updateMoneyListEntryPaid,
+      moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,
