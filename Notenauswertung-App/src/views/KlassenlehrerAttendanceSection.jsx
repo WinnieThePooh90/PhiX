@@ -1,14 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import KlassenlehrerAttendanceSection from './KlassenlehrerAttendanceSection';
 
-function formatEuro(amount) {
-  if (!Number.isFinite(amount)) return '—';
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
-}
-
-function formatDueDate(iso) {
+function formatListDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
@@ -29,72 +23,62 @@ function toInputDateValue(iso) {
   return `${y}-${m}-${day}`;
 }
 
-function isMoneyListFullyPaid(list) {
+function isAttendanceListFullyPresent(list) {
   const entries = list.entries || [];
-  return entries.length > 0 && entries.every((e) => e.paid === true);
+  return entries.length > 0 && entries.every((e) => e.present === true);
 }
 
-function MoneyListTabButton({ list, isActive, onSelect }) {
+function AttendanceListTabButton({ list, isActive, onSelect }) {
   const entries = list.entries || [];
-  const paidCount = entries.filter((e) => e.paid).length;
+  const presentCount = entries.filter((e) => e.present).length;
   const totalCount = entries.length;
-  const tabLabel = list.subject?.trim() || 'Geldliste';
-  const allPaid = isMoneyListFullyPaid(list);
+  const tabLabel = list.subject?.trim() || 'Anwesenheitsliste';
+  const allPresent = isAttendanceListFullyPresent(list);
 
   return (
     <button
       type="button"
       role="tab"
-      id={`money-list-tab-${list.id}`}
+      id={`attendance-list-tab-${list.id}`}
       aria-selected={isActive}
-      aria-controls={`money-list-panel-${list.id}`}
-      className={`tab klassenlehrer-money-tab-btn ${isActive ? 'active' : 'secondary'}${allPaid ? ' klassenlehrer-money-tab-btn--all-paid' : ''}`}
+      aria-controls={`attendance-list-panel-${list.id}`}
+      className={`tab klassenlehrer-money-tab-btn ${isActive ? 'active' : 'secondary'}${allPresent ? ' klassenlehrer-money-tab-btn--all-paid' : ''}`}
       onClick={() => onSelect(list.id)}
       title={tabLabel}
     >
       <span className="klassenlehrer-money-tab-title">{tabLabel}</span>
       <span className="klassenlehrer-money-tab-line">
-        {paidCount} / {totalCount} bezahlt
+        {presentCount} / {totalCount} anwesend
       </span>
     </button>
   );
 }
 
-function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
+function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, onDelete }) {
   const entries = list.entries || [];
-  const paidCount = entries.filter((e) => e.paid).length;
+  const presentCount = entries.filter((e) => e.present).length;
   const totalCount = entries.length;
-  const amountPerStudent = Number(list.amountPerStudent);
-  const paidAmount = paidCount * amountPerStudent;
-  const totalAmount = totalCount * amountPerStudent;
-  const dueLabel = formatDueDate(list.dueDate);
+  const dateLabel = formatListDate(list.sessionDate);
 
   return (
     <div className="glass-panel program-view-panel klassenlehrer-money-panel">
       <div className="klassenlehrer-money-header">
         <div className="klassenlehrer-money-header-main">
-          {(list.notes || Number.isFinite(amountPerStudent)) && (
-            <p className="text-muted program-view-panel-text klassenlehrer-money-meta">
-              {Number.isFinite(amountPerStudent) ? `${formatEuro(amountPerStudent)} pro Schüler` : null}
-              {list.notes && Number.isFinite(amountPerStudent) ? ' · ' : null}
-              {list.notes || null}
-            </p>
-          )}
+          {list.notes ? (
+            <p className="text-muted program-view-panel-text klassenlehrer-money-meta">{list.notes}</p>
+          ) : null}
         </div>
         <div className="klassenlehrer-money-header-stats">
           <div className="klassenlehrer-money-paid-due-row">
             <p className="program-view-panel-heading klassenlehrer-money-paid-count">
-              {paidCount} / {totalCount} bezahlt
+              {presentCount} / {totalCount} anwesend
             </p>
-            {dueLabel ? (
+            {dateLabel ? (
               <p className="program-view-panel-heading klassenlehrer-money-due-inline">
-                Fällig: {dueLabel}
+                Datum: {dateLabel}
               </p>
             ) : null}
           </div>
-          <p className="klassenlehrer-money-paid-sum">
-            {formatEuro(paidAmount)} / {formatEuro(totalAmount)}
-          </p>
         </div>
       </div>
       <div className="klassenlehrer-money-table-scroll">
@@ -104,13 +88,13 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
               <th className="text-center klassenlehrer-num-col">Nr.</th>
               <th className="klassenlehrer-name-col">Name</th>
               <th className="klassenlehrer-name-col">Vorname</th>
-              <th className="text-center klassenlehrer-paid-col">Bezahlt</th>
+              <th className="text-center klassenlehrer-paid-col">Anwesend</th>
             </tr>
           </thead>
           <tbody>
             {entries.map((row) => {
               const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
-              const paid = row.paid === true;
+              const present = row.present === true;
               return (
                 <tr key={row.id}>
                   <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
@@ -121,16 +105,18 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
                     {row.firstName || '—'}
                   </td>
                   <td
-                    className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
-                    title={paid ? 'Bezahlt' : 'Noch nicht bezahlt'}
+                    className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${present ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
+                    title={present ? 'Anwesend' : 'Nicht anwesend'}
                   >
                     <label className="gfs-gehalten-label">
                       <input
                         type="checkbox"
                         className="gfs-gehalten-checkbox"
-                        checked={paid}
-                        onChange={(ev) => updateMoneyListEntryPaid(list.id, row.id, ev.target.checked)}
-                        aria-label={`Bezahlt für ${name}`}
+                        checked={present}
+                        onChange={(ev) =>
+                          updateAttendanceListEntryPresent(list.id, row.id, ev.target.checked)
+                        }
+                        aria-label={`Anwesend für ${name}`}
                       />
                     </label>
                   </td>
@@ -152,17 +138,15 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
   );
 }
 
-function MoneyListFormModal({
+function AttendanceListFormModal({
   open,
   mode,
   formSubject,
   setFormSubject,
-  formAmount,
-  setFormAmount,
+  formSessionDate,
+  setFormSessionDate,
   formNotes,
   setFormNotes,
-  formDueDate,
-  setFormDueDate,
   formError,
   setFormError,
   busy,
@@ -172,8 +156,9 @@ function MoneyListFormModal({
 }) {
   if (!open) return null;
 
-  const title = mode === 'edit' ? 'Geldliste bearbeiten' : 'Geldliste erstellen';
-  const submitLabel = busy ? (mode === 'edit' ? 'Speichern…' : 'Erstellen…') : mode === 'edit' ? 'Speichern' : 'Erstellen';
+  const title = mode === 'edit' ? 'Anwesenheitsliste bearbeiten' : 'Anwesenheitsliste erstellen';
+  const submitLabel =
+    busy ? (mode === 'edit' ? 'Speichern…' : 'Erstellen…') : mode === 'edit' ? 'Speichern' : 'Erstellen';
 
   return createPortal(
     <div
@@ -187,10 +172,10 @@ function MoneyListFormModal({
         className="program-user-mgmt-modal-dialog glass-panel"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="money-list-modal-title"
+        aria-labelledby="attendance-list-modal-title"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h2 id="money-list-modal-title" className="program-user-mgmt-modal-title">
+        <h2 id="attendance-list-modal-title" className="program-user-mgmt-modal-title">
           {title}
         </h2>
         <form className="program-user-mgmt-form" onSubmit={onSubmit}>
@@ -204,38 +189,23 @@ function MoneyListFormModal({
                 setFormSubject(ev.target.value);
                 if (formError) setFormError('');
               }}
-              placeholder="z. B. Klassenfahrt"
+              placeholder="z. B. Elternabend"
               disabled={busy}
               autoComplete="off"
             />
           </label>
           <label className="program-user-mgmt-label">
-            Betrag pro Schüler (€)
-            <input
-              className="program-user-mgmt-input"
-              type="text"
-              inputMode="decimal"
-              value={formAmount}
-              onChange={(ev) => {
-                setFormAmount(ev.target.value);
-                if (formError) setFormError('');
-              }}
-              placeholder="z. B. 15,00"
-              disabled={busy}
-              autoComplete="off"
-            />
-          </label>
-          <label className="program-user-mgmt-label">
-            Fällig
+            Datum
             <input
               className="program-user-mgmt-input"
               type="date"
-              value={formDueDate}
+              value={formSessionDate}
               onChange={(ev) => {
-                setFormDueDate(ev.target.value);
+                setFormSessionDate(ev.target.value);
                 if (formError) setFormError('');
               }}
               disabled={busy}
+              required
             />
           </label>
           <label className="program-user-mgmt-label">
@@ -269,28 +239,23 @@ function MoneyListFormModal({
   );
 }
 
-export default function KlassenlehrerView() {
+export default function KlassenlehrerAttendanceSection() {
   const {
-    config,
-    moneyLists,
-    createMoneyList,
-    updateMoneyList,
-    deleteMoneyList,
-    updateMoneyListEntryPaid,
+    attendanceLists,
+    createAttendanceList,
+    updateAttendanceList,
+    deleteAttendanceList,
+    updateAttendanceListEntryPresent,
   } = useData();
-  const subject = config?.subject ?? '—';
-  const classLabel = config?.className || config?.class || '—';
-  const year = config?.year ?? '—';
 
-  const lists = moneyLists || [];
+  const lists = attendanceLists || [];
   const [activeListId, setActiveListId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [editingListId, setEditingListId] = useState(null);
   const [formSubject, setFormSubject] = useState('');
-  const [formAmount, setFormAmount] = useState('');
+  const [formSessionDate, setFormSessionDate] = useState('');
   const [formNotes, setFormNotes] = useState('');
-  const [formDueDate, setFormDueDate] = useState('');
   const [formError, setFormError] = useState('');
   const [modalBusy, setModalBusy] = useState(false);
   const subjectInputRef = useRef(null);
@@ -310,9 +275,8 @@ export default function KlassenlehrerView() {
 
   const resetForm = useCallback(() => {
     setFormSubject('');
-    setFormAmount('');
+    setFormSessionDate('');
     setFormNotes('');
-    setFormDueDate('');
     setFormError('');
     setEditingListId(null);
   }, []);
@@ -326,9 +290,8 @@ export default function KlassenlehrerView() {
 
   const openEditModal = useCallback((list) => {
     setFormSubject(list.subject ?? '');
-    setFormAmount(String(list.amountPerStudent ?? ''));
+    setFormSessionDate(toInputDateValue(list.sessionDate));
     setFormNotes(list.notes ?? '');
-    setFormDueDate(toInputDateValue(list.dueDate));
     setFormError('');
     setEditingListId(list.id);
     setModalMode('edit');
@@ -349,16 +312,15 @@ export default function KlassenlehrerView() {
       setFormError('Bitte einen Betreff eingeben.');
       return null;
     }
-    const amountPerStudent = parseFloat(String(formAmount).replace(',', '.'));
-    if (!Number.isFinite(amountPerStudent) || amountPerStudent < 0) {
-      setFormError('Bitte einen gültigen Betrag pro Schüler eingeben.');
+    const sessionDate = formSessionDate.trim();
+    if (!sessionDate) {
+      setFormError('Bitte ein Datum eingeben.');
       return null;
     }
     return {
       subject: betreff,
-      amountPerStudent,
+      sessionDate,
       notes: formNotes.trim(),
-      dueDate: formDueDate.trim() || null,
     };
   };
 
@@ -371,26 +333,26 @@ export default function KlassenlehrerView() {
     setFormError('');
     try {
       if (modalMode === 'edit' && editingListId != null) {
-        const updated = await updateMoneyList(editingListId, payload);
+        const updated = await updateAttendanceList(editingListId, payload);
         if (updated?.error) {
           setFormError(updated.error);
           return;
         }
         if (!updated?.id) {
-          setFormError('Geldliste konnte nicht gespeichert werden.');
+          setFormError('Anwesenheitsliste konnte nicht gespeichert werden.');
           return;
         }
         setModalOpen(false);
         return;
       }
 
-      const created = await createMoneyList(payload);
+      const created = await createAttendanceList(payload);
       if (created?.error) {
         setFormError(created.error);
         return;
       }
       if (!created?.id) {
-        setFormError('Geldliste konnte nicht erstellt werden.');
+        setFormError('Anwesenheitsliste konnte nicht erstellt werden.');
         return;
       }
       setActiveListId(created.id);
@@ -398,8 +360,8 @@ export default function KlassenlehrerView() {
     } catch {
       setFormError(
         modalMode === 'edit'
-          ? 'Geldliste konnte nicht gespeichert werden.'
-          : 'Geldliste konnte nicht erstellt werden.',
+          ? 'Anwesenheitsliste konnte nicht gespeichert werden.'
+          : 'Anwesenheitsliste konnte nicht erstellt werden.',
       );
     } finally {
       setModalBusy(false);
@@ -407,29 +369,65 @@ export default function KlassenlehrerView() {
   };
 
   const handleDelete = async (list) => {
-    const label = list.subject?.trim() || 'Geldliste';
-    const ok = window.confirm(`Geldliste „${label}“ wirklich löschen?`);
+    const label = list.subject?.trim() || 'Anwesenheitsliste';
+    const ok = window.confirm(`Anwesenheitsliste „${label}“ wirklich löschen?`);
     if (!ok) return;
 
-    const res = await deleteMoneyList(list.id);
+    const res = await deleteAttendanceList(list.id);
     if (res?.error) {
       window.alert(res.error);
     }
   };
 
   return (
-    <div className="view-generic-scroll program-view">
-      <MoneyListFormModal
+    <section className="klassenlehrer-geldlisten-section klassenlehrer-attendance-section">
+      <h3 className="program-view-panel-heading" style={{ margin: 0 }}>
+        Anwesenheitslisten
+      </h3>
+      <button type="button" className="tab secondary" onClick={openCreateModal}>
+        + Anwesenheitsliste erstellen
+      </button>
+
+      {lists.length > 0 ? (
+        <>
+          <div className="klassenlehrer-money-tabs" role="tablist" aria-label="Anwesenheitslisten">
+            {lists.map((list) => (
+              <AttendanceListTabButton
+                key={list.id}
+                list={list}
+                isActive={list.id === activeListId}
+                onSelect={setActiveListId}
+              />
+            ))}
+          </div>
+
+          {activeList ? (
+            <div
+              role="tabpanel"
+              id={`attendance-list-panel-${activeList.id}`}
+              aria-labelledby={`attendance-list-tab-${activeList.id}`}
+              className="klassenlehrer-money-tabpanel"
+            >
+              <AttendanceListPanel
+                list={activeList}
+                updateAttendanceListEntryPresent={updateAttendanceListEntryPresent}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+              />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      <AttendanceListFormModal
         open={modalOpen}
         mode={modalMode}
         formSubject={formSubject}
         setFormSubject={setFormSubject}
-        formAmount={formAmount}
-        setFormAmount={setFormAmount}
+        formSessionDate={formSessionDate}
+        setFormSessionDate={setFormSessionDate}
         formNotes={formNotes}
         setFormNotes={setFormNotes}
-        formDueDate={formDueDate}
-        setFormDueDate={setFormDueDate}
         formError={formError}
         setFormError={setFormError}
         busy={modalBusy}
@@ -437,59 +435,6 @@ export default function KlassenlehrerView() {
         onClose={closeModal}
         onSubmit={handleFormSubmit}
       />
-      <h2 className="program-view-title">Klassenlehrer</h2>
-      <p className="text-muted program-view-intro">
-        Zusätzliche Werkzeuge und Übersichten für die Klassenführung im aktuellen Fach.
-      </p>
-
-      <div className="glass-panel program-view-panel">
-        <h3 className="program-view-panel-heading">Aktueller Kurs</h3>
-        <p className="program-view-panel-text" style={{ margin: 0 }}>
-          {subject} · Klasse {classLabel} · Schuljahr {year}
-        </p>
-      </div>
-
-      <section className="klassenlehrer-geldlisten-section">
-        <h3 className="program-view-panel-heading" style={{ margin: 0 }}>
-          Geldlisten
-        </h3>
-        <button type="button" className="tab secondary" onClick={openCreateModal}>
-          + Geldliste erstellen
-        </button>
-
-        {lists.length > 0 ? (
-          <>
-            <div className="klassenlehrer-money-tabs" role="tablist" aria-label="Geldlisten">
-              {lists.map((list) => (
-                <MoneyListTabButton
-                  key={list.id}
-                  list={list}
-                  isActive={list.id === activeListId}
-                  onSelect={setActiveListId}
-                />
-              ))}
-            </div>
-
-            {activeList ? (
-              <div
-                role="tabpanel"
-                id={`money-list-panel-${activeList.id}`}
-                aria-labelledby={`money-list-tab-${activeList.id}`}
-                className="klassenlehrer-money-tabpanel"
-              >
-                <MoneyListPanel
-                  list={activeList}
-                  updateMoneyListEntryPaid={updateMoneyListEntryPaid}
-                  onEdit={openEditModal}
-                  onDelete={handleDelete}
-                />
-              </div>
-            ) : null}
-          </>
-        ) : null}
-      </section>
-
-      <KlassenlehrerAttendanceSection />
-    </div>
+    </section>
   );
 }

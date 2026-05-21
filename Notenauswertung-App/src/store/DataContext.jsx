@@ -77,6 +77,7 @@ export const DataProvider = ({ children }) => {
   const [tests, setTests] = useState({});
   const [gfsEntries, setGfsEntries] = useState([]);
   const [moneyLists, setMoneyLists] = useState([]);
+  const [attendanceLists, setAttendanceLists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses and migrate
@@ -217,13 +218,15 @@ export const DataProvider = ({ children }) => {
     setLoading(true);
     const fetchCourseData = async () => {
       try {
-        const [studentsRes, examsRes, oralsRes, testsRes, gfsRes, moneyListsRes] = await Promise.all([
+        const [studentsRes, examsRes, oralsRes, testsRes, gfsRes, moneyListsRes, attendanceListsRes] =
+          await Promise.all([
           fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/exams?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/orals?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/tests?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/gfs?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json()),
+          fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) => r.json()),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -231,6 +234,7 @@ export const DataProvider = ({ children }) => {
         setTests(testsRes);
         setGfsEntries(Array.isArray(gfsRes) ? gfsRes : []);
         setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
+        setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -253,6 +257,25 @@ export const DataProvider = ({ children }) => {
       console.error('Failed to refresh money lists', err);
     }
   }, [activeCourseId, fetchWithActing]);
+
+  const refreshAttendanceLists = useCallback(async () => {
+    if (!activeCourseId) {
+      setAttendanceLists([]);
+      return;
+    }
+    try {
+      const data = await fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) =>
+        r.json(),
+      );
+      setAttendanceLists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to refresh attendance lists', err);
+    }
+  }, [activeCourseId, fetchWithActing]);
+
+  const refreshKlassenlehrerLists = useCallback(async () => {
+    await Promise.all([refreshMoneyLists(), refreshAttendanceLists()]);
+  }, [refreshMoneyLists, refreshAttendanceLists]);
 
   const apiCall = useCallback(async (url, method, body) => {
     try {
@@ -393,7 +416,7 @@ export const DataProvider = ({ children }) => {
     const created = await apiCall('/api/students', 'POST', { ...student, frontendId: tempId, courseId: activeCourseId });
     if (created) {
       setStudents(prev => prev.map(s => s.frontendId == tempId ? created : s));
-      await refreshMoneyLists();
+      await refreshKlassenlehrerLists();
     }
   };
 
@@ -407,7 +430,7 @@ export const DataProvider = ({ children }) => {
       if (!activeCourseId) return;
       const studentsRes = await fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json());
       setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
-      await refreshMoneyLists();
+      await refreshKlassenlehrerLists();
     } catch (err) {
       console.error(err);
     }
@@ -417,11 +440,11 @@ export const DataProvider = ({ children }) => {
     if (!activeCourseId) return;
     await apiCall(`/api/students?courseId=${activeCourseId}`, 'DELETE');
     setStudents([]);
-    await refreshMoneyLists();
+    await refreshKlassenlehrerLists();
   };
   
   const updateStudentConfig = (id, field, value) => {
-    const syncMoneyListsAfterSave =
+    const syncKlassenlehrerListsAfterSave =
       field === 'firstName' || field === 'lastName' || field === 'studentNumber';
     setStudents((prev) => {
       const student = prev.find((s) => s.id === id);
@@ -429,7 +452,7 @@ export const DataProvider = ({ children }) => {
       const merged = { ...student, [field]: value };
       void apiCall(`/api/students/${id}`, 'PUT', { ...merged, courseId: merged.courseId ?? activeCourseId }).then(
         () => {
-          if (syncMoneyListsAfterSave) refreshMoneyLists();
+          if (syncKlassenlehrerListsAfterSave) refreshKlassenlehrerLists();
         },
       );
       return prev.map((s) => (s.id === id ? merged : s));
@@ -974,6 +997,54 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/money-list-entries/${entryId}`, 'PUT', { paid });
   };
 
+  const createAttendanceList = async ({ subject, sessionDate, notes }) => {
+    if (!activeCourseId) return null;
+    const created = await apiCall('/api/attendance-lists', 'POST', {
+      courseId: activeCourseId,
+      subject,
+      sessionDate,
+      notes: notes ?? '',
+    });
+    if (created?.id) {
+      setAttendanceLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateAttendanceList = async (id, { subject, sessionDate, notes }) => {
+    const updated = await apiCall(`/api/attendance-lists/${id}`, 'PUT', {
+      subject,
+      sessionDate,
+      notes: notes ?? '',
+    });
+    if (updated?.id) {
+      setAttendanceLists((prev) =>
+        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
+  const deleteAttendanceList = async (id) => {
+    const res = await apiCall(`/api/attendance-lists/${id}`, 'DELETE');
+    if (res?.error) return res;
+    setAttendanceLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
+  };
+
+  const updateAttendanceListEntryPresent = (listId, entryId, present) => {
+    setAttendanceLists((prev) =>
+      prev.map((list) => {
+        if (list.id !== listId) return list;
+        return {
+          ...list,
+          entries: (list.entries || []).map((e) => (e.id === entryId ? { ...e, present } : e)),
+        };
+      }),
+    );
+    apiCall(`/api/attendance-list-entries/${entryId}`, 'PUT', { present });
+  };
+
   const addSchoolRosterYear = async (label) => {
     const created = await apiCall('/api/school-roster-years', 'POST', { label });
     if (created?.error) return created;
@@ -1094,6 +1165,8 @@ export const DataProvider = ({ children }) => {
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
+      attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,
+      updateAttendanceListEntryPresent,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,
