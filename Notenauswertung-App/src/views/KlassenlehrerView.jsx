@@ -28,12 +28,17 @@ function toInputDateValue(iso) {
   return `${y}-${m}-${day}`;
 }
 
+function isMoneyListFullyPaid(list) {
+  const entries = list.entries || [];
+  return entries.length > 0 && entries.every((e) => e.paid === true);
+}
+
 function MoneyListTabButton({ list, isActive, onSelect }) {
   const entries = list.entries || [];
   const paidCount = entries.filter((e) => e.paid).length;
   const totalCount = entries.length;
   const tabLabel = list.subject?.trim() || 'Geldliste';
-  const dueLabel = formatDueDate(list.dueDate);
+  const allPaid = isMoneyListFullyPaid(list);
 
   return (
     <button
@@ -42,7 +47,7 @@ function MoneyListTabButton({ list, isActive, onSelect }) {
       id={`money-list-tab-${list.id}`}
       aria-selected={isActive}
       aria-controls={`money-list-panel-${list.id}`}
-      className={`tab klassenlehrer-money-tab-btn ${isActive ? 'active' : 'secondary'}`}
+      className={`tab klassenlehrer-money-tab-btn ${isActive ? 'active' : 'secondary'}${allPaid ? ' klassenlehrer-money-tab-btn--all-paid' : ''}`}
       onClick={() => onSelect(list.id)}
       title={tabLabel}
     >
@@ -50,9 +55,6 @@ function MoneyListTabButton({ list, isActive, onSelect }) {
       <span className="klassenlehrer-money-tab-line">
         {paidCount} / {totalCount} bezahlt
       </span>
-      {dueLabel ? (
-        <span className="klassenlehrer-money-tab-line">Fällig: {dueLabel}</span>
-      ) : null}
     </button>
   );
 }
@@ -64,6 +66,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
   const amountPerStudent = Number(list.amountPerStudent);
   const paidAmount = paidCount * amountPerStudent;
   const totalAmount = totalCount * amountPerStudent;
+  const dueLabel = formatDueDate(list.dueDate);
 
   return (
     <div className="glass-panel program-view-panel klassenlehrer-money-panel">
@@ -78,9 +81,16 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
           )}
         </div>
         <div className="klassenlehrer-money-header-stats">
-          <p className="program-view-panel-heading klassenlehrer-money-paid-count">
-            {paidCount} / {totalCount} bezahlt
-          </p>
+          <div className="klassenlehrer-money-paid-due-row">
+            <p className="program-view-panel-heading klassenlehrer-money-paid-count">
+              {paidCount} / {totalCount} bezahlt
+            </p>
+            {dueLabel ? (
+              <p className="program-view-panel-heading klassenlehrer-money-due-inline">
+                Fällig: {dueLabel}
+              </p>
+            ) : null}
+          </div>
           <p className="klassenlehrer-money-paid-sum">
             {formatEuro(paidAmount)} / {formatEuro(totalAmount)}
           </p>
