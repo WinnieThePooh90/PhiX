@@ -899,14 +899,14 @@ app.delete('/api/gfs/:id', async (req, res) => {
 /** Geldlisten-Zeilen an die aktuelle Kurs-Schülerliste anpassen (hinzufügen / entfernen). */
 async function syncCollectionListEntriesForCourse(courseId) {
   const [lists, students] = await Promise.all([
-    prisma.collectionList.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.collectionList.findMany({ where: { courseId, externalOnly: false }, select: { id: true } }),
     prisma.student.findMany({ where: { courseId }, select: { id: true } }),
   ]);
   const studentIds = new Set(students.map((s) => s.id));
 
   for (const list of lists) {
     const existing = await prisma.collectionListEntry.findMany({
-      where: { collectionListId: list.id },
+      where: { collectionListId: list.id, studentId: { not: null } },
       select: { id: true, studentId: true },
     });
     const existingStudentIds = new Set(existing.map((e) => e.studentId));
@@ -930,14 +930,14 @@ async function syncCollectionListEntriesForCourse(courseId) {
 
 async function syncAttendanceListEntriesForCourse(courseId) {
   const [lists, students] = await Promise.all([
-    prisma.attendanceList.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.attendanceList.findMany({ where: { courseId, externalOnly: false }, select: { id: true } }),
     prisma.student.findMany({ where: { courseId }, select: { id: true } }),
   ]);
   const studentIds = new Set(students.map((s) => s.id));
 
   for (const list of lists) {
     const existing = await prisma.attendanceListEntry.findMany({
-      where: { attendanceListId: list.id },
+      where: { attendanceListId: list.id, studentId: { not: null } },
       select: { id: true, studentId: true },
     });
     const existingStudentIds = new Set(existing.map((e) => e.studentId));
@@ -963,7 +963,7 @@ async function syncMoneyListEntriesForCourse(courseId) {
   if (!Number.isFinite(courseId)) return;
 
   const [lists, students] = await Promise.all([
-    prisma.moneyList.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.moneyList.findMany({ where: { courseId, externalOnly: false }, select: { id: true } }),
     prisma.student.findMany({ where: { courseId }, select: { id: true } }),
   ]);
   if (lists.length === 0) return;
@@ -972,7 +972,7 @@ async function syncMoneyListEntriesForCourse(courseId) {
 
   for (const list of lists) {
     const existing = await prisma.moneyListEntry.findMany({
-      where: { moneyListId: list.id },
+      where: { moneyListId: list.id, studentId: { not: null } },
       select: { id: true, studentId: true },
     });
     const existingStudentIds = new Set(existing.map((e) => e.studentId));
@@ -997,6 +997,47 @@ async function syncMoneyListEntriesForCourse(courseId) {
   }
 }
 
+function parseListExternalFlags(body) {
+  const externalOnly = Boolean(body.externalOnly);
+  const includeExternal = externalOnly || Boolean(body.includeExternal);
+  return { includeExternal, externalOnly };
+}
+
+function parseExternalPersonNames(body) {
+  const firstName = String(body.firstName ?? '').trim();
+  const lastName = String(body.lastName ?? '').trim();
+  if (!firstName || !lastName) return { error: 'Vor- und Nachname erforderlich' };
+  return { firstName, lastName };
+}
+
+function mapSerializedListEntry(e, statusField) {
+  const isExternal = e.studentId == null;
+  const row = {
+    id: e.id,
+    isExternal,
+    studentId: e.studentId ?? null,
+    studentNumber: isExternal ? null : (e.student?.studentNumber ?? null),
+    firstName: isExternal ? (e.externalFirstName ?? '') : (e.student?.firstName ?? ''),
+    lastName: isExternal ? (e.externalLastName ?? '') : (e.student?.lastName ?? ''),
+  };
+  row[statusField] = Boolean(e[statusField]);
+  return row;
+}
+
+function sortSerializedListEntries(entries) {
+  return entries.sort((a, b) => {
+    if (a.isExternal !== b.isExternal) return a.isExternal ? 1 : -1;
+    const an = a.studentNumber;
+    const bn = b.studentNumber;
+    const anOk = an !== undefined && an !== null;
+    const bnOk = bn !== undefined && bn !== null;
+    if (anOk && bnOk) return an - bn;
+    if (anOk && !bnOk) return -1;
+    if (!anOk && bnOk) return 1;
+    return a.id - b.id;
+  });
+}
+
 function parseMoneyListDueDate(raw) {
   if (raw === undefined) return { skip: true };
   if (raw === null || raw === '') return { value: null };
@@ -1006,42 +1047,28 @@ function parseMoneyListDueDate(raw) {
   return { value: d };
 }
 
-function parseAttendanceSessionDate(raw) {
-  if (raw === undefined || raw === null || raw === '') {
-    return { error: 'Datum erforderlich' };
-  }
+function parseOptionalSessionDate(raw) {
+  if (raw === undefined) return { skip: true };
+  if (raw === null || raw === '') return { value: null };
   const s = String(raw).trim();
+  if (!s) return { value: null };
   const d = new Date(s.includes('T') ? s : `${s}T12:00:00`);
   if (Number.isNaN(d.getTime())) return { error: 'Ungültiges Datum' };
   return { value: d };
 }
 
 function serializeMoneyList(list) {
-  const entries = (list.entries || [])
-    .map((e) => ({
-      id: e.id,
-      paid: Boolean(e.paid),
-      studentId: e.studentId,
-      studentNumber: e.student?.studentNumber ?? null,
-      firstName: e.student?.firstName ?? '',
-      lastName: e.student?.lastName ?? '',
-    }))
-    .sort((a, b) => {
-      const an = a.studentNumber;
-      const bn = b.studentNumber;
-      const anOk = an !== undefined && an !== null;
-      const bnOk = bn !== undefined && bn !== null;
-      if (anOk && bnOk) return an - bn;
-      if (anOk && !bnOk) return -1;
-      if (!anOk && bnOk) return 1;
-      return a.id - b.id;
-    });
+  const entries = sortSerializedListEntries(
+    (list.entries || []).map((e) => mapSerializedListEntry(e, 'paid')),
+  );
   return {
     id: list.id,
     subject: list.subject,
     amountPerStudent: list.amountPerStudent,
     notes: list.notes ?? '',
     dueDate: list.dueDate ?? null,
+    includeExternal: Boolean(list.includeExternal),
+    externalOnly: Boolean(list.externalOnly),
     courseId: list.courseId,
     createdAt: list.createdAt,
     entries,
@@ -1086,10 +1113,14 @@ app.post('/api/money-lists', async (req, res) => {
   const dueParsed = parseMoneyListDueDate(req.body.dueDate);
   if (dueParsed.error) return res.status(400).json({ error: dueParsed.error });
 
-  const courseStudents = await prisma.student.findMany({
-    where: { courseId },
-    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
-  });
+  const { includeExternal, externalOnly } = parseListExternalFlags(req.body);
+
+  const courseStudents = externalOnly
+    ? []
+    : await prisma.student.findMany({
+        where: { courseId },
+        orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+      });
 
   const list = await prisma.moneyList.create({
     data: {
@@ -1098,12 +1129,18 @@ app.post('/api/money-lists', async (req, res) => {
       amountPerStudent,
       notes,
       dueDate: dueParsed.skip ? null : dueParsed.value,
-      entries: {
-        create: courseStudents.map((s) => ({
-          studentId: s.id,
-          paid: false,
-        })),
-      },
+      includeExternal,
+      externalOnly,
+      ...(courseStudents.length > 0
+        ? {
+            entries: {
+              create: courseStudents.map((s) => ({
+                studentId: s.id,
+                paid: false,
+              })),
+            },
+          }
+        : {}),
     },
     include: {
       entries: { include: { student: true } },
@@ -1149,6 +1186,15 @@ app.put('/api/money-lists/:id', async (req, res) => {
     const dueParsed = parseMoneyListDueDate(req.body.dueDate);
     if (dueParsed.error) return res.status(400).json({ error: dueParsed.error });
     data.dueDate = dueParsed.value;
+  }
+
+  if (req.body.includeExternal !== undefined || req.body.externalOnly !== undefined) {
+    const flags = parseListExternalFlags({
+      includeExternal: req.body.includeExternal ?? existing.includeExternal,
+      externalOnly: req.body.externalOnly ?? existing.externalOnly,
+    });
+    data.includeExternal = flags.includeExternal;
+    data.externalOnly = flags.externalOnly;
   }
 
   const list = await prisma.moneyList.update({
@@ -1198,42 +1244,68 @@ app.put('/api/money-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({
-    id: updated.id,
-    paid: updated.paid,
-    studentId: updated.studentId,
-    studentNumber: updated.student?.studentNumber ?? null,
-    firstName: updated.student?.firstName ?? '',
-    lastName: updated.student?.lastName ?? '',
-    moneyListId: updated.moneyListId,
+  res.json({ ...mapSerializedListEntry(updated, 'paid'), moneyListId: updated.moneyListId });
+});
+
+app.post('/api/money-lists/:id/external-entries', async (req, res) => {
+  const listId = Number(req.params.id);
+  const list = await prisma.moneyList.findUnique({
+    where: { id: listId },
+    include: { course: true },
   });
+  if (!list) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, list.courseId);
+  if (!ok) return;
+  if (!list.includeExternal && !list.externalOnly) {
+    return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
+  }
+
+  const names = parseExternalPersonNames(req.body);
+  if (names.error) return res.status(400).json({ error: names.error });
+
+  const entry = await prisma.moneyListEntry.create({
+    data: {
+      moneyListId: listId,
+      externalFirstName: names.firstName,
+      externalLastName: names.lastName,
+      paid: false,
+    },
+    include: { student: true },
+  });
+
+  res.status(201).json({ ...mapSerializedListEntry(entry, 'paid'), moneyListId: entry.moneyListId });
+});
+
+app.delete('/api/money-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.moneyListEntry.findUnique({
+    where: { id },
+    include: { moneyList: { include: { course: true } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.moneyList?.course || !canAccessCourse(existing.moneyList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  if (existing.studentId != null) {
+    return res.status(400).json({ error: 'Kurs-Schüler können hier nicht entfernt werden' });
+  }
+  await prisma.moneyListEntry.delete({ where: { id } });
+  res.status(204).end();
 });
 
 function serializeAttendanceList(list) {
-  const entries = (list.entries || [])
-    .map((e) => ({
-      id: e.id,
-      present: Boolean(e.present),
-      studentId: e.studentId,
-      studentNumber: e.student?.studentNumber ?? null,
-      firstName: e.student?.firstName ?? '',
-      lastName: e.student?.lastName ?? '',
-    }))
-    .sort((a, b) => {
-      const an = a.studentNumber;
-      const bn = b.studentNumber;
-      const anOk = an !== undefined && an !== null;
-      const bnOk = bn !== undefined && bn !== null;
-      if (anOk && bnOk) return an - bn;
-      if (anOk && !bnOk) return -1;
-      if (!anOk && bnOk) return 1;
-      return a.id - b.id;
-    });
+  const entries = sortSerializedListEntries(
+    (list.entries || []).map((e) => mapSerializedListEntry(e, 'present')),
+  );
   return {
     id: list.id,
     subject: list.subject,
-    sessionDate: list.sessionDate,
+    sessionDate: list.sessionDate ?? null,
     notes: list.notes ?? '',
+    includeExternal: Boolean(list.includeExternal),
+    externalOnly: Boolean(list.externalOnly),
     courseId: list.courseId,
     createdAt: list.createdAt,
     entries,
@@ -1267,28 +1339,37 @@ app.post('/api/attendance-lists', async (req, res) => {
   const subject = String(req.body.subject ?? '').trim();
   if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
 
-  const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+  const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
   if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
 
   const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  const { includeExternal, externalOnly } = parseListExternalFlags(req.body);
 
-  const courseStudents = await prisma.student.findMany({
-    where: { courseId },
-    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
-  });
+  const courseStudents = externalOnly
+    ? []
+    : await prisma.student.findMany({
+        where: { courseId },
+        orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+      });
 
   const list = await prisma.attendanceList.create({
     data: {
       courseId,
       subject,
-      sessionDate: dateParsed.value,
+      sessionDate: dateParsed.skip ? null : dateParsed.value,
       notes,
-      entries: {
-        create: courseStudents.map((s) => ({
-          studentId: s.id,
-          present: false,
-        })),
-      },
+      includeExternal,
+      externalOnly,
+      ...(courseStudents.length > 0
+        ? {
+            entries: {
+              create: courseStudents.map((s) => ({
+                studentId: s.id,
+                present: false,
+              })),
+            },
+          }
+        : {}),
     },
     include: {
       entries: { include: { student: true } },
@@ -1317,13 +1398,22 @@ app.put('/api/attendance-lists/:id', async (req, res) => {
   }
 
   if (req.body.sessionDate !== undefined) {
-    const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+    const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
     if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
     data.sessionDate = dateParsed.value;
   }
 
   if (req.body.notes !== undefined) {
     data.notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  }
+
+  if (req.body.includeExternal !== undefined || req.body.externalOnly !== undefined) {
+    const flags = parseListExternalFlags({
+      includeExternal: req.body.includeExternal ?? existing.includeExternal,
+      externalOnly: req.body.externalOnly ?? existing.externalOnly,
+    });
+    data.includeExternal = flags.includeExternal;
+    data.externalOnly = flags.externalOnly;
   }
 
   const list = await prisma.attendanceList.update({
@@ -1373,42 +1463,68 @@ app.put('/api/attendance-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({
-    id: updated.id,
-    present: updated.present,
-    studentId: updated.studentId,
-    studentNumber: updated.student?.studentNumber ?? null,
-    firstName: updated.student?.firstName ?? '',
-    lastName: updated.student?.lastName ?? '',
-    attendanceListId: updated.attendanceListId,
+  res.json({ ...mapSerializedListEntry(updated, 'present'), attendanceListId: updated.attendanceListId });
+});
+
+app.post('/api/attendance-lists/:id/external-entries', async (req, res) => {
+  const listId = Number(req.params.id);
+  const list = await prisma.attendanceList.findUnique({
+    where: { id: listId },
+    include: { course: true },
   });
+  if (!list) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, list.courseId);
+  if (!ok) return;
+  if (!list.includeExternal && !list.externalOnly) {
+    return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
+  }
+
+  const names = parseExternalPersonNames(req.body);
+  if (names.error) return res.status(400).json({ error: names.error });
+
+  const entry = await prisma.attendanceListEntry.create({
+    data: {
+      attendanceListId: listId,
+      externalFirstName: names.firstName,
+      externalLastName: names.lastName,
+      present: false,
+    },
+    include: { student: true },
+  });
+
+  res.status(201).json({ ...mapSerializedListEntry(entry, 'present'), attendanceListId: entry.attendanceListId });
+});
+
+app.delete('/api/attendance-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.attendanceListEntry.findUnique({
+    where: { id },
+    include: { attendanceList: { include: { course: true } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.attendanceList?.course || !canAccessCourse(existing.attendanceList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  if (existing.studentId != null) {
+    return res.status(400).json({ error: 'Kurs-Schüler können hier nicht entfernt werden' });
+  }
+  await prisma.attendanceListEntry.delete({ where: { id } });
+  res.status(204).end();
 });
 
 function serializeCollectionList(list) {
-  const entries = (list.entries || [])
-    .map((e) => ({
-      id: e.id,
-      collected: Boolean(e.collected),
-      studentId: e.studentId,
-      studentNumber: e.student?.studentNumber ?? null,
-      firstName: e.student?.firstName ?? '',
-      lastName: e.student?.lastName ?? '',
-    }))
-    .sort((a, b) => {
-      const an = a.studentNumber;
-      const bn = b.studentNumber;
-      const anOk = an !== undefined && an !== null;
-      const bnOk = bn !== undefined && bn !== null;
-      if (anOk && bnOk) return an - bn;
-      if (anOk && !bnOk) return -1;
-      if (!anOk && bnOk) return 1;
-      return a.id - b.id;
-    });
+  const entries = sortSerializedListEntries(
+    (list.entries || []).map((e) => mapSerializedListEntry(e, 'collected')),
+  );
   return {
     id: list.id,
     subject: list.subject,
-    sessionDate: list.sessionDate,
+    sessionDate: list.sessionDate ?? null,
     notes: list.notes ?? '',
+    includeExternal: Boolean(list.includeExternal),
+    externalOnly: Boolean(list.externalOnly),
     courseId: list.courseId,
     createdAt: list.createdAt,
     entries,
@@ -1442,28 +1558,37 @@ app.post('/api/collection-lists', async (req, res) => {
   const subject = String(req.body.subject ?? '').trim();
   if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
 
-  const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+  const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
   if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
 
   const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  const { includeExternal, externalOnly } = parseListExternalFlags(req.body);
 
-  const courseStudents = await prisma.student.findMany({
-    where: { courseId },
-    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
-  });
+  const courseStudents = externalOnly
+    ? []
+    : await prisma.student.findMany({
+        where: { courseId },
+        orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+      });
 
   const list = await prisma.collectionList.create({
     data: {
       courseId,
       subject,
-      sessionDate: dateParsed.value,
+      sessionDate: dateParsed.skip ? null : dateParsed.value,
       notes,
-      entries: {
-        create: courseStudents.map((s) => ({
-          studentId: s.id,
-          collected: false,
-        })),
-      },
+      includeExternal,
+      externalOnly,
+      ...(courseStudents.length > 0
+        ? {
+            entries: {
+              create: courseStudents.map((s) => ({
+                studentId: s.id,
+                collected: false,
+              })),
+            },
+          }
+        : {}),
     },
     include: {
       entries: { include: { student: true } },
@@ -1492,13 +1617,22 @@ app.put('/api/collection-lists/:id', async (req, res) => {
   }
 
   if (req.body.sessionDate !== undefined) {
-    const dateParsed = parseAttendanceSessionDate(req.body.sessionDate);
+    const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
     if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
     data.sessionDate = dateParsed.value;
   }
 
   if (req.body.notes !== undefined) {
     data.notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  }
+
+  if (req.body.includeExternal !== undefined || req.body.externalOnly !== undefined) {
+    const flags = parseListExternalFlags({
+      includeExternal: req.body.includeExternal ?? existing.includeExternal,
+      externalOnly: req.body.externalOnly ?? existing.externalOnly,
+    });
+    data.includeExternal = flags.includeExternal;
+    data.externalOnly = flags.externalOnly;
   }
 
   const list = await prisma.collectionList.update({
@@ -1548,15 +1682,55 @@ app.put('/api/collection-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({
-    id: updated.id,
-    collected: updated.collected,
-    studentId: updated.studentId,
-    studentNumber: updated.student?.studentNumber ?? null,
-    firstName: updated.student?.firstName ?? '',
-    lastName: updated.student?.lastName ?? '',
-    collectionListId: updated.collectionListId,
+  res.json({ ...mapSerializedListEntry(updated, 'collected'), collectionListId: updated.collectionListId });
+});
+
+app.post('/api/collection-lists/:id/external-entries', async (req, res) => {
+  const listId = Number(req.params.id);
+  const list = await prisma.collectionList.findUnique({
+    where: { id: listId },
+    include: { course: true },
   });
+  if (!list) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, list.courseId);
+  if (!ok) return;
+  if (!list.includeExternal && !list.externalOnly) {
+    return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
+  }
+
+  const names = parseExternalPersonNames(req.body);
+  if (names.error) return res.status(400).json({ error: names.error });
+
+  const entry = await prisma.collectionListEntry.create({
+    data: {
+      collectionListId: listId,
+      externalFirstName: names.firstName,
+      externalLastName: names.lastName,
+      collected: false,
+    },
+    include: { student: true },
+  });
+
+  res.status(201).json({ ...mapSerializedListEntry(entry, 'collected'), collectionListId: entry.collectionListId });
+});
+
+app.delete('/api/collection-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.collectionListEntry.findUnique({
+    where: { id },
+    include: { collectionList: { include: { course: true } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.collectionList?.course || !canAccessCourse(existing.collectionList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  if (existing.studentId != null) {
+    return res.status(400).json({ error: 'Kurs-Schüler können hier nicht entfernt werden' });
+  }
+  await prisma.collectionListEntry.delete({ where: { id } });
+  res.status(204).end();
 });
 
 app.post('/api/shutdown', async (req, res) => {

@@ -147,6 +147,53 @@ p {
   gap: 0.5rem;
 }
 
+.klassenlehrer-external-form-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.klassenlehrer-external-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.klassenlehrer-external-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.klassenlehrer-external-add-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  width: 100%;
+}
+
+.klassenlehrer-external-add-input {
+  width: 8rem;
+  max-width: 100%;
+}
+
+.klassenlehrer-external-add-error {
+  width: 100%;
+  margin: 0;
+}
+
+.klassenlehrer-external-row-remove {
+  margin-left: 0.25rem;
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .klassenlehrer-money-tabs {
   display: flex;
   flex-wrap: wrap;

@@ -973,7 +973,7 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/gfs/${entryId}`, 'DELETE');
   };
 
-  const createMoneyList = async ({ subject, amountPerStudent, notes, dueDate }) => {
+  const createMoneyList = async ({ subject, amountPerStudent, notes, dueDate, includeExternal, externalOnly }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/money-lists', 'POST', {
       courseId: activeCourseId,
@@ -981,6 +981,8 @@ export const DataProvider = ({ children }) => {
       amountPerStudent,
       notes: notes ?? '',
       dueDate: dueDate ?? null,
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (created?.id) {
       setMoneyLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
@@ -988,12 +990,14 @@ export const DataProvider = ({ children }) => {
     return created;
   };
 
-  const updateMoneyList = async (id, { subject, amountPerStudent, notes, dueDate }) => {
+  const updateMoneyList = async (id, { subject, amountPerStudent, notes, dueDate, includeExternal, externalOnly }) => {
     const updated = await apiCall(`/api/money-lists/${id}`, 'PUT', {
       subject,
       amountPerStudent,
       notes: notes ?? '',
       dueDate: dueDate ?? null,
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (updated?.id) {
       setMoneyLists((prev) =>
@@ -1010,6 +1014,33 @@ export const DataProvider = ({ children }) => {
     return { ok: true };
   };
 
+  const addMoneyListExternalEntry = async (listId, { firstName, lastName }) => {
+    const created = await apiCall(`/api/money-lists/${listId}/external-entries`, 'POST', {
+      firstName,
+      lastName,
+    });
+    if (created?.id) {
+      setMoneyLists((prev) =>
+        prev.map((list) =>
+          list.id === listId ? { ...list, entries: [...(list.entries || []), created] } : list,
+        ),
+      );
+    }
+    return created;
+  };
+
+  const removeMoneyListEntry = async (entryId) => {
+    const res = await apiCall(`/api/money-list-entries/${entryId}`, 'DELETE');
+    if (res?.error) return res;
+    setMoneyLists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        entries: (list.entries || []).filter((e) => e.id !== entryId),
+      })),
+    );
+    return { ok: true };
+  };
+
   const updateMoneyListEntryPaid = (listId, entryId, paid) => {
     setMoneyLists((prev) =>
       prev.map((list) => {
@@ -1023,13 +1054,15 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/money-list-entries/${entryId}`, 'PUT', { paid });
   };
 
-  const createAttendanceList = async ({ subject, sessionDate, notes }) => {
+  const createAttendanceList = async ({ subject, sessionDate, notes, includeExternal, externalOnly }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/attendance-lists', 'POST', {
       courseId: activeCourseId,
       subject,
-      sessionDate,
+      sessionDate: sessionDate ?? null,
       notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (created?.id) {
       setAttendanceLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
@@ -1037,11 +1070,13 @@ export const DataProvider = ({ children }) => {
     return created;
   };
 
-  const updateAttendanceList = async (id, { subject, sessionDate, notes }) => {
+  const updateAttendanceList = async (id, { subject, sessionDate, notes, includeExternal, externalOnly }) => {
     const updated = await apiCall(`/api/attendance-lists/${id}`, 'PUT', {
       subject,
-      sessionDate,
+      sessionDate: sessionDate ?? null,
       notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (updated?.id) {
       setAttendanceLists((prev) =>
@@ -1058,6 +1093,33 @@ export const DataProvider = ({ children }) => {
     return { ok: true };
   };
 
+  const addAttendanceListExternalEntry = async (listId, { firstName, lastName }) => {
+    const created = await apiCall(`/api/attendance-lists/${listId}/external-entries`, 'POST', {
+      firstName,
+      lastName,
+    });
+    if (created?.id) {
+      setAttendanceLists((prev) =>
+        prev.map((list) =>
+          list.id === listId ? { ...list, entries: [...(list.entries || []), created] } : list,
+        ),
+      );
+    }
+    return created;
+  };
+
+  const removeAttendanceListEntry = async (entryId) => {
+    const res = await apiCall(`/api/attendance-list-entries/${entryId}`, 'DELETE');
+    if (res?.error) return res;
+    setAttendanceLists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        entries: (list.entries || []).filter((e) => e.id !== entryId),
+      })),
+    );
+    return { ok: true };
+  };
+
   const updateAttendanceListEntryPresent = (listId, entryId, present) => {
     setAttendanceLists((prev) =>
       prev.map((list) => {
@@ -1071,13 +1133,15 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/attendance-list-entries/${entryId}`, 'PUT', { present });
   };
 
-  const createCollectionList = async ({ subject, sessionDate, notes }) => {
+  const createCollectionList = async ({ subject, sessionDate, notes, includeExternal, externalOnly }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/collection-lists', 'POST', {
       courseId: activeCourseId,
       subject,
-      sessionDate,
+      sessionDate: sessionDate ?? null,
       notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (created?.id) {
       setCollectionLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
@@ -1085,11 +1149,13 @@ export const DataProvider = ({ children }) => {
     return created;
   };
 
-  const updateCollectionList = async (id, { subject, sessionDate, notes }) => {
+  const updateCollectionList = async (id, { subject, sessionDate, notes, includeExternal, externalOnly }) => {
     const updated = await apiCall(`/api/collection-lists/${id}`, 'PUT', {
       subject,
-      sessionDate,
+      sessionDate: sessionDate ?? null,
       notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
     });
     if (updated?.id) {
       setCollectionLists((prev) =>
@@ -1103,6 +1169,33 @@ export const DataProvider = ({ children }) => {
     const res = await apiCall(`/api/collection-lists/${id}`, 'DELETE');
     if (res?.error) return res;
     setCollectionLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
+  };
+
+  const addCollectionListExternalEntry = async (listId, { firstName, lastName }) => {
+    const created = await apiCall(`/api/collection-lists/${listId}/external-entries`, 'POST', {
+      firstName,
+      lastName,
+    });
+    if (created?.id) {
+      setCollectionLists((prev) =>
+        prev.map((list) =>
+          list.id === listId ? { ...list, entries: [...(list.entries || []), created] } : list,
+        ),
+      );
+    }
+    return created;
+  };
+
+  const removeCollectionListEntry = async (entryId) => {
+    const res = await apiCall(`/api/collection-list-entries/${entryId}`, 'DELETE');
+    if (res?.error) return res;
+    setCollectionLists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        entries: (list.entries || []).filter((e) => e.id !== entryId),
+      })),
+    );
     return { ok: true };
   };
 
@@ -1239,10 +1332,11 @@ export const DataProvider = ({ children }) => {
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
+      addMoneyListExternalEntry, removeMoneyListEntry,
       attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,
-      updateAttendanceListEntryPresent,
+      updateAttendanceListEntryPresent, addAttendanceListExternalEntry, removeAttendanceListEntry,
       collectionLists, createCollectionList, updateCollectionList, deleteCollectionList,
-      updateCollectionListEntryCollected,
+      updateCollectionListEntryCollected, addCollectionListExternalEntry, removeCollectionListEntry,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,

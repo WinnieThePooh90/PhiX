@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  canAddExternalPersons,
+  ExternalPersonAddBlock,
+  ListFormExternalCheckboxes,
+} from '../components/KlassenlehrerListShared';
 import { useData } from '../store/DataContext';
 
 function formatEuro(amount) {
@@ -109,7 +114,7 @@ function KlassenlehrerListTabButton({ tab, isActive, onSelect }) {
   );
 }
 
-function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
+function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
   const entries = list.entries || [];
   const paidCount = entries.filter((e) => e.paid).length;
   const totalCount = entries.length;
@@ -160,9 +165,26 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
             {entries.map((row) => {
               const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
               const paid = row.paid === true;
+              const isExternal = row.isExternal === true;
               return (
                 <tr key={row.id}>
-                  <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
+                  <td className="text-center klassenlehrer-num-col">
+                    {isExternal ? (
+                      <>
+                        ext.
+                        <button
+                          type="button"
+                          className="tab secondary klassenlehrer-external-row-remove"
+                          title="Externe Person entfernen"
+                          onClick={() => onRemoveExternalEntry(row.id)}
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      row.studentNumber ?? '—'
+                    )}
+                  </td>
                   <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
                     {row.lastName || '—'}
                   </td>
@@ -189,6 +211,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
           </tbody>
         </table>
       </div>
+      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
       <div className="klassenlehrer-money-panel-actions">
         <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
           Bearbeiten
@@ -201,7 +224,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onEdit, onDelete }) {
   );
 }
 
-function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, onDelete }) {
+function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
   const entries = list.entries || [];
   const presentCount = entries.filter((e) => e.present).length;
   const totalCount = entries.length;
@@ -242,9 +265,26 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, o
             {entries.map((row) => {
               const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
               const present = row.present === true;
+              const isExternal = row.isExternal === true;
               return (
                 <tr key={row.id}>
-                  <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
+                  <td className="text-center klassenlehrer-num-col">
+                    {isExternal ? (
+                      <>
+                        ext.
+                        <button
+                          type="button"
+                          className="tab secondary klassenlehrer-external-row-remove"
+                          title="Externe Person entfernen"
+                          onClick={() => onRemoveExternalEntry(row.id)}
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      row.studentNumber ?? '—'
+                    )}
+                  </td>
                   <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
                     {row.lastName || '—'}
                   </td>
@@ -273,6 +313,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, o
           </tbody>
         </table>
       </div>
+      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
       <div className="klassenlehrer-money-panel-actions">
         <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
           Bearbeiten
@@ -285,7 +326,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onEdit, o
   );
 }
 
-function CollectionListPanel({ list, updateCollectionListEntryCollected, onEdit, onDelete }) {
+function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
   const entries = list.entries || [];
   const collectedCount = entries.filter((e) => e.collected).length;
   const totalCount = entries.length;
@@ -326,9 +367,26 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onEdit,
             {entries.map((row) => {
               const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
               const collected = row.collected === true;
+              const isExternal = row.isExternal === true;
               return (
                 <tr key={row.id}>
-                  <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
+                  <td className="text-center klassenlehrer-num-col">
+                    {isExternal ? (
+                      <>
+                        ext.
+                        <button
+                          type="button"
+                          className="tab secondary klassenlehrer-external-row-remove"
+                          title="Externe Person entfernen"
+                          onClick={() => onRemoveExternalEntry(row.id)}
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      row.studentNumber ?? '—'
+                    )}
+                  </td>
                   <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
                     {row.lastName || '—'}
                   </td>
@@ -357,6 +415,7 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onEdit,
           </tbody>
         </table>
       </div>
+      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
       <div className="klassenlehrer-money-panel-actions">
         <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
           Bearbeiten
@@ -380,6 +439,10 @@ function MoneyListFormModal({
   setFormNotes,
   formDueDate,
   setFormDueDate,
+  formIncludeExternal,
+  setFormIncludeExternal,
+  formExternalOnly,
+  setFormExternalOnly,
   formError,
   setFormError,
   busy,
@@ -443,7 +506,7 @@ function MoneyListFormModal({
             />
           </label>
           <label className="program-user-mgmt-label">
-            Fällig
+            Fällig <span className="text-muted">(optional)</span>
             <input
               className="program-user-mgmt-input"
               type="date"
@@ -455,35 +518,42 @@ function MoneyListFormModal({
               disabled={busy}
             />
           </label>
-          <label className="program-user-mgmt-label">
-            Notizen <span className="text-muted">(optional)</span>
-            <textarea
-              className="program-user-mgmt-input"
-              rows={3}
-              value={formNotes}
-              onChange={(ev) => setFormNotes(ev.target.value)}
-              placeholder="Zusätzliche Hinweise …"
+            <label className="program-user-mgmt-label">
+              Notizen <span className="text-muted">(optional)</span>
+              <textarea
+                className="program-user-mgmt-input"
+                rows={3}
+                value={formNotes}
+                onChange={(ev) => setFormNotes(ev.target.value)}
+                placeholder="Zusätzliche Hinweise …"
+                disabled={busy}
+              />
+            </label>
+            <ListFormExternalCheckboxes
+              includeExternal={formIncludeExternal}
+              setIncludeExternal={setFormIncludeExternal}
+              externalOnly={formExternalOnly}
+              setExternalOnly={setFormExternalOnly}
               disabled={busy}
             />
-          </label>
-          {formError ? (
-            <p className="program-user-mgmt-error" role="alert">
-              {formError}
-            </p>
-          ) : null}
-          <div className="program-user-mgmt-modal-actions">
-            <button type="submit" className="program-user-mgmt-submit" disabled={busy}>
-              {submitLabel}
-            </button>
-            <button type="button" className="secondary" onClick={onClose} disabled={busy}>
-              Abbrechen
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
-  );
+            {formError ? (
+              <p className="program-user-mgmt-error" role="alert">
+                {formError}
+              </p>
+            ) : null}
+            <div className="program-user-mgmt-modal-actions">
+              <button type="submit" className="program-user-mgmt-submit" disabled={busy}>
+                {submitLabel}
+              </button>
+              <button type="button" className="secondary" onClick={onClose} disabled={busy}>
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>,
+      document.body,
+    );
 }
 
 function AttendanceListFormModal({
@@ -495,6 +565,10 @@ function AttendanceListFormModal({
   setFormSessionDate,
   formNotes,
   setFormNotes,
+  formIncludeExternal,
+  setFormIncludeExternal,
+  formExternalOnly,
+  setFormExternalOnly,
   formError,
   setFormError,
   busy,
@@ -543,7 +617,7 @@ function AttendanceListFormModal({
             />
           </label>
           <label className="program-user-mgmt-label">
-            Datum
+            Datum <span className="text-muted">(optional)</span>
             <input
               className="program-user-mgmt-input"
               type="date"
@@ -553,7 +627,6 @@ function AttendanceListFormModal({
                 if (formError) setFormError('');
               }}
               disabled={busy}
-              required
             />
           </label>
           <label className="program-user-mgmt-label">
@@ -567,6 +640,13 @@ function AttendanceListFormModal({
               disabled={busy}
             />
           </label>
+          <ListFormExternalCheckboxes
+            includeExternal={formIncludeExternal}
+            setIncludeExternal={setFormIncludeExternal}
+            externalOnly={formExternalOnly}
+            setExternalOnly={setFormExternalOnly}
+            disabled={busy}
+          />
           {formError ? (
             <p className="program-user-mgmt-error" role="alert">
               {formError}
@@ -596,6 +676,10 @@ function CollectionListFormModal({
   setFormSessionDate,
   formNotes,
   setFormNotes,
+  formIncludeExternal,
+  setFormIncludeExternal,
+  formExternalOnly,
+  setFormExternalOnly,
   formError,
   setFormError,
   busy,
@@ -644,7 +728,7 @@ function CollectionListFormModal({
             />
           </label>
           <label className="program-user-mgmt-label">
-            Datum
+            Datum <span className="text-muted">(optional)</span>
             <input
               className="program-user-mgmt-input"
               type="date"
@@ -654,7 +738,6 @@ function CollectionListFormModal({
                 if (formError) setFormError('');
               }}
               disabled={busy}
-              required
             />
           </label>
           <label className="program-user-mgmt-label">
@@ -668,6 +751,13 @@ function CollectionListFormModal({
               disabled={busy}
             />
           </label>
+          <ListFormExternalCheckboxes
+            includeExternal={formIncludeExternal}
+            setIncludeExternal={setFormIncludeExternal}
+            externalOnly={formExternalOnly}
+            setExternalOnly={setFormExternalOnly}
+            disabled={busy}
+          />
           {formError ? (
             <p className="program-user-mgmt-error" role="alert">
               {formError}
@@ -698,14 +788,20 @@ export default function KlassenlehrerView() {
     updateMoneyList,
     deleteMoneyList,
     updateMoneyListEntryPaid,
+    addMoneyListExternalEntry,
+    removeMoneyListEntry,
     createAttendanceList,
     updateAttendanceList,
     deleteAttendanceList,
     updateAttendanceListEntryPresent,
+    addAttendanceListExternalEntry,
+    removeAttendanceListEntry,
     createCollectionList,
     updateCollectionList,
     deleteCollectionList,
     updateCollectionListEntryCollected,
+    addCollectionListExternalEntry,
+    removeCollectionListEntry,
   } = useData();
   const subject = config?.subject ?? '—';
   const classLabel = config?.className || config?.class || '—';
@@ -725,6 +821,8 @@ export default function KlassenlehrerView() {
   const [moneyFormAmount, setMoneyFormAmount] = useState('');
   const [moneyFormNotes, setMoneyFormNotes] = useState('');
   const [moneyFormDueDate, setMoneyFormDueDate] = useState('');
+  const [moneyFormIncludeExternal, setMoneyFormIncludeExternal] = useState(false);
+  const [moneyFormExternalOnly, setMoneyFormExternalOnly] = useState(false);
   const [moneyFormError, setMoneyFormError] = useState('');
   const [moneyModalBusy, setMoneyModalBusy] = useState(false);
   const moneySubjectInputRef = useRef(null);
@@ -735,6 +833,8 @@ export default function KlassenlehrerView() {
   const [attendanceFormSubject, setAttendanceFormSubject] = useState('');
   const [attendanceFormSessionDate, setAttendanceFormSessionDate] = useState('');
   const [attendanceFormNotes, setAttendanceFormNotes] = useState('');
+  const [attendanceFormIncludeExternal, setAttendanceFormIncludeExternal] = useState(false);
+  const [attendanceFormExternalOnly, setAttendanceFormExternalOnly] = useState(false);
   const [attendanceFormError, setAttendanceFormError] = useState('');
   const [attendanceModalBusy, setAttendanceModalBusy] = useState(false);
   const attendanceSubjectInputRef = useRef(null);
@@ -745,6 +845,8 @@ export default function KlassenlehrerView() {
   const [collectionFormSubject, setCollectionFormSubject] = useState('');
   const [collectionFormSessionDate, setCollectionFormSessionDate] = useState('');
   const [collectionFormNotes, setCollectionFormNotes] = useState('');
+  const [collectionFormIncludeExternal, setCollectionFormIncludeExternal] = useState(false);
+  const [collectionFormExternalOnly, setCollectionFormExternalOnly] = useState(false);
   const [collectionFormError, setCollectionFormError] = useState('');
   const [collectionModalBusy, setCollectionModalBusy] = useState(false);
   const collectionSubjectInputRef = useRef(null);
@@ -767,6 +869,8 @@ export default function KlassenlehrerView() {
     setMoneyFormAmount('');
     setMoneyFormNotes('');
     setMoneyFormDueDate('');
+    setMoneyFormIncludeExternal(false);
+    setMoneyFormExternalOnly(false);
     setMoneyFormError('');
     setMoneyEditingId(null);
   }, []);
@@ -775,6 +879,8 @@ export default function KlassenlehrerView() {
     setAttendanceFormSubject('');
     setAttendanceFormSessionDate('');
     setAttendanceFormNotes('');
+    setAttendanceFormIncludeExternal(false);
+    setAttendanceFormExternalOnly(false);
     setAttendanceFormError('');
     setAttendanceEditingId(null);
   }, []);
@@ -797,6 +903,8 @@ export default function KlassenlehrerView() {
     setCollectionFormSubject('');
     setCollectionFormSessionDate('');
     setCollectionFormNotes('');
+    setCollectionFormIncludeExternal(false);
+    setCollectionFormExternalOnly(false);
     setCollectionFormError('');
     setCollectionEditingId(null);
   }, []);
@@ -814,6 +922,8 @@ export default function KlassenlehrerView() {
       setMoneyFormAmount(String(list.amountPerStudent ?? ''));
       setMoneyFormNotes(list.notes ?? '');
       setMoneyFormDueDate(toInputDateValue(list.dueDate));
+      setMoneyFormIncludeExternal(Boolean(list.includeExternal));
+      setMoneyFormExternalOnly(Boolean(list.externalOnly));
       setMoneyFormError('');
       setMoneyEditingId(list.id);
       setMoneyModalMode('edit');
@@ -827,6 +937,8 @@ export default function KlassenlehrerView() {
     setAttendanceFormSubject(list.subject ?? '');
     setAttendanceFormSessionDate(toInputDateValue(list.sessionDate));
     setAttendanceFormNotes(list.notes ?? '');
+    setAttendanceFormIncludeExternal(Boolean(list.includeExternal));
+    setAttendanceFormExternalOnly(Boolean(list.externalOnly));
     setAttendanceFormError('');
     setAttendanceEditingId(list.id);
     setAttendanceModalMode('edit');
@@ -838,6 +950,8 @@ export default function KlassenlehrerView() {
     setCollectionFormSubject(list.subject ?? '');
     setCollectionFormSessionDate(toInputDateValue(list.sessionDate));
     setCollectionFormNotes(list.notes ?? '');
+    setCollectionFormIncludeExternal(Boolean(list.includeExternal));
+    setCollectionFormExternalOnly(Boolean(list.externalOnly));
     setCollectionFormError('');
     setCollectionEditingId(list.id);
     setCollectionModalMode('edit');
@@ -882,6 +996,8 @@ export default function KlassenlehrerView() {
       amountPerStudent,
       notes: moneyFormNotes.trim(),
       dueDate: moneyFormDueDate.trim() || null,
+      includeExternal: moneyFormIncludeExternal,
+      externalOnly: moneyFormExternalOnly,
     };
   };
 
@@ -936,15 +1052,12 @@ export default function KlassenlehrerView() {
       setAttendanceFormError('Bitte einen Betreff eingeben.');
       return null;
     }
-    const sessionDate = attendanceFormSessionDate.trim();
-    if (!sessionDate) {
-      setAttendanceFormError('Bitte ein Datum eingeben.');
-      return null;
-    }
     return {
       subject: betreff,
-      sessionDate,
+      sessionDate: attendanceFormSessionDate.trim() || null,
       notes: attendanceFormNotes.trim(),
+      includeExternal: attendanceFormIncludeExternal,
+      externalOnly: attendanceFormExternalOnly,
     };
   };
 
@@ -999,15 +1112,12 @@ export default function KlassenlehrerView() {
       setCollectionFormError('Bitte einen Betreff eingeben.');
       return null;
     }
-    const sessionDate = collectionFormSessionDate.trim();
-    if (!sessionDate) {
-      setCollectionFormError('Bitte ein Datum eingeben.');
-      return null;
-    }
     return {
       subject: betreff,
-      sessionDate,
+      sessionDate: collectionFormSessionDate.trim() || null,
       notes: collectionFormNotes.trim(),
+      includeExternal: collectionFormIncludeExternal,
+      externalOnly: collectionFormExternalOnly,
     };
   };
 
@@ -1093,6 +1203,10 @@ export default function KlassenlehrerView() {
         setFormNotes={setMoneyFormNotes}
         formDueDate={moneyFormDueDate}
         setFormDueDate={setMoneyFormDueDate}
+        formIncludeExternal={moneyFormIncludeExternal}
+        setFormIncludeExternal={setMoneyFormIncludeExternal}
+        formExternalOnly={moneyFormExternalOnly}
+        setFormExternalOnly={setMoneyFormExternalOnly}
         formError={moneyFormError}
         setFormError={setMoneyFormError}
         busy={moneyModalBusy}
@@ -1109,6 +1223,10 @@ export default function KlassenlehrerView() {
         setFormSessionDate={setAttendanceFormSessionDate}
         formNotes={attendanceFormNotes}
         setFormNotes={setAttendanceFormNotes}
+        formIncludeExternal={attendanceFormIncludeExternal}
+        setFormIncludeExternal={setAttendanceFormIncludeExternal}
+        formExternalOnly={attendanceFormExternalOnly}
+        setFormExternalOnly={setAttendanceFormExternalOnly}
         formError={attendanceFormError}
         setFormError={setAttendanceFormError}
         busy={attendanceModalBusy}
@@ -1125,6 +1243,10 @@ export default function KlassenlehrerView() {
         setFormSessionDate={setCollectionFormSessionDate}
         formNotes={collectionFormNotes}
         setFormNotes={setCollectionFormNotes}
+        formIncludeExternal={collectionFormIncludeExternal}
+        setFormIncludeExternal={setCollectionFormIncludeExternal}
+        formExternalOnly={collectionFormExternalOnly}
+        setFormExternalOnly={setCollectionFormExternalOnly}
         formError={collectionFormError}
         setFormError={setCollectionFormError}
         busy={collectionModalBusy}
@@ -1182,6 +1304,8 @@ export default function KlassenlehrerView() {
                   <MoneyListPanel
                     list={activeTab.list}
                     updateMoneyListEntryPaid={updateMoneyListEntryPaid}
+                    onAddExternal={(person) => addMoneyListExternalEntry(activeTab.list.id, person)}
+                    onRemoveExternalEntry={removeMoneyListEntry}
                     onEdit={openEditMoneyModal}
                     onDelete={handleDeleteMoney}
                   />
@@ -1189,6 +1313,8 @@ export default function KlassenlehrerView() {
                   <AttendanceListPanel
                     list={activeTab.list}
                     updateAttendanceListEntryPresent={updateAttendanceListEntryPresent}
+                    onAddExternal={(person) => addAttendanceListExternalEntry(activeTab.list.id, person)}
+                    onRemoveExternalEntry={removeAttendanceListEntry}
                     onEdit={openEditAttendanceModal}
                     onDelete={handleDeleteAttendance}
                   />
@@ -1196,6 +1322,8 @@ export default function KlassenlehrerView() {
                   <CollectionListPanel
                     list={activeTab.list}
                     updateCollectionListEntryCollected={updateCollectionListEntryCollected}
+                    onAddExternal={(person) => addCollectionListExternalEntry(activeTab.list.id, person)}
+                    onRemoveExternalEntry={removeCollectionListEntry}
                     onEdit={openEditCollectionModal}
                     onDelete={handleDeleteCollection}
                   />

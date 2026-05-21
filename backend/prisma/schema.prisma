@@ -104,6 +104,8 @@ model MoneyList {
   amountPerStudent Float
   notes            String    @default("")
   dueDate          DateTime?
+  includeExternal  Boolean   @default(false)
+  externalOnly     Boolean   @default(false)
   courseId         Int
   course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   entries          MoneyListEntry[]
@@ -113,23 +115,27 @@ model MoneyList {
 }
 
 model MoneyListEntry {
-  id          Int       @id @default(autoincrement())
-  paid        Boolean   @default(false)
-  studentId   Int
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  moneyListId Int
-  moneyList   MoneyList @relation(fields: [moneyListId], references: [id], onDelete: Cascade)
+  id                Int        @id @default(autoincrement())
+  paid              Boolean    @default(false)
+  studentId         Int?
+  student           Student?   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  externalFirstName String     @default("")
+  externalLastName  String     @default("")
+  moneyListId       Int
+  moneyList         MoneyList  @relation(fields: [moneyListId], references: [id], onDelete: Cascade)
 
   @@unique([moneyListId, studentId])
   @@index([moneyListId])
 }
 
 model AttendanceList {
-  id          Int      @id @default(autoincrement())
-  subject     String
-  sessionDate DateTime
-  notes       String   @default("")
-  courseId    Int
+  id              Int       @id @default(autoincrement())
+  subject         String
+  sessionDate     DateTime?
+  notes           String    @default("")
+  includeExternal Boolean   @default(false)
+  externalOnly    Boolean   @default(false)
+  courseId        Int
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   entries     AttendanceListEntry[]
   createdAt   DateTime @default(now())
@@ -138,23 +144,27 @@ model AttendanceList {
 }
 
 model AttendanceListEntry {
-  id               Int            @id @default(autoincrement())
-  present          Boolean        @default(false)
-  studentId        Int
-  student          Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  attendanceListId Int
-  attendanceList   AttendanceList @relation(fields: [attendanceListId], references: [id], onDelete: Cascade)
+  id                Int             @id @default(autoincrement())
+  present           Boolean         @default(false)
+  studentId         Int?
+  student           Student?        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  externalFirstName String          @default("")
+  externalLastName  String          @default("")
+  attendanceListId  Int
+  attendanceList    AttendanceList  @relation(fields: [attendanceListId], references: [id], onDelete: Cascade)
 
   @@unique([attendanceListId, studentId])
   @@index([attendanceListId])
 }
 
 model CollectionList {
-  id          Int      @id @default(autoincrement())
-  subject     String
-  sessionDate DateTime
-  notes       String   @default("")
-  courseId    Int
+  id              Int       @id @default(autoincrement())
+  subject         String
+  sessionDate     DateTime?
+  notes           String    @default("")
+  includeExternal Boolean   @default(false)
+  externalOnly    Boolean   @default(false)
+  courseId        Int
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   entries     CollectionListEntry[]
   createdAt   DateTime @default(now())
@@ -163,12 +173,14 @@ model CollectionList {
 }
 
 model CollectionListEntry {
-  id               Int            @id @default(autoincrement())
-  collected        Boolean        @default(false)
-  studentId        Int
-  student          Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  collectionListId Int
-  collectionList   CollectionList @relation(fields: [collectionListId], references: [id], onDelete: Cascade)
+  id                Int             @id @default(autoincrement())
+  collected         Boolean         @default(false)
+  studentId         Int?
+  student           Student?        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  externalFirstName String          @default("")
+  externalLastName  String          @default("")
+  collectionListId  Int
+  collectionList    CollectionList  @relation(fields: [collectionListId], references: [id], onDelete: Cascade)
 
   @@unique([collectionListId, studentId])
   @@index([collectionListId])
