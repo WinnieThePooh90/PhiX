@@ -1,0 +1,26 @@
+---
+description: Prisma-Schema immer in PostgreSQL und SQLite parallel pflegen
+alwaysApply: true
+---
+
+# Datenbank-Schema: PostgreSQL und SQLite
+
+PhiX nutzt **zwei** Prisma-Schema-Dateien mit **dieselben Modellen** (manuell synchron):
+
+| Ziel | Datei | Anwenden |
+|------|--------|----------|
+| **PostgreSQL** (Web/Server/Docker) | `backend/prisma/schema.prisma` | `npx prisma migrate dev` / `migrate deploy` |
+| **SQLite** (Desktop) | `backend/prisma/sqlite/schema.prisma` | `npx prisma db push --schema=prisma/sqlite/schema.prisma` |
+
+## Pflicht bei jeder Schema-Änderung
+
+1. **Beide** Dateien anpassen (neue Modelle, Felder, Relationen, Defaults — inhaltlich gleich; provider-spezifische Unterschiede nur wo nötig).
+2. Danach: `cd backend && npm run prisma:generate-all` (oder `npm install`, löst `postinstall` aus).
+3. Lokal testen: Postgres-Migration bzw. SQLite `db push`; Desktop-Build wie in `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` (B.2).
+
+**Niemals** nur eine der beiden Dateien ändern und die andere „später“ nachziehen — das erzeugt Schema-Drift (ADR-002).
+
+## Referenz
+
+- `docs/ADR-002-prisma-postgres-sqlite.md`
+- Kommentar in `backend/prisma/sqlite/schema.prisma` (Zeile 1–3)

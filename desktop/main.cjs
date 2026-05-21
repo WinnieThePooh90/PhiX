@@ -5,7 +5,8 @@ const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const { pathToFileURL } = require('url');
+
+const APP_ICON = path.join(__dirname, 'build', 'icon.png');
 
 const PHI_X_USERDATA = path.join(app.getPath('appData'), 'PhiX');
 const LOG_DIR = path.join(PHI_X_USERDATA, 'logs');
@@ -33,7 +34,7 @@ const BACKEND_DIR = resolveBackendDir();
 
 let backendProc = null;
 let mainWindow = null;
-let backendLogStream = null;
+let backendLogFd = null;
 let appReady = false;
 
 function logPath(name) {
@@ -45,16 +46,54 @@ function writeDesktopLog(line) {
   try {
     const p = path.join(LOG_DIR, 'desktop.log');
     fs.appendFileSync(p, `${new Date().toISOString()} ${line}\n`, 'utf8');
-  } catch {
-    /* ignorieren */
+  } catch (err) {
+    try {
+      const fallback = path.join(PHI_X_USERDATA, 'desktop-fallback.log');
+      fs.appendFileSync(
+        fallback,
+        `${new Date().toISOString()} [desktop.log nicht schreibbar: ${err?.message || err}]\n${line}\n`,
+        'utf8',
+      );
+    } catch {
+      /* ignorieren */
+    }
   }
 }
 
-function showFatal(title, message) {
+/** Eigene Datei pro Startfehler — auch wenn nur der Log-Ordner geöffnet wird. */
+function writeStartupErrorLog(title, message, extra = '') {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const file = path.join(LOG_DIR, `startup-error-${stamp}.log`);
+  const body = [
+    title,
+    new Date().toISOString(),
+    '',
+    message,
+    extra ? `\n${extra}` : '',
+    '',
+    `Backend: ${BACKEND_DIR}`,
+    `Log-Ordner: ${LOG_DIR}`,
+    `desktop.log: ${path.join(LOG_DIR, 'desktop.log')}`,
+  ].join('\n');
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    fs.writeFileSync(file, body, 'utf8');
+    writeDesktopLog(`${title}: ${message}`);
+    return file;
+  } catch (err) {
+    writeDesktopLog(`${title}: ${message} (startup-error nicht schreibbar: ${err?.message || err})`);
+    return null;
+  }
+}
+
+function showFatal(title, message, startupLogFile = null) {
+  const logHint = startupLogFile
+    ? `Details: ${startupLogFile}\nAuch: ${path.join(LOG_DIR, 'desktop.log')}`
+    : `desktop.log: ${path.join(LOG_DIR, 'desktop.log')}\nOrdner: ${LOG_DIR}`;
   writeDesktopLog(`${title}: ${message}`);
   try {
     if (app.isReady()) {
-      dialog.showErrorBox(title, `${message}\n\nLog: ${LOG_DIR}`);
+      dialog.showErrorBox(title, `${message}\n\n${logHint}`);
     }
   } catch {
     /* vor app.ready */
@@ -65,6 +104,23 @@ function backendPort() {
   return String(process.env.PORT || '3000').trim() || '3000';
 }
 
+function preparePackagedBackendModules() {
+  if (!app.isPackaged) return;
+  const { ensureBackendModuleLink } = require(path.join(BACKEND_DIR, 'lib', 'deps-root'));
+  const r = ensureBackendModuleLink(BACKEND_DIR);
+  if (!r.ok) {
+    throw new Error(
+      `node_modules-Verknuepfung zu phix_deps fehlgeschlagen: ${r.error?.message || r.error}`,
+    );
+  }
+  writeDesktopLog(`Backend-Module: ${path.join(BACKEND_DIR, 'node_modules')} -> phix_deps`);
+}
+
+function backendDepsRoot() {
+  const { resolveDepsRoot } = require(path.join(BACKEND_DIR, 'lib', 'deps-root'));
+  return resolveDepsRoot(BACKEND_DIR);
+}
+
 function buildBackendEnv() {
   const env = {
     ...process.env,
@@ -72,18 +128,84 @@ function buildBackendEnv() {
     PORT: backendPort(),
     PHI_X_USERDATA_DIR: PHI_X_USERDATA,
   };
+  const depsRoot = backendDepsRoot();
+  if (fs.existsSync(depsRoot)) {
+    const sep = path.delimiter;
+    env.NODE_PATH = env.NODE_PATH ? `${depsRoot}${sep}${env.NODE_PATH}` : depsRoot;
+  }
   if (!String(env.DATABASE_URL || '').trim()) {
     const dbPath = path.join(PHI_X_USERDATA, 'phix.db');
-    env.DATABASE_URL = pathToFileURL(dbPath).href;
+    const { toSqliteDatabaseUrl } = require(path.join(BACKEND_DIR, 'lib', 'sqlite-database-url'));
+    env.DATABASE_URL = toSqliteDatabaseUrl(dbPath);
+    writeDesktopLog(`DATABASE_URL (SQLite): ${env.DATABASE_URL}`);
   }
   if (app.isPackaged) {
     env.PHIX_STANDALONE = '1';
+    env.PHIX_SKIP_DB_PUSH = '1';
     const frontendDist = path.join(process.resourcesPath, 'frontend-dist');
     if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
       env.PHIX_FRONTEND_DIST = frontendDist;
     }
   }
   return env;
+}
+
+/** Prisma db push vor server.js — vermeidet doppelten Push und nutzt dieselbe Node/Electron-Startart. */
+function ensureDbSchema() {
+  const launch = resolveBackendLaunch();
+  const baseEnv = buildBackendEnv();
+  const { runDbPush } = require(path.join(BACKEND_DIR, 'lib', 'db-push'));
+
+  const { resolvePrismaCli } = require(path.join(BACKEND_DIR, 'lib', 'deps-root'));
+  const prismaCli = resolvePrismaCli(BACKEND_DIR);
+  const depsRoot = backendDepsRoot();
+  writeDesktopLog(`Prisma db push … (${launch.cmd}) backend=${BACKEND_DIR} deps=${depsRoot}`);
+
+  if (!fs.existsSync(prismaCli)) {
+    const msg = `[db-push] Prisma CLI fehlt: ${prismaCli}`;
+    throw new Error(
+      `${msg}\nHinweis: cd desktop && npm run dist (stage-backend erzeugt phix_deps; electron-builder kopiert kein node_modules).`,
+    );
+  }
+
+  const r = runDbPush({
+    backendRoot: BACKEND_DIR,
+    nodeCmd: launch.cmd,
+    extraEnv: { ...baseEnv, ...launch.extraEnv },
+    electronAsNode: Boolean(launch.extraEnv.ELECTRON_RUN_AS_NODE),
+    stdio: 'pipe',
+  });
+
+  if (r.stdout && r.stdout.length) {
+    writeDesktopLog(`[db-push stdout]\n${r.stdout.toString().slice(-3000)}`);
+  }
+  if (r.stderr && r.stderr.length) {
+    writeDesktopLog(`[db-push stderr]\n${r.stderr.toString().slice(-3000)}`);
+  }
+  if (r.error) {
+    throw new Error(`prisma db push: ${r.error.message}`);
+  }
+  if (r.status !== 0 && r.status != null) {
+    const tail = (r.stderr && r.stderr.length ? r.stderr : r.stdout || Buffer.alloc(0)).toString().slice(-2000);
+    throw new Error(
+      `prisma db push fehlgeschlagen (Exit-Code ${r.status}).${tail ? `\n${tail}` : ''}`,
+    );
+  }
+  writeDesktopLog('Prisma db push OK');
+}
+
+function readLatestBackendLogTail(maxChars = 2800) {
+  try {
+    const files = fs
+      .readdirSync(LOG_DIR)
+      .filter((f) => f.startsWith('backend-') && f.endsWith('.log'))
+      .sort();
+    if (!files.length) return '';
+    const text = fs.readFileSync(path.join(LOG_DIR, files[files.length - 1]), 'utf8');
+    return text.length > maxChars ? text.slice(-maxChars) : text;
+  } catch {
+    return '';
+  }
 }
 
 /** Gepackt: Electron als Node (kein separates node.exe nötig), sonst node.exe oder PATH-node. */
@@ -112,21 +234,45 @@ function resolveBackendLaunch() {
   return { cmd: process.platform === 'win32' ? 'node' : 'node', args: ['server.js'], extraEnv: {} };
 }
 
+function openBackendLogFd() {
+  try {
+    const file = logPath('backend');
+    writeDesktopLog(`Backend-Log: ${file}`);
+    return fs.openSync(file, 'a');
+  } catch (err) {
+    writeDesktopLog(`Backend-Log nicht öffnenbar: ${err?.message || err}`);
+    return null;
+  }
+}
+
+function closeBackendLogFd() {
+  if (backendLogFd == null) return;
+  try {
+    fs.closeSync(backendLogFd);
+  } catch {
+    /* ignorieren */
+  }
+  backendLogFd = null;
+}
+
 function startBackend() {
   const { cmd, args, extraEnv } = resolveBackendLaunch();
   const env = { ...buildBackendEnv(), ...extraEnv };
 
   writeDesktopLog(`Backend start: ${cmd} ${args.join(' ')} cwd=${BACKEND_DIR}`);
 
-  try {
-    backendLogStream = fs.createWriteStream(logPath('backend'), { flags: 'a' });
-  } catch {
-    backendLogStream = null;
+  closeBackendLogFd();
+  if (app.isPackaged) {
+    backendLogFd = openBackendLogFd();
   }
 
-  const stdio = app.isPackaged
-    ? ['ignore', backendLogStream || 'ignore', backendLogStream || 'ignore']
-    : 'inherit';
+  /** spawn erlaubt keine WriteStream-Objekte — nur fd-Zahl, Pipe oder 'ignore'/'inherit'. */
+  const stdio =
+    app.isPackaged && backendLogFd != null
+      ? ['ignore', backendLogFd, backendLogFd]
+      : app.isPackaged
+        ? 'ignore'
+        : 'inherit';
 
   backendProc = spawn(cmd, args, {
     cwd: BACKEND_DIR,
@@ -140,27 +286,20 @@ function startBackend() {
     const msg = `Backend-Prozess konnte nicht gestartet werden (${cmd}): ${err.message}`;
     writeDesktopLog(msg);
     if (!mainWindow) {
-      showFatal('PhiX – Startfehler', msg);
+      showFatal('PhiX - Startfehler', msg);
       app.quit();
     }
   });
 
   backendProc.on('exit', (code, signal) => {
     backendProc = null;
-    if (backendLogStream) {
-      backendLogStream.end();
-      backendLogStream = null;
-    }
+    closeBackendLogFd();
     const msg = `Backend beendet (code=${code}, signal=${signal || '—'})`;
     writeDesktopLog(msg);
-    if (code != null && code !== 0 && !mainWindow) {
-      showFatal(
-        'PhiX – Backend abgestürzt',
-        `${msg}\nDetails: ${path.join(LOG_DIR, 'backend-*.log')} (neueste Datei)`,
-      );
-      app.quit();
-    } else if (mainWindow && code != null && code !== 0) {
-      showFatal('PhiX – Backend beendet', msg);
+    if (code != null && code !== 0) {
+      const tail = readLatestBackendLogTail();
+      const detail = tail ? `\n\n--- Backend-Log (Auszug) ---\n${tail}` : `\n\nLog-Ordner: ${LOG_DIR}`;
+      showFatal('PhiX - Backend abgestuerzt', `${msg}${detail}`);
       app.quit();
     }
   });
@@ -196,11 +335,16 @@ function killBackend() {
     console.warn('[desktop] Backend stop:', err?.message || err);
   }
   backendProc = null;
+  closeBackendLogFd();
 }
 
 async function createWindow() {
   const port = backendPort();
   const apiBase = `http://127.0.0.1:${port}`;
+  if (app.isPackaged) {
+    preparePackagedBackendModules();
+    ensureDbSchema();
+  }
   startBackend();
   await waitForBackend(apiBase);
 
@@ -211,6 +355,7 @@ async function createWindow() {
     width: 1280,
     height: 840,
     show: false,
+    ...(fs.existsSync(APP_ICON) ? { icon: APP_ICON } : {}),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -227,8 +372,9 @@ app.whenReady().then(() => {
   appReady = true;
   createWindow().catch((err) => {
     const msg = err?.message || String(err);
-    writeDesktopLog(`createWindow: ${msg}`);
-    showFatal('PhiX – Startfehler', msg);
+    const stack = err?.stack ? `\n${err.stack}` : '';
+    const startupLog = writeStartupErrorLog('PhiX - Startfehler', msg, stack);
+    showFatal('PhiX - Startfehler', msg, startupLog);
     killBackend();
     app.quit();
   });

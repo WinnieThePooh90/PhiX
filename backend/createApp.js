@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { shutdownPhix } = require('./lib/phix-shutdown');
 const { createPrismaClient } = require('./lib/prisma-factory');
+const { usernameWhere } = require('./lib/username-filter');
 
 function createApp() {
 const app = express();
@@ -42,7 +43,7 @@ async function assertActingUser(req, res) {
     return null;
   }
   const row = await prisma.appUser.findFirst({
-    where: { username: { equals: acting, mode: 'insensitive' } },
+    where: usernameWhere(acting),
     select: { username: true },
   });
   if (!row) {
@@ -80,8 +81,9 @@ app.post('/api/auth/login', async (req, res) => {
   if (!usernameIn || !password) {
     return res.status(400).json({ error: 'Benutzername und Passwort eingeben.' });
   }
+  const { usernameWhere } = require('./lib/username-filter');
   const user = await prisma.appUser.findFirst({
-    where: { username: { equals: usernameIn, mode: 'insensitive' } },
+    where: usernameWhere(usernameIn),
   });
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
@@ -93,7 +95,7 @@ app.get('/api/auth/session', async (req, res) => {
   const acting = getActingUser(req);
   if (!acting) return res.status(401).json({ error: 'Nicht angemeldet' });
   const user = await prisma.appUser.findFirst({
-    where: { username: { equals: acting, mode: 'insensitive' } },
+    where: usernameWhere(acting),
     select: { id: true, username: true },
   });
   if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
@@ -112,7 +114,7 @@ app.post('/api/users/migrate-from-localstorage', async (req, res) => {
     const password = String(row?.password ?? '');
     if (!username || !password) continue;
     const existing = await prisma.appUser.findFirst({
-      where: { username: { equals: username, mode: 'insensitive' } },
+      where: usernameWhere(username),
     });
     if (existing) continue;
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -140,7 +142,7 @@ app.post('/api/users', async (req, res) => {
   if (!username) return res.status(400).json({ error: 'Benutzername eingeben.' });
   if (!password) return res.status(400).json({ error: 'Passwort eingeben.' });
   const clash = await prisma.appUser.findFirst({
-    where: { username: { equals: username, mode: 'insensitive' } },
+    where: usernameWhere(username),
   });
   if (clash) return res.status(409).json({ error: 'Dieser Benutzername ist bereits vergeben.' });
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);

@@ -132,6 +132,26 @@ p {
   font-size: 0.875rem;
 }
 
+/* Klassenlehrer: Geldlisten-Bereich */
+.klassenlehrer-geldlisten-section {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.klassenlehrer-money-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.klassenlehrer-money-tabpanel {
+  margin-top: 0.25rem;
+}
+
 /* Klassenlehrer: Geldlisten-Kopfzeile */
 .klassenlehrer-money-panel {
   display: flex;

@@ -180,43 +180,82 @@ Wichtige Hinweise aus der Projektdoku:
 #### B.1 Voraussetzungen zum Bauen
 
 - **Windows** (laut `desktop/README.md` baut **`npm run dist`** die Windows-Ziele zuverlässig **unter Windows**).
-- **Node.js** (LTS, z. B. 20+) im PATH.
-- Im Ordner **`backend/`** mindestens einmal **`npm install`** ausgeführt — das installiert Abhängigkeiten und (per `postinstall`) die **Prisma-Clients** für Postgres und SQLite.
+- **Node.js** (LTS, z. B. 20+) im PATH — in der **Eingabeaufforderung (cmd)** ausführen, wenn PowerShell `npm` wegen Execution Policy blockiert.
+- **Internet** für `npm install` (u. a. Electron-Download, ggf. SheetJS-CDN für `xlsx` im Frontend).
+- Build **nicht** in Dropbox/Sync-Ordnern (siehe **B.4**).
 
-#### B.2 Vor dem Packen (einmalig pro „frischem“ Stand)
+#### B.2 Build-Reihenfolge (drei Ordner)
 
-1. **Backend vorbereiten** (im Projektroot):
+Für ein **nutzbares** Desktop-Paket (Backend + Web-UI im Fenster) sind **drei** npm-Schritte nötig — in dieser **Reihenfolge**:
 
-   ```bat
-   cd backend
-   npm install
-   ```
+| Schritt | Ordner | Befehl | Zweck |
+|--------|--------|--------|--------|
+| 1 | **`backend\`** | `npm install` | API-Abhängigkeiten; **`postinstall`** führt automatisch **`prisma:generate-all`** aus (Ordner **`generated/prisma-sqlite/`**). Ein separates `npm run prisma:generate-all` ist dafür **nicht** nötig. |
+| 2 | **`Notenauswertung-App\`** | `npm install` | Frontend-Abhängigkeiten (React/Vite). |
+| 3 | **`Notenauswertung-App\`** | `npm run build` | Erzeugt **`Notenauswertung-App\dist\`** (`index.html`, JS/CSS) — wird ins Paket als **`frontend-dist`** kopiert. |
+| 4 | **`desktop\`** | `npm install` | Electron + electron-builder. |
+| 5 | **`desktop\`** | `npm run dist` | Packt alles (siehe **B.3**); führt intern **`prepare-pack`** und **`check-backend`** aus. |
 
-   Fehlt das, bricht der Pack-Schritt später mit einer klaren Meldung ab (siehe nächster Abschnitt).
+Ohne **Schritt 1–3** bricht `npm run dist` ab oder die **.exe** startet ohne Oberfläche.
 
-2. **Optional – gebautes Frontend im Backend (ohne Vite):**  
-   Gepackte Electron-App setzt **kein** `ELECTRON_DEV_SERVER`. Das Fenster lädt **`http://127.0.0.1:<PORT>`** (Standard **3000**) — also genau das, was das **Backend** ausliefert. Wenn das Backend die **statische** Web-App ausgeben soll (wie bei Portable/Standalone), müssen **`PHIX_STANDALONE=1`** und **`PHIX_FRONTEND_DIST`** (Pfad zum `dist` der React-App) **vor dem Packen** sinnvoll gesetzt sein — z. B. nach `npm run build` in `Notenauswertung-App\` und Verweis auf diesen `dist`-Ordner. Details: `desktop/README.md` („Nur Electron“) und Backend-`.env.example`.  
-   **Entwicklung mit Vite** bleibt davon unberührt: zwei Terminals, siehe **B.5**.
+**Schema-Änderungen (Tabellen/Felder):** immer **beide** Prisma-Schemas pflegen — `backend/prisma/schema.prisma` (PostgreSQL) **und** `backend/prisma/sqlite/schema.prisma` (SQLite). Details: `docs/ADR-002-prisma-postgres-sqlite.md`, Cursor-Regel `.cursor/rules/prisma-dual-schema.mdc`.
+
+**`npm run prisma:generate-all` im Backend nur bei Bedarf** (nach normalem `npm install` üblicherweise entbehrlich):
+
+- nach **`clean-build.bat`**: reicht **`npm install`** im Ordner `backend\` (löst `postinstall` aus);
+- wenn `npm install --ignore-scripts` genutzt wurde oder **`backend\generated\`** fehlt, obwohl `node_modules` da ist;
+- nach Änderungen an **`backend\prisma\`** (Schema), ohne komplettes Neuinstall.
+
+**Kurz als Batch** (Pfade anpassen, Start im **Projektroot**):
+
+```bat
+cd /d "E:\Pfad\zum\Notenauswertung (Windows)"
+
+cd backend
+npm install
+cd ..
+
+cd Notenauswertung-App
+npm install
+npm run build
+cd ..
+
+cd desktop
+npm install
+npm run dist
+```
 
 #### B.3 Was passiert beim Packen ganz konkret? (`npm run dist`)
 
 Im Ordner **`desktop/`** ist in `package.json` definiert:
 
 ```text
-npm run dist  →  npm run check-backend  &&  electron-builder --win zip portable
+npm run dist
+  →  npm run build-icon
+  →  npm run prepare-pack
+  →  npm run stage-backend
+  →  npm run check-backend
+  →  electron-builder --win zip portable
 ```
 
-**Schritt 1 – `check-backend` (`desktop/scripts/check-backend-for-pack.js`):**
+**Schritt 0 – `build-icon`:** erzeugt **`desktop/build/icon.png`** aus **`Notenauswertung-App/public/favicon.svg`** (gleiches Symbol wie im Browser-Tab). **electron-builder** setzt daraus das **.exe**-Icon.
 
-- Prüft, ob **`backend/node_modules`** (u. a. `@prisma/client`) existiert.
-- Prüft, ob der **SQLite-Prisma-Client** unter **`backend/generated/prisma-sqlite/index.js`** existiert.  
-- Wenn etwas fehlt: **Abbruch** mit Hinweis, zuerst im Backend `npm install` bzw. `npm run prisma:generate-all` auszuführen.
+**Schritt 1 – `stage-backend`:** kopiert das Backend nach **`%LOCALAPPDATA%\PhiX\pack-backend`**, führt dort **`npm ci`** aus und benennt **`node_modules` → `phix_deps`** um. **electron-builder lässt Ordner namens `node_modules` in `extraResources` weg** — ohne `phix_deps` fehlt im Paket die komplette Laufzeit (nur der Schema-Ordner `prisma/` bliebe übrig).
 
-**Schritt 2 – `electron-builder`:**
+**Schritt 2 – `prepare-pack` (`desktop/scripts/prepare-pack.js`):**
+
+- Prüft, ob **`Notenauswertung-App\dist\index.html`** existiert.
+- Fehlt `dist`: führt dort **`npm ci`** (falls nötig) und **`npm run build`** aus.
+- Wenn Sie **B.2** bereits manuell gebaut haben, ist dieser Schritt schnell.
+
+**Schritt 3 – `check-backend`:** prüft das **gestagte** Backend (`%LOCALAPPDATA%\PhiX\pack-backend`): **Prisma CLI**, **SQLite-Client**, Frontend-`dist`.
+
+**Schritt 4 – `electron-builder`:**
 
 - Liest die **`build`-Sektion** in `desktop/package.json` (u. a. `appId`, `productName` **PhiX**, Ausgabeordner **`dist-pack`**).
 - Packt die **Electron-Hülle** (`main.cjs`, `package.json` der Desktop-App) in eine **`asar`**-Archivdatei innerhalb der Windows-App.
-- Kopiert den Ordner **`backend/`** (inkl. `node_modules`, Prisma-Schema, generierte Clients — **ohne** `.env`-Dateien laut Filter) nach **`resources/backend/`** neben die App („extraResources“). So liegt das Backend **zur Laufzeit** neben der Electron-Binary und ist **nicht** im asar eingeschlossen (Node startet dort `server.js` mit normalem Dateisystem-Zugriff).
+- Kopiert **`backend/`** (inkl. `node_modules`, Prisma — **ohne** `.env`) nach **`resources/backend/`**.
+- Kopiert **`Notenauswertung-App/dist`** nach **`resources/frontend-dist/`** (Web-UI für `PHIX_STANDALONE`).
 - Erzeugt für Windows typischerweise:
   - eine **ZIP** (entpackbare Struktur),
   - eine **portable `.exe`** (ein Dateiname nach Muster `PhiX-Desktop-<version>-win-x64.<ext>` in `desktop/package.json`).
@@ -240,17 +279,14 @@ Liegt das Projekt in **Dropbox** und erscheinen **EBUSY** / `cleanup Failed` bei
 - **`desktop\install-deps.bat`** in der **Eingabeaufforderung (cmd)** ausführen, **oder**
 - `cd desktop` und **`npm run install-deps`** (legt Electron- und npm-Cache unter `%LOCALAPPDATA%\PhiX\` außerhalb von Dropbox).
 
-**Sauberer Neustart (ohne alte Build-Reste):** im Projektroot **`clean-build.bat`** (Windows) oder **`scripts/clean-build.sh`** — entfernt `node_modules`, `dist`, `dist-pack`, Release-ZIPs usw. (behält Quellcode und `package-lock.json`).
+**Sauberer Neustart (ohne alte Build-Reste):** im Projektroot **`clean-build.bat`** (Windows) oder **`scripts/clean-build.sh`** — entfernt u. a. `node_modules` in **backend**, **Notenauswertung-App** und **desktop**, sowie `dist`, `dist-pack`, Release-ZIPs (Quellcode und `package-lock.json` bleiben).
 
-Dann wie gewohnt (baut bei Bedarf automatisch das Frontend und packt es mit ein):
+Danach die **komplette Reihenfolge aus B.2** (backend → Notenauswertung-App → desktop) ausführen.
 
-```bat
-cd desktop
-npm install
-npm run dist
-```
+**Nach dem Start der .exe:** Bei Problemen Logs unter **`%APPDATA%\PhiX\logs\`**: **`desktop.log`** (Desktop-Hülle), bei Startfehlern zusätzlich **`startup-error-*.log`**, nach Backend-Start **`backend-*.log`**. Der Fehlerdialog nennt die konkrete Datei — nicht nur den Ordner (vor db-push gibt es noch **kein** `backend-*.log`). Gepackte Apps nutzen **Electron als Node** (`ELECTRON_RUN_AS_NODE`) — separates `node` im PATH ist dafür **nicht** nötig.
 
-**Nach dem Start der .exe:** Bei Problemen Logs unter **`%APPDATA%\PhiX\logs\`** (z. B. `backend-*.log`, `desktop.log`). Fehlerdialoge verweisen dorthin. Gepackte Apps nutzen **Electron als Node** (`ELECTRON_RUN_AS_NODE`) — separates `node` im PATH ist dafür **nicht** nötig.
+**Prisma / Abhängigkeiten im Paket:** Nach dem Build prüfen:  
+`resources\backend\phix_deps\prisma\build\index.js` muss existieren. Beim **ersten Start** legt die Desktop-App eine Junction **`resources\backend\node_modules` → `phix_deps`** an (Prisma/ESM brauchen den Ordnernamen `node_modules`). Optional: `cd desktop` → **`npm run verify-pack`**. Vor dem Pack: **`backend\`** → **`npm install`** (Prisma-Clients via **`postinstall`**, kein extra Schritt `prisma:generate-all`).
 
 **PowerShell:** Wenn `npm` wegen `npm.ps1` / Execution Policy scheitert, **cmd** nutzen oder `RemoteSigned` für den Benutzer setzen (siehe Projekt-Diskussion / `desktop/README.md`).
 

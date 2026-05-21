@@ -9,7 +9,7 @@ const PURPOSE = {
   react: 'UI-Bibliothek: Komponenten, Hooks, Rendering-Logik der Anwendung.',
   'react-dom': 'Anbindung von React an den Browser-DOM (Mount, Events, Updates).',
   'react-router-dom': 'Client-seitiges Routing (z. B. Route für „Neues Fach“).',
-  xlsx: 'Einlesen und Schreiben von Excel-Dateien (.xlsx) für Import/Export.',
+  xlsx: 'Einlesen von Excel-Dateien (.xlsx) für Schullisten-Import (SheetJS 0.20.3).',
   // Backend Laufzeit
   '@prisma/client': 'Typisierter Datenbankzugriff (PostgreSQL) aus dem Node-Server.',
   bcryptjs: 'Sicheres Hashen und Prüfen von Benutzerpasswörtern (bcrypt-Algorithmus).',

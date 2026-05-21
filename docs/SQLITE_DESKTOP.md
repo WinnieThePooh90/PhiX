@@ -4,7 +4,7 @@
 
 | Kontext | Standard |
 |---------|----------|
-| **Electron** (`desktop/main.cjs`) | Wenn `DATABASE_URL` nicht gesetzt: `%APPDATA%\PhiX\phix.db` (Windows) bzw. entsprechend `app.getPath('appData')/PhiX` — als `file:`-URL |
+| **Electron** (`desktop/main.cjs`) | Wenn `DATABASE_URL` nicht gesetzt: `%APPDATA%\PhiX\phix.db` — URL-Format `file:C:/Users/…/phix.db` (Windows, via `backend/lib/sqlite-database-url.js`) |
 | **Manuell / Entwicklung** | In `backend/.env`, z. B. `DATABASE_URL="file:./phix-dev.sqlite"` (relativ zum `backend/`-Arbeitsverzeichnis) |
 
 Schema und Client: `prisma/sqlite/schema.prisma` → generiert nach `generated/prisma-sqlite/`.

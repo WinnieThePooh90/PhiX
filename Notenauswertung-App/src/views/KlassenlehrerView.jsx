@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 
@@ -7,12 +7,90 @@ function formatEuro(amount) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
 }
 
+function MoneyListPanel({ list, updateMoneyListEntryPaid }) {
+  const entries = list.entries || [];
+  const paidCount = entries.filter((e) => e.paid).length;
+  const totalCount = entries.length;
+  const amountPerStudent = Number(list.amountPerStudent);
+  const paidAmount = paidCount * amountPerStudent;
+  const totalAmount = totalCount * amountPerStudent;
+
+  return (
+    <div className="glass-panel program-view-panel klassenlehrer-money-panel">
+      <div className="klassenlehrer-money-header">
+        <div className="klassenlehrer-money-header-main">
+          {(list.notes || Number.isFinite(amountPerStudent)) && (
+            <p className="text-muted program-view-panel-text klassenlehrer-money-meta">
+              {Number.isFinite(amountPerStudent) ? `${formatEuro(amountPerStudent)} pro Schüler` : null}
+              {list.notes && Number.isFinite(amountPerStudent) ? ' · ' : null}
+              {list.notes || null}
+            </p>
+          )}
+        </div>
+        <div className="klassenlehrer-money-header-stats">
+          <p className="program-view-panel-heading klassenlehrer-money-paid-count">
+            {paidCount} / {totalCount} bezahlt
+          </p>
+          <p className="klassenlehrer-money-paid-sum">
+            {formatEuro(paidAmount)} / {formatEuro(totalAmount)}
+          </p>
+        </div>
+      </div>
+      <div className="klassenlehrer-money-table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="text-center klassenlehrer-num-col">Nr.</th>
+              <th className="klassenlehrer-name-col">Name</th>
+              <th className="klassenlehrer-name-col">Vorname</th>
+              <th className="text-center klassenlehrer-paid-col">Bezahlt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((row) => {
+              const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
+              const paid = row.paid === true;
+              return (
+                <tr key={row.id}>
+                  <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
+                  <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
+                    {row.lastName || '—'}
+                  </td>
+                  <td className="klassenlehrer-name-col" title={row.firstName || undefined}>
+                    {row.firstName || '—'}
+                  </td>
+                  <td
+                    className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
+                    title={paid ? 'Bezahlt' : 'Noch nicht bezahlt'}
+                  >
+                    <label className="gfs-gehalten-label">
+                      <input
+                        type="checkbox"
+                        className="gfs-gehalten-checkbox"
+                        checked={paid}
+                        onChange={(ev) => updateMoneyListEntryPaid(list.id, row.id, ev.target.checked)}
+                        aria-label={`Bezahlt für ${name}`}
+                      />
+                    </label>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function KlassenlehrerView() {
   const { config, moneyLists, createMoneyList, updateMoneyListEntryPaid } = useData();
   const subject = config?.subject ?? '—';
   const classLabel = config?.className || config?.class || '—';
   const year = config?.year ?? '—';
 
+  const lists = moneyLists || [];
+  const [activeListId, setActiveListId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [formSubject, setFormSubject] = useState('');
   const [formAmount, setFormAmount] = useState('');
@@ -20,6 +98,19 @@ export default function KlassenlehrerView() {
   const [formError, setFormError] = useState('');
   const [creating, setCreating] = useState(false);
   const subjectInputRef = useRef(null);
+
+  useEffect(() => {
+    if (lists.length === 0) {
+      setActiveListId(null);
+      return;
+    }
+    setActiveListId((prev) => {
+      if (prev != null && lists.some((l) => l.id === prev)) return prev;
+      return lists[0].id;
+    });
+  }, [lists]);
+
+  const activeList = lists.find((l) => l.id === activeListId) ?? null;
 
   const openModal = useCallback(() => {
     setFormSubject('');
@@ -65,6 +156,7 @@ export default function KlassenlehrerView() {
         setFormError('Geldliste konnte nicht erstellt werden.');
         return;
       }
+      setActiveListId(created.id);
       setModalOpen(false);
     } catch {
       setFormError('Geldliste konnte nicht erstellt werden.');
@@ -170,90 +262,52 @@ export default function KlassenlehrerView() {
         </p>
       </div>
 
-      <section style={{ marginTop: '1.5rem' }}>
+      <section className="klassenlehrer-geldlisten-section">
         <button type="button" className="tab secondary" onClick={openModal}>
           + Geldliste erstellen
         </button>
-      </section>
 
-      {(moneyLists || []).map((list) => {
-        const entries = list.entries || [];
-        const paidCount = entries.filter((e) => e.paid).length;
-        const totalCount = entries.length;
-        const amountPerStudent = Number(list.amountPerStudent);
-        const paidAmount = paidCount * amountPerStudent;
-        const totalAmount = totalCount * amountPerStudent;
-        return (
-          <div key={list.id} className="glass-panel program-view-panel klassenlehrer-money-panel" style={{ marginTop: '1.25rem' }}>
-              <div className="klassenlehrer-money-header">
-              <div className="klassenlehrer-money-header-main">
-                <h3 className="program-view-panel-heading klassenlehrer-money-title">{list.subject}</h3>
-                {(list.notes || Number.isFinite(amountPerStudent)) && (
-                  <p className="text-muted program-view-panel-text klassenlehrer-money-meta">
-                    {Number.isFinite(amountPerStudent) ? `${formatEuro(amountPerStudent)} pro Schüler` : null}
-                    {list.notes && Number.isFinite(amountPerStudent) ? ' · ' : null}
-                    {list.notes || null}
-                  </p>
-                )}
-              </div>
-              <div className="klassenlehrer-money-header-stats">
-                <p className="program-view-panel-heading klassenlehrer-money-paid-count">
-                  {paidCount} / {totalCount} bezahlt
-                </p>
-                <p className="klassenlehrer-money-paid-sum">
-                  {formatEuro(paidAmount)} / {formatEuro(totalAmount)}
-                </p>
-              </div>
+        {lists.length > 0 ? (
+          <>
+            <div
+              className="klassenlehrer-money-tabs"
+              role="tablist"
+              aria-label="Geldlisten"
+            >
+              {lists.map((list) => {
+                const tabLabel = list.subject?.trim() || 'Geldliste';
+                const isActive = list.id === activeListId;
+                return (
+                  <button
+                    key={list.id}
+                    type="button"
+                    role="tab"
+                    id={`money-list-tab-${list.id}`}
+                    aria-selected={isActive}
+                    aria-controls={`money-list-panel-${list.id}`}
+                    className={`tab ${isActive ? 'active' : 'secondary'}`}
+                    onClick={() => setActiveListId(list.id)}
+                    title={tabLabel}
+                  >
+                    {tabLabel}
+                  </button>
+                );
+              })}
             </div>
-            <div className="klassenlehrer-money-table-scroll">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="text-center klassenlehrer-num-col">Nr.</th>
-                    <th className="klassenlehrer-name-col">Name</th>
-                    <th className="klassenlehrer-name-col">Vorname</th>
-                    <th className="text-center klassenlehrer-paid-col">Bezahlt</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((row) => {
-                    const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
-                    const paid = row.paid === true;
-                    return (
-                      <tr key={row.id}>
-                        <td className="text-center klassenlehrer-num-col">{row.studentNumber ?? '—'}</td>
-                        <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
-                          {row.lastName || '—'}
-                        </td>
-                        <td className="klassenlehrer-name-col" title={row.firstName || undefined}>
-                          {row.firstName || '—'}
-                        </td>
-                        <td
-                          className={`text-center klassenlehrer-paid-col gfs-gehalten-td ${paid ? 'gfs-gehalten-td--checked' : 'gfs-gehalten-td--unchecked'}`}
-                          title={paid ? 'Bezahlt' : 'Noch nicht bezahlt'}
-                        >
-                          <label className="gfs-gehalten-label">
-                            <input
-                              type="checkbox"
-                              className="gfs-gehalten-checkbox"
-                              checked={paid}
-                              onChange={(ev) =>
-                                updateMoneyListEntryPaid(list.id, row.id, ev.target.checked)
-                              }
-                              aria-label={`Bezahlt für ${name}`}
-                            />
-                          </label>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      })}
+
+            {activeList ? (
+              <div
+                role="tabpanel"
+                id={`money-list-panel-${activeList.id}`}
+                aria-labelledby={`money-list-tab-${activeList.id}`}
+                className="klassenlehrer-money-tabpanel"
+              >
+                <MoneyListPanel list={activeList} updateMoneyListEntryPaid={updateMoneyListEntryPaid} />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </section>
     </div>
   );
 }
-
