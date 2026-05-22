@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 export function ListFormExternalCheckboxes({
   includeExternal,
@@ -99,4 +100,48 @@ export function ExternalPersonAddBlock({ onAdd, busy }) {
 
 export function canAddExternalPersons(list) {
   return Boolean(list?.includeExternal || list?.externalOnly);
+}
+
+export function ListPanelFooter({ list, onEdit, onDelete }) {
+  return (
+    <div className="klassenlehrer-money-panel-actions">
+      <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
+        Bearbeiten
+      </button>
+      <button
+        type="button"
+        className="danger klassenlehrer-list-delete-btn"
+        onClick={() => onDelete(list)}
+        title="Liste löschen"
+        aria-label="Liste löschen"
+      >
+        <Trash2 size={18} strokeWidth={2} aria-hidden />
+        Löschen
+      </button>
+    </div>
+  );
+}
+
+export function RemarkEntryField({ value, onCommit, disabled, ariaLabel }) {
+  const [draft, setDraft] = useState(value ?? '');
+
+  useEffect(() => {
+    setDraft(value ?? '');
+  }, [value]);
+
+  return (
+    <textarea
+      className="klassenlehrer-remark-input program-user-mgmt-input"
+      value={draft}
+      onChange={(ev) => setDraft(ev.target.value)}
+      onBlur={() => {
+        const next = draft;
+        if (next !== (value ?? '')) onCommit(next);
+      }}
+      rows={2}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      placeholder="Bemerkung …"
+    />
+  );
 }

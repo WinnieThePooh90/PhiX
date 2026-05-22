@@ -79,6 +79,7 @@ export const DataProvider = ({ children }) => {
   const [moneyLists, setMoneyLists] = useState([]);
   const [attendanceLists, setAttendanceLists] = useState([]);
   const [collectionLists, setCollectionLists] = useState([]);
+  const [notesLists, setNotesLists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses and migrate
@@ -228,6 +229,7 @@ export const DataProvider = ({ children }) => {
           moneyListsRes,
           attendanceListsRes,
           collectionListsRes,
+          notesListsRes,
         ] = await Promise.all([
           fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/exams?courseId=${activeCourseId}`).then((r) => r.json()),
@@ -237,6 +239,7 @@ export const DataProvider = ({ children }) => {
           fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) => r.json()),
           fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`).then((r) => r.json()),
+          fetchWithActing(`/api/notes-lists?courseId=${activeCourseId}`).then((r) => r.json()),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -246,6 +249,7 @@ export const DataProvider = ({ children }) => {
         setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
         setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
+        setNotesLists(Array.isArray(notesListsRes) ? notesListsRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -299,9 +303,27 @@ export const DataProvider = ({ children }) => {
     }
   }, [activeCourseId, fetchWithActing]);
 
+  const refreshNotesLists = useCallback(async () => {
+    if (!activeCourseId) {
+      setNotesLists([]);
+      return;
+    }
+    try {
+      const data = await fetchWithActing(`/api/notes-lists?courseId=${activeCourseId}`).then((r) => r.json());
+      setNotesLists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to refresh notes lists', err);
+    }
+  }, [activeCourseId, fetchWithActing]);
+
   const refreshKlassenlehrerLists = useCallback(async () => {
-    await Promise.all([refreshMoneyLists(), refreshAttendanceLists(), refreshCollectionLists()]);
-  }, [refreshMoneyLists, refreshAttendanceLists, refreshCollectionLists]);
+    await Promise.all([
+      refreshMoneyLists(),
+      refreshAttendanceLists(),
+      refreshCollectionLists(),
+      refreshNotesLists(),
+    ]);
+  }, [refreshMoneyLists, refreshAttendanceLists, refreshCollectionLists, refreshNotesLists]);
 
   const apiCall = useCallback(async (url, method, body) => {
     try {
@@ -1212,6 +1234,85 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/collection-list-entries/${entryId}`, 'PUT', { collected });
   };
 
+  const createNotesList = async ({ subject, sessionDate, notes, includeExternal, externalOnly }) => {
+    if (!activeCourseId) return null;
+    const created = await apiCall('/api/notes-lists', 'POST', {
+      courseId: activeCourseId,
+      subject,
+      sessionDate: sessionDate ?? null,
+      notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
+    });
+    if (created?.id) {
+      setNotesLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateNotesList = async (id, { subject, sessionDate, notes, includeExternal, externalOnly }) => {
+    const updated = await apiCall(`/api/notes-lists/${id}`, 'PUT', {
+      subject,
+      sessionDate: sessionDate ?? null,
+      notes: notes ?? '',
+      includeExternal: Boolean(includeExternal),
+      externalOnly: Boolean(externalOnly),
+    });
+    if (updated?.id) {
+      setNotesLists((prev) =>
+        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
+  const deleteNotesList = async (id) => {
+    const res = await apiCall(`/api/notes-lists/${id}`, 'DELETE');
+    if (res?.error) return res;
+    setNotesLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
+  };
+
+  const addNotesListExternalEntry = async (listId, { firstName, lastName }) => {
+    const created = await apiCall(`/api/notes-lists/${listId}/external-entries`, 'POST', {
+      firstName,
+      lastName,
+    });
+    if (created?.id) {
+      setNotesLists((prev) =>
+        prev.map((list) =>
+          list.id === listId ? { ...list, entries: [...(list.entries || []), created] } : list,
+        ),
+      );
+    }
+    return created;
+  };
+
+  const removeNotesListEntry = async (entryId) => {
+    const res = await apiCall(`/api/notes-list-entries/${entryId}`, 'DELETE');
+    if (res?.error) return res;
+    setNotesLists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        entries: (list.entries || []).filter((e) => e.id !== entryId),
+      })),
+    );
+    return { ok: true };
+  };
+
+  const updateNotesListEntryRemark = (listId, entryId, remark) => {
+    setNotesLists((prev) =>
+      prev.map((list) => {
+        if (list.id !== listId) return list;
+        return {
+          ...list,
+          entries: (list.entries || []).map((e) => (e.id === entryId ? { ...e, remark } : e)),
+        };
+      }),
+    );
+    apiCall(`/api/notes-list-entries/${entryId}`, 'PUT', { remark });
+  };
+
   const addSchoolRosterYear = async (label) => {
     const created = await apiCall('/api/school-roster-years', 'POST', { label });
     if (created?.error) return created;
@@ -1337,6 +1438,8 @@ export const DataProvider = ({ children }) => {
       updateAttendanceListEntryPresent, addAttendanceListExternalEntry, removeAttendanceListEntry,
       collectionLists, createCollectionList, updateCollectionList, deleteCollectionList,
       updateCollectionListEntryCollected, addCollectionListExternalEntry, removeCollectionListEntry,
+      notesLists, createNotesList, updateNotesList, deleteNotesList,
+      updateNotesListEntryRemark, addNotesListExternalEntry, removeNotesListEntry,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,

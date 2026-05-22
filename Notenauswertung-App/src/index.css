@@ -267,8 +267,38 @@ p {
 .klassenlehrer-money-panel-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.25rem;
+}
+
+.klassenlehrer-list-delete-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.klassenlehrer-remark-col {
+  min-width: 14rem;
+  width: 42%;
+  vertical-align: top;
+}
+
+.klassenlehrer-remark-cell {
+  padding: 0.35rem 0.5rem;
+  vertical-align: top;
+}
+
+.klassenlehrer-remark-input {
+  width: 100%;
+  min-height: 2.75rem;
+  max-height: 10rem;
+  resize: vertical;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  field-sizing: content;
 }
 
 /* Klassenlehrer: Geldlisten-Kopfzeile */

@@ -4,6 +4,8 @@ import {
   canAddExternalPersons,
   ExternalPersonAddBlock,
   ListFormExternalCheckboxes,
+  ListPanelFooter,
+  RemarkEntryField,
 } from '../components/KlassenlehrerListShared';
 import { useData } from '../store/DataContext';
 
@@ -45,11 +47,13 @@ const LIST_DEFAULT_LABELS = {
   money: 'Geldliste',
   attendance: 'Anwesenheitsliste',
   collection: 'Sammelliste',
+  notes: 'Notizenliste',
 };
 
 function entryDone(entry, type) {
   if (type === 'money') return entry.paid === true;
   if (type === 'attendance') return entry.present === true;
+  if (type === 'notes') return Boolean(String(entry.remark ?? '').trim());
   return entry.collected === true;
 }
 
@@ -61,10 +65,11 @@ function isListComplete(list, type) {
 function listStatusLine(type, doneCount, totalCount) {
   if (type === 'money') return `${doneCount} / ${totalCount} bezahlt`;
   if (type === 'attendance') return `${doneCount} / ${totalCount} anwesend`;
+  if (type === 'notes') return `${doneCount} / ${totalCount} mit Bemerkung`;
   return `${doneCount} / ${totalCount} eingesammelt`;
 }
 
-function buildMergedTabs(moneyLists, attendanceLists, collectionLists) {
+function buildMergedTabs(moneyLists, attendanceLists, collectionLists, notesLists) {
   const tabs = [
     ...(moneyLists || []).map((list) => ({
       type: 'money',
@@ -81,6 +86,12 @@ function buildMergedTabs(moneyLists, attendanceLists, collectionLists) {
     ...(collectionLists || []).map((list) => ({
       type: 'collection',
       key: listTabKey('collection', list.id),
+      list,
+      sortTime: list.createdAt ? new Date(list.createdAt).getTime() : list.id,
+    })),
+    ...(notesLists || []).map((list) => ({
+      type: 'notes',
+      key: listTabKey('notes', list.id),
       list,
       sortTime: list.createdAt ? new Date(list.createdAt).getTime() : list.id,
     })),
@@ -212,14 +223,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
         </table>
       </div>
       {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <div className="klassenlehrer-money-panel-actions">
-        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
-          Bearbeiten
-        </button>
-        <button type="button" className="danger" onClick={() => onDelete(list)}>
-          Löschen
-        </button>
-      </div>
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
@@ -314,14 +318,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
         </table>
       </div>
       {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <div className="klassenlehrer-money-panel-actions">
-        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
-          Bearbeiten
-        </button>
-        <button type="button" className="danger" onClick={() => onDelete(list)}>
-          Löschen
-        </button>
-      </div>
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
@@ -416,14 +413,99 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
         </table>
       </div>
       {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <div className="klassenlehrer-money-panel-actions">
-        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
-          Bearbeiten
-        </button>
-        <button type="button" className="danger" onClick={() => onDelete(list)}>
-          Löschen
-        </button>
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+}
+
+function NotesListPanel({
+  list,
+  updateNotesListEntryRemark,
+  onAddExternal,
+  onRemoveExternalEntry,
+  onEdit,
+  onDelete,
+}) {
+  const entries = list.entries || [];
+  const remarkCount = entries.filter((e) => Boolean(String(e.remark ?? '').trim())).length;
+  const totalCount = entries.length;
+  const dateLabel = formatListDate(list.sessionDate);
+
+  return (
+    <div className="glass-panel program-view-panel klassenlehrer-money-panel">
+      <div className="klassenlehrer-money-header">
+        <div className="klassenlehrer-money-header-main">
+          {list.notes ? (
+            <p className="text-muted program-view-panel-text klassenlehrer-money-meta">{list.notes}</p>
+          ) : null}
+        </div>
+        <div className="klassenlehrer-money-header-stats">
+          <div className="klassenlehrer-money-paid-due-row">
+            <p className="program-view-panel-heading klassenlehrer-money-paid-count">
+              {remarkCount} / {totalCount} mit Bemerkung
+            </p>
+            {dateLabel ? (
+              <p className="program-view-panel-heading klassenlehrer-money-due-inline">
+                Datum: {dateLabel}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
+      <div className="klassenlehrer-money-table-scroll">
+        <table className="data-table klassenlehrer-notes-table">
+          <thead>
+            <tr>
+              <th className="text-center klassenlehrer-num-col">Nr.</th>
+              <th className="klassenlehrer-name-col">Name</th>
+              <th className="klassenlehrer-name-col">Vorname</th>
+              <th className="klassenlehrer-remark-col">Bemerkungen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((row) => {
+              const name = `${row.lastName || ''}, ${row.firstName || ''}`.replace(/^, |, $/g, '').trim() || '—';
+              const isExternal = row.isExternal === true;
+              return (
+                <tr key={row.id}>
+                  <td className="text-center klassenlehrer-num-col">
+                    {isExternal ? (
+                      <>
+                        ext.
+                        <button
+                          type="button"
+                          className="tab secondary klassenlehrer-external-row-remove"
+                          title="Externe Person entfernen"
+                          onClick={() => onRemoveExternalEntry(row.id)}
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      row.studentNumber ?? '—'
+                    )}
+                  </td>
+                  <td className="klassenlehrer-name-col" title={row.lastName || undefined}>
+                    {row.lastName || '—'}
+                  </td>
+                  <td className="klassenlehrer-name-col" title={row.firstName || undefined}>
+                    {row.firstName || '—'}
+                  </td>
+                  <td className="klassenlehrer-remark-cell klassenlehrer-remark-col">
+                    <RemarkEntryField
+                      value={row.remark ?? ''}
+                      onCommit={(remark) => updateNotesListEntryRemark(list.id, row.id, remark)}
+                      ariaLabel={`Bemerkung für ${name}`}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
@@ -778,11 +860,123 @@ function CollectionListFormModal({
   );
 }
 
+function NotesListFormModal({
+  open,
+  mode,
+  formSubject,
+  setFormSubject,
+  formSessionDate,
+  setFormSessionDate,
+  formNotes,
+  setFormNotes,
+  formIncludeExternal,
+  setFormIncludeExternal,
+  formExternalOnly,
+  setFormExternalOnly,
+  formError,
+  setFormError,
+  busy,
+  subjectInputRef,
+  onClose,
+  onSubmit,
+}) {
+  if (!open) return null;
+
+  const title = mode === 'edit' ? 'Notizenliste bearbeiten' : 'Notizenliste erstellen';
+  const submitLabel =
+    busy ? (mode === 'edit' ? 'Speichern…' : 'Erstellen…') : mode === 'edit' ? 'Speichern' : 'Erstellen';
+
+  return createPortal(
+    <div
+      className="program-user-mgmt-modal-backdrop"
+      role="presentation"
+      onMouseDown={(ev) => {
+        if (ev.target === ev.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="program-user-mgmt-modal-dialog glass-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notes-list-modal-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <h2 id="notes-list-modal-title" className="program-user-mgmt-modal-title">
+          {title}
+        </h2>
+        <form className="program-user-mgmt-form" onSubmit={onSubmit}>
+          <label className="program-user-mgmt-label">
+            Betreff
+            <input
+              ref={subjectInputRef}
+              className="program-user-mgmt-input"
+              value={formSubject}
+              onChange={(ev) => {
+                setFormSubject(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              placeholder="z. B. Elterngespräche"
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Datum <span className="text-muted">(optional)</span>
+            <input
+              className="program-user-mgmt-input"
+              type="date"
+              value={formSessionDate}
+              onChange={(ev) => {
+                setFormSessionDate(ev.target.value);
+                if (formError) setFormError('');
+              }}
+              disabled={busy}
+            />
+          </label>
+          <label className="program-user-mgmt-label">
+            Notizen <span className="text-muted">(optional)</span>
+            <textarea
+              className="program-user-mgmt-input"
+              rows={3}
+              value={formNotes}
+              onChange={(ev) => setFormNotes(ev.target.value)}
+              placeholder="Zusätzliche Hinweise zur Liste …"
+              disabled={busy}
+            />
+          </label>
+          <ListFormExternalCheckboxes
+            includeExternal={formIncludeExternal}
+            setIncludeExternal={setFormIncludeExternal}
+            externalOnly={formExternalOnly}
+            setExternalOnly={setFormExternalOnly}
+            disabled={busy}
+          />
+          {formError ? (
+            <p className="program-user-mgmt-error" role="alert">
+              {formError}
+            </p>
+          ) : null}
+          <div className="program-user-mgmt-modal-actions">
+            <button type="submit" className="program-user-mgmt-submit" disabled={busy}>
+              {submitLabel}
+            </button>
+            <button type="button" className="secondary" onClick={onClose} disabled={busy}>
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function KlassenlehrerView() {
   const {
     moneyLists,
     attendanceLists,
     collectionLists,
+    notesLists,
     createMoneyList,
     updateMoneyList,
     deleteMoneyList,
@@ -801,11 +995,17 @@ export default function KlassenlehrerView() {
     updateCollectionListEntryCollected,
     addCollectionListExternalEntry,
     removeCollectionListEntry,
+    createNotesList,
+    updateNotesList,
+    deleteNotesList,
+    updateNotesListEntryRemark,
+    addNotesListExternalEntry,
+    removeNotesListEntry,
   } = useData();
 
   const mergedTabs = useMemo(
-    () => buildMergedTabs(moneyLists, attendanceLists, collectionLists),
-    [moneyLists, attendanceLists, collectionLists],
+    () => buildMergedTabs(moneyLists, attendanceLists, collectionLists, notesLists),
+    [moneyLists, attendanceLists, collectionLists, notesLists],
   );
 
   const [activeTabKey, setActiveTabKey] = useState(null);
@@ -846,6 +1046,18 @@ export default function KlassenlehrerView() {
   const [collectionFormError, setCollectionFormError] = useState('');
   const [collectionModalBusy, setCollectionModalBusy] = useState(false);
   const collectionSubjectInputRef = useRef(null);
+
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [notesModalMode, setNotesModalMode] = useState('create');
+  const [notesEditingId, setNotesEditingId] = useState(null);
+  const [notesFormSubject, setNotesFormSubject] = useState('');
+  const [notesFormSessionDate, setNotesFormSessionDate] = useState('');
+  const [notesFormNotes, setNotesFormNotes] = useState('');
+  const [notesFormIncludeExternal, setNotesFormIncludeExternal] = useState(false);
+  const [notesFormExternalOnly, setNotesFormExternalOnly] = useState(false);
+  const [notesFormError, setNotesFormError] = useState('');
+  const [notesModalBusy, setNotesModalBusy] = useState(false);
+  const notesSubjectInputRef = useRef(null);
 
   useEffect(() => {
     if (mergedTabs.length === 0) {
@@ -912,6 +1124,23 @@ export default function KlassenlehrerView() {
     requestAnimationFrame(() => collectionSubjectInputRef.current?.focus());
   }, [resetCollectionForm]);
 
+  const resetNotesForm = useCallback(() => {
+    setNotesFormSubject('');
+    setNotesFormSessionDate('');
+    setNotesFormNotes('');
+    setNotesFormIncludeExternal(false);
+    setNotesFormExternalOnly(false);
+    setNotesFormError('');
+    setNotesEditingId(null);
+  }, []);
+
+  const openCreateNotesModal = useCallback(() => {
+    resetNotesForm();
+    setNotesModalMode('create');
+    setNotesModalOpen(true);
+    requestAnimationFrame(() => notesSubjectInputRef.current?.focus());
+  }, [resetNotesForm]);
+
   const openEditMoneyModal = useCallback(
     (list) => {
       setMoneyFormSubject(list.subject ?? '');
@@ -955,6 +1184,19 @@ export default function KlassenlehrerView() {
     requestAnimationFrame(() => collectionSubjectInputRef.current?.focus());
   }, []);
 
+  const openEditNotesModal = useCallback((list) => {
+    setNotesFormSubject(list.subject ?? '');
+    setNotesFormSessionDate(toInputDateValue(list.sessionDate));
+    setNotesFormNotes(list.notes ?? '');
+    setNotesFormIncludeExternal(Boolean(list.includeExternal));
+    setNotesFormExternalOnly(Boolean(list.externalOnly));
+    setNotesFormError('');
+    setNotesEditingId(list.id);
+    setNotesModalMode('edit');
+    setNotesModalOpen(true);
+    requestAnimationFrame(() => notesSubjectInputRef.current?.focus());
+  }, []);
+
   const closeMoneyModal = useCallback(() => {
     if (moneyModalBusy) return;
     setMoneyModalOpen(false);
@@ -975,6 +1217,13 @@ export default function KlassenlehrerView() {
     setCollectionFormError('');
     setCollectionEditingId(null);
   }, [collectionModalBusy]);
+
+  const closeNotesModal = useCallback(() => {
+    if (notesModalBusy) return;
+    setNotesModalOpen(false);
+    setNotesFormError('');
+    setNotesEditingId(null);
+  }, [notesModalBusy]);
 
   const validateMoneyForm = () => {
     const betreff = moneyFormSubject.trim();
@@ -1186,6 +1435,74 @@ export default function KlassenlehrerView() {
     if (res?.error) window.alert(res.error);
   };
 
+  const validateNotesForm = () => {
+    const betreff = notesFormSubject.trim();
+    if (!betreff) {
+      setNotesFormError('Bitte einen Betreff eingeben.');
+      return null;
+    }
+    return {
+      subject: betreff,
+      sessionDate: notesFormSessionDate.trim() || null,
+      notes: notesFormNotes.trim(),
+      includeExternal: notesFormIncludeExternal,
+      externalOnly: notesFormExternalOnly,
+    };
+  };
+
+  const handleNotesFormSubmit = async (e) => {
+    e.preventDefault();
+    const payload = validateNotesForm();
+    if (!payload) return;
+
+    setNotesModalBusy(true);
+    setNotesFormError('');
+    try {
+      if (notesModalMode === 'edit' && notesEditingId != null) {
+        const updated = await updateNotesList(notesEditingId, payload);
+        if (updated?.error) {
+          setNotesFormError(updated.error);
+          return;
+        }
+        if (!updated?.id) {
+          setNotesFormError('Notizenliste konnte nicht gespeichert werden.');
+          return;
+        }
+        setActiveTabKey(listTabKey('notes', updated.id));
+        setNotesModalOpen(false);
+        return;
+      }
+
+      const created = await createNotesList(payload);
+      if (created?.error) {
+        setNotesFormError(created.error);
+        return;
+      }
+      if (!created?.id) {
+        setNotesFormError('Notizenliste konnte nicht erstellt werden.');
+        return;
+      }
+      setActiveTabKey(listTabKey('notes', created.id));
+      setNotesModalOpen(false);
+    } catch {
+      setNotesFormError(
+        notesModalMode === 'edit'
+          ? 'Notizenliste konnte nicht gespeichert werden.'
+          : 'Notizenliste konnte nicht erstellt werden.',
+      );
+    } finally {
+      setNotesModalBusy(false);
+    }
+  };
+
+  const handleDeleteNotes = async (list) => {
+    const label = list.subject?.trim() || 'Notizenliste';
+    const ok = window.confirm(`Notizenliste „${label}“ wirklich löschen?`);
+    if (!ok) return;
+    const res = await deleteNotesList(list.id);
+    if (res?.error) window.alert(res.error);
+  };
+
   return (
     <div className="view-generic-scroll program-view">
       <MoneyListFormModal
@@ -1250,6 +1567,26 @@ export default function KlassenlehrerView() {
         onClose={closeCollectionModal}
         onSubmit={handleCollectionFormSubmit}
       />
+      <NotesListFormModal
+        open={notesModalOpen}
+        mode={notesModalMode}
+        formSubject={notesFormSubject}
+        setFormSubject={setNotesFormSubject}
+        formSessionDate={notesFormSessionDate}
+        setFormSessionDate={setNotesFormSessionDate}
+        formNotes={notesFormNotes}
+        setFormNotes={setNotesFormNotes}
+        formIncludeExternal={notesFormIncludeExternal}
+        setFormIncludeExternal={setNotesFormIncludeExternal}
+        formExternalOnly={notesFormExternalOnly}
+        setFormExternalOnly={setNotesFormExternalOnly}
+        formError={notesFormError}
+        setFormError={setNotesFormError}
+        busy={notesModalBusy}
+        subjectInputRef={notesSubjectInputRef}
+        onClose={closeNotesModal}
+        onSubmit={handleNotesFormSubmit}
+      />
 
       <h2 className="program-view-title">Klassenlehrer</h2>
       <p className="text-muted program-view-intro">
@@ -1267,6 +1604,9 @@ export default function KlassenlehrerView() {
           </button>
           <button type="button" className="tab secondary" onClick={openCreateCollectionModal}>
             + Sammelliste erstellen
+          </button>
+          <button type="button" className="tab secondary" onClick={openCreateNotesModal}>
+            + Notizenliste erstellen
           </button>
         </div>
       </div>
@@ -1309,6 +1649,15 @@ export default function KlassenlehrerView() {
                     onRemoveExternalEntry={removeAttendanceListEntry}
                     onEdit={openEditAttendanceModal}
                     onDelete={handleDeleteAttendance}
+                  />
+                ) : activeTab.type === 'notes' ? (
+                  <NotesListPanel
+                    list={activeTab.list}
+                    updateNotesListEntryRemark={updateNotesListEntryRemark}
+                    onAddExternal={(person) => addNotesListExternalEntry(activeTab.list.id, person)}
+                    onRemoveExternalEntry={removeNotesListEntry}
+                    onEdit={openEditNotesModal}
+                    onDelete={handleDeleteNotes}
                   />
                 ) : (
                   <CollectionListPanel

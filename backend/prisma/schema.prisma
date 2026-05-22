@@ -52,6 +52,7 @@ model Course {
   moneyLists        MoneyList[]
   attendanceLists   AttendanceList[]
   collectionLists   CollectionList[]
+  notesLists        NotesList[]
 
   @@index([ownerUsername])
 }
@@ -96,6 +97,7 @@ model Student {
   moneyListEntries       MoneyListEntry[]
   attendanceListEntries  AttendanceListEntry[]
   collectionListEntries  CollectionListEntry[]
+  notesListEntries       NotesListEntry[]
 }
 
 model MoneyList {
@@ -184,6 +186,35 @@ model CollectionListEntry {
 
   @@unique([collectionListId, studentId])
   @@index([collectionListId])
+}
+
+model NotesList {
+  id              Int       @id @default(autoincrement())
+  subject         String
+  sessionDate     DateTime?
+  notes           String    @default("")
+  includeExternal Boolean   @default(false)
+  externalOnly    Boolean   @default(false)
+  courseId        Int
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  entries         NotesListEntry[]
+  createdAt       DateTime  @default(now())
+
+  @@index([courseId])
+}
+
+model NotesListEntry {
+  id                Int        @id @default(autoincrement())
+  remark            String     @default("")
+  studentId         Int?
+  student           Student?   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  externalFirstName String     @default("")
+  externalLastName  String     @default("")
+  notesListId       Int
+  notesList         NotesList  @relation(fields: [notesListId], references: [id], onDelete: Cascade)
+
+  @@unique([notesListId, studentId])
+  @@index([notesListId])
 }
 
 model GfsEntry {

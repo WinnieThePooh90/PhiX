@@ -561,6 +561,7 @@ app.delete('/api/students', async (req, res) => {
   await syncMoneyListEntriesForCourse(courseId);
   await syncAttendanceListEntriesForCourse(courseId);
   await syncCollectionListEntriesForCourse(courseId);
+  await syncNotesListEntriesForCourse(courseId);
   res.status(204).send();
 });
 
@@ -591,6 +592,7 @@ app.post('/api/students', async (req, res) => {
   await syncMoneyListEntriesForCourse(targetCourseId);
   await syncAttendanceListEntriesForCourse(targetCourseId);
   await syncCollectionListEntriesForCourse(targetCourseId);
+  await syncNotesListEntriesForCourse(targetCourseId);
   res.json({ ...student, frontendId: student.frontendId ? student.frontendId.toString() : null });
 });
 
@@ -656,6 +658,7 @@ app.delete('/api/students/:id', async (req, res) => {
     await syncMoneyListEntriesForCourse(courseId);
     await syncAttendanceListEntriesForCourse(courseId);
     await syncCollectionListEntriesForCourse(courseId);
+    await syncNotesListEntriesForCourse(courseId);
   }
 
   res.status(204).send();
@@ -959,6 +962,37 @@ async function syncAttendanceListEntriesForCourse(courseId) {
   }
 }
 
+async function syncNotesListEntriesForCourse(courseId) {
+  const [lists, students] = await Promise.all([
+    prisma.notesList.findMany({ where: { courseId, externalOnly: false }, select: { id: true } }),
+    prisma.student.findMany({ where: { courseId }, select: { id: true } }),
+  ]);
+  const studentIds = new Set(students.map((s) => s.id));
+
+  for (const list of lists) {
+    const existing = await prisma.notesListEntry.findMany({
+      where: { notesListId: list.id, studentId: { not: null } },
+      select: { id: true, studentId: true },
+    });
+    const existingStudentIds = new Set(existing.map((e) => e.studentId));
+    const toAdd = [...studentIds].filter((sid) => !existingStudentIds.has(sid));
+    const orphanIds = existing.filter((e) => !studentIds.has(e.studentId)).map((e) => e.id);
+
+    if (toAdd.length > 0) {
+      await prisma.notesListEntry.createMany({
+        data: toAdd.map((studentId) => ({
+          notesListId: list.id,
+          studentId,
+          remark: '',
+        })),
+      });
+    }
+    if (orphanIds.length > 0) {
+      await prisma.notesListEntry.deleteMany({ where: { id: { in: orphanIds } } });
+    }
+  }
+}
+
 async function syncMoneyListEntriesForCourse(courseId) {
   if (!Number.isFinite(courseId)) return;
 
@@ -1022,6 +1056,19 @@ function mapSerializedListEntry(e, statusField) {
   };
   row[statusField] = Boolean(e[statusField]);
   return row;
+}
+
+function mapSerializedNotesListEntry(e) {
+  const isExternal = e.studentId == null;
+  return {
+    id: e.id,
+    isExternal,
+    studentId: e.studentId ?? null,
+    studentNumber: isExternal ? null : (e.student?.studentNumber ?? null),
+    firstName: isExternal ? (e.externalFirstName ?? '') : (e.student?.firstName ?? ''),
+    lastName: isExternal ? (e.externalLastName ?? '') : (e.student?.lastName ?? ''),
+    remark: e.remark ?? '',
+  };
 }
 
 function sortSerializedListEntries(entries) {
@@ -1730,6 +1777,225 @@ app.delete('/api/collection-list-entries/:id', async (req, res) => {
     return res.status(400).json({ error: 'Kurs-Schüler können hier nicht entfernt werden' });
   }
   await prisma.collectionListEntry.delete({ where: { id } });
+  res.status(204).end();
+});
+
+function serializeNotesList(list) {
+  const entries = sortSerializedListEntries((list.entries || []).map(mapSerializedNotesListEntry));
+  return {
+    id: list.id,
+    subject: list.subject,
+    sessionDate: list.sessionDate ?? null,
+    notes: list.notes ?? '',
+    includeExternal: Boolean(list.includeExternal),
+    externalOnly: Boolean(list.externalOnly),
+    courseId: list.courseId,
+    createdAt: list.createdAt,
+    entries,
+  };
+}
+
+// Notizenlisten (Klassenlehrer)
+app.get('/api/notes-lists', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const lists = await prisma.notesList.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+    include: {
+      entries: {
+        include: { student: true },
+      },
+    },
+  });
+  res.json(lists.map(serializeNotesList));
+});
+
+app.post('/api/notes-lists', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const subject = String(req.body.subject ?? '').trim();
+  if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+
+  const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
+  if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
+
+  const notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  const { includeExternal, externalOnly } = parseListExternalFlags(req.body);
+
+  const courseStudents = externalOnly
+    ? []
+    : await prisma.student.findMany({
+        where: { courseId },
+        orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
+      });
+
+  const list = await prisma.notesList.create({
+    data: {
+      courseId,
+      subject,
+      sessionDate: dateParsed.skip ? null : dateParsed.value,
+      notes,
+      includeExternal,
+      externalOnly,
+      ...(courseStudents.length > 0
+        ? {
+            entries: {
+              create: courseStudents.map((s) => ({
+                studentId: s.id,
+                remark: '',
+              })),
+            },
+          }
+        : {}),
+    },
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.status(201).json(serializeNotesList(list));
+});
+
+app.put('/api/notes-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.notesList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  const data = {};
+
+  if (req.body.subject !== undefined) {
+    const subject = String(req.body.subject ?? '').trim();
+    if (!subject) return res.status(400).json({ error: 'Betreff erforderlich' });
+    data.subject = subject;
+  }
+
+  if (req.body.sessionDate !== undefined) {
+    const dateParsed = parseOptionalSessionDate(req.body.sessionDate);
+    if (dateParsed.error) return res.status(400).json({ error: dateParsed.error });
+    data.sessionDate = dateParsed.value;
+  }
+
+  if (req.body.notes !== undefined) {
+    data.notes = req.body.notes != null ? String(req.body.notes).trim() : '';
+  }
+
+  if (req.body.includeExternal !== undefined || req.body.externalOnly !== undefined) {
+    const flags = parseListExternalFlags({
+      includeExternal: req.body.includeExternal ?? existing.includeExternal,
+      externalOnly: req.body.externalOnly ?? existing.externalOnly,
+    });
+    data.includeExternal = flags.includeExternal;
+    data.externalOnly = flags.externalOnly;
+  }
+
+  const list = await prisma.notesList.update({
+    where: { id },
+    data,
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.json(serializeNotesList(list));
+});
+
+app.delete('/api/notes-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.notesList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, existing.courseId);
+  if (!ok) return;
+
+  await prisma.notesList.delete({ where: { id } });
+  res.status(204).end();
+});
+
+app.put('/api/notes-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.notesListEntry.findUnique({
+    where: { id },
+    include: { notesList: { include: { course: true } }, student: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.notesList?.course || !canAccessCourse(existing.notesList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const data = {};
+  if (req.body.remark !== undefined) {
+    data.remark = req.body.remark != null ? String(req.body.remark) : '';
+  }
+
+  const updated = await prisma.notesListEntry.update({
+    where: { id },
+    data,
+    include: { student: true },
+  });
+
+  res.json({ ...mapSerializedNotesListEntry(updated), notesListId: updated.notesListId });
+});
+
+app.post('/api/notes-lists/:id/external-entries', async (req, res) => {
+  const listId = Number(req.params.id);
+  const list = await prisma.notesList.findUnique({
+    where: { id: listId },
+    include: { course: true },
+  });
+  if (!list) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, list.courseId);
+  if (!ok) return;
+  if (!list.includeExternal && !list.externalOnly) {
+    return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
+  }
+
+  const names = parseExternalPersonNames(req.body);
+  if (names.error) return res.status(400).json({ error: names.error });
+
+  const entry = await prisma.notesListEntry.create({
+    data: {
+      notesListId: listId,
+      externalFirstName: names.firstName,
+      externalLastName: names.lastName,
+      remark: '',
+    },
+    include: { student: true },
+  });
+
+  res.status(201).json({ ...mapSerializedNotesListEntry(entry), notesListId: entry.notesListId });
+});
+
+app.delete('/api/notes-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.notesListEntry.findUnique({
+    where: { id },
+    include: { notesList: { include: { course: true } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.notesList?.course || !canAccessCourse(existing.notesList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  if (existing.studentId != null) {
+    return res.status(400).json({ error: 'Kurs-Schüler können hier nicht entfernt werden' });
+  }
+  await prisma.notesListEntry.delete({ where: { id } });
   res.status(204).end();
 });
 
