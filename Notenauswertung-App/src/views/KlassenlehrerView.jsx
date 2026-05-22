@@ -780,7 +780,6 @@ function CollectionListFormModal({
 
 export default function KlassenlehrerView() {
   const {
-    config,
     moneyLists,
     attendanceLists,
     collectionLists,
@@ -803,9 +802,6 @@ export default function KlassenlehrerView() {
     addCollectionListExternalEntry,
     removeCollectionListEntry,
   } = useData();
-  const subject = config?.subject ?? '—';
-  const classLabel = config?.className || config?.class || '—';
-  const year = config?.year ?? '—';
 
   const mergedTabs = useMemo(
     () => buildMergedTabs(moneyLists, attendanceLists, collectionLists),
@@ -1261,13 +1257,7 @@ export default function KlassenlehrerView() {
       </p>
 
       <div className="glass-panel program-view-panel">
-        <h3 className="program-view-panel-heading">Aktueller Kurs</h3>
-        <p className="program-view-panel-text" style={{ margin: 0 }}>
-          {subject} · Klasse {classLabel} · Schuljahr {year}
-        </p>
-      </div>
-
-      <section className="klassenlehrer-geldlisten-section">
+        <h3 className="program-view-panel-heading">Neue Liste anlegen</h3>
         <div className="klassenlehrer-create-buttons">
           <button type="button" className="tab secondary" onClick={openCreateMoneyModal}>
             + Geldliste erstellen
@@ -1279,7 +1269,9 @@ export default function KlassenlehrerView() {
             + Sammelliste erstellen
           </button>
         </div>
+      </div>
 
+      <section className="klassenlehrer-geldlisten-section">
         {mergedTabs.length > 0 ? (
           <>
             <div className="klassenlehrer-money-tabs" role="tablist" aria-label="Listen">

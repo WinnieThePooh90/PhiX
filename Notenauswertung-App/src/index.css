@@ -145,6 +145,7 @@ p {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 /** Klassenlehrer-Listen-Modal: Checkboxen wie „Klasse erstellen“, untereinander */
