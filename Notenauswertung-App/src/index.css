@@ -147,19 +147,25 @@ p {
   gap: 0.5rem;
 }
 
-.klassenlehrer-external-form-options {
-  display: flex;
+/** Klassenlehrer-Listen-Modal: Checkboxen wie „Klasse erstellen“, untereinander */
+.klassenlehrer-external-form-options.settings-course-check-options {
   flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
   gap: 0.5rem;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
+  width: 100%;
 }
 
-.klassenlehrer-external-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  cursor: pointer;
+.klassenlehrer-external-form-options .settings-tests-written-option {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.klassenlehrer-external-form-options .settings-tests-written-option:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .klassenlehrer-external-add {

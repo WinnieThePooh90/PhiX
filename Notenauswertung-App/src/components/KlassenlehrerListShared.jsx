@@ -8,8 +8,8 @@ export function ListFormExternalCheckboxes({
   disabled,
 }) {
   return (
-    <div className="klassenlehrer-external-form-options">
-      <label className="klassenlehrer-external-checkbox">
+    <div className="settings-course-check-options klassenlehrer-external-form-options">
+      <label className="settings-tests-written-option">
         <input
           type="checkbox"
           checked={includeExternal}
@@ -18,9 +18,9 @@ export function ListFormExternalCheckboxes({
             setIncludeExternal(ev.target.checked);
           }}
         />
-        Externe Personen einbinden
+        <span>Externe Personen einbinden</span>
       </label>
-      <label className="klassenlehrer-external-checkbox">
+      <label className="settings-tests-written-option">
         <input
           type="checkbox"
           checked={externalOnly}
@@ -31,7 +31,7 @@ export function ListFormExternalCheckboxes({
             if (checked) setIncludeExternal(false);
           }}
         />
-        Nur externe Personen
+        <span>Nur externe Personen</span>
       </label>
     </div>
   );
