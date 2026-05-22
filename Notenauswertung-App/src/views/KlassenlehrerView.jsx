@@ -58,6 +58,7 @@ function entryDone(entry, type) {
 }
 
 function isListComplete(list, type) {
+  if (type === 'notes') return false;
   const entries = list.entries || [];
   return entries.length > 0 && entries.every((e) => entryDone(e, type));
 }

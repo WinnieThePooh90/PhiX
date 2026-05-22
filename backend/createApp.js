@@ -359,6 +359,7 @@ app.delete('/api/courses/:id', async (req, res) => {
   await prisma.moneyList.deleteMany({ where: { courseId } });
   await prisma.attendanceList.deleteMany({ where: { courseId } });
   await prisma.collectionList.deleteMany({ where: { courseId } });
+  await prisma.notesList.deleteMany({ where: { courseId } });
 
   await prisma.course.delete({ where: { id: courseId } });
   res.status(204).send();

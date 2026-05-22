@@ -41,6 +41,8 @@ model Course {
   testsWritten Boolean @default(true)
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
+  /** Wenn true: Eintrag „Klassenlehrer“ im Einstellungsmenü für diesen Kurs. */
+  klassenlehrerEnabled Boolean @default(false)
   /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
   ownerUsername String @default("admin")
 

@@ -274,6 +274,14 @@ export default function SettingsView() {
                   />
                   <span>GFS werden angenommen</span>
                 </label>
+                <label className="settings-tests-written-option">
+                  <input
+                    type="checkbox"
+                    checked={config.klassenlehrerEnabled === true}
+                    onChange={(e) => setConfig((c) => ({ ...c, klassenlehrerEnabled: e.target.checked }))}
+                  />
+                  <span>Klassenlehrer</span>
+                </label>
               </div>
             </section>
           </div>

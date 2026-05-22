@@ -97,11 +97,13 @@ function App() {
 
   const showTestsTab = config?.testsWritten !== false;
   const showGfsTab = config?.gfsAccepted !== false;
+  const showKlassenlehrerMenu = config?.klassenlehrerEnabled === true;
 
   useEffect(() => {
     if (!showTestsTab && activeTab === 'tests') setActiveTab('summary');
     if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary');
-  }, [showTestsTab, showGfsTab, activeTab]);
+    if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary');
+  }, [showTestsTab, showGfsTab, showKlassenlehrerMenu, activeTab]);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MEDIA);
@@ -266,6 +268,7 @@ function App() {
     headerSearch,
     showTestsTab,
     showGfsTab,
+    showKlassenlehrerMenu,
   ]);
 
   const handleNewCourseClick = () => {
@@ -391,6 +394,7 @@ function App() {
               >
                 <SettingsNavMenu
                   isAdminUser={isAdminUser}
+                  showKlassenlehrer={showKlassenlehrerMenu}
                   onSelect={openMainTab}
                   onNewCourse={handleNewCourseClick}
                   onClose={() => setSettingsMenuOpen(false)}
@@ -573,6 +577,7 @@ function App() {
           <SettingsNavMenu
             className="settings-nav-menu--panel"
             isAdminUser={isAdminUser}
+            showKlassenlehrer={showKlassenlehrerMenu}
             onSelect={openMainTab}
             onNewCourse={handleNewCourseClick}
             onClose={() => setMobileSettingsOpen(false)}

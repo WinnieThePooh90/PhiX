@@ -20,6 +20,7 @@ export default function NewCourseForm() {
     gradeSystem: 'classic',
     testsWritten: true,
     gfsAccepted: true,
+    klassenlehrerEnabled: false,
   });
 
   const handleNewCourseGradeSystemChange = (e) => {
@@ -151,6 +152,14 @@ export default function NewCourseForm() {
               onChange={(e) => setNewCourse((p) => ({ ...p, gfsAccepted: e.target.checked }))}
             />
             <span>GFS werden angenommen</span>
+          </label>
+          <label className="settings-tests-written-option">
+            <input
+              type="checkbox"
+              checked={newCourse.klassenlehrerEnabled === true}
+              onChange={(e) => setNewCourse((p) => ({ ...p, klassenlehrerEnabled: e.target.checked }))}
+            />
+            <span>Klassenlehrer</span>
           </label>
         </div>
       </section>
