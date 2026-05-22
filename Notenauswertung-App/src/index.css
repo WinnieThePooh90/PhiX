@@ -141,11 +141,25 @@ p {
 }
 
 .klassenlehrer-create-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
   margin-top: 0.75rem;
+  width: 100%;
+  max-width: 40rem;
+}
+
+.klassenlehrer-create-buttons .tab {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .klassenlehrer-create-buttons {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
 }
 
 /** Klassenlehrer-Listen-Modal: Checkboxen wie „Klasse erstellen“, untereinander */
