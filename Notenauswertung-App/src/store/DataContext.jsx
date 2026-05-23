@@ -647,6 +647,60 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  const ensureExamStudentScoreObject = (prevStudentScores) => {
+    if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
+      return { ...prevStudentScores };
+    }
+    if (prevStudentScores !== undefined && prevStudentScores !== null) {
+      return { 0: prevStudentScores, _counted: true };
+    }
+    return { _counted: true };
+  };
+
+  const updateExamStudentManualGrade = (examId, studentId, active, seedValue = undefined) => {
+    setExams((prev) => {
+      const exam = prev[examId];
+      const base = ensureExamStudentScoreObject(exam.scores[studentId]);
+      let newScores;
+      if (active) {
+        newScores = { ...base, _manualGrade: true };
+        const hasStored =
+          newScores._manualGradeValue !== undefined &&
+          newScores._manualGradeValue !== null &&
+          String(newScores._manualGradeValue).trim() !== '';
+        if (!hasStored && seedValue !== undefined && seedValue !== null && String(seedValue).trim() !== '') {
+          newScores._manualGradeValue = String(seedValue).trim();
+        }
+      } else {
+        newScores = { ...base, _manualGrade: false };
+      }
+      const newExam = {
+        ...exam,
+        scores: { ...exam.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/exams/${examId}`, 'PUT', { ...newExam, courseId: activeCourseId });
+      return { ...prev, [examId]: newExam };
+    });
+  };
+
+  const updateExamStudentManualGradeValue = (examId, studentId, value) => {
+    setExams((prev) => {
+      const exam = prev[examId];
+      const base = ensureExamStudentScoreObject(exam.scores[studentId]);
+      const newScores = {
+        ...base,
+        _manualGrade: true,
+        _manualGradeValue: value,
+      };
+      const newExam = {
+        ...exam,
+        scores: { ...exam.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/exams/${examId}`, 'PUT', { ...newExam, courseId: activeCourseId });
+      return { ...prev, [examId]: newExam };
+    });
+  };
+
   const updateExamStudentNachschreiberFields = (examId, studentId, rawN) => {
     setExams(prev => {
       const exam = prev[examId];
@@ -1429,6 +1483,7 @@ export const DataProvider = ({ children }) => {
       students, addStudent, removeStudent, clearCourseStudents, updateStudentConfig,
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,
       updateExamStudentNachschreiber, updateExamStudentNachschreiberFields,
+      updateExamStudentManualGrade, updateExamStudentManualGradeValue,
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,

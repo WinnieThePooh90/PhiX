@@ -5,11 +5,10 @@ import {
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
-  calculateGradeFromThresholds,
+  getExamGradeForStudent,
   calculateTestGradeForStudentEntry,
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
-  getStudentExamMaxPointsForGrade,
   getNormalizedOralGrade,
   getNormalizedTestScore,
   getCustomKeyDefinition,
@@ -276,10 +275,11 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                   </h4>
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(exams).filter(([_, e]) => e.active && (!cat.filter || e.halbjahr === cat.filter)).map(([id, e]) => {
-                                      const effN = getStudentEffectiveExamFieldCount(e, s.id);
-                                      const { counted, total: totalPts } = getNormalizedExamScore(e.scores?.[s.id], effN);
-                                      const cdef = getCustomKeyDefinition(customGradingKeys, e.keyType || '1');
-                                      const gr = calculateGradeFromThresholds(totalPts, getStudentExamMaxPointsForGrade(e, s.id), e.keyType || '1', null, cdef);
+                                      const { counted } = getNormalizedExamScore(
+                                        e.scores?.[s.id],
+                                        getStudentEffectiveExamFieldCount(e, s.id),
+                                      );
+                                      const gr = getExamGradeForStudent(e, s.id, customGradingKeys);
                                       return (
                                         <li key={id} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
                                           <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>KA {id}:</span>

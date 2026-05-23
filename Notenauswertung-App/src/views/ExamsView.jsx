@@ -4,17 +4,20 @@ import { useData } from '../store/DataContext';
 import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import {
-  calculateGradeFromThresholds,
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   getStudentExamMaxPointsForGrade,
+  getExamGradeForStudent,
   getExamDisplayFieldCount,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
+  isExamManualGradeActive,
+  getExamManualGradeStoredValue,
+  classicGradeToStoredString,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import GradingKeyTable from '../components/GradingKeyTable';
@@ -100,7 +103,21 @@ function ExamRowBookmark({ variant }) {
 }
 
 export default function ExamsView({ studentIdFilterSet = null }) {
-  const { exams, updateExam, removeExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted, updateExamStudentNachschreiber, updateExamStudentNachschreiberFields, students, addExam, config } = useData();
+  const {
+    exams,
+    updateExam,
+    removeExam,
+    updateExamScore,
+    updateExamFieldMaxPoints,
+    updateExamCounted,
+    updateExamStudentNachschreiber,
+    updateExamStudentNachschreiberFields,
+    updateExamStudentManualGrade,
+    updateExamStudentManualGradeValue,
+    students,
+    addExam,
+    config,
+  } = useData();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -182,12 +199,14 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, exam.keyType || '1');
 
   const examRowStats = (studentId) => {
+    const rawSc = exam.scores?.[studentId];
     const effN = getStudentEffectiveExamFieldCount(exam, studentId);
-    const { fields, counted, total } = getNormalizedExamScore(exam.scores?.[studentId], effN);
+    const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
     const maxPts = getStudentExamMaxPointsForGrade(exam, studentId);
-    const customDef = getCustomKeyDefinition(customKeysList, exam.keyType || '1');
-    const grade = counted ? calculateGradeFromThresholds(total, maxPts, exam.keyType || '1', null, customDef) : null;
-    return { effN, fields, counted, total, maxPts, grade };
+    const isManual = isExamManualGradeActive(rawSc);
+    const grade = counted ? getExamGradeForStudent(exam, studentId, customKeysList) : null;
+    const manualGradeInput = getExamManualGradeStoredValue(rawSc);
+    return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
 
   const handleScoreChange = (studentId, fieldIndex, value) => {
@@ -422,7 +441,16 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     </tr>
                   )}
                   {displayStudents.map((s, idx) => {
-                    const { effN, fields, counted, total: totalPoints, maxPts, grade } = examRowStats(s.id);
+                    const {
+                      effN,
+                      fields,
+                      counted,
+                      total: totalPoints,
+                      maxPts,
+                      grade,
+                      isManual,
+                      manualGradeInput,
+                    } = examRowStats(s.id);
                     const rawSc = exam.scores?.[s.id];
                     const isNach = typeof rawSc === 'object' && rawSc !== null && !!rawSc._nachschreiber;
                     const showAbsentFlag = !counted;
@@ -552,11 +580,33 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                               borderLeft: '1px solid var(--border)',
                             }}
                           >
-                            {counted && grade !== null ? (
+                            {counted && isManual ? (
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                className="exam-manual-grade-input"
+                                value={manualGradeInput}
+                                onChange={(e) =>
+                                  updateExamStudentManualGradeValue(activeKlausur, s.id, e.target.value)
+                                }
+                                placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                                title="Manuelle Note (Berechnung wird ignoriert)"
+                                aria-label={`Manuelle Note für ${s.lastName}, ${s.firstName}`}
+                                style={{
+                                  textAlign: 'center',
+                                  width: '4.5rem',
+                                  minWidth: 'auto',
+                                  fontWeight: 'bold',
+                                  borderRadius: 0,
+                                }}
+                              />
+                            ) : counted && grade !== null ? (
                               <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)' }}>
                                 {formatGrade(grade, gradeSys)}
                               </span>
-                            ) : '-'}
+                            ) : (
+                              '-'
+                            )}
                           </td>
                         </tr>
                         {isExpanded && (
@@ -610,6 +660,31 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                     />
                                   </>
                                 )}
+                                <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
+                                <label className="switch switch--table-row" title="Note manuell setzen (Berechnung ignorieren)">
+                                  <input
+                                    type="checkbox"
+                                    checked={isManual}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      if (!checked) {
+                                        updateExamStudentManualGrade(activeKlausur, s.id, false);
+                                        return;
+                                      }
+                                      const stored = getExamManualGradeStoredValue(rawSc);
+                                      if (stored.trim() !== '') {
+                                        updateExamStudentManualGrade(activeKlausur, s.id, true);
+                                        return;
+                                      }
+                                      const { grade: calcGrade } = examRowStats(s.id);
+                                      const seed =
+                                        calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                      updateExamStudentManualGrade(activeKlausur, s.id, true, seed);
+                                    }}
+                                    aria-label="Manuelle Note"
+                                  />
+                                  <span className="slider" />
+                                </label>
                               </div>
                             </td>
                           </tr>

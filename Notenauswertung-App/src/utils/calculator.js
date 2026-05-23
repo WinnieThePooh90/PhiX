@@ -5,7 +5,13 @@
 
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
 
-const EXAM_SCORE_META_KEYS = new Set(['_counted', '_nachschreiber', '_nachschreiberFields']);
+const EXAM_SCORE_META_KEYS = new Set([
+  '_counted',
+  '_nachschreiber',
+  '_nachschreiberFields',
+  '_manualGrade',
+  '_manualGradeValue',
+]);
 
 /** Obergrenze für Aufgabenfelder (global + Nachschreiber-Erweiterung) */
 export const EXAM_ABS_MAX_FIELDS = 100;
@@ -67,6 +73,39 @@ export const getStudentExamMaxPointsForGrade = (exam, studentId) => {
     return 0;
   }
   return sum;
+};
+
+export const isExamManualGradeActive = (scoreData) =>
+  Boolean(scoreData && typeof scoreData === 'object' && scoreData._manualGrade === true);
+
+export const getExamManualGradeStoredValue = (scoreData) => {
+  if (!scoreData || typeof scoreData !== 'object') return '';
+  const v = scoreData._manualGradeValue;
+  if (v === undefined || v === null) return '';
+  return String(v);
+};
+
+/** Manuell gespeicherte Klausurnote → klassische Skala 1–6 (für Mittelwerte / Anzeige). */
+export const parseExamManualGradeToClassic = (raw, gradeSystem = 'classic') =>
+  storedGradeStringToClassic(raw, gradeSystem);
+
+/**
+ * Klausurnote eines Schülers: manuell (wenn aktiv) oder aus Punkten / Schlüssel berechnet.
+ */
+export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null) => {
+  const rawScoreData = exam.scores?.[studentId];
+  const effN = getStudentEffectiveExamFieldCount(exam, studentId);
+  const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
+  if (!counted) return null;
+
+  if (isExamManualGradeActive(rawScoreData)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData));
+  }
+
+  const maxPts = getStudentExamMaxPointsForGrade(exam, studentId);
+  const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
+  const calculatedGrade = calculateGradeFromThresholds(total, maxPts, exam.keyType || '1', null, customDef);
+  return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
 export const getNormalizedOralGrade = (gradeData) => {
@@ -706,10 +745,8 @@ export const calculateStudentGrades = (
     const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
     if (!counted) return;
 
-    const maxPts = getStudentExamMaxPointsForGrade(exam, studentId);
-    const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
-    const calculatedGrade = calculateGradeFromThresholds(total, maxPts, exam.keyType || '1', null, customDef);
-    const g = Number.isFinite(calculatedGrade) ? calculatedGrade : 6.0;
+    const gManual = getExamGradeForStudent(exam, studentId, customGradingKeys);
+    const g = Number.isFinite(gManual) ? gManual : 6.0;
 
     examSum += g;
     examCount++;
