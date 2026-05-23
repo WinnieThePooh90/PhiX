@@ -16,7 +16,7 @@ const {
   backupFilenameFromPayload,
   resolveStoredUsername,
 } = require('./lib/phix-backup');
-const { createCryptoSession, destroyCryptoSession } = require('./lib/crypto-session');
+const { createCryptoSession, destroyCryptoSession, getCryptoSession } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
 const { getDekFromContext } = require('./lib/crypto-context');
@@ -223,6 +223,34 @@ app.get('/api/auth/session', async (req, res) => {
   });
   if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
   res.json({ id: String(user.id), username: user.username });
+});
+
+/** Krypto-Status ohne gültige DEK-Session (für App-Start / Token-Prüfung). */
+app.get('/api/auth/crypto/status', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const user = await prisma.appUser.findFirst({
+    where: usernameWhere(acting),
+    select: { id: true, username: true },
+  });
+  if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+
+  const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: user.id } });
+  if (!userCrypto) {
+    return res.json({ ok: false, needsSetup: true });
+  }
+
+  const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
+  const session = getCryptoSession(token);
+  if (!session || session.userId !== user.id) {
+    return res.status(423).json({
+      ok: false,
+      needsRelogin: true,
+      error: 'Bitte erneut anmelden (Verschlüsselung).',
+    });
+  }
+
+  return res.json({ ok: true, needsSetup: false, needsRelogin: false });
 });
 
 /** Einmalige Übernahme alter Klartext-Benutzer aus localStorage (nur fehlende Namen anlegen). */

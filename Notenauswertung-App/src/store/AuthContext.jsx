@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { apiFetch } from '../utils/apiBase';
+import { PHIX_CRYPTO_LOST_EVENT } from '../utils/apiAuth';
 import {
   readCryptoSessionToken,
   writeCryptoSessionToken,
@@ -78,6 +79,46 @@ export const AuthProvider = ({ children }) => {
   const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
   const usersListNonce = useRef(0);
 
+  const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
+    if (statusBody?.needsSetup) {
+      clearCryptoSessionToken();
+      setPendingCryptoSetup({
+        username,
+        password: null,
+        needsRelogin: true,
+        needsSetup: true,
+      });
+      return;
+    }
+    if (!statusRes.ok || statusBody?.needsRelogin) {
+      clearCryptoSessionToken();
+      setPendingCryptoSetup({ username, password: null, needsRelogin: true });
+      return;
+    }
+    setPendingCryptoSetup(null);
+  }, []);
+
+  useEffect(() => {
+    const onCryptoLost = (ev) => {
+      const detail = ev?.detail || {};
+      const username = currentUser?.username || readSessionUsername();
+      if (!username) return;
+      clearCryptoSessionToken();
+      if (detail.requiresCryptoSetup || detail.needsSetup) {
+        setPendingCryptoSetup({
+          username,
+          password: null,
+          needsRelogin: true,
+          needsSetup: true,
+        });
+      } else {
+        setPendingCryptoSetup({ username, password: null, needsRelogin: true });
+      }
+    };
+    window.addEventListener(PHIX_CRYPTO_LOST_EVENT, onCryptoLost);
+    return () => window.removeEventListener(PHIX_CRYPTO_LOST_EVENT, onCryptoLost);
+  }, [currentUser?.username]);
+
   const refreshUsersList = useCallback(async (actingUsername) => {
     const u = String(actingUsername ?? '').trim();
     if (!u) {
@@ -117,8 +158,12 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const body = await res.json();
           setCurrentUser({ id: body.id, username: body.username });
-          if (!readCryptoSessionToken()) {
-            setPendingCryptoSetup({ username: body.username, password: null, needsRelogin: true });
+          const statusRes = await apiFetch('/api/auth/crypto/status', {
+            headers: authHeaders(body.username),
+          });
+          const statusBody = await statusRes.json().catch(() => ({}));
+          if (!cancelled) {
+            applyCryptoGateFromStatus(body.username, statusRes, statusBody);
           }
         } else {
           try {
@@ -178,7 +223,10 @@ export const AuthProvider = ({ children }) => {
       }
       setCurrentUser(u);
       if (body.requiresCryptoSetup) {
-        setPendingCryptoSetup({ username: u.username, password, needsRelogin: false });
+        setPendingCryptoSetup({ username: u.username, password, needsRelogin: false, needsSetup: true });
+      } else if (!body.cryptoSessionToken) {
+        clearCryptoSessionToken();
+        setPendingCryptoSetup({ username: u.username, password: null, needsRelogin: true });
       } else {
         setPendingCryptoSetup(null);
       }

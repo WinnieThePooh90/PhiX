@@ -10,6 +10,7 @@ import {
 import { sortSchoolYears } from '../utils/schoolYear';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
+import { checkCryptoApiResponse } from '../utils/apiAuth';
 
 const ORAL_WEEK_COL_CAP = 24;
 
@@ -55,10 +56,12 @@ export const DataProvider = ({ children }) => {
   const { currentUser } = useAuth();
 
   const fetchWithActing = useCallback(
-    (url, init = {}) => {
+    async (url, init = {}) => {
       const headers = applyCryptoHeader(new Headers(init.headers || {}));
       if (currentUser?.username) headers.set('X-Acting-User', currentUser.username);
-      return apiFetch(url, { ...init, headers });
+      const res = await apiFetch(url, { ...init, headers });
+      const crypto = await checkCryptoApiResponse(res);
+      return crypto.lost ? null : res;
     },
     [currentUser?.username],
   );
@@ -152,7 +155,12 @@ export const DataProvider = ({ children }) => {
           console.log("Migration complete!");
         }
 
-        const coursesRes = await fetchWithActing('/api/courses').then((r) => r.json());
+        const coursesResRaw = await fetchWithActing('/api/courses');
+        if (!coursesResRaw?.ok) {
+          setLoading(false);
+          return;
+        }
+        const coursesRes = await coursesResRaw.json();
         const list = Array.isArray(coursesRes) ? coursesRes : [];
         setCourses(list);
         setActiveCourseId((prev) => {
@@ -172,8 +180,13 @@ export const DataProvider = ({ children }) => {
   }, [currentUser?.username, fetchWithActing]);
 
   const refreshSchoolRosterYears = useCallback(async () => {
+    if (!currentUser?.username) {
+      setSchoolRosterYears([]);
+      return [];
+    }
     try {
-      const res = await apiFetch('/api/school-roster-years');
+      const res = await fetchWithActing('/api/school-roster-years');
+      if (!res?.ok) return [];
       const data = await res.json();
       const list = Array.isArray(data) ? sortSchoolYears(data) : [];
       setSchoolRosterYears(list);
@@ -186,7 +199,7 @@ export const DataProvider = ({ children }) => {
       console.error('Failed to fetch school roster years', err);
       return [];
     }
-  }, []);
+  }, [currentUser?.username, fetchWithActing]);
 
   useEffect(() => {
     refreshSchoolRosterYears();
@@ -200,9 +213,10 @@ export const DataProvider = ({ children }) => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await apiFetch(
+        const res = await fetchWithActing(
           `/api/school-roster-students?schoolYearId=${encodeURIComponent(activeSchoolRosterYearId)}`,
         );
+        if (!res?.ok) return;
         const data = await res.json();
         if (cancelled) return;
         setSchoolRosterStudents(Array.isArray(data) ? sortSchoolRosterRows(data) : []);
@@ -213,7 +227,7 @@ export const DataProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, [activeSchoolRosterYearId]);
+  }, [activeSchoolRosterYearId, fetchWithActing]);
 
   // Whenever activeCourseId changes, fetch its data
   useEffect(() => {
@@ -333,7 +347,12 @@ export const DataProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
+      if (!res) return undefined;
       if (res.status === 204 || res.status === 205) return undefined;
+      if (!res.ok) {
+        console.error(`API Error: ${method} ${url}`, res.status);
+        return undefined;
+      }
       const text = await res.text();
       if (!text) return undefined;
       return JSON.parse(text);
