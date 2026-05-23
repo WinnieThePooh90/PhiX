@@ -23,6 +23,7 @@ import DependenciesView from './views/DependenciesView';
 import BackupView from './views/BackupView';
 import ExportView from './views/ExportView';
 import ImpressumView from './views/ImpressumView';
+import HelpView from './views/HelpView';
 import AnalysisView from './views/AnalysisView';
 import KlassenlehrerView from './views/KlassenlehrerView';
 import ExamsView from './views/ExamsView';
@@ -317,6 +318,8 @@ function App() {
         return <SupportPhiXView onRegistrationSuccess={() => openMainTab('appInfo')} />;
       case 'impressum':
         return <ImpressumView />;
+      case 'help':
+        return <HelpView />;
       default:
         return <SummaryView studentIdFilterSet={studentIdFilterSet} />;
     }
@@ -371,7 +374,7 @@ function App() {
             <button
               ref={settingsGearRef}
               type="button"
-              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'backup' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
+              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'backup' || activeTab === 'appInfo' || activeTab === 'impressum' || activeTab === 'help' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
               onClick={() => setSettingsMenuOpen((o) => !o)}
               title="Einstellungen"
               aria-label="Einstellungen öffnen"

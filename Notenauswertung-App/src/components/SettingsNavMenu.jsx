@@ -53,6 +53,9 @@ export default function SettingsNavMenu({
       <button type="button" role="menuitem" onClick={() => pick('impressum')}>
         Impressum
       </button>
+      <button type="button" role="menuitem" onClick={() => pick('help')}>
+        Hilfe
+      </button>
       {isAdminUser ? (
         <button type="button" role="menuitem" onClick={() => pick('dependencies')}>
           Dependencies
