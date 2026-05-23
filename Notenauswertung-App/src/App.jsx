@@ -21,6 +21,7 @@ import UserManagementView from './views/UserManagementView';
 import AppInfoView from './views/AppInfoView';
 import DependenciesView from './views/DependenciesView';
 import BackupView from './views/BackupView';
+import ExportView from './views/ExportView';
 import ImpressumView from './views/ImpressumView';
 import AnalysisView from './views/AnalysisView';
 import KlassenlehrerView from './views/KlassenlehrerView';
@@ -302,6 +303,8 @@ function App() {
         return <AnalysisView />;
       case 'klassenlehrer':
         return <KlassenlehrerView />;
+      case 'export':
+        return <ExportView />;
       case 'appInfo':
         return <AppInfoView onOpenSupport={() => openMainTab('support')} />;
       case 'dependencies':
@@ -364,7 +367,7 @@ function App() {
             <button
               ref={settingsGearRef}
               type="button"
-              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) ? 'active' : ''}`}
+              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) ? 'active' : ''}`}
               onClick={() => setSettingsMenuOpen((o) => !o)}
               title="Einstellungen"
               aria-label="Einstellungen öffnen"

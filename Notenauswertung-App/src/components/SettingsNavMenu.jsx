@@ -30,6 +30,9 @@ export default function SettingsNavMenu({
           Klassenlehrer
         </button>
       ) : null}
+      <button type="button" role="menuitem" onClick={() => pick('export')}>
+        Export
+      </button>
       <hr className="header-settings-dropdown-divider" aria-hidden />
       <button type="button" role="menuitem" onClick={() => pick('keys')}>
         Notenschlüssel
