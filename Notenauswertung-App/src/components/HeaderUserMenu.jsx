@@ -70,6 +70,14 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
     setMenuOpen(false);
     const headers = { 'Content-Type': 'application/json' };
     if (currentUser?.username) headers['X-Acting-User'] = currentUser.username;
+    const token = (() => {
+      try {
+        return sessionStorage.getItem('phix_crypto_session_token');
+      } catch {
+        return null;
+      }
+    })();
+    if (token) headers['X-Phix-Crypto-Token'] = token;
 
     try {
       if (import.meta.env.DEV) {

@@ -27,7 +27,7 @@ export const DSGVO_SECTIONS = [
     id: 'categories',
     heading: 'Kategorien personenbezogener Daten',
     paragraphs: [
-      'Verarbeitet werden u. a. Stammdaten (z. B. Benutzername, E-Mail), schulische Daten (Fächer, Klassen, Schuljahre), Schülerdaten (Name, Klasse, ggf. Nummer) sowie Noten- und Leistungsdaten, soweit Sie diese in der Anwendung erfassen.',
+      'Verarbeitet werden u. a. Stammdaten (z. B. Benutzername, E-Mail), schulische Daten (Fächer, Klassen, Schuljahre), Schülerdaten (Name, Klasse, ggf. Nummer) sowie Noten- und Leistungsdaten, soweit Sie diese in der Anwendung erfassen. Fachliche Inhalte werden in der Datenbank verschlüsselt gespeichert (siehe technische Dokumentation „Verschlüsselung“ in der Anwendung); Passwörter liegen nur als Hash vor.',
     ],
   },
   {

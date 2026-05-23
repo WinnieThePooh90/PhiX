@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
 import { useAuth } from '../store/AuthContext';
 
-export default function LoginView() {
+export default function LoginView({ onRecovery }) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +56,16 @@ export default function LoginView() {
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden'}
           </button>
+          {onRecovery ? (
+            <button
+              type="button"
+              className="app-login-submit"
+              style={{ marginTop: '0.5rem', background: 'transparent', color: 'inherit' }}
+              onClick={onRecovery}
+            >
+              Passwort mit Recovery-Key zurücksetzen
+            </button>
+          ) : null}
         </form>
       </div>
     </div>

@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { apiFetch } from '../utils/apiBase';
+import {
+  readCryptoSessionToken,
+  writeCryptoSessionToken,
+  clearCryptoSessionToken,
+  applyCryptoHeader,
+} from '../utils/cryptoSession';
 
 const STORAGE_SESSION_KEY = 'notenauswertung_session_username';
-/** Alte Klartext-Speicherung — wird einmalig an den Server übergeben und entfernt. */
 const LEGACY_STORAGE_USERS_KEY = 'notenauswertung_users';
 
 const AuthContext = createContext(null);
@@ -21,15 +26,14 @@ function readSessionUsername() {
   }
 }
 
-function authHeaders(username) {
+export function authHeaders(username) {
   const h = new Headers();
   if (username) h.set('X-Acting-User', username);
-  return h;
+  return applyCryptoHeader(h);
 }
 
 function jsonHeadersWithActing(acting) {
-  const h = new Headers();
-  if (acting) h.set('X-Acting-User', acting);
+  const h = authHeaders(acting);
   h.set('Content-Type', 'application/json');
   return h;
 }
@@ -63,7 +67,7 @@ async function tryMigrateLegacyUsersFromBrowser() {
       localStorage.removeItem(LEGACY_STORAGE_USERS_KEY);
     }
   } catch {
-    /* Server ggf. nicht erreichbar — Klartext-Liste behalten bis nächster Versuch */
+    /* Server ggf. nicht erreichbar */
   }
 }
 
@@ -71,6 +75,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [usersList, setUsersList] = useState([]);
+  const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
   const usersListNonce = useRef(0);
 
   const refreshUsersList = useCallback(async (actingUsername) => {
@@ -101,6 +106,7 @@ export const AuthProvider = ({ children }) => {
       if (!sessionName || !String(sessionName).trim()) {
         if (!cancelled) {
           setCurrentUser(null);
+          clearCryptoSessionToken();
           setAuthReady(true);
         }
         return;
@@ -111,12 +117,16 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const body = await res.json();
           setCurrentUser({ id: body.id, username: body.username });
+          if (!readCryptoSessionToken()) {
+            setPendingCryptoSetup({ username: body.username, password: null, needsRelogin: true });
+          }
         } else {
           try {
             localStorage.removeItem(STORAGE_SESSION_KEY);
           } catch {
             /* ignore */
           }
+          clearCryptoSessionToken();
           setCurrentUser(null);
         }
       } catch {
@@ -161,20 +171,46 @@ export const AuthProvider = ({ children }) => {
       } catch {
         return { ok: false, error: 'Sitzung konnte nicht gespeichert werden.' };
       }
+      if (body.cryptoSessionToken) {
+        writeCryptoSessionToken(body.cryptoSessionToken);
+      } else {
+        clearCryptoSessionToken();
+      }
       setCurrentUser(u);
-      return { ok: true };
+      if (body.requiresCryptoSetup) {
+        setPendingCryptoSetup({ username: u.username, password, needsRelogin: false });
+      } else {
+        setPendingCryptoSetup(null);
+      }
+      return { ok: true, requiresCryptoSetup: Boolean(body.requiresCryptoSetup) };
     } catch {
       return { ok: false, error: 'Server nicht erreichbar.' };
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const token = readCryptoSessionToken();
+    try {
+      const acting = readSessionUsername();
+      const h = new Headers();
+      if (acting) h.set('X-Acting-User', acting);
+      if (token) h.set('X-Phix-Crypto-Token', token);
+      await apiFetch('/api/auth/logout', { method: 'POST', headers: h });
+    } catch {
+      /* ignore */
+    }
     try {
       localStorage.removeItem(STORAGE_SESSION_KEY);
     } catch {
       /* ignore */
     }
+    clearCryptoSessionToken();
+    setPendingCryptoSetup(null);
     setCurrentUser(null);
+  }, []);
+
+  const completeCryptoSetup = useCallback(() => {
+    setPendingCryptoSetup(null);
   }, []);
 
   const addUser = useCallback(
@@ -200,7 +236,7 @@ export const AuthProvider = ({ children }) => {
           return { ok: false, error: body.error || 'Anlegen fehlgeschlagen.' };
         }
         await refreshUsersList(acting);
-        return { ok: true };
+        return { ok: true, recoveryKey: body.recoveryKey || null };
       } catch {
         return { ok: false, error: 'Server nicht erreichbar.' };
       }
@@ -209,8 +245,9 @@ export const AuthProvider = ({ children }) => {
   );
 
   const setPasswordForUser = useCallback(
-    async (userId, newPasswordRaw) => {
+    async (userId, newPasswordRaw, oldPasswordRaw) => {
       const newPassword = String(newPasswordRaw ?? '');
+      const oldPassword = String(oldPasswordRaw ?? '');
       if (!newPassword) {
         return { ok: false, error: 'Neues Passwort eingeben.' };
       }
@@ -220,7 +257,7 @@ export const AuthProvider = ({ children }) => {
         const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/password`, {
           method: 'PATCH',
           headers: jsonHeadersWithActing(acting),
-          body: JSON.stringify({ newPassword }),
+          body: JSON.stringify({ newPassword, oldPassword }),
         });
         if (res.status === 204) return { ok: true };
         const body = await res.json().catch(() => ({}));
@@ -244,12 +281,7 @@ export const AuthProvider = ({ children }) => {
         if (res.status === 204) {
           const selfDeleted = String(userId) === String(currentUser?.id);
           if (selfDeleted) {
-            try {
-              localStorage.removeItem(STORAGE_SESSION_KEY);
-            } catch {
-              /* ignore */
-            }
-            setCurrentUser(null);
+            await logout();
           } else {
             await refreshUsersList(acting);
           }
@@ -261,21 +293,35 @@ export const AuthProvider = ({ children }) => {
         return { ok: false, error: 'Server nicht erreichbar.' };
       }
     },
-    [currentUser?.username, currentUser?.id, refreshUsersList],
+    [currentUser?.username, currentUser?.id, refreshUsersList, logout],
   );
 
   const value = useMemo(
     () => ({
       currentUser,
       authReady,
+      pendingCryptoSetup,
+      completeCryptoSetup,
       login,
       logout,
       usersList,
       addUser,
       setPasswordForUser,
       deleteUser,
+      authHeaders,
     }),
-    [currentUser, authReady, login, logout, usersList, addUser, setPasswordForUser, deleteUser],
+    [
+      currentUser,
+      authReady,
+      pendingCryptoSetup,
+      completeCryptoSetup,
+      login,
+      logout,
+      usersList,
+      addUser,
+      setPasswordForUser,
+      deleteUser,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

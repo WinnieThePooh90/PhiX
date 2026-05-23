@@ -2,13 +2,14 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { apiFetch } from '../utils/apiBase';
+import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const RESTORE_CONFIRM = 'WIEDERHERSTELLEN';
 
 function actingHeaders(username) {
   const h = new Headers();
   if (username) h.set('X-Acting-User', username);
-  return h;
+  return applyCryptoHeader(h);
 }
 
 function downloadBlob(blob, filename) {
@@ -86,6 +87,7 @@ function BackupRestoreBlock({
   busy,
   setBusy,
   onFeedback,
+  exportModeControl,
 }) {
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -149,6 +151,8 @@ function BackupRestoreBlock({
         {title.text}
       </h4>
       <p className="program-view-panel-text text-muted">{title.description}</p>
+
+      {exportModeControl}
 
       <button
         type="button"
@@ -215,6 +219,7 @@ export default function BackupView() {
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const username = currentUser?.username;
 
+  const [meExportMode, setMeExportMode] = useState('decrypted');
   const [meBusy, setMeBusy] = useState(null);
   const [fullBusy, setFullBusy] = useState(null);
   const [userBusy, setUserBusy] = useState(null);
@@ -245,16 +250,42 @@ export default function BackupView() {
             id: 'backup-me-heading',
             text: 'Mein Backup',
             description:
-              'Enthält alle Ihre Kurse, Schüler, Noten und Klassenlehrer-Listen. Keine anderen Benutzer, keine Schülerverwaltung (Schullisten), keine Passwörter.',
+              'Enthält alle Ihre Kurse, Schüler, Noten, Klassenlehrer-Listen und Ihre Schülerverwaltung. Keine anderen Benutzer, keine Passwörter.',
           }}
+          exportModeControl={
+            <fieldset className="backup-mode-fieldset" style={{ marginBottom: '1rem', border: 0 }}>
+              <legend className="backup-file-label-text">Export-Format</legend>
+              <label style={{ display: 'block', marginTop: '0.35rem' }}>
+                <input
+                  type="radio"
+                  name="me-export-mode"
+                  value="decrypted"
+                  checked={meExportMode === 'decrypted'}
+                  onChange={() => setMeExportMode('decrypted')}
+                />{' '}
+                Lesbares Backup (Klartext, für Archiv)
+              </label>
+              <label style={{ display: 'block', marginTop: '0.35rem' }}>
+                <input
+                  type="radio"
+                  name="me-export-mode"
+                  value="raw"
+                  checked={meExportMode === 'raw'}
+                  onChange={() => setMeExportMode('raw')}
+                />{' '}
+                Verschlüsseltes Roh-Backup (wie in der Datenbank)
+              </label>
+            </fieldset>
+          }
           warning={
             <>
               <strong>Achtung:</strong> Beim Aufspielen werden <strong>alle Ihre Kurse</strong> gelöscht und
-              durch den Backup-Inhalt ersetzt. Andere Benutzer und die Schülerverwaltung bleiben unberührt.
+              durch den Backup-Inhalt ersetzt. Andere Benutzer bleiben unberührt; Ihre Schülerverwaltung wird mit
+              ersetzt.
             </>
           }
           downloadLabel="Mein Backup erstellen und herunterladen"
-          downloadPath="/api/backup/me/download"
+          downloadPath={`/api/backup/me/download?mode=${encodeURIComponent(meExportMode)}`}
           restorePath="/api/backup/me/restore"
           actingUsername={username}
           downloadFallback={`phix-user-backup-${username || 'benutzer'}-${stamp}Z.json`}
@@ -271,7 +302,7 @@ export default function BackupView() {
                 id: 'backup-full-heading',
                 text: 'Vollständiges Datenbank-Backup',
                 description:
-                  'Gesamte Installation: alle Benutzer (inkl. Passwort-Hashes), alle Kurse, Schülerverwaltung und Klassenlehrer-Daten. Nur für den Administrator.',
+                  'Gesamte Installation als Rohdaten (verschlüsselte Felder wie in der DB). Enthält UserCrypto-Hüllen; Klartext fremder Nutzer ist ohne deren Passwort/Recovery nicht lesbar.',
               }}
               warning={
                 <>

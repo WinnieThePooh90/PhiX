@@ -13,6 +13,21 @@ model AppUser {
   username     String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
+
+  crypto UserCrypto?
+}
+
+/** DEK-Hüllen (Passwort + Recovery); Klartext-DEK nur in Krypto-Session im RAM. */
+model UserCrypto {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @unique
+  user               AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cryptoVersion      Int      @default(1)
+  kdfSaltPassword    String
+  kdfSaltRecovery    String
+  dekWrappedPassword String
+  dekWrappedRecovery String
+  createdAt          DateTime @default(now())
 }
 
 model Config {
@@ -61,11 +76,15 @@ model Course {
 
 /** Schuljahr in der Schülerverwaltung (z. B. „2026/2027“). */
 model SchoolRosterYear {
-  id        Int      @id @default(autoincrement())
-  label     String   @unique
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  label         String
+  ownerUsername String   @default("admin")
+  createdAt     DateTime @default(now())
 
   students SchoolRosterStudent[]
+
+  @@unique([ownerUsername, label])
+  @@index([ownerUsername])
 }
 
 /** Schulweite Stammliste (Klassenstufe 5–13); nicht mit Kurs-Teilnehmern verknüpft. */
@@ -107,7 +126,8 @@ model MoneyList {
   subject          String
   amountPerStudent Float
   notes            String    @default("")
-  dueDate          DateTime?
+  /** ISO-Datum oder verschlüsselter String (enc:v1:…) */
+  dueDate          String?
   includeExternal  Boolean   @default(false)
   externalOnly     Boolean   @default(false)
   courseId         Int
@@ -135,7 +155,7 @@ model MoneyListEntry {
 model AttendanceList {
   id              Int       @id @default(autoincrement())
   subject         String
-  sessionDate     DateTime?
+  sessionDate     String?
   notes           String    @default("")
   includeExternal Boolean   @default(false)
   externalOnly    Boolean   @default(false)
@@ -164,7 +184,7 @@ model AttendanceListEntry {
 model CollectionList {
   id              Int       @id @default(autoincrement())
   subject         String
-  sessionDate     DateTime?
+  sessionDate     String?
   notes           String    @default("")
   includeExternal Boolean   @default(false)
   externalOnly    Boolean   @default(false)
@@ -193,7 +213,7 @@ model CollectionListEntry {
 model NotesList {
   id              Int       @id @default(autoincrement())
   subject         String
-  sessionDate     DateTime?
+  sessionDate     String?
   notes           String    @default("")
   includeExternal Boolean   @default(false)
   externalOnly    Boolean   @default(false)

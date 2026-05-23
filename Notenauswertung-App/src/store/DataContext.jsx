@@ -9,6 +9,7 @@ import {
 } from '../utils/calculator';
 import { sortSchoolYears } from '../utils/schoolYear';
 import { apiFetch } from '../utils/apiBase';
+import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const ORAL_WEEK_COL_CAP = 24;
 
@@ -55,7 +56,7 @@ export const DataProvider = ({ children }) => {
 
   const fetchWithActing = useCallback(
     (url, init = {}) => {
-      const headers = new Headers(init.headers || {});
+      const headers = applyCryptoHeader(new Headers(init.headers || {}));
       if (currentUser?.username) headers.set('X-Acting-User', currentUser.username);
       return apiFetch(url, { ...init, headers });
     },

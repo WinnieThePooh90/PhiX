@@ -8,13 +8,25 @@ const { createPrismaClient } = require('./lib/prisma-factory');
 const { usernameWhere } = require('./lib/username-filter');
 const {
   exportPhixDatabase,
-  exportPhixUserDatabase,
+  exportPhixUserDatabaseDecrypted,
+  exportPhixUserDatabaseRaw,
   serializeBackupPayload,
   restorePhixDatabase,
   restorePhixUserDatabase,
   backupFilenameFromPayload,
   resolveStoredUsername,
 } = require('./lib/phix-backup');
+const { createCryptoSession, destroyCryptoSession } = require('./lib/crypto-session');
+const { createCryptoMiddleware } = require('./lib/crypto-middleware');
+const { runWithCryptoContext } = require('./lib/crypto-context');
+const { getDekFromContext } = require('./lib/crypto-context');
+const {
+  createUserCryptoRecord,
+  migratePlaintextForOwner,
+  changeUserPasswordCrypto,
+  unlockDekWithPassword,
+} = require('./lib/user-crypto-service');
+const { unwrapDekFromRecovery } = require('./lib/phix-crypto');
 
 function createApp() {
 const app = express();
@@ -24,6 +36,13 @@ let getShutdownServer = () => null;
 
 app.use(cors());
 app.use(express.json({ limit: '64mb' }));
+
+app.use(
+  createCryptoMiddleware({
+    prisma,
+    getActingUser,
+  }),
+);
 
 const BCRYPT_ROUNDS = 10;
 
@@ -106,7 +125,93 @@ app.post('/api/auth/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
   }
-  res.json({ id: String(user.id), username: user.username });
+
+  const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: user.id } });
+  let cryptoSessionToken = null;
+  let requiresCryptoSetup = false;
+  if (!userCrypto) {
+    requiresCryptoSetup = true;
+  } else {
+    try {
+      const dek = await unlockDekWithPassword(prisma, user.id, password);
+      cryptoSessionToken = createCryptoSession(user.id, dek);
+    } catch (err) {
+      console.error('[auth] DEK-Entschlüsselung fehlgeschlagen:', err);
+      return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
+    }
+  }
+
+  res.json({
+    id: String(user.id),
+    username: user.username,
+    cryptoSessionToken,
+    requiresCryptoSetup,
+  });
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
+  destroyCryptoSession(token);
+  res.status(204).send();
+});
+
+app.post('/api/auth/crypto/setup', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const password = String(req.body?.password ?? '');
+  if (!password) return res.status(400).json({ error: 'Passwort eingeben.' });
+
+  const user = await prisma.appUser.findFirst({ where: usernameWhere(acting) });
+  if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+
+  const existing = await prisma.userCrypto.findUnique({ where: { userId: user.id } });
+  if (existing) {
+    return res.status(409).json({ error: 'Verschlüsselung ist bereits eingerichtet.' });
+  }
+
+  try {
+    const { recoveryKey, dek } = await createUserCryptoRecord(prisma, user.id, password);
+    const cryptoSessionToken = createCryptoSession(user.id, dek);
+    const { updated } = await runWithCryptoContext({ dek, userId: user.id }, () =>
+      migratePlaintextForOwner(prisma, dek, acting),
+    );
+    res.json({ cryptoSessionToken, recoveryKey, migratedRows: updated });
+  } catch (err) {
+    console.error('[crypto] Setup fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Verschlüsselung konnte nicht eingerichtet werden.' });
+  }
+});
+
+app.post('/api/auth/crypto/unlock-recovery', async (req, res) => {
+  const usernameIn = String(req.body?.username ?? '').trim();
+  const recoveryKey = String(req.body?.recoveryKey ?? '');
+  const newPassword = String(req.body?.newPassword ?? '');
+  if (!usernameIn || !recoveryKey || !newPassword) {
+    return res.status(400).json({ error: 'Benutzername, Recovery-Key und neues Passwort eingeben.' });
+  }
+
+  const user = await prisma.appUser.findFirst({ where: usernameWhere(usernameIn) });
+  if (!user) return res.status(401).json({ error: 'Benutzer nicht gefunden.' });
+
+  const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: user.id } });
+  if (!userCrypto) {
+    return res.status(400).json({ error: 'Für diesen Benutzer ist keine Verschlüsselung eingerichtet.' });
+  }
+
+  try {
+    const dek = await unwrapDekFromRecovery(userCrypto, recoveryKey);
+    const rewrap = await require('./lib/phix-crypto').rewrapPassword(userCrypto, dek, newPassword);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await prisma.$transaction(async (tx) => {
+      await tx.userCrypto.update({ where: { userId: user.id }, data: rewrap });
+      await tx.appUser.update({ where: { id: user.id }, data: { passwordHash } });
+    });
+    const cryptoSessionToken = createCryptoSession(user.id, dek);
+    res.json({ id: String(user.id), username: user.username, cryptoSessionToken });
+  } catch (err) {
+    console.error('[crypto] Recovery-Unlock fehlgeschlagen:', err);
+    res.status(401).json({ error: 'Recovery-Key oder Daten ungültig.' });
+  }
 });
 
 app.get('/api/auth/session', async (req, res) => {
@@ -168,7 +273,16 @@ app.post('/api/users', async (req, res) => {
     data: { username, passwordHash },
     select: { id: true, username: true },
   });
-  res.status(201).json({ id: String(user.id), username: user.username });
+  let recoveryKey;
+  try {
+    const created = await createUserCryptoRecord(prisma, user.id, password);
+    recoveryKey = created.recoveryKey;
+  } catch (err) {
+    await prisma.appUser.delete({ where: { id: user.id } }).catch(() => {});
+    console.error('[crypto] UserCrypto bei Anlage fehlgeschlagen:', err);
+    return res.status(500).json({ error: 'Benutzer konnte nicht vollständig angelegt werden.' });
+  }
+  res.status(201).json({ id: String(user.id), username: user.username, recoveryKey });
 });
 
 app.patch('/api/users/:id/password', async (req, res) => {
@@ -177,6 +291,7 @@ app.patch('/api/users/:id/password', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Ungültige Benutzer-ID' });
   const newPassword = String(req.body?.newPassword ?? '');
+  const oldPassword = String(req.body?.oldPassword ?? '');
   if (!newPassword) return res.status(400).json({ error: 'Neues Passwort eingeben.' });
 
   const target = await prisma.appUser.findUnique({ where: { id } });
@@ -184,6 +299,19 @@ app.patch('/api/users/:id/password', async (req, res) => {
 
   if (isAdminUser(target.username) && !isAdminUser(acting)) {
     return res.status(403).json({ error: 'Nur der Administrator darf das Passwort von „admin“ ändern.' });
+  }
+
+  const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: target.id } });
+  if (userCrypto) {
+    if (!oldPassword) {
+      return res.status(400).json({ error: 'Aktuelles Passwort zur Entschlüsselung eingeben.' });
+    }
+    try {
+      await changeUserPasswordCrypto(prisma, target.id, oldPassword, newPassword);
+    } catch {
+      return res.status(401).json({ error: 'Aktuelles Passwort ist falsch.' });
+    }
+    destroyCryptoSession(String(req.get('X-Phix-Crypto-Token') || '').trim());
   }
 
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
@@ -431,9 +559,28 @@ function normalizeSchoolRosterPayload(body) {
   return { gradeLevel, firstName, lastName, schoolYearId };
 }
 
+async function assertRosterYearAccess(req, res, yearId) {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return null;
+  const id = Number(yearId);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: 'Ungültige Schuljahr-ID' });
+    return null;
+  }
+  const year = await prisma.schoolRosterYear.findUnique({ where: { id } });
+  if (!year || year.ownerUsername !== acting) {
+    res.status(403).json({ error: 'Kein Zugriff auf dieses Schuljahr.' });
+    return null;
+  }
+  return { acting, year };
+}
+
 // Schuljahre (Schülerverwaltung)
 app.get('/api/school-roster-years', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
   const rows = await prisma.schoolRosterYear.findMany({
+    where: { ownerUsername: acting },
     include: { _count: { select: { students: true } } },
   });
   const out = sortSchoolRosterYears(
@@ -443,10 +590,14 @@ app.get('/api/school-roster-years', async (req, res) => {
 });
 
 app.post('/api/school-roster-years', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
   const norm = normalizeSchoolYearLabel(req.body?.label);
   if (norm.error) return res.status(400).json({ error: norm.error });
   try {
-    const row = await prisma.schoolRosterYear.create({ data: { label: norm.label } });
+    const row = await prisma.schoolRosterYear.create({
+      data: { label: norm.label, ownerUsername: acting },
+    });
     res.json({ ...row, studentCount: 0 });
   } catch (e) {
     if (e?.code === 'P2002') return res.status(409).json({ error: 'Dieses Schuljahr existiert bereits.' });
@@ -457,6 +608,8 @@ app.post('/api/school-roster-years', async (req, res) => {
 app.put('/api/school-roster-years/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const access = await assertRosterYearAccess(req, res, id);
+  if (!access) return;
   const norm = normalizeSchoolYearLabel(req.body?.label);
   if (norm.error) return res.status(400).json({ error: norm.error });
   try {
@@ -477,6 +630,8 @@ app.put('/api/school-roster-years/:id', async (req, res) => {
 app.delete('/api/school-roster-years/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const access = await assertRosterYearAccess(req, res, id);
+  if (!access) return;
   try {
     await prisma.schoolRosterYear.delete({ where: { id } });
     res.status(204).send();
@@ -490,6 +645,8 @@ app.delete('/api/school-roster-years/:id', async (req, res) => {
 app.get('/api/school-roster-students', async (req, res) => {
   const schoolYearId = parseSchoolYearId(req.query.schoolYearId);
   if (!schoolYearId) return res.json([]);
+  const access = await assertRosterYearAccess(req, res, schoolYearId);
+  if (!access) return;
   const rows = await prisma.schoolRosterStudent.findMany({
     where: { schoolYearId },
     orderBy: [{ gradeLevel: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
@@ -500,8 +657,8 @@ app.get('/api/school-roster-students', async (req, res) => {
 app.post('/api/school-roster-students', async (req, res) => {
   const norm = normalizeSchoolRosterPayload(req.body);
   if (norm.error) return res.status(400).json({ error: norm.error });
-  const year = await prisma.schoolRosterYear.findUnique({ where: { id: norm.schoolYearId } });
-  if (!year) return res.status(400).json({ error: 'Schuljahr nicht gefunden.' });
+  const access = await assertRosterYearAccess(req, res, norm.schoolYearId);
+  if (!access) return;
   const row = await prisma.schoolRosterStudent.create({
     data: {
       gradeLevel: norm.gradeLevel,
@@ -518,6 +675,8 @@ app.put('/api/school-roster-students/:id', async (req, res) => {
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
   const norm = normalizeSchoolRosterPayload(req.body);
   if (norm.error) return res.status(400).json({ error: norm.error });
+  const access = await assertRosterYearAccess(req, res, norm.schoolYearId);
+  if (!access) return;
   const row = await prisma.schoolRosterStudent.update({
     where: { id },
     data: {
@@ -534,6 +693,8 @@ app.put('/api/school-roster-students/:id', async (req, res) => {
 app.delete('/api/school-roster-students', async (req, res) => {
   const schoolYearId = parseSchoolYearId(req.query.schoolYearId);
   if (!schoolYearId) return res.status(400).json({ error: 'schoolYearId fehlt.' });
+  const access = await assertRosterYearAccess(req, res, schoolYearId);
+  if (!access) return;
   await prisma.schoolRosterStudent.deleteMany({ where: { schoolYearId } });
   res.status(204).send();
 });
@@ -2046,8 +2207,14 @@ function readBackupBody(req) {
 app.get('/api/backup/me/download', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
+  const mode = String(req.query.mode || 'decrypted').toLowerCase();
   try {
-    const payload = await exportPhixUserDatabase(prisma, acting, backupPkgBuildMeta());
+    const payload =
+      mode === 'raw'
+        ? await runWithCryptoContext({ bypassCrypto: true }, () =>
+            exportPhixUserDatabaseRaw(prisma, acting, backupPkgBuildMeta()),
+          )
+        : await exportPhixUserDatabaseDecrypted(prisma, acting, backupPkgBuildMeta());
     sendBackupDownload(res, payload);
   } catch (err) {
     console.error('[backup] Benutzer-Export fehlgeschlagen:', err);
@@ -2061,7 +2228,8 @@ app.post('/api/backup/me/restore', async (req, res) => {
   const raw = readBackupBody(req);
   if (!raw) return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
   try {
-    const result = await restorePhixUserDatabase(prisma, raw, acting);
+    const dek = getDekFromContext();
+    const result = await restorePhixUserDatabase(prisma, raw, acting, { dek });
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('[backup] Benutzer-Wiederherstellung fehlgeschlagen:', err);
@@ -2074,7 +2242,9 @@ app.get('/api/backup/full/download', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
   try {
-    const payload = await exportPhixDatabase(prisma, backupPkgBuildMeta());
+    const payload = await runWithCryptoContext({ bypassCrypto: true }, () =>
+      exportPhixDatabase(prisma, backupPkgBuildMeta()),
+    );
     sendBackupDownload(res, payload);
   } catch (err) {
     console.error('[backup] Voll-Export fehlgeschlagen:', err);
@@ -2088,7 +2258,9 @@ app.post('/api/backup/full/restore', async (req, res) => {
   const raw = readBackupBody(req);
   if (!raw) return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
   try {
-    const result = await restorePhixDatabase(prisma, raw);
+    const result = await runWithCryptoContext({ bypassCrypto: true }, () =>
+      restorePhixDatabase(prisma, raw),
+    );
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('[backup] Voll-Wiederherstellung fehlgeschlagen:', err);
@@ -2102,10 +2274,30 @@ app.get('/api/backup/users/:username/download', async (req, res) => {
   if (!acting) return;
   const target = String(req.params.username ?? '').trim();
   if (!target) return res.status(400).json({ error: 'Benutzername fehlt.' });
+  const mode = String(req.query.mode || 'raw').toLowerCase();
   try {
     const stored = await resolveStoredUsername(prisma, target);
     if (!stored) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-    const payload = await exportPhixUserDatabase(prisma, stored, backupPkgBuildMeta());
+    let payload;
+    if (mode === 'decrypted') {
+      const recoveryKey = String(req.get('X-Phix-Recovery-Key') || req.body?.recoveryKey || '').trim();
+      if (!recoveryKey) {
+        return res.status(400).json({
+          error: 'Für lesbares Backup Recovery-Key im Header X-Phix-Recovery-Key übergeben.',
+        });
+      }
+      const targetUser = await prisma.appUser.findFirst({ where: usernameWhere(stored) });
+      const uc = await prisma.userCrypto.findUnique({ where: { userId: targetUser.id } });
+      if (!uc) return res.status(400).json({ error: 'Zielbenutzer hat keine Verschlüsselung.' });
+      const dek = await unwrapDekFromRecovery(uc, recoveryKey);
+      payload = await runWithCryptoContext({ dek, userId: targetUser.id }, () =>
+        exportPhixUserDatabaseDecrypted(prisma, stored, backupPkgBuildMeta()),
+      );
+    } else {
+      payload = await runWithCryptoContext({ bypassCrypto: true }, () =>
+        exportPhixUserDatabaseRaw(prisma, stored, backupPkgBuildMeta()),
+      );
+    }
     sendBackupDownload(res, payload);
   } catch (err) {
     console.error('[backup] Benutzer-Export (Admin) fehlgeschlagen:', err);
@@ -2123,7 +2315,14 @@ app.post('/api/backup/users/:username/restore', async (req, res) => {
   try {
     const stored = await resolveStoredUsername(prisma, target);
     if (!stored) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-    const result = await restorePhixUserDatabase(prisma, raw, stored);
+    let dek = getDekFromContext();
+    const recoveryKey = String(req.body?.recoveryKey || req.get('X-Phix-Recovery-Key') || '').trim();
+    if (!dek && recoveryKey) {
+      const targetUser = await prisma.appUser.findFirst({ where: usernameWhere(stored) });
+      const uc = await prisma.userCrypto.findUnique({ where: { userId: targetUser.id } });
+      if (uc) dek = await unwrapDekFromRecovery(uc, recoveryKey);
+    }
+    const result = await restorePhixUserDatabase(prisma, raw, stored, { dek });
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('[backup] Benutzer-Wiederherstellung (Admin) fehlgeschlagen:', err);

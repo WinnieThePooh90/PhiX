@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "46.0.0",
+  "version": "47.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,7 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "argon2": "^0.41.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

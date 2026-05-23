@@ -22,10 +22,14 @@ function createPrismaClient() {
       process.exit(1);
     }
     const { PrismaClient } = require(clientDir);
-    return new PrismaClient();
+    const base = new PrismaClient();
+    const { createPrismaWithCrypto } = require('./prisma-crypto-extension');
+    return createPrismaWithCrypto(base);
   }
   const { PrismaClient } = require('@prisma/client');
-  return new PrismaClient();
+  const base = new PrismaClient();
+  const { createPrismaWithCrypto } = require('./prisma-crypto-extension');
+  return createPrismaWithCrypto(base);
 }
 
 module.exports = { createPrismaClient, isSqliteUrl };

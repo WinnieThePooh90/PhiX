@@ -12,8 +12,10 @@ export default function ProgramUserManagement() {
   const [formErr, setFormErr] = useState('');
 
   const [passwordUserId, setPasswordUserId] = useState(null);
+  const [pwdOld, setPwdOld] = useState('');
   const [pwdNew, setPwdNew] = useState('');
   const [pwdNew2, setPwdNew2] = useState('');
+  const [lastRecoveryKey, setLastRecoveryKey] = useState('');
   const [pwdMsg, setPwdMsg] = useState('');
   const [pwdErr, setPwdErr] = useState('');
   const [listErr, setListErr] = useState('');
@@ -35,6 +37,7 @@ export default function ProgramUserManagement() {
 
   const resetPasswordForm = useCallback(() => {
     setPasswordUserId(null);
+    setPwdOld('');
     setPwdNew('');
     setPwdNew2('');
     setPwdMsg('');
@@ -49,6 +52,7 @@ export default function ProgramUserManagement() {
       }
       setListErr('');
       setPasswordUserId(u.id);
+      setPwdOld('');
       setPwdNew('');
       setPwdNew2('');
       setPwdMsg('');
@@ -109,6 +113,7 @@ export default function ProgramUserManagement() {
       return;
     }
     setFormMsg(`Benutzer „${newUsername.trim()}“ wurde angelegt.`);
+    setLastRecoveryKey(r.recoveryKey || '');
     setNewUsername('');
     setNewPassword('');
     setNewPassword2('');
@@ -122,7 +127,7 @@ export default function ProgramUserManagement() {
       setPwdErr('Die Passwort-Wiederholung stimmt nicht überein.');
       return;
     }
-    const r = await setPasswordForUser(passwordUserId, pwdNew);
+    const r = await setPasswordForUser(passwordUserId, pwdNew, pwdOld);
     if (!r.ok) {
       setPwdErr(r.error || 'Speichern fehlgeschlagen.');
       return;
@@ -297,6 +302,11 @@ export default function ProgramUserManagement() {
             </p>
           ) : null}
           {formMsg ? <p className="program-user-mgmt-success">{formMsg}</p> : null}
+          {lastRecoveryKey ? (
+            <p className="program-user-mgmt-success" style={{ fontFamily: 'monospace' }}>
+              Recovery-Key (einmalig notieren): {lastRecoveryKey}
+            </p>
+          ) : null}
           <button type="submit" className="program-user-mgmt-submit">
             Benutzer anlegen
           </button>

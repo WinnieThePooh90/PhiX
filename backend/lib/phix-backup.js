@@ -4,8 +4,12 @@
 
 const { usernameWhere } = require('./username-filter');
 
+const { encryptRows } = require('./encrypted-fields');
+const { isEncryptedValue } = require('./phix-crypto');
+
 const BACKUP_FORMAT = 'phix-backup';
-const BACKUP_FORMAT_VERSION = 1;
+const BACKUP_FORMAT_VERSION = 2;
+const BACKUP_FORMAT_VERSION_LEGACY = 1;
 const BACKUP_SCOPE_FULL = 'full';
 const BACKUP_SCOPE_USER = 'user';
 
@@ -13,14 +17,15 @@ const DATE_FIELDS_BY_MODEL = {
   AppUser: ['createdAt'],
   SchoolRosterYear: ['createdAt'],
   SchoolRosterStudent: ['createdAt'],
-  MoneyList: ['dueDate', 'createdAt'],
-  AttendanceList: ['sessionDate', 'createdAt'],
-  CollectionList: ['sessionDate', 'createdAt'],
-  NotesList: ['sessionDate', 'createdAt'],
+  MoneyList: ['createdAt'],
+  AttendanceList: ['createdAt'],
+  CollectionList: ['createdAt'],
+  NotesList: ['createdAt'],
 };
 
 const PG_SEQUENCE_TABLES = [
   'AppUser',
+  'UserCrypto',
   'Config',
   'Course',
   'SchoolRosterYear',
@@ -42,6 +47,7 @@ const PG_SEQUENCE_TABLES = [
 
 const EMPTY_DATA = {
   appUsers: [],
+  userCrypto: [],
   config: [],
   courses: [],
   students: [],
@@ -165,6 +171,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
 }
 
 function buildBackupEnvelope(scope, ownerUsername, data, meta = {}) {
+  const exportMode = meta.exportMode ?? (scope === BACKUP_SCOPE_FULL ? 'raw' : 'decrypted');
   return {
     format: BACKUP_FORMAT,
     formatVersion: BACKUP_FORMAT_VERSION,
@@ -173,13 +180,27 @@ function buildBackupEnvelope(scope, ownerUsername, data, meta = {}) {
     createdAt: new Date().toISOString(),
     database: detectDatabaseKind(),
     appBuild: meta.appBuild ?? null,
+    encryption: {
+      atRest: true,
+      exportMode,
+    },
     data,
   };
+}
+
+async function fetchUserRoster(prisma, ownerUsername) {
+  const schoolRosterYears = await prisma.schoolRosterYear.findMany({ where: { ownerUsername } });
+  const yearIds = schoolRosterYears.map((y) => y.id);
+  const schoolRosterStudents = yearIds.length
+    ? await prisma.schoolRosterStudent.findMany({ where: { schoolYearId: { in: yearIds } } })
+    : [];
+  return { schoolRosterYears, schoolRosterStudents };
 }
 
 async function exportPhixDatabase(prisma, meta = {}) {
   const [
     appUsers,
+    userCrypto,
     config,
     courses,
     students,
@@ -199,6 +220,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     notesListEntries,
   ] = await Promise.all([
     prisma.appUser.findMany(),
+    prisma.userCrypto.findMany(),
     prisma.config.findMany(),
     prisma.course.findMany(),
     prisma.student.findMany(),
@@ -223,6 +245,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     null,
     {
       appUsers,
+      userCrypto,
       config,
       courses,
       students,
@@ -241,11 +264,11 @@ async function exportPhixDatabase(prisma, meta = {}) {
       notesLists,
       notesListEntries,
     },
-    meta,
+    { ...meta, exportMode: 'raw' },
   );
 }
 
-async function exportPhixUserDatabase(prisma, ownerUsernameInput, meta = {}) {
+async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) {
   const ownerUsername = await resolveStoredUsername(prisma, ownerUsernameInput);
   if (!ownerUsername) {
     throw new Error('Benutzer nicht gefunden.');
@@ -254,6 +277,7 @@ async function exportPhixUserDatabase(prisma, ownerUsernameInput, meta = {}) {
   const courses = await prisma.course.findMany({ where: { ownerUsername } });
   const courseIds = courses.map((c) => c.id);
   const scoped = await fetchCourseScopedRelations(prisma, courseIds);
+  const roster = await fetchUserRoster(prisma, ownerUsername);
   const userRow = await prisma.appUser.findFirst({
     where: { username: ownerUsername },
     select: { id: true, username: true },
@@ -267,9 +291,18 @@ async function exportPhixUserDatabase(prisma, ownerUsernameInput, meta = {}) {
       appUsers: userRow ? [{ id: userRow.id, username: userRow.username }] : [],
       courses,
       ...scoped,
+      ...roster,
     },
-    meta,
+    { ...meta, exportMode: 'raw' },
   );
+}
+
+/** Lesbares Backup (Klartext) — erfordert aktive Krypto-Session / DEK. */
+async function exportPhixUserDatabaseDecrypted(prisma, ownerUsernameInput, meta = {}) {
+  return exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, {
+    ...meta,
+    exportMode: 'decrypted',
+  });
 }
 
 function serializeBackupPayload(payload) {
@@ -291,7 +324,8 @@ function parseBackupPayload(raw, { expectedScope } = {}) {
   if (!parsed || parsed.format !== BACKUP_FORMAT) {
     throw new Error('Ungültiges PhiX-Backup-Format.');
   }
-  if (Number(parsed.formatVersion) !== BACKUP_FORMAT_VERSION) {
+  const ver = Number(parsed.formatVersion) || BACKUP_FORMAT_VERSION_LEGACY;
+  if (ver !== BACKUP_FORMAT_VERSION && ver !== BACKUP_FORMAT_VERSION_LEGACY) {
     throw new Error(`Nicht unterstützte Backup-Version (${parsed.formatVersion}).`);
   }
   if (!parsed.data || typeof parsed.data !== 'object') {
@@ -329,6 +363,7 @@ async function clearAllPhixData(tx) {
   await tx.schoolRosterStudent.deleteMany();
   await tx.schoolRosterYear.deleteMany();
   await tx.config.deleteMany();
+  await tx.userCrypto.deleteMany();
   await tx.appUser.deleteMany();
 }
 
@@ -358,16 +393,46 @@ async function clearUserPhixData(tx, ownerUsername) {
   await tx.exam.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.student.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.course.deleteMany({ where: { ownerUsername } });
+  await tx.schoolRosterStudent.deleteMany({
+    where: { schoolYear: { ownerUsername } },
+  });
+  await tx.schoolRosterYear.deleteMany({ where: { ownerUsername } });
 }
 
-async function insertMany(tx, model, rows) {
+function backupNeedsEncryptOnRestore(payload) {
+  const ver = Number(payload.formatVersion) || BACKUP_FORMAT_VERSION_LEGACY;
+  if (ver === BACKUP_FORMAT_VERSION_LEGACY) return true;
+  const mode = payload.encryption?.exportMode;
+  return mode === 'decrypted' || !mode;
+}
+
+function rowHasPlaintext(model, row) {
+  const { getEncryptedFields } = require('./encryption-registry');
+  const fields = getEncryptedFields(model);
+  if (!fields) return false;
+  for (const f of fields) {
+    const v = row[f];
+    if (v != null && v !== '' && typeof v === 'string' && !isEncryptedValue(v)) return true;
+    if (v != null && v !== '' && typeof v !== 'object' && typeof v !== 'string') return true;
+    if (v != null && typeof v === 'object' && !isEncryptedValue(String(v))) return true;
+  }
+  return false;
+}
+
+async function insertMany(tx, model, rows, { encryptWithDek } = {}) {
   if (!rows?.length) return;
   const name = model.charAt(0).toLowerCase() + model.slice(1);
   const delegate = tx[name];
   if (!delegate?.createMany) {
     throw new Error(`Unbekanntes Modell: ${model}`);
   }
-  const data = rows.map((row) => reviveRow(model, row));
+  let data = rows.map((row) => reviveRow(model, row));
+  if (encryptWithDek) {
+    data = data.map((row) => {
+      if (!rowHasPlaintext(model, row)) return row;
+      return encryptRows(encryptWithDek, model, [row])[0];
+    });
+  }
   await delegate.createMany({ data });
 }
 
@@ -406,6 +471,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await clearAllPhixData(tx);
 
       await insertMany(tx, 'AppUser', d.appUsers);
+      await insertMany(tx, 'UserCrypto', d.userCrypto);
       await insertMany(tx, 'Config', d.config);
       await insertMany(tx, 'Course', d.courses);
       await insertMany(tx, 'SchoolRosterYear', d.schoolRosterYears);
@@ -439,7 +505,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
   };
 }
 
-async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput) {
+async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, { dek } = {}) {
   const payload = parseBackupPayload(rawPayload, { expectedScope: BACKUP_SCOPE_USER });
   const targetUsername = await resolveStoredUsername(prisma, targetUsernameInput);
   if (!targetUsername) {
@@ -450,27 +516,39 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput) 
     throw new Error('Backup gehört nicht zu diesem Benutzer.');
   }
 
+  const needsEncrypt = backupNeedsEncryptOnRestore(payload);
+  if (needsEncrypt && !dek) {
+    throw new Error('Verschlüsselte Sitzung erforderlich (erneut anmelden).');
+  }
+  const insertOpts = needsEncrypt ? { encryptWithDek: dek } : {};
+
   const d = payload.data;
   const courses = (d.courses ?? []).map((c) => ({ ...c, ownerUsername: targetUsername }));
+  const rosterYears = (d.schoolRosterYears ?? []).map((y) => ({
+    ...y,
+    ownerUsername: targetUsername,
+  }));
 
   await prisma.$transaction(
     async (tx) => {
       await clearUserPhixData(tx, targetUsername);
 
-      await insertMany(tx, 'Course', courses);
-      await insertMany(tx, 'Student', d.students);
-      await insertMany(tx, 'Exam', d.exams);
-      await insertMany(tx, 'Oral', d.orals);
-      await insertMany(tx, 'Test', d.tests);
-      await insertMany(tx, 'GfsEntry', d.gfsEntries);
-      await insertMany(tx, 'MoneyList', d.moneyLists);
-      await insertMany(tx, 'MoneyListEntry', d.moneyListEntries);
-      await insertMany(tx, 'AttendanceList', d.attendanceLists);
-      await insertMany(tx, 'AttendanceListEntry', d.attendanceListEntries);
-      await insertMany(tx, 'CollectionList', d.collectionLists);
-      await insertMany(tx, 'CollectionListEntry', d.collectionListEntries);
-      await insertMany(tx, 'NotesList', d.notesLists);
-      await insertMany(tx, 'NotesListEntry', d.notesListEntries);
+      await insertMany(tx, 'Course', courses, insertOpts);
+      await insertMany(tx, 'SchoolRosterYear', rosterYears, insertOpts);
+      await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents, insertOpts);
+      await insertMany(tx, 'Student', d.students, insertOpts);
+      await insertMany(tx, 'Exam', d.exams, insertOpts);
+      await insertMany(tx, 'Oral', d.orals, insertOpts);
+      await insertMany(tx, 'Test', d.tests, insertOpts);
+      await insertMany(tx, 'GfsEntry', d.gfsEntries, insertOpts);
+      await insertMany(tx, 'MoneyList', d.moneyLists, insertOpts);
+      await insertMany(tx, 'MoneyListEntry', d.moneyListEntries, insertOpts);
+      await insertMany(tx, 'AttendanceList', d.attendanceLists, insertOpts);
+      await insertMany(tx, 'AttendanceListEntry', d.attendanceListEntries, insertOpts);
+      await insertMany(tx, 'CollectionList', d.collectionLists, insertOpts);
+      await insertMany(tx, 'CollectionListEntry', d.collectionListEntries, insertOpts);
+      await insertMany(tx, 'NotesList', d.notesLists, insertOpts);
+      await insertMany(tx, 'NotesListEntry', d.notesListEntries, insertOpts);
     },
     { maxWait: 60_000, timeout: 300_000 },
   );
@@ -520,8 +598,10 @@ module.exports = {
   BACKUP_SCOPE_FULL,
   BACKUP_SCOPE_USER,
   exportPhixDatabase,
-  exportPhixUserDatabase,
+  exportPhixUserDatabaseDecrypted,
+  exportPhixUserDatabaseRaw,
   serializeBackupPayload,
+  backupNeedsEncryptOnRestore,
   parseBackupPayload,
   getBackupScope,
   restorePhixDatabase,
