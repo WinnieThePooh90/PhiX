@@ -24,7 +24,7 @@ app.use(express.json({ limit: '64mb' }));
 
 const BCRYPT_ROUNDS = 10;
 
-/** Nur dieser Name (kleingeschrieben verglichen) darf alle Kurse sehen/bearbeiten. */
+/** Systemadministrator (Benutzerverwaltung, Backup, Dependencies) — kein Zugriff auf fremde Kurse. */
 const ADMIN_USERNAME = 'admin';
 
 function getActingUser(req) {
@@ -37,7 +37,6 @@ function isAdminUser(username) {
 
 function canAccessCourse(course, actingUser) {
   if (!course || !actingUser) return false;
-  if (isAdminUser(actingUser)) return true;
   return course.ownerUsername === actingUser;
 }
 
@@ -265,8 +264,10 @@ const migrateData = async () => {
 app.get('/api/courses', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
-  const where = isAdminUser(acting) ? {} : { ownerUsername: acting };
-  const courses = await prisma.course.findMany({ where, orderBy: { id: 'asc' } });
+  const courses = await prisma.course.findMany({
+    where: { ownerUsername: acting },
+    orderBy: { id: 'asc' },
+  });
   res.json(courses);
 });
 
@@ -355,7 +356,7 @@ app.put('/api/courses/:id', async (req, res) => {
   const acting = getActingUser(req);
   const raw = { ...req.body };
   delete raw.id;
-  if (!isAdminUser(acting)) delete raw.ownerUsername;
+  delete raw.ownerUsername;
   const course = await prisma.course.update({
     where: { id: existing.id },
     data: raw,

@@ -500,12 +500,6 @@ function App() {
                         </div>
                         <div className="course-item-meta">
                           {course.year}, {course.weighting?.written ?? ''}:{course.weighting?.oral ?? ''}:{course.weighting?.tests ?? ''}
-                          {isAdminUser && course.ownerUsername ? (
-                            <>
-                              {' · '}
-                              {course.ownerUsername}
-                            </>
-                          ) : null}
                         </div>
                       </div>
                       <button
@@ -665,12 +659,6 @@ function App() {
                         Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
                       </>
                     )}
-                    {isAdminUser && config.ownerUsername ? (
-                      <>
-                        {' · '}
-                        {config.ownerUsername}
-                      </>
-                    ) : null}
                   </p>
                 </header>
                 {renderMainTabsNav('app-mobile-tabs')}
@@ -724,12 +712,6 @@ function App() {
                             Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
                           </>
                         )}
-                        {isAdminUser && config.ownerUsername ? (
-                          <>
-                            {' · '}
-                            {config.ownerUsername}
-                          </>
-                        ) : null}
                       </p>
                     </header>
                     {renderMainTabsNav('sticky-header-tabs')}
