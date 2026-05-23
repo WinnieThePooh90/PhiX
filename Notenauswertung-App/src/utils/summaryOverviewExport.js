@@ -65,23 +65,4 @@ export function buildSummaryOverviewExportData({
   return { headers, rows };
 }
 
-/** Dateiname für Übersicht-Export (ohne Pfad). */
-export function summaryOverviewExportFilename(course) {
-  const parts = [
-    'Uebersicht',
-    course?.subject,
-    course?.className,
-    course?.year,
-  ]
-    .filter((p) => p != null && String(p).trim() !== '')
-    .map((p) =>
-      String(p)
-        .trim()
-        .replace(/[^\wäöüÄÖÜß.-]+/gi, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, ''),
-    )
-    .filter(Boolean);
-  const base = parts.length ? parts.join('-') : 'Uebersicht';
-  return `${base}.xlsx`;
-}
+export { summaryOverviewExportFilename } from './exportFilenames';

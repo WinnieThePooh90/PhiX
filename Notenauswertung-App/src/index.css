@@ -476,6 +476,39 @@ p {
   color: var(--success, #2e7d32);
 }
 
+.export-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.export-item-btn {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+}
+
+.export-item-btn__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.export-item-btn__label {
+  font-weight: 600;
+}
+
+.export-item-btn__sublabel {
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
 .app-info-section {
   min-width: 0;
 }
