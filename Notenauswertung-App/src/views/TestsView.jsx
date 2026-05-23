@@ -10,8 +10,11 @@ import {
   getNormalizedTestScore,
   normalizeCourseGradeSystem,
   getCustomKeyDefinition,
-  calculateTestGradeForStudentEntry,
+  getTestGradeForStudent,
   getEffectiveTestMaxPoints,
+  isExamManualGradeActive,
+  getExamManualGradeStoredValue,
+  classicGradeToStoredString,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import GradingKeyTable from '../components/GradingKeyTable';
@@ -65,6 +68,8 @@ export default function TestsView({ studentIdFilterSet = null }) {
     updateTestCounted,
     updateTestStudentNachschreiber,
     updateTestNachschreiberMaxPoints,
+    updateTestStudentManualGrade,
+    updateTestStudentManualGradeValue,
     updateTest,
     students,
     addTest,
@@ -156,11 +161,12 @@ export default function TestsView({ studentIdFilterSet = null }) {
       const map = test.scores ?? test.errors;
       const raw = map?.[studentId];
       const { value, counted } = getNormalizedTestScore(raw);
-      const grade =
-        counted && value !== '' ? calculateTestGradeForStudentEntry(test, value, customKeysList, raw) : null;
-      return { counted, grade };
+      const isManual = isExamManualGradeActive(raw);
+      const grade = counted ? getTestGradeForStudent(test, studentId, customKeysList, gradeSys) : null;
+      const manualGradeInput = getExamManualGradeStoredValue(raw);
+      return { counted, grade, value, isManual, manualGradeInput };
     },
-    [test, customKeysList],
+    [test, customKeysList, gradeSys],
   );
 
   const examStubForCharts = useMemo(() => ({ fieldMaxPoints: {} }), []);
@@ -436,7 +442,13 @@ export default function TestsView({ studentIdFilterSet = null }) {
                       {displayStudents.map((s, idx) => {
                         const scoreMap = test.scores ?? test.errors;
                         const rawSc = scoreMap?.[s.id];
-                        const { value: pointsStr, counted } = getNormalizedTestScore(rawSc);
+                        const {
+                          value: pointsStr,
+                          counted,
+                          grade,
+                          isManual,
+                          manualGradeInput,
+                        } = testRowStats(s.id);
                         const isNach = typeof rawSc === 'object' && rawSc !== null && rawSc._nachschreiber === true;
                         const showAbsentFlag = !counted;
                         const showNachFlag = counted && isNach;
@@ -444,7 +456,6 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         const isExpanded = expandedStudentId === s.id;
                         const effectiveMax = getEffectiveTestMaxPoints(test, rawSc);
                         const pointsOut = isTestPointsOutOfRange(pointsStr, effectiveMax);
-                        const grade = calculateTestGradeForStudentEntry(test, pointsStr, customKeysList, rawSc);
                         const ptsNum = parseFloat(String(pointsStr).replace(',', '.'));
                         const gesamtDisplay =
                           pointsStr !== '' && Number.isFinite(ptsNum) ? (
@@ -586,7 +597,27 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   verticalAlign: 'middle',
                                 }}
                               >
-                                {counted && grade !== null ? (
+                                {counted && isManual ? (
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="exam-manual-grade-input"
+                                    value={manualGradeInput}
+                                    onChange={(e) =>
+                                      updateTestStudentManualGradeValue(activeTest, s.id, e.target.value)
+                                    }
+                                    placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                                    title="Manuelle Note (Berechnung wird ignoriert)"
+                                    aria-label={`Manuelle Note für ${s.lastName}, ${s.firstName}`}
+                                    style={{
+                                      textAlign: 'center',
+                                      width: '4.5rem',
+                                      minWidth: 'auto',
+                                      fontWeight: 'bold',
+                                      borderRadius: 0,
+                                    }}
+                                  />
+                                ) : counted && grade !== null ? (
                                   <span
                                     style={{
                                       fontWeight: 'bold',
@@ -677,6 +708,33 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                         />
                                       </>
                                     ) : null}
+                                    <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>
+                                      Manuelle Note:
+                                    </span>
+                                    <label className="switch switch--table-row" title="Note manuell setzen (Berechnung ignorieren)">
+                                      <input
+                                        type="checkbox"
+                                        checked={isManual}
+                                        onChange={(e) => {
+                                          const checked = e.target.checked;
+                                          if (!checked) {
+                                            updateTestStudentManualGrade(activeTest, s.id, false);
+                                            return;
+                                          }
+                                          const stored = getExamManualGradeStoredValue(rawSc);
+                                          if (stored.trim() !== '') {
+                                            updateTestStudentManualGrade(activeTest, s.id, true);
+                                            return;
+                                          }
+                                          const { grade: calcGrade } = testRowStats(s.id);
+                                          const seed =
+                                            calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                          updateTestStudentManualGrade(activeTest, s.id, true, seed);
+                                        }}
+                                        aria-label="Manuelle Note"
+                                      />
+                                      <span className="slider" />
+                                    </label>
                                   </div>
                                 </td>
                               </tr>

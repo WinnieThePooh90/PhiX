@@ -987,6 +987,64 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  const ensureTestStudentScoreObject = (prevData) => {
+    if (typeof prevData === 'object' && prevData !== null) {
+      return { ...prevData };
+    }
+    if (prevData !== undefined && prevData !== null) {
+      return { value: String(prevData), _counted: true };
+    }
+    return { value: '', _counted: true };
+  };
+
+  const updateTestStudentManualGrade = (testId, studentId, active, seedValue = undefined) => {
+    setTests((prev) => {
+      const prevTest = prev[testId];
+      const map = prevTest.scores ?? prevTest.errors ?? {};
+      const base = ensureTestStudentScoreObject(map[studentId]);
+      let newData;
+      if (active) {
+        newData = { ...base, _manualGrade: true };
+        const hasStored =
+          newData._manualGradeValue !== undefined &&
+          newData._manualGradeValue !== null &&
+          String(newData._manualGradeValue).trim() !== '';
+        if (!hasStored && seedValue !== undefined && seedValue !== null && String(seedValue).trim() !== '') {
+          newData._manualGradeValue = String(seedValue).trim();
+        }
+      } else {
+        newData = { ...base, _manualGrade: false };
+      }
+      const newTest = {
+        ...prevTest,
+        scores: { ...map, [studentId]: newData },
+      };
+      delete newTest.errors;
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
+
+  const updateTestStudentManualGradeValue = (testId, studentId, value) => {
+    setTests((prev) => {
+      const prevTest = prev[testId];
+      const map = prevTest.scores ?? prevTest.errors ?? {};
+      const base = ensureTestStudentScoreObject(map[studentId]);
+      const newData = {
+        ...base,
+        _manualGrade: true,
+        _manualGradeValue: value,
+      };
+      const newTest = {
+        ...prevTest,
+        scores: { ...map, [studentId]: newData },
+      };
+      delete newTest.errors;
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
+
   const updateTestNachschreiberMaxPoints = (testId, studentId, rawValue) => {
     setTests((prev) => {
       const prevTest = prev[testId];
@@ -1486,6 +1544,7 @@ export const DataProvider = ({ children }) => {
       updateExamStudentManualGrade, updateExamStudentManualGradeValue,
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
+      updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,

@@ -6,7 +6,7 @@ import {
   isGradeWorseThan4,
   getGradeCellBackground,
   getExamGradeForStudent,
-  calculateTestGradeForStudentEntry,
+  getTestGradeForStudent,
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   getNormalizedOralGrade,
@@ -324,11 +324,8 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(tests).filter(([_, t]) => t.active && (!cat.filter || t.halbjahr === cat.filter)).map(([id, t]) => {
                                       const sm = t.scores ?? t.errors;
-                                      const { value, counted } = getNormalizedTestScore(sm?.[s.id]);
-                                      const gr =
-                                        value !== ''
-                                          ? calculateTestGradeForStudentEntry(t, value, customGradingKeys, sm?.[s.id])
-                                          : null;
+                                      const { counted } = getNormalizedTestScore(sm?.[s.id]);
+                                      const gr = counted ? getTestGradeForStudent(t, s.id, customGradingKeys, gradeSys) : null;
                                       return (
                                         <li key={id} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
                                           <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{t.name}:</span>

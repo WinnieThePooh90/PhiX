@@ -684,6 +684,21 @@ export const calculateTestGradeForStudentEntry = (test, pointsRaw, customGrading
   return Number.isFinite(calculated) ? calculated : null;
 };
 
+/** Testnote eines Schülers: manuell (wenn aktiv) oder aus Punkten / Schlüssel berechnet. */
+export const getTestGradeForStudent = (test, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
+  const scoreMap = test.scores ?? test.errors;
+  const raw = scoreMap?.[studentId];
+  const { value, counted } = getNormalizedTestScore(raw);
+  if (!counted) return null;
+
+  if (isExamManualGradeActive(raw)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(raw), gradeSystem);
+  }
+
+  if (value === '') return null;
+  return calculateTestGradeForStudentEntry(test, value, customGradingKeys, raw);
+};
+
 /** GFS-Notentext wie mündlich (z. B. 1,25); Komma als Dezimaltrenner erlaubt. */
 export const parseGfsNoteValue = (raw) => {
   if (raw === undefined || raw === null || raw === '') return null;
@@ -779,9 +794,9 @@ export const calculateStudentGrades = (
     const scoreMap = test.scores ?? test.errors;
     if (test.active && scoreMap[studentId] !== undefined) {
       if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
-      const { value, counted } = getNormalizedTestScore(scoreMap[studentId]);
-      if (counted && value !== '') {
-        const g = calculateTestGradeForStudentEntry(test, value, customGradingKeys, scoreMap[studentId]);
+      const { counted } = getNormalizedTestScore(scoreMap[studentId]);
+      if (counted) {
+        const g = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
         if (g !== null) {
           testSum += g;
           testCount++;
