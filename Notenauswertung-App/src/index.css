@@ -424,6 +424,58 @@ p {
   font-weight: 600;
 }
 
+.backup-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.backup-action-btn--danger:not(:disabled) {
+  border-color: var(--danger, #c62828);
+  color: var(--danger, #c62828);
+}
+
+.backup-restore-warning {
+  margin-bottom: 0.5rem;
+}
+
+.backup-file-label,
+.backup-confirm-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.backup-file-label-text,
+.backup-confirm-label-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.backup-confirm-input {
+  max-width: 20rem;
+}
+
+.backup-selected-file {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.backup-feedback {
+  margin: 0.75rem 0 0;
+  font-size: 0.95rem;
+}
+
+.backup-feedback--error {
+  color: var(--danger, #c62828);
+}
+
+.backup-feedback--ok {
+  color: var(--success, #2e7d32);
+}
+
 .app-info-section {
   min-width: 0;
 }

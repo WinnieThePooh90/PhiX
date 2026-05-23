@@ -20,6 +20,7 @@ import SchoolRosterView from './views/SchoolRosterView';
 import UserManagementView from './views/UserManagementView';
 import AppInfoView from './views/AppInfoView';
 import DependenciesView from './views/DependenciesView';
+import BackupView from './views/BackupView';
 import ImpressumView from './views/ImpressumView';
 import AnalysisView from './views/AnalysisView';
 import KlassenlehrerView from './views/KlassenlehrerView';
@@ -200,7 +201,7 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (!isAdminUser && activeTab === 'dependencies') {
+    if (!isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) {
       setActiveTab('summary');
     }
   }, [isAdminUser, activeTab]);
@@ -295,6 +296,8 @@ function App() {
         return <SchoolRosterView onBack={() => openMainTab('summary')} />;
       case 'userManagement':
         return <UserManagementView />;
+      case 'backup':
+        return isAdminUser ? <BackupView /> : <SummaryView studentIdFilterSet={studentIdFilterSet} />;
       case 'analysis':
         return <AnalysisView />;
       case 'klassenlehrer':
@@ -361,7 +364,7 @@ function App() {
             <button
               ref={settingsGearRef}
               type="button"
-              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
+              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) ? 'active' : ''}`}
               onClick={() => setSettingsMenuOpen((o) => !o)}
               title="Einstellungen"
               aria-label="Einstellungen öffnen"

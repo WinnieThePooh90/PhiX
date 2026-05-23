@@ -41,6 +41,11 @@ export default function SettingsNavMenu({
         Benutzerverwaltung
       </button>
       {isAdminUser ? (
+        <button type="button" role="menuitem" onClick={() => pick('backup')}>
+          Backup
+        </button>
+      ) : null}
+      {isAdminUser ? (
         <>
           <hr className="header-settings-dropdown-divider" aria-hidden />
           <button type="button" role="menuitem" onClick={() => pick('appInfo')}>

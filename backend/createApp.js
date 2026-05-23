@@ -6,6 +6,12 @@ const fs = require('fs');
 const { shutdownPhix } = require('./lib/phix-shutdown');
 const { createPrismaClient } = require('./lib/prisma-factory');
 const { usernameWhere } = require('./lib/username-filter');
+const {
+  exportPhixDatabase,
+  serializeBackupPayload,
+  restorePhixDatabase,
+  backupFilenameFromDate,
+} = require('./lib/phix-backup');
 
 function createApp() {
 const app = express();
@@ -14,7 +20,7 @@ const prisma = createPrismaClient();
 let getShutdownServer = () => null;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '64mb' }));
 
 const BCRYPT_ROUNDS = 10;
 
@@ -51,6 +57,16 @@ async function assertActingUser(req, res) {
     return null;
   }
   return row.username;
+}
+
+async function assertAdminUser(req, res) {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return null;
+  if (!isAdminUser(acting)) {
+    res.status(403).json({ error: 'Nur der Administrator darf diese Aktion ausführen.' });
+    return null;
+  }
+  return acting;
 }
 
 async function assertCourseAccess(req, res, courseId) {
@@ -1998,6 +2014,42 @@ app.delete('/api/notes-list-entries/:id', async (req, res) => {
   }
   await prisma.notesListEntry.delete({ where: { id } });
   res.status(204).end();
+});
+
+// ——— Vollständiges Datenbank-Backup (nur Administrator) ———
+
+app.get('/api/backup/download', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const pkgVersion = String(require('./package.json').version || '').split('.')[0] || null;
+    const payload = await exportPhixDatabase(prisma, { appBuild: pkgVersion });
+    const body = serializeBackupPayload(payload);
+    const filename = backupFilenameFromDate(payload.createdAt);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(body);
+  } catch (err) {
+    console.error('[backup] Export fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Backup konnte nicht erstellt werden.' });
+  }
+});
+
+app.post('/api/backup/restore', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  const raw = req.body?.backup != null ? req.body.backup : req.body;
+  if (!raw || typeof raw !== 'object') {
+    return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
+  }
+  try {
+    const result = await restorePhixDatabase(prisma, raw);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[backup] Wiederherstellung fehlgeschlagen:', err);
+    const msg = err?.message || 'Wiederherstellung fehlgeschlagen.';
+    res.status(400).json({ error: msg });
+  }
 });
 
 app.post('/api/shutdown', async (req, res) => {
