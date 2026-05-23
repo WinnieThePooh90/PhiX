@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Download } from 'lucide-react';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { buildSummaryOverviewExportData } from '../utils/summaryOverviewExport';
 import {
@@ -14,26 +14,47 @@ import { buildExamTableExportAoa, examExportSheetName } from '../utils/examTable
 import { buildOralStandardTableExportData, oralExportSheetName } from '../utils/oralTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
+import { downloadAoaPdf, downloadMultiSectionPdf, downloadSheetDataPdf } from '../utils/phixPdfExport';
 
 function courseLabel(course) {
   if (!course) return '';
   return [course.subject, course.className, course.year].filter(Boolean).join(' · ');
 }
 
-function ExportItemButton({ label, sublabel, disabled, busy, onClick }) {
+function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, onExcel, onPdf }) {
+  const busyExcel = busyKey === `${exportKey}-xlsx`;
+  const busyPdf = busyKey === `${exportKey}-pdf`;
+  const anyBusy = busyExcel || busyPdf;
+
   return (
-    <button
-      type="button"
-      className="tab secondary export-item-btn"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <Download size={16} strokeWidth={2} aria-hidden />
-      <span className="export-item-btn__text">
-        <span className="export-item-btn__label">{busy ? 'Export …' : label}</span>
+    <div className="export-item-row">
+      <div className="export-item-row__meta">
+        <span className="export-item-btn__label">{label}</span>
         {sublabel ? <span className="export-item-btn__sublabel text-muted">{sublabel}</span> : null}
-      </span>
-    </button>
+      </div>
+      <div className="export-item-row__actions">
+        <button
+          type="button"
+          className="tab secondary export-format-btn"
+          disabled={disabled || (anyBusy && !busyExcel)}
+          onClick={onExcel}
+          title="Als Excel (.xlsx)"
+        >
+          <FileSpreadsheet size={15} strokeWidth={2} aria-hidden />
+          {busyExcel ? '…' : 'Excel'}
+        </button>
+        <button
+          type="button"
+          className="tab secondary export-format-btn"
+          disabled={disabled || (anyBusy && !busyPdf)}
+          onClick={onPdf}
+          title="Als PDF"
+        >
+          <FileText size={15} strokeWidth={2} aria-hidden />
+          {busyPdf ? '…' : 'PDF'}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -80,8 +101,8 @@ export default function ExportView() {
     }
   };
 
-  const onExportFullCourse = () =>
-    runExport('course-full', async () => {
+  const exportFullCourse = (format) =>
+    runExport(`course-full-${format}`, async () => {
       const sheets = buildCourseFullExportSheets({
         students,
         exams,
@@ -90,13 +111,17 @@ export default function ExportView() {
         gfsEntries,
         config,
       });
-      const filename = courseFullExportFilename(config);
-      downloadMultiSheetXlsx(sheets, filename);
+      const filename = courseFullExportFilename(config, format);
+      if (format === 'pdf') {
+        downloadMultiSectionPdf(sheets, filename, courseTitle || 'Kursexport');
+      } else {
+        downloadMultiSheetXlsx(sheets, filename);
+      }
       return filename;
     });
 
-  const onExportSummary = () =>
-    runExport('summary', async () => {
+  const exportSummary = (format) =>
+    runExport(`summary-${format}`, async () => {
       const sheetData = buildSummaryOverviewExportData({
         students,
         exams,
@@ -105,41 +130,60 @@ export default function ExportView() {
         gfsEntries,
         config,
       });
-      const filename = summaryOverviewExportFilename(config);
-      downloadSheetDataXlsx(sheetData, 'Übersicht', filename);
+      const filename = summaryOverviewExportFilename(config, format);
+      if (format === 'pdf') {
+        downloadSheetDataPdf(sheetData, 'Übersicht', filename);
+      } else {
+        downloadSheetDataXlsx(sheetData, 'Übersicht', filename);
+      }
       return filename;
     });
 
-  const onExportExam = (examId) =>
-    runExport(`exam-${examId}`, async () => {
+  const exportExam = (examId, format) =>
+    runExport(`exam-${examId}-${format}`, async () => {
       const exam = exams[examId];
       if (!exam) throw new Error('missing exam');
       const aoa = buildExamTableExportAoa({ exam, examId, students, config });
-      const filename = examExportFilename(config, examId);
-      downloadAoaXlsx(aoa, examExportSheetName(examId), filename);
+      const sheetName = examExportSheetName(examId);
+      const filename = examExportFilename(config, examId, format);
+      if (format === 'pdf') {
+        downloadAoaPdf(aoa, sheetName, filename);
+      } else {
+        downloadAoaXlsx(aoa, sheetName, filename);
+      }
       return filename;
     });
 
-  const onExportTest = (testId) =>
-    runExport(`test-${testId}`, async () => {
+  const exportTest = (testId, format) =>
+    runExport(`test-${testId}-${format}`, async () => {
       const test = tests[testId];
       if (!test) throw new Error('missing test');
       const aoa = buildTestTableExportAoa({ test, testId, students, config });
-      const filename = testExportFilename(config, testId, test.name);
-      downloadAoaXlsx(aoa, testExportSheetName(testId, test.name), filename);
+      const sheetName = testExportSheetName(testId, test.name);
+      const filename = testExportFilename(config, testId, test.name, format);
+      if (format === 'pdf') {
+        downloadAoaPdf(aoa, sheetName, filename);
+      } else {
+        downloadAoaXlsx(aoa, sheetName, filename);
+      }
       return filename;
     });
 
-  const onExportOral = (oralId) =>
-    runExport(`oral-${oralId}`, async () => {
+  const exportOral = (oralId, format) =>
+    runExport(`oral-${oralId}-${format}`, async () => {
       const oral = orals[oralId];
       const sheetData = buildOralStandardTableExportData({ oral, students, config });
       if (!sheetData) {
         setErr('Erweiterte mündliche Bereiche können nicht im Standardformat exportiert werden.');
         return null;
       }
-      const filename = oralExportFilename(config, oralId, oral?.name);
-      downloadSheetDataXlsx(sheetData, oralExportSheetName(oralId, oral?.name), filename);
+      const sheetName = oralExportSheetName(oralId, oral?.name);
+      const filename = oralExportFilename(config, oralId, oral?.name, format);
+      if (format === 'pdf') {
+        downloadSheetDataPdf(sheetData, sheetName, filename);
+      } else {
+        downloadSheetDataXlsx(sheetData, sheetName, filename);
+      }
       return filename;
     });
 
@@ -149,7 +193,7 @@ export default function ExportView() {
     <div className="view-generic-scroll program-view">
       <h3 className="program-view-title">Export</h3>
       <p className="program-view-intro">
-        Daten des aktuellen Kurses als Excel-kompatible Dateien (.xlsx) herunterladen.
+        Daten des aktuellen Kurses als Excel (.xlsx) oder PDF herunterladen.
         {courseTitle ? (
           <>
             {' '}
@@ -159,25 +203,38 @@ export default function ExportView() {
       </p>
 
       <div className="program-view-stack">
-        <section className="program-view-panel glass-panel export-course-full-panel" aria-labelledby="export-course-full-heading">
+        <section
+          className="program-view-panel glass-panel export-course-full-panel"
+          aria-labelledby="export-course-full-heading"
+        >
           <h4 id="export-course-full-heading" className="program-view-panel-heading">
             Gesamter Kurs
           </h4>
           <p className="program-view-panel-text text-muted">
-            Eine Excel-Datei mit allen Tabellen des aktuellen Kurses:{' '}
-            <strong>Übersicht</strong>, alle <strong>Klausuren</strong> und <strong>Tests</strong>, mündliche
-            Bereiche im <strong>Standardmodus</strong> (ohne Erweitert) sowie <strong>GFS</strong> — je Bereich
-            ein eigenes Tabellenblatt.
+            Alle Tabellen des aktuellen Kurses: <strong>Übersicht</strong>, alle <strong>Klausuren</strong>{' '}
+            und <strong>Tests</strong>, mündliche Bereiche im <strong>Standardmodus</strong> (ohne Erweitert)
+            sowie <strong>GFS</strong>. Excel: ein Tabellenblatt pro Bereich; PDF: je Bereich eine Seite.
           </p>
-          <button
-            type="button"
-            className="tab primary program-view-panel-cta backup-action-btn"
-            disabled={anyBusy || !config}
-            onClick={onExportFullCourse}
-          >
-            <Download size={18} strokeWidth={2} aria-hidden />
-            {busyKey === 'course-full' ? 'Kurs wird exportiert …' : 'Gesamten Kurs als Excel exportieren'}
-          </button>
+          <div className="export-item-row__actions export-course-full-actions">
+            <button
+              type="button"
+              className="tab primary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => exportFullCourse('xlsx')}
+            >
+              <FileSpreadsheet size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'course-full-xlsx' ? 'Export …' : 'Gesamten Kurs als Excel'}
+            </button>
+            <button
+              type="button"
+              className="tab secondary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => exportFullCourse('pdf')}
+            >
+              <FileText size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'course-full-pdf' ? 'Export …' : 'Gesamten Kurs als PDF'}
+            </button>
+          </div>
         </section>
 
         <section className="program-view-panel glass-panel" aria-labelledby="export-summary-heading">
@@ -187,11 +244,13 @@ export default function ExportView() {
           <p className="program-view-panel-text text-muted">
             Tabelle aus dem Reiter <strong>Übersicht</strong> (Schriftlich, Mündlich, Tests, Endnoten).
           </p>
-          <ExportItemButton
-            label="Übersicht als Excel exportieren"
+          <ExportFormatButtons
+            label="Übersicht exportieren"
             disabled={anyBusy || !config}
-            busy={busyKey === 'summary'}
-            onClick={onExportSummary}
+            busyKey={busyKey}
+            exportKey="summary"
+            onExcel={() => exportSummary('xlsx')}
+            onPdf={() => exportSummary('pdf')}
           />
         </section>
 
@@ -211,18 +270,21 @@ export default function ExportView() {
                 const exam = exams[id];
                 const inactive = exam?.active === false;
                 return (
-                  <ExportItemButton
+                  <ExportFormatButtons
                     key={id}
-                    label={`KA ${id} exportieren`}
+                    label={`KA ${id}`}
                     sublabel={
                       inactive
                         ? 'inaktiv'
-                        : [exam?.halbjahr ? `HJ ${exam.halbjahr}` : null, exam?.date].filter(Boolean).join(' · ') ||
-                          undefined
+                        : [exam?.halbjahr ? `HJ ${exam.halbjahr}` : null, exam?.date]
+                            .filter(Boolean)
+                            .join(' · ') || undefined
                     }
                     disabled={anyBusy || !config}
-                    busy={busyKey === `exam-${id}`}
-                    onClick={() => onExportExam(id)}
+                    busyKey={busyKey}
+                    exportKey={`exam-${id}`}
+                    onExcel={() => exportExam(id, 'xlsx')}
+                    onPdf={() => exportExam(id, 'pdf')}
                   />
                 );
               })}
@@ -245,9 +307,9 @@ export default function ExportView() {
                 const test = tests[id];
                 const inactive = test?.active === false;
                 return (
-                  <ExportItemButton
+                  <ExportFormatButtons
                     key={id}
-                    label={test?.name?.trim() ? `${test.name} exportieren` : `Test ${id} exportieren`}
+                    label={test?.name?.trim() ? test.name : `Test ${id}`}
                     sublabel={
                       inactive
                         ? 'inaktiv'
@@ -255,8 +317,10 @@ export default function ExportView() {
                           undefined
                     }
                     disabled={anyBusy || !config}
-                    busy={busyKey === `test-${id}`}
-                    onClick={() => onExportTest(id)}
+                    busyKey={busyKey}
+                    exportKey={`test-${id}`}
+                    onExcel={() => exportTest(id, 'xlsx')}
+                    onPdf={() => exportTest(id, 'pdf')}
                   />
                 );
               })}
@@ -281,13 +345,9 @@ export default function ExportView() {
                 const extended = !!oral?.extended;
                 const inactive = oral?.active === false;
                 return (
-                  <ExportItemButton
+                  <ExportFormatButtons
                     key={id}
-                    label={
-                      oral?.name?.trim()
-                        ? `${oral.name} exportieren`
-                        : `Mündlich ${id} exportieren`
-                    }
+                    label={oral?.name?.trim() ? oral.name : `Mündlich ${id}`}
                     sublabel={
                       extended
                         ? 'nur Standard — Erweitert aktiv'
@@ -298,8 +358,10 @@ export default function ExportView() {
                               .join(' · ') || undefined
                     }
                     disabled={anyBusy || !config || extended}
-                    busy={busyKey === `oral-${id}`}
-                    onClick={() => onExportOral(id)}
+                    busyKey={busyKey}
+                    exportKey={`oral-${id}`}
+                    onExcel={() => exportOral(id, 'xlsx')}
+                    onPdf={() => exportOral(id, 'pdf')}
                   />
                 );
               })}
