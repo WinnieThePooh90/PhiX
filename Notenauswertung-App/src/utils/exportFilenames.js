@@ -31,3 +31,8 @@ export function oralExportFilename(course, oralId, oralName) {
   const label = oralName?.trim() ? oralName.trim() : `Muendlich-${oralId}`;
   return buildExportFilename(['Muendlich', label, course?.subject, course?.className, course?.year]);
 }
+
+/** Gesamtexport des aktuellen Kurses (alle Blätter in einer Datei). */
+export function courseFullExportFilename(course) {
+  return buildExportFilename(['Klasse', course?.subject, course?.className, course?.year]);
+}

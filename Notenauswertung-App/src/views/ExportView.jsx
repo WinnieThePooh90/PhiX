@@ -3,15 +3,17 @@ import { Download } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { buildSummaryOverviewExportData } from '../utils/summaryOverviewExport';
 import {
+  courseFullExportFilename,
   examExportFilename,
   oralExportFilename,
   summaryOverviewExportFilename,
   testExportFilename,
 } from '../utils/exportFilenames';
+import { buildCourseFullExportSheets } from '../utils/courseFullExport';
 import { buildExamTableExportAoa, examExportSheetName } from '../utils/examTableExport';
 import { buildOralStandardTableExportData, oralExportSheetName } from '../utils/oralTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
-import { downloadAoaXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
+import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
 
 function courseLabel(course) {
   if (!course) return '';
@@ -78,6 +80,21 @@ export default function ExportView() {
     }
   };
 
+  const onExportFullCourse = () =>
+    runExport('course-full', async () => {
+      const sheets = buildCourseFullExportSheets({
+        students,
+        exams,
+        orals,
+        tests,
+        gfsEntries,
+        config,
+      });
+      const filename = courseFullExportFilename(config);
+      downloadMultiSheetXlsx(sheets, filename);
+      return filename;
+    });
+
   const onExportSummary = () =>
     runExport('summary', async () => {
       const sheetData = buildSummaryOverviewExportData({
@@ -142,6 +159,27 @@ export default function ExportView() {
       </p>
 
       <div className="program-view-stack">
+        <section className="program-view-panel glass-panel export-course-full-panel" aria-labelledby="export-course-full-heading">
+          <h4 id="export-course-full-heading" className="program-view-panel-heading">
+            Gesamter Kurs
+          </h4>
+          <p className="program-view-panel-text text-muted">
+            Eine Excel-Datei mit allen Tabellen des aktuellen Kurses:{' '}
+            <strong>Übersicht</strong>, alle <strong>Klausuren</strong> und <strong>Tests</strong>, mündliche
+            Bereiche im <strong>Standardmodus</strong> (ohne Erweitert) sowie <strong>GFS</strong> — je Bereich
+            ein eigenes Tabellenblatt.
+          </p>
+          <button
+            type="button"
+            className="tab primary program-view-panel-cta backup-action-btn"
+            disabled={anyBusy || !config}
+            onClick={onExportFullCourse}
+          >
+            <Download size={18} strokeWidth={2} aria-hidden />
+            {busyKey === 'course-full' ? 'Kurs wird exportiert …' : 'Gesamten Kurs als Excel exportieren'}
+          </button>
+        </section>
+
         <section className="program-view-panel glass-panel" aria-labelledby="export-summary-heading">
           <h4 id="export-summary-heading" className="program-view-panel-heading">
             Übersicht (Gesamtübersicht)
