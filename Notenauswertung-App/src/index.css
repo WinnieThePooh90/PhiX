@@ -509,6 +509,22 @@ p {
   font-weight: 400;
 }
 
+.backup-section-divider {
+  margin: 1.25rem 0;
+}
+
+.backup-user-select {
+  max-width: 20rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+
+.backup-admin-user-actions {
+  margin-top: 0.75rem;
+}
+
 .app-info-section {
   min-width: 0;
 }

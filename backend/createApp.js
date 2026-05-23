@@ -8,9 +8,12 @@ const { createPrismaClient } = require('./lib/prisma-factory');
 const { usernameWhere } = require('./lib/username-filter');
 const {
   exportPhixDatabase,
+  exportPhixUserDatabase,
   serializeBackupPayload,
   restorePhixDatabase,
-  backupFilenameFromDate,
+  restorePhixUserDatabase,
+  backupFilenameFromPayload,
+  resolveStoredUsername,
 } = require('./lib/phix-backup');
 
 function createApp() {
@@ -2017,39 +2020,114 @@ app.delete('/api/notes-list-entries/:id', async (req, res) => {
   res.status(204).end();
 });
 
-// ——— Vollständiges Datenbank-Backup (nur Administrator) ———
+// ——— Backup: benutzerbezogen (eigene Kurse) / vollständig (Admin) ———
 
-app.get('/api/backup/download', async (req, res) => {
+function backupPkgBuildMeta() {
+  return { appBuild: String(require('./package.json').version || '').split('.')[0] || null };
+}
+
+function sendBackupDownload(res, payload) {
+  const body = serializeBackupPayload(payload);
+  const filename = backupFilenameFromPayload(payload);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(body);
+}
+
+function readBackupBody(req) {
+  const raw = req.body?.backup != null ? req.body.backup : req.body;
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  return raw;
+}
+
+/** Eigenes Backup: nur Kurse/Noten des angemeldeten Benutzers. */
+app.get('/api/backup/me/download', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  try {
+    const payload = await exportPhixUserDatabase(prisma, acting, backupPkgBuildMeta());
+    sendBackupDownload(res, payload);
+  } catch (err) {
+    console.error('[backup] Benutzer-Export fehlgeschlagen:', err);
+    res.status(500).json({ error: err?.message || 'Backup konnte nicht erstellt werden.' });
+  }
+});
+
+app.post('/api/backup/me/restore', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const raw = readBackupBody(req);
+  if (!raw) return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
+  try {
+    const result = await restorePhixUserDatabase(prisma, raw, acting);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[backup] Benutzer-Wiederherstellung fehlgeschlagen:', err);
+    res.status(400).json({ error: err?.message || 'Wiederherstellung fehlgeschlagen.' });
+  }
+});
+
+/** Vollständiges Datenbank-Backup (nur Administrator). */
+app.get('/api/backup/full/download', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
   try {
-    const pkgVersion = String(require('./package.json').version || '').split('.')[0] || null;
-    const payload = await exportPhixDatabase(prisma, { appBuild: pkgVersion });
-    const body = serializeBackupPayload(payload);
-    const filename = backupFilenameFromDate(payload.createdAt);
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(body);
+    const payload = await exportPhixDatabase(prisma, backupPkgBuildMeta());
+    sendBackupDownload(res, payload);
   } catch (err) {
-    console.error('[backup] Export fehlgeschlagen:', err);
+    console.error('[backup] Voll-Export fehlgeschlagen:', err);
     res.status(500).json({ error: 'Backup konnte nicht erstellt werden.' });
   }
 });
 
-app.post('/api/backup/restore', async (req, res) => {
+app.post('/api/backup/full/restore', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
-  const raw = req.body?.backup != null ? req.body.backup : req.body;
-  if (!raw || typeof raw !== 'object') {
-    return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
-  }
+  const raw = readBackupBody(req);
+  if (!raw) return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
   try {
     const result = await restorePhixDatabase(prisma, raw);
     res.json({ ok: true, ...result });
   } catch (err) {
-    console.error('[backup] Wiederherstellung fehlgeschlagen:', err);
-    const msg = err?.message || 'Wiederherstellung fehlgeschlagen.';
-    res.status(400).json({ error: msg });
+    console.error('[backup] Voll-Wiederherstellung fehlgeschlagen:', err);
+    res.status(400).json({ error: err?.message || 'Wiederherstellung fehlgeschlagen.' });
+  }
+});
+
+/** Backup eines bestimmten Benutzers (nur Administrator). */
+app.get('/api/backup/users/:username/download', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  const target = String(req.params.username ?? '').trim();
+  if (!target) return res.status(400).json({ error: 'Benutzername fehlt.' });
+  try {
+    const stored = await resolveStoredUsername(prisma, target);
+    if (!stored) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    const payload = await exportPhixUserDatabase(prisma, stored, backupPkgBuildMeta());
+    sendBackupDownload(res, payload);
+  } catch (err) {
+    console.error('[backup] Benutzer-Export (Admin) fehlgeschlagen:', err);
+    res.status(500).json({ error: err?.message || 'Backup konnte nicht erstellt werden.' });
+  }
+});
+
+app.post('/api/backup/users/:username/restore', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  const target = String(req.params.username ?? '').trim();
+  if (!target) return res.status(400).json({ error: 'Benutzername fehlt.' });
+  const raw = readBackupBody(req);
+  if (!raw) return res.status(400).json({ error: 'Keine Backup-Daten im Request-Body.' });
+  try {
+    const stored = await resolveStoredUsername(prisma, target);
+    if (!stored) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    const result = await restorePhixUserDatabase(prisma, raw, stored);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[backup] Benutzer-Wiederherstellung (Admin) fehlgeschlagen:', err);
+    res.status(400).json({ error: err?.message || 'Wiederherstellung fehlgeschlagen.' });
   }
 });
 

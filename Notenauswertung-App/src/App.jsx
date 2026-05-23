@@ -202,7 +202,7 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (!isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) {
+    if (!isAdminUser && activeTab === 'dependencies') {
       setActiveTab('summary');
     }
   }, [isAdminUser, activeTab]);
@@ -298,7 +298,7 @@ function App() {
       case 'userManagement':
         return <UserManagementView />;
       case 'backup':
-        return isAdminUser ? <BackupView /> : <SummaryView studentIdFilterSet={studentIdFilterSet} />;
+        return <BackupView />;
       case 'analysis':
         return <AnalysisView />;
       case 'klassenlehrer':
@@ -308,7 +308,11 @@ function App() {
       case 'appInfo':
         return <AppInfoView onOpenSupport={() => openMainTab('support')} />;
       case 'dependencies':
-        return isAdminUser ? <DependenciesView /> : <SummaryView studentIdFilterSet={studentIdFilterSet} />;
+        return isAdminUser ? (
+          <DependenciesView />
+        ) : (
+          <SummaryView studentIdFilterSet={studentIdFilterSet} />
+        );
       case 'support':
         return <SupportPhiXView onRegistrationSuccess={() => openMainTab('appInfo')} />;
       case 'impressum':
@@ -367,7 +371,7 @@ function App() {
             <button
               ref={settingsGearRef}
               type="button"
-              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && (activeTab === 'dependencies' || activeTab === 'backup')) ? 'active' : ''}`}
+              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'backup' || activeTab === 'appInfo' || activeTab === 'impressum' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
               onClick={() => setSettingsMenuOpen((o) => !o)}
               title="Einstellungen"
               aria-label="Einstellungen öffnen"

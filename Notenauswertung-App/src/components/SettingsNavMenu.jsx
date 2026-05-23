@@ -43,30 +43,22 @@ export default function SettingsNavMenu({
       <button type="button" role="menuitem" onClick={() => pick('userManagement')}>
         Benutzerverwaltung
       </button>
+      <button type="button" role="menuitem" onClick={() => pick('backup')}>
+        Backup
+      </button>
+      <hr className="header-settings-dropdown-divider" aria-hidden />
+      <button type="button" role="menuitem" onClick={() => pick('appInfo')}>
+        Info
+      </button>
+      <button type="button" role="menuitem" onClick={() => pick('impressum')}>
+        Impressum
+      </button>
       {isAdminUser ? (
-        <button type="button" role="menuitem" onClick={() => pick('backup')}>
-          Backup
+        <button type="button" role="menuitem" onClick={() => pick('dependencies')}>
+          Dependencies
         </button>
       ) : null}
-      {isAdminUser ? (
-        <>
-          <hr className="header-settings-dropdown-divider" aria-hidden />
-          <button type="button" role="menuitem" onClick={() => pick('appInfo')}>
-            Info
-          </button>
-          <button type="button" role="menuitem" onClick={() => pick('impressum')}>
-            Impressum
-          </button>
-          <button type="button" role="menuitem" onClick={() => pick('dependencies')}>
-            Dependencies
-          </button>
-          <hr className="header-settings-dropdown-divider" aria-hidden />
-        </>
-      ) : (
-        <button type="button" role="menuitem" onClick={() => pick('impressum')}>
-          Impressum
-        </button>
-      )}
+      <hr className="header-settings-dropdown-divider" aria-hidden />
       <button
         type="button"
         role="menuitem"
