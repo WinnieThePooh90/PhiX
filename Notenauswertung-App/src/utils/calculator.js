@@ -695,8 +695,9 @@ export const getTestGradeForStudent = (test, studentId, customGradingKeys = null
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(raw), gradeSystem);
   }
 
-  if (value === '') return null;
-  return calculateTestGradeForStudentEntry(test, value, customGradingKeys, raw);
+  const pointsForGrade = value === '' ? '0' : value;
+  if (value === '' && test?.active === false) return null;
+  return calculateTestGradeForStudentEntry(test, pointsForGrade, customGradingKeys, raw);
 };
 
 /** GFS-Notentext wie mündlich (z. B. 1,25); Komma als Dezimaltrenner erlaubt. */
