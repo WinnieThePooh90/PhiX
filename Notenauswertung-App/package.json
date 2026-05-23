@@ -4,7 +4,7 @@
   "version": "51.0.0",
   "type": "module",
   "scripts": {
-    "sync-version": "node ../scripts/sync-phix-app-version.mjs",
+    "sync-version": "node scripts/sync-app-version.mjs",
     "prebuild": "npm run sync-version",
     "dev": "vite",
     "build": "vite build",

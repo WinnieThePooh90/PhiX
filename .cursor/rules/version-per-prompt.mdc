@@ -17,7 +17,7 @@ Gilt für **Agent-Modus** (wenn du Dateien ändern darfst). Im **Ask-Modus** kei
    - die Tabelle **Build** / **Letzte Änderung** mit denselben Werten.
 5. **Sichtbare Build-Nummer** = nur **`PHIX_BUILD`** (eine Zahl). In **`backend/package.json`**, **`Notenauswertung-App/package.json`**, **`desktop/package.json`** das Feld **`"version"`** auf **`"<PHIX_BUILD>.0.0"`** setzen (Beispiel: Build `42` → `"42.0.0"`). Grund: **electron-builder** und npm verlangen SemVer; die laufende Nummer bleibt die **Major**-Komponente.
 6. In den **`package-lock.json`** derselben drei Ordner **nur** die Root-**`version`** und unter **`packages[""].version`** auf **dieselbe** SemVer-Zeichenkette setzen — **nicht** per `replace_all` auf die gesamte Datei.
-7. **Info-Seite synchronisieren:** `node scripts/sync-phix-app-version.mjs` ausführen (schreibt `Notenauswertung-App/src/config/appVersion.js` aus `PHIX_BUILD` + `PHIX_LETZTE_AENDERUNG` — Anzeige unter **Einstellungen → Info**). Falls Node nicht verfügbar: dieselben Werte dort **manuell** setzen (`APP_VERSION` = `PHIX_BUILD`, `APP_BUILD_AT` = `PHIX_LETZTE_AENDERUNG` mit `T12:00:00.000Z`).
+7. **Info-Seite synchronisieren:** `node Notenauswertung-App/scripts/sync-app-version.mjs` (aus Repo-Root) bzw. im App-Ordner `npm run sync-version` — schreibt `src/config/appVersion.js` aus `docs/APP_VERSION.md` (lokal) oder aus `package.json`-Major (Docker). Falls Node nicht verfügbar: Werte in `appVersion.js` manuell setzen.
 
 ## Ausnahmen
 
