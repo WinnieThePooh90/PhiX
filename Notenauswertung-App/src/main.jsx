@@ -23,7 +23,16 @@ function AuthenticatedApp() {
     confirmPendingRecovery,
   } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
-  if (!authReady) return null;
+  if (!authReady) {
+    return (
+      <div className="app-login-screen" aria-busy="true" aria-live="polite">
+        <div className="app-login-card">
+          <h1 className="app-login-title">{APP_NAME}</h1>
+          <p className="app-login-subtitle">Wird geladen…</p>
+        </div>
+      </div>
+    );
+  }
   if (!currentUser) {
     if (showRecovery) {
       return (

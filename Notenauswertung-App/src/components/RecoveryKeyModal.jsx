@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 
 /**
- * Popup: Erfolgsmeldung + Recovery-Key; Schließen nur nach Bestätigungs-Checkbox.
+ * Vollbild: Recovery-Key nach Ersteinrichtung (Checkbox-Pflicht vor Fortfahren).
  */
 export default function RecoveryKeyModal({
   username,
@@ -25,34 +24,26 @@ export default function RecoveryKeyModal({
     URL.revokeObjectURL(url);
   };
 
-  return createPortal(
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="recovery-key-modal-title">
-      <div className="modal-card" style={{ maxWidth: '32rem' }} onMouseDown={(e) => e.stopPropagation()}>
-        <h2 id="recovery-key-modal-title">{title}</h2>
-        {successMessage ? <p className="program-user-mgmt-success">{successMessage}</p> : null}
-        <p>
+  return (
+    <div className="app-login-screen phix-recovery-screen" role="dialog" aria-modal="true" aria-labelledby="recovery-key-modal-title">
+      <div className="app-login-card phix-recovery-card">
+        <h1 id="recovery-key-modal-title" className="app-login-title">
+          {title}
+        </h1>
+        {successMessage ? <p className="app-login-subtitle phix-recovery-success">{successMessage}</p> : null}
+        <p className="phix-recovery-hint">
           Notieren oder laden Sie diesen Schlüssel herunter. Ohne ihn und ohne Passwort sind die Daten dieses
           Benutzers nicht wiederherstellbar.
         </p>
-        <p
-          style={{
-            fontFamily: 'monospace',
-            fontSize: '1.1rem',
-            letterSpacing: '0.05em',
-            padding: '0.75rem',
-            background: 'var(--surface-2, #f4f4f5)',
-            borderRadius: '6px',
-            wordBreak: 'break-all',
-          }}
-        >
+        <p className="phix-recovery-key-display" aria-label="Recovery-Key">
           {recoveryKey}
         </p>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+        <div className="phix-recovery-actions">
           <button type="button" className="app-login-submit" onClick={downloadRecovery}>
             Als Datei speichern
           </button>
         </div>
-        <label style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'flex-start' }}>
+        <label className="phix-recovery-confirm-label">
           <input
             type="checkbox"
             checked={confirmed}
@@ -62,15 +53,13 @@ export default function RecoveryKeyModal({
         </label>
         <button
           type="button"
-          className="app-login-submit"
-          style={{ marginTop: '1rem' }}
+          className="app-login-submit phix-recovery-continue"
           disabled={!confirmed}
           onClick={() => onClose?.()}
         >
           {confirmLabel}
         </button>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

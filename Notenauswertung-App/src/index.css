@@ -1395,13 +1395,108 @@ tfoot td {
 }
 
 .app-login-screen {
+  flex: 1 1 auto;
+  min-height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   background: hsl(var(--background));
+  overflow: auto;
+}
+
+/* Recovery-Key nach Erstlogin */
+.phix-recovery-card {
+  max-width: 28rem;
+}
+
+.phix-recovery-success {
+  color: hsl(var(--success-hsl));
+}
+
+.phix-recovery-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.phix-recovery-key-display {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  word-break: break-all;
+  color: var(--text-main);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.phix-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.phix-recovery-confirm-label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.phix-recovery-continue {
+  width: 100%;
+}
+
+/* Modale über der App (z. B. Notenschlüssel) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  overflow: auto;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 32rem;
+  padding: 1.75rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+  color: var(--text-main);
+}
+
+.modal-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.modal-card p {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.45;
 }
 
 .app-login-card {

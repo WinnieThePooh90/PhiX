@@ -52,10 +52,6 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const finishRecoveryConfirm = () => {
-    onComplete?.();
-  };
-
   if (recoveryKey) {
     return (
       <RecoveryKeyModal
@@ -63,16 +59,16 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
         recoveryKey={recoveryKey}
         successMessage="Ihre Verschlüsselung wurde eingerichtet."
         confirmLabel="Weiter zur App"
-        onClose={finishRecoveryConfirm}
+        onClose={() => onComplete?.()}
       />
     );
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>Verschlüsselung einrichten</h2>
-        <p>Schlüssel werden erzeugt…</p>
+    <div className="app-login-screen" role="dialog" aria-modal="true" aria-busy={busy}>
+      <div className="app-login-card">
+        <h1 className="app-login-title">Verschlüsselung einrichten</h1>
+        <p className="app-login-subtitle">{busy ? 'Schlüssel werden erzeugt…' : 'Einrichtung wird vorbereitet…'}</p>
         {error ? (
           <p className="app-login-error" role="alert">
             {error}
