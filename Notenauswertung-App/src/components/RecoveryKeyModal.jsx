@@ -44,7 +44,7 @@ export default function RecoveryKeyModal({
             Als Datei speichern
           </button>
         </div>
-        <PhixCheckboxOption checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}>
+        <PhixCheckboxOption wrap checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}>
           Ich habe den Recovery-Key sicher aufbewahrt.
         </PhixCheckboxOption>
         <button

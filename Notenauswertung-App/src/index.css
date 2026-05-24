@@ -1100,14 +1100,32 @@ label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label
   user-select: none;
 }
 
+/* Mehrzeiliger Labeltext (z. B. Recovery-Key-Bestätigung) */
+.phix-checkbox-option--wrap,
+.phix-recovery-card .phix-checkbox-option {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: flex-start;
+}
+
+.phix-checkbox-option--wrap span,
+.phix-recovery-card .phix-checkbox-option span {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+
+.phix-checkbox-option--wrap input[type="checkbox"],
+.phix-recovery-card .phix-checkbox-option input[type="checkbox"] {
+  margin-top: 0.1rem;
+}
+
 .phix-recovery-card .phix-checkbox-option {
   margin-top: 0;
   margin-bottom: 1rem;
-  white-space: normal;
-}
-
-.phix-recovery-card .phix-checkbox-option span {
-  white-space: normal;
 }
 
 .grading-key-table__header {

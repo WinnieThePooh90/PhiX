@@ -10,6 +10,7 @@ export default function PhixCheckboxOption({
   onChange,
   disabled = false,
   children,
+  wrap = false,
   className = '',
   id,
   name,
@@ -18,7 +19,7 @@ export default function PhixCheckboxOption({
 }) {
   return (
     <label
-      className={`phix-checkbox-option${className ? ` ${className}` : ''}`}
+      className={`phix-checkbox-option${wrap ? ' phix-checkbox-option--wrap' : ''}${className ? ` ${className}` : ''}`}
       title={title}
     >
       <input
