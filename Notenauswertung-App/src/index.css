@@ -1090,9 +1090,9 @@ label:has(> input[type="checkbox"]:disabled):not(:has(> .slider)):not(.gfs-gehal
   cursor: not-allowed;
 }
 
-.phix-checkbox-option span,
+.phix-checkbox-option:not(.phix-checkbox-option--wrap) span,
 .settings-tests-written-option span,
-label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label) > span {
+label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label):not(.phix-checkbox-option--wrap) > span {
   white-space: nowrap;
   font-size: 0.9375rem;
   line-height: 1.35;
@@ -1103,23 +1103,30 @@ label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label
 /* Mehrzeiliger Labeltext (z. B. Recovery-Key-Bestätigung) */
 .phix-checkbox-option--wrap,
 .phix-recovery-card .phix-checkbox-option {
+  display: flex;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   align-items: flex-start;
 }
 
 .phix-checkbox-option--wrap span,
 .phix-recovery-card .phix-checkbox-option span {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   white-space: normal;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.45;
+  font-size: 0.9375rem;
+  color: var(--text-main);
+  user-select: none;
 }
 
 .phix-checkbox-option--wrap input[type="checkbox"],
 .phix-recovery-card .phix-checkbox-option input[type="checkbox"] {
+  flex-shrink: 0;
   margin-top: 0.1rem;
 }
 
@@ -1470,6 +1477,9 @@ tfoot td {
 /* Recovery-Key nach Erstlogin */
 .phix-recovery-card {
   max-width: 28rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .phix-recovery-success {
