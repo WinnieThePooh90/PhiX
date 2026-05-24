@@ -301,16 +301,8 @@ app.post('/api/users', async (req, res) => {
     data: { username, passwordHash },
     select: { id: true, username: true },
   });
-  let recoveryKey;
-  try {
-    const created = await createUserCryptoRecord(prisma, user.id, password);
-    recoveryKey = created.recoveryKey;
-  } catch (err) {
-    await prisma.appUser.delete({ where: { id: user.id } }).catch(() => {});
-    console.error('[crypto] UserCrypto bei Anlage fehlgeschlagen:', err);
-    return res.status(500).json({ error: 'Benutzer konnte nicht vollständig angelegt werden.' });
-  }
-  res.status(201).json({ id: String(user.id), username: user.username, recoveryKey });
+  // Verschlüsselung + Recovery-Key erst beim ersten Login des neuen Benutzers (POST /api/auth/crypto/setup).
+  res.status(201).json({ id: String(user.id), username: user.username });
 });
 
 app.patch('/api/users/:id/password', async (req, res) => {

@@ -312,7 +312,7 @@ export const AuthProvider = ({ children }) => {
           return { ok: false, error: body.error || 'Anlegen fehlgeschlagen.' };
         }
         await refreshUsersList(acting);
-        return { ok: true, recoveryKey: body.recoveryKey || null };
+        return { ok: true };
       } catch {
         return { ok: false, error: 'Server nicht erreichbar.' };
       }

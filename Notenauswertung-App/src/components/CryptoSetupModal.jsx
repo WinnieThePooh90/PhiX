@@ -44,6 +44,7 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
       <RecoveryKeyModal
         username={username}
         recoveryKey={recoveryKey}
+        successMessage="Ihre Verschlüsselung wurde eingerichtet."
         confirmLabel="Weiter zur App"
         onClose={() => onComplete?.()}
       />
