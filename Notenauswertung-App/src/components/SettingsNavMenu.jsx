@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react';
 export default function SettingsNavMenu({
   isAdminUser,
   showKlassenlehrer = false,
+  showCourseMenuItems = true,
   onSelect,
   onNewCourse,
   onClose,
@@ -19,21 +20,25 @@ export default function SettingsNavMenu({
 
   return (
     <nav className={`settings-nav-menu ${className}`.trim()} role="menu" aria-label="Einstellungen">
-      <button type="button" role="menuitem" onClick={() => pick('settings')}>
-        Klasse
-      </button>
-      <button type="button" role="menuitem" onClick={() => pick('analysis')}>
-        Analyse
-      </button>
-      {showKlassenlehrer ? (
-        <button type="button" role="menuitem" onClick={() => pick('klassenlehrer')}>
-          Klassenlehrer
-        </button>
+      {showCourseMenuItems ? (
+        <>
+          <button type="button" role="menuitem" onClick={() => pick('settings')}>
+            Klasse
+          </button>
+          <button type="button" role="menuitem" onClick={() => pick('analysis')}>
+            Analyse
+          </button>
+          {showKlassenlehrer ? (
+            <button type="button" role="menuitem" onClick={() => pick('klassenlehrer')}>
+              Klassenlehrer
+            </button>
+          ) : null}
+          <button type="button" role="menuitem" onClick={() => pick('export')}>
+            Export
+          </button>
+          <hr className="header-settings-dropdown-divider" aria-hidden />
+        </>
       ) : null}
-      <button type="button" role="menuitem" onClick={() => pick('export')}>
-        Export
-      </button>
-      <hr className="header-settings-dropdown-divider" aria-hidden />
       <button type="button" role="menuitem" onClick={() => pick('keys')}>
         Notenschlüssel
       </button>

@@ -7,6 +7,7 @@ import {
   clearCryptoSessionToken,
   applyCryptoHeader,
 } from '../utils/cryptoSession';
+import { INACTIVITY_LOGOUT_MS } from '../config/session';
 
 const STORAGE_SESSION_KEY = 'notenauswertung_session_username';
 const LEGACY_STORAGE_USERS_KEY = 'notenauswertung_users';
@@ -256,6 +257,33 @@ export const AuthProvider = ({ children }) => {
     setPendingCryptoSetup(null);
     setCurrentUser(null);
   }, []);
+
+  useEffect(() => {
+    if (!currentUser?.username) return undefined;
+
+    let timerId = null;
+    const scheduleLogout = () => {
+      if (timerId != null) clearTimeout(timerId);
+      timerId = setTimeout(() => {
+        void logout();
+      }, INACTIVITY_LOGOUT_MS);
+    };
+
+    const onActivity = () => scheduleLogout();
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'click', 'wheel', 'scroll'];
+
+    scheduleLogout();
+    for (const ev of activityEvents) {
+      window.addEventListener(ev, onActivity, { passive: true });
+    }
+
+    return () => {
+      if (timerId != null) clearTimeout(timerId);
+      for (const ev of activityEvents) {
+        window.removeEventListener(ev, onActivity);
+      }
+    };
+  }, [currentUser?.username, logout]);
 
   const completeCryptoSetup = useCallback(() => {
     setPendingCryptoSetup(null);

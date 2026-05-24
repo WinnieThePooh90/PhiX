@@ -41,6 +41,19 @@ import { usePhiXRegistration } from './utils/phixRegistration';
 
 const MOBILE_MEDIA = '(max-width: 768px)';
 
+/** Tabs, die ohne ausgewähltes Fach nutzbar sind (Einstellungsmenü / Hauptinhalt). */
+const TABS_WITHOUT_COURSE = new Set([
+  'keys',
+  'schoolRoster',
+  'userManagement',
+  'backup',
+  'appInfo',
+  'impressum',
+  'help',
+  'dependencies',
+  'support',
+]);
+
 /** Schuljahres-String z. B. „2025/2026“ → erstes Jahr für Sortierung (höher = neuer = weiter oben). */
 function schoolYearStartForSort(yearRaw) {
   const m = String(yearRaw ?? '').trim().match(/(\d{4})/);
@@ -98,9 +111,11 @@ function App() {
   const settingsGearRef = useRef(null);
   const settingsDropdownRef = useRef(null);
 
+  const hasActiveCourse = Boolean(config);
   const showTestsTab = config?.testsWritten !== false;
   const showGfsTab = config?.gfsAccepted !== false;
   const showKlassenlehrerMenu = config?.klassenlehrerEnabled === true;
+  const showEmptyCoursePrompt = !hasActiveCourse && !TABS_WITHOUT_COURSE.has(activeTab);
 
   useEffect(() => {
     if (!showTestsTab && activeTab === 'tests') setActiveTab('summary');
@@ -207,6 +222,11 @@ function App() {
       setActiveTab('summary');
     }
   }, [isAdminUser, activeTab]);
+
+  useEffect(() => {
+    if (hasActiveCourse || TABS_WITHOUT_COURSE.has(activeTab)) return;
+    setActiveTab('summary');
+  }, [hasActiveCourse, activeTab]);
 
   const openMainTab = (tab) => {
     if (isNewCoursePage) navigate('/');
@@ -344,6 +364,71 @@ function App() {
   const showMobilePageSettingsToggle =
     activeTab === 'exams' || activeTab === 'oral' || activeTab === 'tests' || activeTab === 'gfs';
 
+  const settingsTabActive =
+    activeTab === 'settings' ||
+    activeTab === 'schoolRoster' ||
+    activeTab === 'userManagement' ||
+    activeTab === 'keys' ||
+    (hasActiveCourse && activeTab === 'analysis') ||
+    (hasActiveCourse && activeTab === 'klassenlehrer') ||
+    (hasActiveCourse && activeTab === 'export') ||
+    activeTab === 'backup' ||
+    activeTab === 'appInfo' ||
+    activeTab === 'impressum' ||
+    activeTab === 'help' ||
+    (isAdminUser && activeTab === 'dependencies');
+
+  const renderDesktopSettingsControls = () => (
+    <>
+      <div className="header-settings-menu-wrap app-desktop-only" ref={settingsMenuRef}>
+        <button
+          ref={settingsGearRef}
+          type="button"
+          className={`tab equiphi-nav-btn equiphi-settings-btn ${settingsTabActive ? 'active' : ''}`}
+          onClick={() => setSettingsMenuOpen((o) => !o)}
+          title="Einstellungen"
+          aria-label="Einstellungen öffnen"
+          aria-expanded={settingsMenuOpen}
+          aria-haspopup="menu"
+        >
+          <Settings className="header-lucide-icon" size={18} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+      <div className="app-desktop-only">
+        <HeaderUserMenu
+          settingsMenuOpen={settingsMenuOpen}
+          onMenuOpenChange={(o) => {
+            if (o) setSettingsMenuOpen(false);
+          }}
+        />
+      </div>
+      {settingsMenuOpen &&
+        settingsMenuPos &&
+        createPortal(
+          <div
+            ref={settingsDropdownRef}
+            className="header-settings-dropdown header-settings-dropdown--portal"
+            role="menu"
+            aria-label="Einstellungen"
+            style={{
+              top: settingsMenuPos.top,
+              right: settingsMenuPos.right,
+            }}
+          >
+            <SettingsNavMenu
+              isAdminUser={isAdminUser}
+              showKlassenlehrer={showKlassenlehrerMenu}
+              showCourseMenuItems={hasActiveCourse}
+              onSelect={openMainTab}
+              onNewCourse={handleNewCourseClick}
+              onClose={() => setSettingsMenuOpen(false)}
+            />
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+
   const renderMainTabsNav = (className = '') => (
     <nav
       className={`tabs equiphi-tabs${className ? ` ${className}` : ''}`.trim()}
@@ -368,55 +453,7 @@ function App() {
           GFS
         </button>
       )}
-      {!isMobile && (
-        <>
-          <div className="header-settings-menu-wrap app-desktop-only" ref={settingsMenuRef}>
-            <button
-              ref={settingsGearRef}
-              type="button"
-              className={`tab equiphi-nav-btn equiphi-settings-btn ${activeTab === 'settings' || activeTab === 'schoolRoster' || activeTab === 'userManagement' || activeTab === 'keys' || activeTab === 'analysis' || activeTab === 'klassenlehrer' || activeTab === 'export' || activeTab === 'backup' || activeTab === 'appInfo' || activeTab === 'impressum' || activeTab === 'help' || (isAdminUser && activeTab === 'dependencies') ? 'active' : ''}`}
-              onClick={() => setSettingsMenuOpen((o) => !o)}
-              title="Einstellungen"
-              aria-label="Einstellungen öffnen"
-              aria-expanded={settingsMenuOpen}
-              aria-haspopup="menu"
-            >
-              <Settings className="header-lucide-icon" size={18} strokeWidth={2} aria-hidden />
-            </button>
-          </div>
-          <div className="app-desktop-only">
-            <HeaderUserMenu
-              settingsMenuOpen={settingsMenuOpen}
-              onMenuOpenChange={(o) => {
-                if (o) setSettingsMenuOpen(false);
-              }}
-            />
-          </div>
-          {settingsMenuOpen &&
-            settingsMenuPos &&
-            createPortal(
-              <div
-                ref={settingsDropdownRef}
-                className="header-settings-dropdown header-settings-dropdown--portal"
-                role="menu"
-                aria-label="Einstellungen"
-                style={{
-                  top: settingsMenuPos.top,
-                  right: settingsMenuPos.right,
-                }}
-              >
-                <SettingsNavMenu
-                  isAdminUser={isAdminUser}
-                  showKlassenlehrer={showKlassenlehrerMenu}
-                  onSelect={openMainTab}
-                  onNewCourse={handleNewCourseClick}
-                  onClose={() => setSettingsMenuOpen(false)}
-                />
-              </div>,
-              document.body,
-            )}
-        </>
-      )}
+      {!isMobile && renderDesktopSettingsControls()}
     </nav>
   );
 
@@ -585,6 +622,7 @@ function App() {
             className="settings-nav-menu--panel"
             isAdminUser={isAdminUser}
             showKlassenlehrer={showKlassenlehrerMenu}
+            showCourseMenuItems={hasActiveCourse}
             onSelect={openMainTab}
             onNewCourse={handleNewCourseClick}
             onClose={() => setMobileSettingsOpen(false)}
@@ -767,34 +805,35 @@ function App() {
               position: 'relative',
             }}
           >
-            <div className="app-main-empty-state-user app-desktop-only">
-              <HeaderUserMenu
-                settingsMenuOpen={settingsMenuOpen}
-                onMenuOpenChange={(o) => {
-                  if (o) setSettingsMenuOpen(false);
+            <div className="app-main-empty-state-user app-desktop-only app-main-empty-state-header-actions">
+              {renderDesktopSettingsControls()}
+            </div>
+            {showEmptyCoursePrompt ? (
+              <div
+                style={{
+                  flex: '1 1 0%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  minHeight: 0,
                 }}
-              />
-            </div>
-            <div
-              style={{
-                flex: '1 1 0%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '2rem',
-                textAlign: 'center',
-                minHeight: 0,
-              }}
-            >
-              <h2>Kein Fach ausgewählt oder vorhanden</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Lege ein neues Fach an, um mit {APP_NAME} zu starten.
-              </p>
-              <button type="button" onClick={handleNewCourseClick}>
-                Neues Fach anlegen
-              </button>
-            </div>
+              >
+                <h2>Kein Fach ausgewählt oder vorhanden</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Lege ein neues Fach an, um mit {APP_NAME} zu starten.
+                </p>
+                <button type="button" onClick={handleNewCourseClick}>
+                  Neues Fach anlegen
+                </button>
+              </div>
+            ) : (
+              <div className="app-main-content-wrap" style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0 }}>
+                <main className="app-main-views">{renderView()}</main>
+              </div>
+            )}
           </div>
           </>
         )}

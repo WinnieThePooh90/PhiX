@@ -3,7 +3,8 @@
  */
 const crypto = require('crypto');
 
-const DEFAULT_TTL_MS = 8 * 60 * 60 * 1000;
+/** Inaktivität: keine API-Nutzung mit Krypto-Token → Session ungültig (Sliding Refresh bei Zugriff). */
+const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const sessions = new Map();
 
 function newToken() {

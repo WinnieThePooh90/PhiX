@@ -1492,6 +1492,12 @@ tfoot td {
   z-index: 3;
 }
 
+.app-main-empty-state-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .header-settings-dropdown {
   position: absolute;
   top: calc(100% + 6px);

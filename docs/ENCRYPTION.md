@@ -4,7 +4,7 @@
 
 Sensible fachliche Daten (Kurse, Schüler, Noten, Listen, Schülerverwaltung) werden **pro Benutzer** mit einem zufälligen **DEK** (256 Bit) per **AES-256-GCM** verschlüsselt in der Datenbank gespeichert. Das Passwort schützt den DEK über **Argon2id**; ein **Recovery-Key** bietet eine zweite Hülle.
 
-Nach dem Login hält der Server den DEK nur **im RAM** (Krypto-Session, TTL 8 Stunden). Das Frontend sendet `X-Phix-Crypto-Token` (sessionStorage) zusätzlich zu `X-Acting-User`.
+Nach dem Login hält der Server den DEK nur **im RAM** (Krypto-Session, TTL **5 Minuten** Inaktivität, bei jeder API-Anfrage verlängert). Das Frontend sendet `X-Phix-Crypto-Token` (sessionStorage) zusätzlich zu `X-Acting-User` und meldet nach **5 Minuten** ohne Nutzeraktivität automatisch ab.
 
 ## Speicherformat
 

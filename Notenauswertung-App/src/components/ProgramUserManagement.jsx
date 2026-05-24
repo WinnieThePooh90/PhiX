@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../store/AuthContext';
+import RecoveryKeyModal from './RecoveryKeyModal';
 
 export default function ProgramUserManagement() {
   const { usersList, addUser, setPasswordForUser, deleteUser, currentUser } = useAuth();
@@ -8,14 +9,13 @@ export default function ProgramUserManagement() {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
-  const [formMsg, setFormMsg] = useState('');
   const [formErr, setFormErr] = useState('');
 
   const [passwordUserId, setPasswordUserId] = useState(null);
   const [pwdOld, setPwdOld] = useState('');
   const [pwdNew, setPwdNew] = useState('');
   const [pwdNew2, setPwdNew2] = useState('');
-  const [lastRecoveryKey, setLastRecoveryKey] = useState('');
+  const [newUserRecoveryModal, setNewUserRecoveryModal] = useState(null);
   const [pwdMsg, setPwdMsg] = useState('');
   const [pwdErr, setPwdErr] = useState('');
   const [listErr, setListErr] = useState('');
@@ -101,7 +101,6 @@ export default function ProgramUserManagement() {
   const onCreateUser = async (e) => {
     e.preventDefault();
     setFormErr('');
-    setFormMsg('');
     setListErr('');
     if (newPassword !== newPassword2) {
       setFormErr('Die Passwort-Wiederholung stimmt nicht überein.');
@@ -112,11 +111,17 @@ export default function ProgramUserManagement() {
       setFormErr(r.error || 'Anlegen fehlgeschlagen.');
       return;
     }
-    setFormMsg(`Benutzer „${newUsername.trim()}“ wurde angelegt.`);
-    setLastRecoveryKey(r.recoveryKey || '');
+    const createdName = newUsername.trim();
     setNewUsername('');
     setNewPassword('');
     setNewPassword2('');
+    if (r.recoveryKey) {
+      setNewUserRecoveryModal({
+        username: createdName,
+        recoveryKey: r.recoveryKey,
+        successMessage: `Benutzer „${createdName}“ wurde angelegt.`,
+      });
+    }
   };
 
   const onSubmitPassword = async (e) => {
@@ -301,12 +306,6 @@ export default function ProgramUserManagement() {
               {formErr}
             </p>
           ) : null}
-          {formMsg ? <p className="program-user-mgmt-success">{formMsg}</p> : null}
-          {lastRecoveryKey ? (
-            <p className="program-user-mgmt-success" style={{ fontFamily: 'monospace' }}>
-              Recovery-Key (einmalig notieren): {lastRecoveryKey}
-            </p>
-          ) : null}
           <button type="submit" className="program-user-mgmt-submit">
             Benutzer anlegen
           </button>
@@ -314,6 +313,14 @@ export default function ProgramUserManagement() {
       </section>
 
       {passwordModal}
+      {newUserRecoveryModal ? (
+        <RecoveryKeyModal
+          username={newUserRecoveryModal.username}
+          recoveryKey={newUserRecoveryModal.recoveryKey}
+          successMessage={newUserRecoveryModal.successMessage}
+          onClose={() => setNewUserRecoveryModal(null)}
+        />
+      ) : null}
     </div>
   );
 }
