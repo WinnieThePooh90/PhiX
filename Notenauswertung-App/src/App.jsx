@@ -457,6 +457,28 @@ function App() {
     </nav>
   );
 
+  const renderNoCourseDesktopHeader = () => (
+    <div className="sticky-header sticky-header--no-course">
+      <div className="sticky-header-inner">
+        <div className="sticky-header-top-row">
+          <header className="sticky-header-course-title">
+            <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>Kein Fach ausgewählt</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
+              Wähle ein Fach oder lege ein neues an.
+            </p>
+          </header>
+          <nav
+            className="tabs equiphi-tabs sticky-header-tabs"
+            style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}
+            aria-label="Einstellungen und Benutzer"
+          >
+            {renderDesktopSettingsControls()}
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={[
@@ -785,56 +807,35 @@ function App() {
           </>
         ) : (
           <>
-            {isMobile && (
+            {isMobile ? (
               <MobileAppHeader {...mobileHeaderProps}>
                 <header className="app-mobile-header-course-title">
                   <h1>Kein Fach ausgewählt</h1>
                   <p>Wähle ein Fach oder lege ein neues an.</p>
                 </header>
               </MobileAppHeader>
-            )}
-          <div
-            className="app-main-empty-state"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: '1 1 0%',
-              minHeight: 0,
-              minWidth: 0,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            <div className="app-main-empty-state-user app-desktop-only app-main-empty-state-header-actions">
-              {renderDesktopSettingsControls()}
-            </div>
-            {showEmptyCoursePrompt ? (
-              <div
-                style={{
-                  flex: '1 1 0%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '2rem',
-                  textAlign: 'center',
-                  minHeight: 0,
-                }}
-              >
-                <h2>Kein Fach ausgewählt oder vorhanden</h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                  Lege ein neues Fach an, um mit {APP_NAME} zu starten.
-                </p>
-                <button type="button" onClick={handleNewCourseClick}>
-                  Neues Fach anlegen
-                </button>
-              </div>
             ) : (
-              <div className="app-main-content-wrap" style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0 }}>
-                <main className="app-main-views">{renderView()}</main>
-              </div>
+              renderNoCourseDesktopHeader()
             )}
-          </div>
+            <div className="app-main-empty-state">
+              {showEmptyCoursePrompt ? (
+                <div className="app-main-content-wrap">
+                  <main className="app-main-views">
+                    <div className="app-empty-course-prompt">
+                      <h2>Kein Fach ausgewählt oder vorhanden</h2>
+                      <p>Lege ein neues Fach an, um mit {APP_NAME} zu starten.</p>
+                      <button type="button" onClick={handleNewCourseClick}>
+                        Neues Fach anlegen
+                      </button>
+                    </div>
+                  </main>
+                </div>
+              ) : (
+                <div className="app-main-content-wrap">
+                  <main className="app-main-views">{renderView()}</main>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
