@@ -8,6 +8,10 @@ import {
   applyCryptoHeader,
 } from '../utils/cryptoSession';
 import { INACTIVITY_LOGOUT_MS } from '../config/session';
+import {
+  readPendingRecoverySetup,
+  clearPendingRecoverySetup,
+} from '../utils/pendingRecovery';
 
 const STORAGE_SESSION_KEY = 'notenauswertung_session_username';
 const LEGACY_STORAGE_USERS_KEY = 'notenauswertung_users';
@@ -78,6 +82,7 @@ export const AuthProvider = ({ children }) => {
   const [authReady, setAuthReady] = useState(false);
   const [usersList, setUsersList] = useState([]);
   const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
+  const [pendingRecoveryConfirm, setPendingRecoveryConfirm] = useState(null);
   const usersListNonce = useRef(0);
 
   const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
@@ -164,7 +169,14 @@ export const AuthProvider = ({ children }) => {
           });
           const statusBody = await statusRes.json().catch(() => ({}));
           if (!cancelled) {
-            applyCryptoGateFromStatus(body.username, statusRes, statusBody);
+            const pendingRec = readPendingRecoverySetup();
+            if (pendingRec && pendingRec.username === body.username) {
+              clearCryptoSessionToken();
+              setPendingRecoveryConfirm(pendingRec);
+              setPendingCryptoSetup(null);
+            } else {
+              applyCryptoGateFromStatus(body.username, statusRes, statusBody);
+            }
           }
         } else {
           try {
@@ -187,13 +199,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (!currentUser?.username) {
-      setUsersList([]);
+    if (!currentUser?.username || pendingCryptoSetup || pendingRecoveryConfirm) {
+      if (!currentUser?.username) setUsersList([]);
       return undefined;
     }
     refreshUsersList(currentUser.username);
     return undefined;
-  }, [currentUser?.username, refreshUsersList]);
+  }, [currentUser?.username, pendingCryptoSetup, pendingRecoveryConfirm, refreshUsersList]);
 
   const login = useCallback(async (usernameRaw, passwordRaw) => {
     const usernameIn = String(usernameRaw ?? '').trim();
@@ -224,6 +236,8 @@ export const AuthProvider = ({ children }) => {
       }
       setCurrentUser(u);
       if (body.requiresCryptoSetup) {
+        clearPendingRecoverySetup();
+        setPendingRecoveryConfirm(null);
         setPendingCryptoSetup({ username: u.username, password, needsRelogin: false, needsSetup: true });
       } else if (!body.cryptoSessionToken) {
         clearCryptoSessionToken();
@@ -255,11 +269,13 @@ export const AuthProvider = ({ children }) => {
     }
     clearCryptoSessionToken();
     setPendingCryptoSetup(null);
+    setPendingRecoveryConfirm(null);
+    clearPendingRecoverySetup();
     setCurrentUser(null);
   }, []);
 
   useEffect(() => {
-    if (!currentUser?.username) return undefined;
+    if (!currentUser?.username || pendingCryptoSetup || pendingRecoveryConfirm) return undefined;
 
     let timerId = null;
     const scheduleLogout = () => {
@@ -283,11 +299,21 @@ export const AuthProvider = ({ children }) => {
         window.removeEventListener(ev, onActivity);
       }
     };
-  }, [currentUser?.username, logout]);
+  }, [currentUser?.username, pendingCryptoSetup, pendingRecoveryConfirm, logout]);
 
   const completeCryptoSetup = useCallback(() => {
+    const pending = readPendingRecoverySetup();
+    if (pending?.cryptoSessionToken) {
+      writeCryptoSessionToken(pending.cryptoSessionToken);
+    }
+    clearPendingRecoverySetup();
+    setPendingRecoveryConfirm(null);
     setPendingCryptoSetup(null);
   }, []);
+
+  const confirmPendingRecovery = useCallback(() => {
+    completeCryptoSetup();
+  }, [completeCryptoSetup]);
 
   const addUser = useCallback(
     async (usernameRaw, passwordRaw) => {
@@ -377,7 +403,9 @@ export const AuthProvider = ({ children }) => {
       currentUser,
       authReady,
       pendingCryptoSetup,
+      pendingRecoveryConfirm,
       completeCryptoSetup,
+      confirmPendingRecovery,
       login,
       logout,
       usersList,
@@ -390,7 +418,9 @@ export const AuthProvider = ({ children }) => {
       currentUser,
       authReady,
       pendingCryptoSetup,
+      pendingRecoveryConfirm,
       completeCryptoSetup,
+      confirmPendingRecovery,
       login,
       logout,
       usersList,

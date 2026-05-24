@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { apiFetch } from '../utils/apiBase';
-import { writeCryptoSessionToken } from '../utils/cryptoSession';
+import { clearCryptoSessionToken } from '../utils/cryptoSession';
+import { writePendingRecoverySetup } from '../utils/pendingRecovery';
 import RecoveryKeyModal from './RecoveryKeyModal';
 
 export default function CryptoSetupModal({ username, password, onComplete }) {
   const [recoveryKey, setRecoveryKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const setupStartedRef = useRef(false);
 
   const runSetup = async () => {
+    if (busy) return;
     setError('');
     setBusy(true);
     try {
@@ -25,8 +28,15 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
         setError(body.error || 'Einrichtung fehlgeschlagen.');
         return;
       }
-      if (body.cryptoSessionToken) writeCryptoSessionToken(body.cryptoSessionToken);
-      setRecoveryKey(body.recoveryKey || '');
+      const key = body.recoveryKey || '';
+      const token = body.cryptoSessionToken || '';
+      if (!key || !token) {
+        setError('Recovery-Key konnte nicht erzeugt werden.');
+        return;
+      }
+      clearCryptoSessionToken();
+      writePendingRecoverySetup({ username, recoveryKey: key, cryptoSessionToken: token });
+      setRecoveryKey(key);
     } catch {
       setError('Server nicht erreichbar.');
     } finally {
@@ -35,9 +45,16 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
   };
 
   React.useEffect(() => {
-    runSetup();
+    if (setupStartedRef.current) return undefined;
+    setupStartedRef.current = true;
+    void runSetup();
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const finishRecoveryConfirm = () => {
+    onComplete?.();
+  };
 
   if (recoveryKey) {
     return (
@@ -46,7 +63,7 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
         recoveryKey={recoveryKey}
         successMessage="Ihre Verschlüsselung wurde eingerichtet."
         confirmLabel="Weiter zur App"
-        onClose={() => onComplete?.()}
+        onClose={finishRecoveryConfirm}
       />
     );
   }

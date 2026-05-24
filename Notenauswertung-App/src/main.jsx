@@ -5,6 +5,7 @@ import App from './App';
 import LoginView from './views/LoginView';
 import RecoveryUnlockView from './views/RecoveryUnlockView';
 import CryptoSetupModal from './components/CryptoSetupModal';
+import RecoveryKeyModal from './components/RecoveryKeyModal';
 import { AuthProvider, useAuth } from './store/AuthContext';
 import { DataProvider } from './store/DataContext';
 import './index.css';
@@ -13,7 +14,14 @@ import { APP_NAME } from './config/app';
 document.title = APP_NAME;
 
 function AuthenticatedApp() {
-  const { currentUser, authReady, pendingCryptoSetup, completeCryptoSetup } = useAuth();
+  const {
+    currentUser,
+    authReady,
+    pendingCryptoSetup,
+    pendingRecoveryConfirm,
+    completeCryptoSetup,
+    confirmPendingRecovery,
+  } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
   if (!authReady) return null;
   if (!currentUser) {
@@ -33,6 +41,17 @@ function AuthenticatedApp() {
       );
     }
     return <LoginView onRecovery={() => setShowRecovery(true)} />;
+  }
+  if (pendingRecoveryConfirm) {
+    return (
+      <RecoveryKeyModal
+        username={pendingRecoveryConfirm.username}
+        recoveryKey={pendingRecoveryConfirm.recoveryKey}
+        successMessage="Ihre Verschlüsselung wurde eingerichtet. Bitte den Recovery-Key sichern, bevor Sie fortfahren."
+        confirmLabel="Weiter zur App"
+        onClose={confirmPendingRecovery}
+      />
+    );
   }
   if (pendingCryptoSetup) {
     if (pendingCryptoSetup.needsRelogin) {
