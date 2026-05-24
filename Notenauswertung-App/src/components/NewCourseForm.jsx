@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../store/DataContext';
 import NotensystemHelpButton from './NotensystemHelpButton';
+import PhixCheckboxOption from './PhixCheckboxOption';
 
 function defaultSchoolYear() {
   const y = new Date().getFullYear();
@@ -137,30 +138,24 @@ export default function NewCourseForm() {
           <NotensystemHelpButton />
         </div>
         <div className="settings-course-check-options">
-          <label className="settings-tests-written-option">
-            <input
-              type="checkbox"
-              checked={newCourse.testsWritten !== false}
-              onChange={(e) => setNewCourse((p) => ({ ...p, testsWritten: e.target.checked }))}
-            />
-            <span>Tests werden geschrieben</span>
-          </label>
-          <label className="settings-tests-written-option">
-            <input
-              type="checkbox"
-              checked={newCourse.gfsAccepted !== false}
-              onChange={(e) => setNewCourse((p) => ({ ...p, gfsAccepted: e.target.checked }))}
-            />
-            <span>GFS werden angenommen</span>
-          </label>
-          <label className="settings-tests-written-option">
-            <input
-              type="checkbox"
-              checked={newCourse.klassenlehrerEnabled === true}
-              onChange={(e) => setNewCourse((p) => ({ ...p, klassenlehrerEnabled: e.target.checked }))}
-            />
-            <span>Klassenlehrer</span>
-          </label>
+          <PhixCheckboxOption
+            checked={newCourse.testsWritten !== false}
+            onChange={(e) => setNewCourse((p) => ({ ...p, testsWritten: e.target.checked }))}
+          >
+            Tests werden geschrieben
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={newCourse.gfsAccepted !== false}
+            onChange={(e) => setNewCourse((p) => ({ ...p, gfsAccepted: e.target.checked }))}
+          >
+            GFS werden angenommen
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={newCourse.klassenlehrerEnabled === true}
+            onChange={(e) => setNewCourse((p) => ({ ...p, klassenlehrerEnabled: e.target.checked }))}
+          >
+            Klassenlehrer
+          </PhixCheckboxOption>
         </div>
       </section>
 

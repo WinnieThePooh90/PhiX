@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import PhixCheckboxOption from './PhixCheckboxOption';
 
 export function ListFormExternalCheckboxes({
   includeExternal,
@@ -10,30 +11,26 @@ export function ListFormExternalCheckboxes({
 }) {
   return (
     <div className="settings-course-check-options klassenlehrer-external-form-options">
-      <label className="settings-tests-written-option">
-        <input
-          type="checkbox"
-          checked={includeExternal}
-          disabled={disabled || externalOnly}
-          onChange={(ev) => {
-            setIncludeExternal(ev.target.checked);
-          }}
-        />
-        <span>Externe Personen einbinden</span>
-      </label>
-      <label className="settings-tests-written-option">
-        <input
-          type="checkbox"
-          checked={externalOnly}
-          disabled={disabled}
-          onChange={(ev) => {
-            const checked = ev.target.checked;
-            setExternalOnly(checked);
-            if (checked) setIncludeExternal(false);
-          }}
-        />
-        <span>Nur externe Personen</span>
-      </label>
+      <PhixCheckboxOption
+        checked={includeExternal}
+        disabled={disabled || externalOnly}
+        onChange={(ev) => {
+          setIncludeExternal(ev.target.checked);
+        }}
+      >
+        Externe Personen einbinden
+      </PhixCheckboxOption>
+      <PhixCheckboxOption
+        checked={externalOnly}
+        disabled={disabled}
+        onChange={(ev) => {
+          const checked = ev.target.checked;
+          setExternalOnly(checked);
+          if (checked) setIncludeExternal(false);
+        }}
+      >
+        Nur externe Personen
+      </PhixCheckboxOption>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useData } from '../store/DataContext';
 import { normalizeCourseGradeSystem } from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
+import PhixCheckboxOption from '../components/PhixCheckboxOption';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -258,30 +259,24 @@ export default function SettingsView() {
                 <NotensystemHelpButton />
               </div>
               <div className="settings-course-check-options">
-                <label className="settings-tests-written-option">
-                  <input
-                    type="checkbox"
-                    checked={config.testsWritten !== false}
-                    onChange={(e) => setConfig((c) => ({ ...c, testsWritten: e.target.checked }))}
-                  />
-                  <span>Tests werden geschrieben</span>
-                </label>
-                <label className="settings-tests-written-option">
-                  <input
-                    type="checkbox"
-                    checked={config.gfsAccepted !== false}
-                    onChange={(e) => setConfig((c) => ({ ...c, gfsAccepted: e.target.checked }))}
-                  />
-                  <span>GFS werden angenommen</span>
-                </label>
-                <label className="settings-tests-written-option">
-                  <input
-                    type="checkbox"
-                    checked={config.klassenlehrerEnabled === true}
-                    onChange={(e) => setConfig((c) => ({ ...c, klassenlehrerEnabled: e.target.checked }))}
-                  />
-                  <span>Klassenlehrer</span>
-                </label>
+                <PhixCheckboxOption
+                  checked={config.testsWritten !== false}
+                  onChange={(e) => setConfig((c) => ({ ...c, testsWritten: e.target.checked }))}
+                >
+                  Tests werden geschrieben
+                </PhixCheckboxOption>
+                <PhixCheckboxOption
+                  checked={config.gfsAccepted !== false}
+                  onChange={(e) => setConfig((c) => ({ ...c, gfsAccepted: e.target.checked }))}
+                >
+                  GFS werden angenommen
+                </PhixCheckboxOption>
+                <PhixCheckboxOption
+                  checked={config.klassenlehrerEnabled === true}
+                  onChange={(e) => setConfig((c) => ({ ...c, klassenlehrerEnabled: e.target.checked }))}
+                >
+                  Klassenlehrer
+                </PhixCheckboxOption>
               </div>
             </section>
           </div>

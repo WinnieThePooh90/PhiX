@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PhixCheckboxOption from './PhixCheckboxOption';
 
 /**
  * Vollbild: Recovery-Key nach Ersteinrichtung (Checkbox-Pflicht vor Fortfahren).
@@ -43,14 +44,9 @@ export default function RecoveryKeyModal({
             Als Datei speichern
           </button>
         </div>
-        <label className="phix-recovery-confirm-label">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
-          />
-          <span>Ich habe den Recovery-Key sicher aufbewahrt.</span>
-        </label>
+        <PhixCheckboxOption checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}>
+          Ich habe den Recovery-Key sicher aufbewahrt.
+        </PhixCheckboxOption>
         <button
           type="button"
           className="app-login-submit phix-recovery-continue"

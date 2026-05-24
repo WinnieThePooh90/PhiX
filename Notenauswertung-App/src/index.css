@@ -172,12 +172,15 @@ p {
   width: 100%;
 }
 
+.klassenlehrer-external-form-options .phix-checkbox-option,
 .klassenlehrer-external-form-options .settings-tests-written-option {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  margin-top: 0;
 }
 
+.klassenlehrer-external-form-options .phix-checkbox-option:has(input:disabled),
 .klassenlehrer-external-form-options .settings-tests-written-option:has(input:disabled) {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1016,12 +1019,49 @@ p {
   margin-top: 0.75rem;
 }
 
+.settings-course-check-options .phix-checkbox-option,
 .settings-course-check-options .settings-tests-written-option {
   margin-top: 0;
 }
 
-/** SettingsView: „Tests werden geschrieben“ — kompakt, nicht volle Spaltenbreite, Text in einer Zeile */
-.settings-tests-written-option {
+/**
+ * PhiX-Standard-Checkbox (Listen-Popup, Facheinstellungen, Recovery-Key, …).
+ * Komponente: PhixCheckboxOption. Toggle: weiterhin .switch.
+ */
+input[type="checkbox"]:not(.gfs-gehalten-checkbox) {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  margin: 0;
+  border-radius: 0.3rem;
+  accent-color: hsl(221 83% 53%);
+  cursor: pointer;
+  flex-shrink: 0;
+  outline: none;
+  box-shadow: none;
+  vertical-align: middle;
+}
+
+input[type="checkbox"]:not(.gfs-gehalten-checkbox):focus,
+input[type="checkbox"]:not(.gfs-gehalten-checkbox):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.switch input[type="checkbox"] {
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border-radius: 0;
+  accent-color: unset;
+  vertical-align: unset;
+}
+
+.phix-checkbox-option,
+.settings-tests-written-option,
+label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label) {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
@@ -1036,37 +1076,38 @@ p {
   transition: var(--transition);
 }
 
-.settings-tests-written-option:hover {
+.phix-checkbox-option:hover,
+.settings-tests-written-option:hover,
+label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label):hover {
   background: hsl(var(--muted) / 0.75);
   border-color: hsl(var(--muted-foreground) / 0.35);
 }
 
-.settings-tests-written-option input[type="checkbox"] {
-  width: 1.25rem;
-  height: 1.25rem;
-  min-width: 1.25rem;
-  min-height: 1.25rem;
-  margin: 0;
-  border-radius: 0.3rem;
-  accent-color: hsl(221 83% 53%);
-  cursor: pointer;
-  flex-shrink: 0;
-  outline: none;
-  box-shadow: none;
+.phix-checkbox-option:has(input:disabled),
+.settings-tests-written-option:has(input:disabled),
+label:has(> input[type="checkbox"]:disabled):not(:has(> .slider)):not(.gfs-gehalten-label) {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
-.settings-tests-written-option input[type="checkbox"]:focus,
-.settings-tests-written-option input[type="checkbox"]:focus-visible {
-  outline: none;
-  box-shadow: none;
-}
-
-.settings-tests-written-option span {
+.phix-checkbox-option span,
+.settings-tests-written-option span,
+label:has(> input[type="checkbox"]):not(:has(> .slider)):not(.gfs-gehalten-label) > span {
   white-space: nowrap;
   font-size: 0.9375rem;
   line-height: 1.35;
   color: var(--text-main);
   user-select: none;
+}
+
+.phix-recovery-card .phix-checkbox-option {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  white-space: normal;
+}
+
+.phix-recovery-card .phix-checkbox-option span {
+  white-space: normal;
 }
 
 .grading-key-table__header {
@@ -1443,16 +1484,6 @@ tfoot td {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
-}
-
-.phix-recovery-confirm-label {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: var(--text-main);
-  cursor: pointer;
 }
 
 .phix-recovery-continue {
