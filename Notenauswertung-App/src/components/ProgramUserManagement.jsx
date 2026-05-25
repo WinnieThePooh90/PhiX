@@ -94,6 +94,10 @@ export default function ProgramUserManagement() {
       setListErr(r.error || 'Löschen fehlgeschlagen.');
       return;
     }
+    try {
+      localStorage.removeItem(`phix_last_tab_${u.username}`);
+      localStorage.removeItem(`phix_last_course_id_${u.username}`);
+    } catch {}
     if (passwordUserId === u.id) resetPasswordForm();
   };
 

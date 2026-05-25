@@ -120,7 +120,7 @@ model Student {
   summaryEndNote String @default("")
   summaryHJ1Note String @default("")
   courseId  Int?
-  course    Course?  @relation(fields: [courseId], references: [id])
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   gfsEntries       GfsEntry[]
   moneyListEntries       MoneyListEntry[]
@@ -273,7 +273,7 @@ model Exam {
   name           String
   scores         Json
   courseId       Int?
-  course         Course?  @relation(fields: [courseId], references: [id])
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model Oral {
@@ -290,7 +290,7 @@ model Oral {
   weekSpread  Float    @default(0.5)
   grades      Json
   courseId    Int?
-  course      Course?  @relation(fields: [courseId], references: [id])
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model Test {
@@ -304,5 +304,5 @@ model Test {
   name       String
   scores     Json
   courseId   Int?
-  course     Course?  @relation(fields: [courseId], references: [id])
+  course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }

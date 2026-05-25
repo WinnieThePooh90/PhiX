@@ -364,7 +364,12 @@ app.delete('/api/users/:id', async (req, res) => {
     return res.status(400).json({ error: 'Der Benutzer „admin“ kann nicht gelöscht werden.' });
   }
 
+  const username = target.username;
+
+  await prisma.course.deleteMany({ where: { ownerUsername: username } });
+  await prisma.schoolRosterYear.deleteMany({ where: { ownerUsername: username } });
   await prisma.appUser.delete({ where: { id } });
+
   res.status(204).send();
 });
 
