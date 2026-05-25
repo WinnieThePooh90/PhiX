@@ -48,7 +48,7 @@ export default function ProgramUserManagement() {
   const openPasswordModal = useCallback(
     (u) => {
       if (isReservedAdminUser(u.username) && String(currentUser?.username ?? '').toLowerCase() !== 'admin') {
-        setListErr('Nur der Administrator darf das Passwort von \u201Eadmin\u201C \u00E4ndern.');
+        setListErr('Nur der Administrator darf das Passwort von „admin“ ändern.');
         return;
       }
       setListErr('');
@@ -81,17 +81,17 @@ export default function ProgramUserManagement() {
   const onDeleteUser = async (u) => {
     setListErr('');
     if (isReservedAdminUser(u.username)) {
-      setListErr('Der Benutzer \u201Eadmin\u201C kann nicht gel\u00F6scht werden.');
+      setListErr('Der Benutzer „admin“ kann nicht gelöscht werden.');
       return;
     }
     const ok = await showConfirm(
-      `Benutzer \u201E${u.username}\u201C wirklich l\u00F6schen? Die Anmeldung ist danach f\u00FCr diesen Namen nicht mehr m\u00F6glich.`,
-      { title: 'Benutzer l\u00F6schen', danger: true },
+      `Benutzer „${u.username}“ wirklich löschen? Die Anmeldung ist danach für diesen Namen nicht mehr möglich.`,
+      { title: 'Benutzer löschen', danger: true },
     );
     if (!ok) return;
     const r = await deleteUser(u.id);
     if (!r.ok) {
-      setListErr(r.error || 'L\u00F6schen fehlgeschlagen.');
+      setListErr(r.error || 'Löschen fehlgeschlagen.');
       return;
     }
     if (passwordUserId === u.id) resetPasswordForm();
@@ -103,7 +103,7 @@ export default function ProgramUserManagement() {
     setFormMsg('');
     setListErr('');
     if (newPassword !== newPassword2) {
-      setFormErr('Die Passwort-Wiederholung stimmt nicht \u00FCberein.');
+      setFormErr('Die Passwort-Wiederholung stimmt nicht überein.');
       return;
     }
     const r = await addUser(newUsername, newPassword);
@@ -113,7 +113,7 @@ export default function ProgramUserManagement() {
     }
     const createdName = newUsername.trim();
     setFormMsg(
-      `Benutzer \u201E${createdName}\u201C wurde angelegt. Beim ersten Login richtet er die Verschl\u00FCsselung ein und erh\u00E4lt einen Recovery-Key.`,
+      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login richtet er die Verschlüsselung ein und erhält einen Recovery-Key.`,
     );
     setNewUsername('');
     setNewPassword('');
@@ -125,7 +125,7 @@ export default function ProgramUserManagement() {
     setPwdErr('');
     setPwdMsg('');
     if (pwdNew !== pwdNew2) {
-      setPwdErr('Die Passwort-Wiederholung stimmt nicht \u00FCberein.');
+      setPwdErr('Die Passwort-Wiederholung stimmt nicht überein.');
       return;
     }
     const r = await setPasswordForUser(passwordUserId, pwdNew, pwdOld);
@@ -133,12 +133,12 @@ export default function ProgramUserManagement() {
       setPwdErr(r.error || 'Speichern fehlgeschlagen.');
       return;
     }
-    setPwdMsg('Passwort wurde ge\u00E4ndert.');
+    setPwdMsg('Passwort wurde geändert.');
     setPwdNew('');
     setPwdNew2('');
   };
 
-  const pwdModalUsername = sortedUsers.find((x) => x.id === passwordUserId)?.username ?? '\u2014';
+  const pwdModalUsername = sortedUsers.find((x) => x.id === passwordUserId)?.username ?? '—';
 
   const passwordModal =
     passwordUserId &&
@@ -158,7 +158,7 @@ export default function ProgramUserManagement() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <h2 id="program-user-mgmt-pwd-title" className="program-user-mgmt-modal-title">
-            Passwort \u00E4ndern f\u00FCr <strong>{pwdModalUsername}</strong>
+            Passwort ändern für <strong>{pwdModalUsername}</strong>
           </h2>
           <form className="program-user-mgmt-form" onSubmit={onSubmitPassword}>
             <label className="program-user-mgmt-label">
@@ -193,7 +193,7 @@ export default function ProgramUserManagement() {
                 Passwort speichern
               </button>
               <button type="button" className="secondary" onClick={resetPasswordForm}>
-                {pwdMsg ? 'Schlie\u00DFen' : 'Abbrechen'}
+                {pwdMsg ? 'Schließen' : 'Abbrechen'}
               </button>
             </div>
           </form>
@@ -206,7 +206,7 @@ export default function ProgramUserManagement() {
     <div className="program-user-mgmt">
       <h3 className="program-user-mgmt-page-title">Benutzerverwaltung</h3>
       <p className="text-muted program-user-mgmt-intro">
-        Benutzerkonten f\u00FCr die Anmeldung. Passw\u00F6rter werden auf dem Server nur als sicherer Hash gespeichert.
+        Benutzerkonten für die Anmeldung. Passwörter werden auf dem Server nur als sicherer Hash gespeichert.
       </p>
 
       <section className="program-user-mgmt-section" aria-labelledby="program-user-mgmt-list-heading">
@@ -234,12 +234,12 @@ export default function ProgramUserManagement() {
                   disabled={!canChangePasswordForUser(u)}
                   title={
                     !canChangePasswordForUser(u)
-                      ? 'Nur der Administrator darf das Passwort von \u201Eadmin\u201C \u00E4ndern.'
-                      : 'Passwort \u00E4ndern'
+                      ? 'Nur der Administrator darf das Passwort von „admin“ ändern.'
+                      : 'Passwort ändern'
                   }
                   onClick={() => openPasswordModal(u)}
                 >
-                  Passwort \u00E4ndern
+                  Passwort ändern
                 </button>
                 <button
                   type="button"
@@ -247,14 +247,14 @@ export default function ProgramUserManagement() {
                   disabled={sortedUsers.length <= 1 || isReservedAdminUser(u.username)}
                   title={
                     isReservedAdminUser(u.username)
-                      ? 'Der Benutzer \u201Eadmin\u201C kann nicht gel\u00F6scht werden.'
+                      ? 'Der Benutzer „admin“ kann nicht gelöscht werden.'
                       : sortedUsers.length <= 1
                         ? 'Mindestens ein Benutzer muss bleiben.'
-                        : 'Benutzer l\u00F6schen'
+                        : 'Benutzer löschen'
                   }
                   onClick={() => onDeleteUser(u)}
                 >
-                  L\u00F6schen
+                  Löschen
                 </button>
               </span>
             </li>
