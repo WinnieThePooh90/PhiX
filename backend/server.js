@@ -1,9 +1,9 @@
 require('dotenv').config();
-const { runDbPushOrExit } = require('./lib/db-push');
+const { runDbSyncOrExit } = require('./lib/db-push');
 
 /** Desktop: Schema-Push erfolgt in Electron main.cjs vor server.js (PHIX_SKIP_DB_PUSH=1). */
 if (process.env.PHIX_SKIP_DB_PUSH !== '1') {
-  runDbPushOrExit();
+  runDbSyncOrExit();
 }
 
 const { createApp } = require('./createApp');
