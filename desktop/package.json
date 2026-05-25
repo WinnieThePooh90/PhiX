@@ -1,7 +1,7 @@
 {
   "name": "phix-desktop",
   "private": true,
-  "version": "77.0.0",
+  "version": "78.0.0",
   "description": "PhiX Desktop-Hülle (Electron) – startet das Node-Backend und zeigt die Web-UI.",
   "author": "PhiX",
   "main": "main.cjs",

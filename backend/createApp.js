@@ -429,7 +429,15 @@ app.put('/api/user-settings', async (req, res) => {
 });
 
 // REGISTRATION (global, für alle Benutzer)
-const VALID_REGISTRATION_KEY = 'test';
+function isValidRegistrationKey(raw) {
+  const k = String(raw ?? '').replace(/-/g, '').toUpperCase();
+  return k.length === 16
+    && /^[A-Z]{16}$/.test(k)
+    && k[2] === 'P'
+    && k[4] === 'H'
+    && k[11] === 'I'
+    && k[13] === 'X';
+}
 
 app.get('/api/registration', async (req, res) => {
   const row = await prisma.appRegistration.findUnique({ where: { id: 1 } });
@@ -440,8 +448,7 @@ app.post('/api/registration', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
   const { key } = req.body || {};
-  const k = String(key ?? '').trim().toLowerCase();
-  if (k !== VALID_REGISTRATION_KEY) {
+  if (!isValidRegistrationKey(key)) {
     return res.status(400).json({ error: 'Ungültiger Registrierungsschlüssel.' });
   }
   await prisma.appRegistration.upsert({
