@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
+import { useDialog } from '../components/PhixDialog';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
 import PhixRadioOption from '../components/PhixRadioOption';
@@ -123,7 +124,8 @@ function BackupRestoreBlock({
       onFeedback('err', `Zur Bestätigung bitte exakt „${RESTORE_CONFIRM}“ eingeben.`);
       return;
     }
-    if (!window.confirm(restoreConfirmMessage)) return;
+    const confirmOk = await showConfirm(restoreConfirmMessage, { title: 'Backup wiederherstellen', danger: true });
+    if (!confirmOk) return;
 
     setBusy('restore');
     try {
@@ -217,6 +219,7 @@ function BackupRestoreBlock({
 
 export default function BackupView() {
   const { currentUser, usersList } = useAuth();
+  const { showConfirm } = useDialog();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const username = currentUser?.username;
 
@@ -427,13 +430,11 @@ function AdminUserRestorePanel({ selectedAdminUser, actingUsername, busy, setBus
       onFeedback('err', `Zur Bestätigung bitte exakt „${RESTORE_CONFIRM}“ eingeben.`);
       return;
     }
-    if (
-      !window.confirm(
-        `Alle Kurse von „${selectedAdminUser}“ werden durch das Backup ersetzt. Fortfahren?`,
-      )
-    ) {
-      return;
-    }
+    const adminOk = await showConfirm(
+      `Alle Kurse von „${selectedAdminUser}“ werden durch das Backup ersetzt. Fortfahren?`,
+      { title: 'Admin-Restore', danger: true },
+    );
+    if (!adminOk) return;
 
     setBusy('restore');
     try {

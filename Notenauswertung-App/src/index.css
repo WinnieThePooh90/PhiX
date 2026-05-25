@@ -4117,6 +4117,81 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   cursor: pointer;
 }
 
+/* ===== PhiX Dialog (Custom Confirm/Alert) ===== */
+.phix-dialog-overlay {
+  z-index: 99999;
+}
+
+.phix-dialog-card {
+  max-width: 28rem;
+  animation: phix-dialog-in 0.15s ease-out;
+}
+
+@keyframes phix-dialog-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.phix-dialog-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.phix-dialog-message {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.phix-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.phix-dialog-btn {
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.phix-dialog-btn--cancel {
+  background: var(--surface);
+  color: var(--text-main);
+}
+
+.phix-dialog-btn--cancel:hover {
+  background: var(--surface-hover);
+}
+
+.phix-dialog-btn--confirm {
+  background: var(--primary);
+  color: var(--surface);
+  border-color: var(--primary);
+}
+
+.phix-dialog-btn--confirm:hover {
+  background: var(--primary-hover);
+}
+
+.phix-dialog-btn--danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.phix-dialog-btn--danger:hover {
+  opacity: 0.9;
+}
+
 /* ===== Dark Mode Overrides ===== */
 [data-theme="dark"] .slider {
   background: hsl(220 15% 35%);

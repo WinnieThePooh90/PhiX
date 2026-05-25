@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
+import { useDialog } from './PhixDialog';
 import { apiFetch } from '../utils/apiBase';
 
 /**
@@ -11,6 +12,7 @@ import { apiFetch } from '../utils/apiBase';
  */
 export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenChange }) {
   const { currentUser, logout } = useAuth();
+  const { showConfirm, showAlert } = useDialog();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const wrapRef = useRef(null);
@@ -60,13 +62,11 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
   }, [open]);
 
   const handleShutdown = async () => {
-    if (
-      !window.confirm(
-        'PhiX wirklich herunterfahren?\n\nServer, Datenbank und alle zugehörigen Dienste werden beendet.',
-      )
-    ) {
-      return;
-    }
+    const ok = await showConfirm(
+      'PhiX wirklich herunterfahren?\n\nServer, Datenbank und alle zugehörigen Dienste werden beendet.',
+      { title: 'Herunterfahren', danger: true },
+    );
+    if (!ok) return;
     setMenuOpen(false);
     const headers = { 'Content-Type': 'application/json' };
     if (currentUser?.username) headers['X-Acting-User'] = currentUser.username;
@@ -89,11 +89,12 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
         throw new Error(body.error || `HTTP ${res.status}`);
       }
       logout();
-      window.alert(
-        'PhiX wird heruntergefahren. Alle Container werden gestoppt – Sie können das Browserfenster schließen.',
+      await showAlert(
+        'PhiX wird heruntergefahren. Alle Container werden gestoppt \u2013 Sie k\u00F6nnen das Browserfenster schlie\u00DFen.',
+        { title: 'Heruntergefahren' },
       );
     } catch (err) {
-      window.alert(`Herunterfahren fehlgeschlagen: ${err?.message || err}`);
+      await showAlert(`Herunterfahren fehlgeschlagen: ${err?.message || err}`, { title: 'Fehler' });
     }
   };
 

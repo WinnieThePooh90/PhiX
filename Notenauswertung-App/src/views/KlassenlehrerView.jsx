@@ -8,6 +8,7 @@ import {
   RemarkEntryField,
 } from '../components/KlassenlehrerListShared';
 import { useData } from '../store/DataContext';
+import { useDialog } from '../components/PhixDialog';
 
 function formatEuro(amount) {
   if (!Number.isFinite(amount)) return '—';
@@ -1003,6 +1004,7 @@ export default function KlassenlehrerView() {
     addNotesListExternalEntry,
     removeNotesListEntry,
   } = useData();
+  const { showConfirm, showAlert } = useDialog();
 
   const mergedTabs = useMemo(
     () => buildMergedTabs(moneyLists, attendanceLists, collectionLists, notesLists),
@@ -1414,26 +1416,26 @@ export default function KlassenlehrerView() {
 
   const handleDeleteMoney = async (list) => {
     const label = list.subject?.trim() || 'Geldliste';
-    const ok = window.confirm(`Geldliste „${label}“ wirklich löschen?`);
+    const ok = await showConfirm(`Geldliste „${label}“ wirklich löschen?`, { title: 'Liste löschen', danger: true });
     if (!ok) return;
     const res = await deleteMoneyList(list.id);
-    if (res?.error) window.alert(res.error);
+    if (res?.error) await showAlert(res.error, { title: 'Fehler' });
   };
 
   const handleDeleteAttendance = async (list) => {
     const label = list.subject?.trim() || 'Anwesenheitsliste';
-    const ok = window.confirm(`Anwesenheitsliste „${label}“ wirklich löschen?`);
+    const ok = await showConfirm(`Anwesenheitsliste „${label}“ wirklich löschen?`, { title: 'Liste löschen', danger: true });
     if (!ok) return;
     const res = await deleteAttendanceList(list.id);
-    if (res?.error) window.alert(res.error);
+    if (res?.error) await showAlert(res.error, { title: 'Fehler' });
   };
 
   const handleDeleteCollection = async (list) => {
     const label = list.subject?.trim() || 'Sammelliste';
-    const ok = window.confirm(`Sammelliste „${label}“ wirklich löschen?`);
+    const ok = await showConfirm(`Sammelliste „${label}“ wirklich löschen?`, { title: 'Liste löschen', danger: true });
     if (!ok) return;
     const res = await deleteCollectionList(list.id);
-    if (res?.error) window.alert(res.error);
+    if (res?.error) await showAlert(res.error, { title: 'Fehler' });
   };
 
   const validateNotesForm = () => {
@@ -1498,10 +1500,10 @@ export default function KlassenlehrerView() {
 
   const handleDeleteNotes = async (list) => {
     const label = list.subject?.trim() || 'Notizenliste';
-    const ok = window.confirm(`Notizenliste „${label}“ wirklich löschen?`);
+    const ok = await showConfirm(`Notizenliste „${label}“ wirklich löschen?`, { title: 'Liste löschen', danger: true });
     if (!ok) return;
     const res = await deleteNotesList(list.id);
-    if (res?.error) window.alert(res.error);
+    if (res?.error) await showAlert(res.error, { title: 'Fehler' });
   };
 
   return (

@@ -23,6 +23,7 @@ import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimu
 import GradingKeyTable from '../components/GradingKeyTable';
 import MaximizableTableSection from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
+import { useDialog } from '../components/PhixDialog';
 
 // Hilfsfunktion: Berechnet die Summe aller Felder, falls die Scores ein Objekt sind.
 const getSum = (scoreData) => {
@@ -118,6 +119,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     addExam,
     config,
   } = useData();
+  const { showConfirm } = useDialog();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -229,13 +231,11 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   };
 
   const handleDeleteExam = async () => {
-    if (
-      !window.confirm(
-        'Diese Klausur wirklich endgültig löschen? Alle eingetragenen Punktwerte und Einstellungen zu dieser Klausur gehen verloren.',
-      )
-    ) {
-      return;
-    }
+    const ok = await showConfirm(
+      'Diese Klausur wirklich endgültig löschen? Alle eingetragenen Punktwerte und Einstellungen zu dieser Klausur gehen verloren.',
+      { title: 'Klausur löschen', danger: true },
+    );
+    if (!ok) return;
     const id = activeKlausur;
     const remaining = examNumbers.filter((n) => n !== id);
     const nextActive = remaining[0] ?? null;

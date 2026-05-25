@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '../store/DataContext';
+import { useDialog } from '../components/PhixDialog';
 import { normalizeCourseGradeSystem } from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
@@ -26,6 +27,7 @@ export default function SettingsView() {
     setActiveSchoolRosterYearId,
     schoolRosterStudents,
   } = useData();
+  const { showConfirm, showAlert } = useDialog();
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
   /** `null` = alle Klassenstufen (5–13), sonst nur diese Stufe */
@@ -123,19 +125,17 @@ export default function SettingsView() {
     const n = students.length;
     if (n === 0) return;
     const label = `"${config.subject}" (${config.className || config.class || ''})`.trim();
-    if (
-      !window.confirm(
-        `Alle ${n} Schüler aus der Kursliste für ${label} entfernen?\n\nDas Fach bleibt bestehen; nur die Teilnehmerliste wird geleert.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await showConfirm(
+      `Alle ${n} Sch\u00FCler aus der Kursliste f\u00FCr ${label} entfernen?\n\nDas Fach bleibt bestehen; nur die Teilnehmerliste wird geleert.`,
+      { title: 'Kursliste leeren', danger: true },
+    );
+    if (!ok) return;
     setClearingCourseStudents(true);
     try {
       await clearCourseStudents();
     } catch (err) {
       console.error(err);
-      window.alert(`Leeren fehlgeschlagen: ${err?.message || String(err)}`);
+      await showAlert(`Leeren fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
       setClearingCourseStudents(false);
     }
@@ -144,12 +144,14 @@ export default function SettingsView() {
   const handleAddAllRosterCandidates = async () => {
     if (!rosterCandidates.length) return;
     const stageHint =
-      rosterGradeFilter === null ? 'allen gewählten Stufen' : `der Stufe ${rosterGradeFilter}`;
-    const ok =
-      rosterCandidates.length <= 8 ||
-      window.confirm(
-        `${rosterCandidates.length} Schüler (${stageHint}, evtl. eingeschränkt durch die Suche) aus der Schülerverwaltung in diesen Kurs übernehmen?`,
+      rosterGradeFilter === null ? 'allen gew\u00E4hlten Stufen' : `der Stufe ${rosterGradeFilter}`;
+    let ok = true;
+    if (rosterCandidates.length > 8) {
+      ok = await showConfirm(
+        `${rosterCandidates.length} Sch\u00FCler (${stageHint}, evtl. eingeschr\u00E4nkt durch die Suche) aus der Sch\u00FClerverwaltung in diesen Kurs \u00FCbernehmen?`,
+        { title: 'Sch\u00FCler \u00FCbernehmen' },
       );
+    }
     if (!ok) return;
     setAddingAllRoster(true);
     try {
@@ -556,13 +558,15 @@ export default function SettingsView() {
             </p>
             <button
               className="danger"
-              onClick={() => {
-                if (window.confirm(`Möchtest du das Fach "${config.subject} (${config.className || config.class})" wirklich komplett löschen?\n\nAchtung: Alle zugehörigen Noten und Schüler werden endgültig entfernt!`)) {
-                  deleteCourse(config.id);
-                }
+              onClick={async () => {
+                const ok = await showConfirm(
+                  `M\u00F6chtest du das Fach "${config.subject} (${config.className || config.class})" wirklich komplett l\u00F6schen?\n\nAchtung: Alle zugeh\u00F6rigen Noten und Sch\u00FCler werden endg\u00FCltig entfernt!`,
+                  { title: 'Fach l\u00F6schen', danger: true },
+                );
+                if (ok) deleteCourse(config.id);
               }}
             >
-              Fach unwiderruflich löschen
+              Fach unwiderruflich l\u00F6schen
             </button>
           </div>
     </div>

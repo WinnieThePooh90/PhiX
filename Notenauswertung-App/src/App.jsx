@@ -377,6 +377,7 @@ function App() {
 
   const selectCourse = (courseId) => {
     setActiveCourseId(courseId);
+    setActiveTab('summary');
     if (isNewCoursePage) navigate('/');
     if (isMobile) setMobileCoursesOpen(false);
   };

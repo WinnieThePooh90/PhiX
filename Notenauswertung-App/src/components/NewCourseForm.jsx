@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../store/DataContext';
+import { useDialog } from './PhixDialog';
 import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 
@@ -11,6 +12,7 @@ function defaultSchoolYear() {
 
 export default function NewCourseForm() {
   const { createCourse, config } = useData();
+  const { showAlert } = useDialog();
   const navigate = useNavigate();
   const [newCourse, setNewCourse] = useState({
     year: config?.year || defaultSchoolYear(),
@@ -43,14 +45,14 @@ export default function NewCourseForm() {
 
   const handleCreateCourse = async () => {
     if (!newCourse.className || !newCourse.subject) {
-      window.alert('Bitte Klasse und Fach angeben.');
+      await showAlert('Bitte Klasse und Fach angeben.', { title: 'Hinweis' });
       return;
     }
     const created = await createCourse(newCourse);
     if (created) {
       navigate('/', { replace: true });
     } else {
-      window.alert('Das Fach konnte nicht angelegt werden. Bitte prüfe die Verbindung zum Server und versuche es erneut.');
+      await showAlert('Das Fach konnte nicht angelegt werden. Bitte prüfe die Verbindung zum Server und versuche es erneut.', { title: 'Fehler' });
     }
   };
 

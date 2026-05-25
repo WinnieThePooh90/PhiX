@@ -15,9 +15,11 @@ import {
   isAbiBaWue2026Mathematik100BeFamilyId,
 } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
+import { useDialog } from '../components/PhixDialog';
 
 export default function KeysView() {
   const { config, setConfig, exams, updateExam } = useData();
+  const { showConfirm } = useDialog();
   const [maxPoints, setMaxPoints] = useState(50);
   const [modalOpen, setModalOpen] = useState(false);
   const [editKey, setEditKey] = useState(null);
@@ -49,10 +51,12 @@ export default function KeysView() {
     });
   };
 
-  const handleDeleteKey = (id) => {
-    if (!window.confirm('Diesen Notenschlüssel wirklich löschen? Klausuren mit diesem Schlüssel werden auf Schlüssel 1 umgestellt.')) {
-      return;
-    }
+  const handleDeleteKey = async (id) => {
+    const ok = await showConfirm(
+      'Diesen Notenschl\u00FCssel wirklich l\u00F6schen? Klausuren mit diesem Schl\u00FCssel werden auf Schl\u00FCssel 1 umgestellt.',
+      { title: 'Notenschl\u00FCssel l\u00F6schen', danger: true },
+    );
+    if (!ok) return;
     const prefix = `custom:${id}`;
     Object.keys(exams).forEach((num) => {
       if (exams[num]?.keyType === prefix) updateExam(num, 'keyType', '1');

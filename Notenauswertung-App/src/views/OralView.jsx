@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
+import { useDialog } from '../components/PhixDialog';
 import {
   isGradeWorseThan4,
   getGradeCellBackground,
@@ -43,6 +44,7 @@ function formatOralDeDecimal(v, fractionDigits) {
 
 export default function OralView({ studentIdFilterSet = null }) {
   const { orals, updateOral, removeOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn, students, addOral, config } = useData();
+  const { showConfirm } = useDialog();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -119,13 +121,11 @@ export default function OralView({ studentIdFilterSet = null }) {
   const oralIsActive = record.active !== false;
 
   const handleDeleteOral = async () => {
-    if (
-      !window.confirm(
-        'Diese mündliche Note wirklich endgültig löschen? Alle eingetragenen Werte und Einstellungen zu diesem Bereich gehen verloren.',
-      )
-    ) {
-      return;
-    }
+    const ok = await showConfirm(
+      'Diese mündliche Note wirklich endgültig löschen? Alle eingetragenen Werte und Einstellungen zu diesem Bereich gehen verloren.',
+      { title: 'Mündliche Note löschen', danger: true },
+    );
+    if (!ok) return;
     const id = activeOral;
     const remaining = oralNumbers.filter((n) => n !== id);
     const nextActive = remaining[0] ?? null;

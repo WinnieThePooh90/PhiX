@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
+import { useDialog } from '../components/PhixDialog';
 import { parseSchoolRosterXlsx } from '../utils/schoolRosterXlsxImport';
 import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear';
 
@@ -19,6 +20,7 @@ export default function SchoolRosterView() {
     removeSchoolRosterStudent,
     clearSchoolRosterStudents,
   } = useData();
+  const { showConfirm, showAlert } = useDialog();
 
   const activeYear = schoolRosterYears.find((y) => y.id === activeSchoolRosterYearId) ?? null;
 
@@ -122,14 +124,14 @@ export default function SchoolRosterView() {
       n > 0
         ? `Schuljahr „${activeYear.label}“ mit ${n} Schüler(n) unwiderruflich löschen?`
         : `Schuljahr „${activeYear.label}“ löschen?`;
-    if (!window.confirm(msg)) return;
+    if (!(await showConfirm(msg, { title: 'Schuljahr löschen', danger: true }))) return;
     setDeletingYear(true);
     try {
       await removeSchoolRosterYear(activeYear.id);
       cancelEdit();
     } catch (err) {
       console.error(err);
-      window.alert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`);
+      await showAlert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
       setDeletingYear(false);
     }
@@ -138,13 +140,13 @@ export default function SchoolRosterView() {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!activeSchoolRosterYearId) {
-      window.alert('Bitte zuerst ein Schuljahr anlegen oder auswählen.');
+      await showAlert('Bitte zuerst ein Schuljahr anlegen oder auswählen.', { title: 'Hinweis' });
       return;
     }
     const ln = lastName.trim();
     const fn = firstName.trim();
     if (!ln || !fn) {
-      window.alert('Bitte Vor- und Nachnamen eintragen.');
+      await showAlert('Bitte Vor- und Nachnamen eintragen.', { title: 'Hinweis' });
       return;
     }
     setSaving(true);
@@ -156,7 +158,7 @@ export default function SchoolRosterView() {
         schoolYearId: activeSchoolRosterYearId,
       });
       if (res?.error) {
-        window.alert(res.error);
+        await showAlert(res.error, { title: 'Fehler' });
         return;
       }
       setLastName('');
@@ -171,7 +173,7 @@ export default function SchoolRosterView() {
     const ln = editLast.trim();
     const fn = editFirst.trim();
     if (!ln || !fn) {
-      window.alert('Bitte Vor- und Nachnamen eintragen.');
+      await showAlert('Bitte Vor- und Nachnamen eintragen.', { title: 'Hinweis' });
       return;
     }
     setSaving(true);
@@ -183,7 +185,7 @@ export default function SchoolRosterView() {
         schoolYearId: activeSchoolRosterYearId,
       });
       if (res?.error) {
-        window.alert(res.error);
+        await showAlert(res.error, { title: 'Fehler' });
         return;
       }
       cancelEdit();
@@ -193,14 +195,14 @@ export default function SchoolRosterView() {
   };
 
   const handleDelete = async (row) => {
-    if (!window.confirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${row.gradeLevel}) wirklich löschen?`)) return;
+    if (!(await showConfirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${row.gradeLevel}) wirklich löschen?`, { title: 'Eintrag löschen', danger: true }))) return;
     await removeSchoolRosterStudent(row.id);
     if (editingId === row.id) cancelEdit();
   };
 
   const handleImportFile = async (e) => {
     if (!activeSchoolRosterYearId) {
-      window.alert('Bitte zuerst ein Schuljahr auswählen.');
+      await showAlert('Bitte zuerst ein Schuljahr auswählen.', { title: 'Hinweis' });
       return;
     }
     const input = e.target;
@@ -221,7 +223,7 @@ export default function SchoolRosterView() {
             .join('\n');
           if (parsed.skipped.length > 12) msg += `\n… (+${parsed.skipped.length - 12} weitere)`;
         }
-        window.alert(msg);
+        await showAlert(msg, { title: 'Import-Fehler' });
         return;
       }
       const { rows, skipped = [] } = parsed;
@@ -251,10 +253,10 @@ export default function SchoolRosterView() {
         msg += `\n${apiErrors.slice(0, 8).join('\n')}`;
         if (apiErrors.length > 8) msg += '\n…';
       }
-      window.alert(msg);
+      await showAlert(msg, { title: 'Import abgeschlossen' });
     } catch (err) {
       console.error(err);
-      window.alert(`Import fehlgeschlagen: ${err?.message || String(err)}`);
+      await showAlert(`Import fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
       setImporting(false);
     }
@@ -264,20 +266,15 @@ export default function SchoolRosterView() {
     if (!activeSchoolRosterYearId || !activeYear) return;
     const n = schoolRosterStudents.length;
     if (n === 0) return;
-    if (
-      !window.confirm(
-        `Alle ${n} Schüler des Schuljahres „${activeYear.label}“ unwiderruflich löschen?\n\nEinzelne Fächer/Kurse sind davon nicht betroffen.`,
-      )
-    ) {
-      return;
-    }
+    const clearOk = await showConfirm(`Alle ${n} Schüler des Schuljahres „${activeYear.label}“ unwiderruflich löschen?\n\nEinzelne Fächer/Kurse sind davon nicht betroffen.`, { title: 'Alle Schüler löschen', danger: true });
+    if (!clearOk) return;
     setClearing(true);
     try {
       await clearSchoolRosterStudents(activeSchoolRosterYearId);
       cancelEdit();
     } catch (err) {
       console.error(err);
-      window.alert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`);
+      await showAlert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
       setClearing(false);
     }

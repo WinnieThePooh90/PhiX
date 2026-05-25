@@ -8,6 +8,7 @@ import CryptoSetupModal from './components/CryptoSetupModal';
 import RecoveryKeyModal from './components/RecoveryKeyModal';
 import { AuthProvider, useAuth } from './store/AuthContext';
 import { DataProvider } from './store/DataContext';
+import { DialogProvider } from './components/PhixDialog';
 import './index.css';
 import { APP_NAME } from './config/app';
 
@@ -109,11 +110,13 @@ function AuthenticatedApp() {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/*" element={<AuthenticatedApp />} />
-        </Routes>
-      </AuthProvider>
+      <DialogProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/*" element={<AuthenticatedApp />} />
+          </Routes>
+        </AuthProvider>
+      </DialogProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );
