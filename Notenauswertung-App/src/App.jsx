@@ -98,16 +98,17 @@ function App() {
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') || null;
+  const userTabKey = currentUser?.username ? `phix_last_tab_${currentUser.username}` : null;
   const [activeTab, setActiveTabRaw] = useState(() => {
     if (tabFromUrl) return tabFromUrl;
     try {
-      return localStorage.getItem('phix_last_tab') || 'summary';
+      return (userTabKey && localStorage.getItem(userTabKey)) || 'summary';
     } catch { return 'summary'; }
   });
 
   const setActiveTab = useCallback((tab, { replace = false } = {}) => {
     setActiveTabRaw(tab);
-    try { localStorage.setItem('phix_last_tab', tab); } catch {}
+    try { if (userTabKey) localStorage.setItem(userTabKey, tab); } catch {}
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (tab === 'summary') {
@@ -117,13 +118,13 @@ function App() {
       }
       return next;
     }, { replace });
-  }, [setSearchParams]);
+  }, [setSearchParams, userTabKey]);
 
   useEffect(() => {
     const urlTab = searchParams.get('tab');
     if (urlTab && urlTab !== activeTab) {
       setActiveTabRaw(urlTab);
-      try { localStorage.setItem('phix_last_tab', urlTab); } catch {}
+      try { if (userTabKey) localStorage.setItem(userTabKey, urlTab); } catch {}
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

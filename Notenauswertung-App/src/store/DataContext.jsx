@@ -67,19 +67,20 @@ export const DataProvider = ({ children }) => {
   );
 
   const [courses, setCourses] = useState([]);
+  const courseKey = currentUser?.username ? `phix_last_course_id_${currentUser.username}` : null;
   const [activeCourseId, setActiveCourseIdRaw] = useState(() => {
     try {
-      const stored = localStorage.getItem('phix_last_course_id');
+      const stored = courseKey && localStorage.getItem(courseKey);
       return stored ? Number(stored) : null;
     } catch { return null; }
   });
   const setActiveCourseId = useCallback((valOrFn) => {
     setActiveCourseIdRaw((prev) => {
       const next = typeof valOrFn === 'function' ? valOrFn(prev) : valOrFn;
-      try { if (next != null) localStorage.setItem('phix_last_course_id', String(next)); } catch {}
+      try { if (next != null && courseKey) localStorage.setItem(courseKey, String(next)); } catch {}
       return next;
     });
-  }, []);
+  }, [courseKey]);
 
   // Der aktuelle 'config' entspricht dem aktiven Kurs
   const config = courses.find(c => c.id === activeCourseId) || null;
