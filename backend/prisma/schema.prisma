@@ -296,7 +296,9 @@ model Oral {
   date        String   @default("")
   halbjahr    String   @default("1")
   extended    Boolean  @default(false)
-  weekCount   Int      @default(1)
+  weekCount   Int      @default(0)
+  /** Datum jeder Woche als JSON-Array von Strings ["2026-05-25", ...] */
+  weekDates   Json     @default("[]")
   /** Beste erreichbare Note (erweitert): 1, 1.25, 1.5, 1.75, 2 */
   bestNote    Float    @default(1)
   /** Schlechteste Note (erweitert): 4 … 6 in 0,25-Schritten */

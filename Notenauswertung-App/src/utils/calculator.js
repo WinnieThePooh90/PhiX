@@ -130,7 +130,7 @@ const clampOralWeekPt = (raw) => {
  * Unterstützt `weekPoints: number[]` sowie ältere Einträge mit nur `week1`.
  */
 export const getNormalizedOralWeekPointsArray = (gradeData, weekCount) => {
-  const n = Math.max(1, Number(weekCount) || 1);
+  const n = Math.max(0, Number(weekCount) || 0);
   let arr = [];
   if (gradeData && typeof gradeData === 'object') {
     if (Array.isArray(gradeData.weekPoints) && gradeData.weekPoints.length > 0) {

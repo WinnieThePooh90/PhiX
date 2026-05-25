@@ -138,7 +138,7 @@ export default function OralView({ studentIdFilterSet = null }) {
   };
 
   const isExtendedMode = !!record.extended;
-  const weekCount = Math.max(1, record.weekCount || 1);
+  const weekCount = record.weekCount || 0;
   const bestNoteValue = normalizeOralBestNoteAlpha(record.bestNote);
   const worstNoteValue = normalizeOralWorstNote(record.worstNote ?? 6);
   const bestNoteValuePoints = normalizeOralBestNotePoints(record.bestNote);
@@ -329,7 +329,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                   type="button"
                   className="tab secondary course-meta-inline-btn"
                   onClick={() => removeOralWeekColumn(activeOral)}
-                  disabled={weekCount <= 1}
+                  disabled={weekCount <= 0}
                   title="Letzte Woche entfernen"
                   style={{
                     fontWeight: 600,
@@ -502,11 +502,17 @@ export default function OralView({ studentIdFilterSet = null }) {
               </th>
               {isExtendedMode && (
                 <>
-                  {Array.from({ length: weekCount }, (_, wi) => (
-                    <th key={wi} className="text-center" style={{ minWidth: '100px' }}>
-                      Woche {wi + 1}
-                    </th>
-                  ))}
+                  {Array.from({ length: weekCount }, (_, wi) => {
+                    const dateStr = (record.weekDates || [])[wi];
+                    const label = dateStr
+                      ? new Date(dateStr + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                      : `Woche ${wi + 1}`;
+                    return (
+                      <th key={wi} className="text-center" style={{ minWidth: '100px' }}>
+                        {label}
+                      </th>
+                    );
+                  })}
                   <th
                     className="oral-th-sticky-right oral-gesamt-col text-center"
                     title="Gesamtpunktzahl (alle Wochen)"

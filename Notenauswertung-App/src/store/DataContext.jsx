@@ -772,7 +772,8 @@ export const DataProvider = ({ children }) => {
       date: '',
       halbjahr: '1',
       extended: false,
-      weekCount: 1,
+      weekCount: 0,
+      weekDates: [],
       bestNote: 1,
       worstNote: 6,
       weekSpread: 0.5,
@@ -840,7 +841,7 @@ export const DataProvider = ({ children }) => {
     setOrals(prev => {
       const o = prev[oralId];
       if (!o) return prev;
-      const weekCount = Math.max(1, o.weekCount || 1);
+      const weekCount = o.weekCount || 0;
       const prevData = o.grades[studentId];
       const arr = getNormalizedOralWeekPointsArray(prevData, weekCount);
       if (weekIndex >= 0 && weekIndex < arr.length) arr[weekIndex] = n;
@@ -858,7 +859,7 @@ export const DataProvider = ({ children }) => {
     setOrals(prev => {
       const o = prev[oralId];
       if (!o) return prev;
-      const prevCount = Math.max(1, o.weekCount || 1);
+      const prevCount = o.weekCount || 0;
       if (prevCount >= ORAL_WEEK_COL_CAP) return prev;
       const nextCount = prevCount + 1;
       const grades = { ...o.grades };
@@ -868,7 +869,9 @@ export const DataProvider = ({ children }) => {
         arr.push(0);
         grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
       }
-      const newOral = { ...o, weekCount: nextCount, grades };
+      const today = new Date().toISOString().slice(0, 10);
+      const weekDates = [...(o.weekDates || []), today];
+      const newOral = { ...o, weekCount: nextCount, weekDates, grades };
       apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
       return { ...prev, [oralId]: newOral };
     });
@@ -878,8 +881,8 @@ export const DataProvider = ({ children }) => {
     setOrals(prev => {
       const o = prev[oralId];
       if (!o) return prev;
-      const prevCount = Math.max(1, o.weekCount || 1);
-      if (prevCount <= 1) return prev;
+      const prevCount = o.weekCount || 0;
+      if (prevCount <= 0) return prev;
       const nextCount = prevCount - 1;
       const grades = { ...o.grades };
       for (const sid of Object.keys(grades)) {
@@ -887,7 +890,8 @@ export const DataProvider = ({ children }) => {
         const arr = getNormalizedOralWeekPointsArray(prevData, prevCount).slice(0, nextCount);
         grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
       }
-      const newOral = { ...o, weekCount: nextCount, grades };
+      const weekDates = (o.weekDates || []).slice(0, nextCount);
+      const newOral = { ...o, weekCount: nextCount, weekDates, grades };
       apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
       return { ...prev, [oralId]: newOral };
     });
