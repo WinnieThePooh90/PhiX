@@ -13,6 +13,7 @@ const CRYPTO_EXEMPT = new Set([
   '/api/auth/crypto/unlock-recovery',
   '/api/auth/crypto/status',
   '/api/users/migrate-from-localstorage',
+  '/api/registration',
   '/api/health',
   '/api/shutdown',
 ]);

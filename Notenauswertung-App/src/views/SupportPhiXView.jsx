@@ -10,10 +10,11 @@ export default function SupportPhiXView({ onRegistrationSuccess }) {
   const [registerFeedback, setRegisterFeedback] = useState(null);
   const { registered, register } = usePhiXRegistration();
 
-  const handleRegisterVersion = (e) => {
+  const handleRegisterVersion = async (e) => {
     e.preventDefault();
     setRegisterFeedback(null);
-    if (register(licenseKey)) {
+    const ok = await register(licenseKey);
+    if (ok) {
       setLicenseKey('');
       onRegistrationSuccess?.();
     } else {

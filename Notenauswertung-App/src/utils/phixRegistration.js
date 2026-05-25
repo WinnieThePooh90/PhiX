@@ -1,9 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-
-const STORAGE_KEY = 'phix_version_registered';
-
-/** Vorerst gültiger Registrierungsschlüssel (ohne Backend). */
-const VALID_REGISTRATION_KEY = 'test';
+import { apiFetch } from './apiBase';
+import { applyCryptoHeader } from './cryptoSession';
 
 const listeners = new Set();
 
@@ -14,57 +11,104 @@ function notifyRegistrationChange() {
   }
 }
 
+let cachedStatus = null;
+
+export async function fetchRegistrationStatus() {
+  try {
+    const res = await apiFetch('/api/registration');
+    if (!res.ok) return false;
+    const data = await res.json();
+    cachedStatus = !!data.registered;
+    return cachedStatus;
+  } catch {
+    return cachedStatus ?? false;
+  }
+}
+
 export function isPhiXRegistered() {
-  if (typeof localStorage === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEY) === '1';
+  return cachedStatus ?? false;
 }
 
-/** @returns {boolean} true, wenn der Schlüssel gültig war und die Version registriert wurde */
-export function registerPhiXVersion(keyRaw) {
-  const key = String(keyRaw ?? '').trim().toLowerCase();
-  if (key !== VALID_REGISTRATION_KEY) return false;
-  localStorage.setItem(STORAGE_KEY, '1');
-  notifyRegistrationChange();
-  return true;
-}
-
-export function unregisterPhiXVersion() {
-  localStorage.removeItem(STORAGE_KEY);
-  notifyRegistrationChange();
+/**
+ * @returns {Promise<boolean>} true wenn der Schlüssel akzeptiert wurde
+ */
+export async function registerPhiXVersion(keyRaw, username) {
+  try {
+    const headers = applyCryptoHeader(new Headers({ 'Content-Type': 'application/json' }));
+    if (username) headers.set('X-Acting-User', username);
+    const res = await apiFetch('/api/registration', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ key: keyRaw }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.registered) {
+      cachedStatus = true;
+      notifyRegistrationChange();
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export function subscribePhiXRegistration(listener) {
   listeners.add(listener);
-  const onStorage = (e) => {
-    if (e.key === STORAGE_KEY) listener();
-  };
   window.addEventListener('phix-registration-change', listener);
-  window.addEventListener('storage', onStorage);
   return () => {
     listeners.delete(listener);
     window.removeEventListener('phix-registration-change', listener);
-    window.removeEventListener('storage', onStorage);
   };
 }
 
+export async function unregisterPhiXVersion(username) {
+  try {
+    const headers = applyCryptoHeader(new Headers());
+    if (username) headers.set('X-Acting-User', username);
+    const res = await apiFetch('/api/registration', { method: 'DELETE', headers });
+    if (res.ok) {
+      cachedStatus = false;
+      notifyRegistrationChange();
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function usePhiXRegistration() {
-  const [registered, setRegistered] = useState(() => isPhiXRegistered());
+  const [registered, setRegistered] = useState(() => cachedStatus ?? false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = () => setRegistered(isPhiXRegistered());
-    return subscribePhiXRegistration(sync);
+    let cancelled = false;
+    fetchRegistrationStatus().then((val) => {
+      if (!cancelled) {
+        setRegistered(val);
+        setLoading(false);
+      }
+    });
+    const unsub = subscribePhiXRegistration(() => setRegistered(isPhiXRegistered()));
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 
-  const register = useCallback((key) => {
-    const ok = registerPhiXVersion(key);
+  const register = useCallback(async (key, username) => {
+    const ok = await registerPhiXVersion(key, username);
     if (ok) setRegistered(true);
     return ok;
   }, []);
 
-  const unregister = useCallback(() => {
-    unregisterPhiXVersion();
-    setRegistered(false);
+  const unregister = useCallback(async (username) => {
+    const ok = await unregisterPhiXVersion(username);
+    if (ok) setRegistered(false);
+    return ok;
   }, []);
 
-  return { registered, register, unregister };
+  return { registered, loading, register, unregister };
 }

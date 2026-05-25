@@ -33,6 +33,12 @@ model UserCrypto {
   createdAt          DateTime @default(now())
 }
 
+model AppRegistration {
+  id             Int      @id @default(1)
+  registeredAt   DateTime @default(now())
+  registeredBy   String   @default("")
+}
+
 model Config {
   id        Int      @id @default(autoincrement())
   year      String

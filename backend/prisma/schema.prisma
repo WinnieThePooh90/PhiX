@@ -30,6 +30,13 @@ model UserCrypto {
   createdAt          DateTime @default(now())
 }
 
+/** Globale App-Registrierung (max. 1 Zeile); gilt für alle Benutzer. */
+model AppRegistration {
+  id             Int      @id @default(1)
+  registeredAt   DateTime @default(now())
+  registeredBy   String   @default("")
+}
+
 model Config {
   id        Int      @id @default(autoincrement())
   year      String

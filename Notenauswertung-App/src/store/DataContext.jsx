@@ -233,6 +233,8 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     if (!activeCourseId || !currentUser?.username) return undefined;
     setLoading(true);
+    const safeFetchJson = (url, fallback) =>
+      fetchWithActing(url).then((r) => (r && r.ok ? r.json() : fallback));
     const fetchCourseData = async () => {
       try {
         const [
@@ -246,15 +248,15 @@ export const DataProvider = ({ children }) => {
           collectionListsRes,
           notesListsRes,
         ] = await Promise.all([
-          fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/exams?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/orals?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/tests?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/gfs?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`).then((r) => r.json()),
-          fetchWithActing(`/api/notes-lists?courseId=${activeCourseId}`).then((r) => r.json()),
+          safeFetchJson(`/api/students?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/exams?courseId=${activeCourseId}`, {}),
+          safeFetchJson(`/api/orals?courseId=${activeCourseId}`, {}),
+          safeFetchJson(`/api/tests?courseId=${activeCourseId}`, {}),
+          safeFetchJson(`/api/gfs?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/money-lists?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/attendance-lists?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/collection-lists?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/notes-lists?courseId=${activeCourseId}`, []),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -281,7 +283,8 @@ export const DataProvider = ({ children }) => {
       return;
     }
     try {
-      const data = await fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`).then((r) => r.json());
+      const res = await fetchWithActing(`/api/money-lists?courseId=${activeCourseId}`);
+      const data = res && res.ok ? await res.json() : [];
       setMoneyLists(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to refresh money lists', err);
@@ -294,9 +297,8 @@ export const DataProvider = ({ children }) => {
       return;
     }
     try {
-      const data = await fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`).then((r) =>
-        r.json(),
-      );
+      const res = await fetchWithActing(`/api/attendance-lists?courseId=${activeCourseId}`);
+      const data = res && res.ok ? await res.json() : [];
       setAttendanceLists(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to refresh attendance lists', err);
@@ -309,9 +311,8 @@ export const DataProvider = ({ children }) => {
       return;
     }
     try {
-      const data = await fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`).then((r) =>
-        r.json(),
-      );
+      const res = await fetchWithActing(`/api/collection-lists?courseId=${activeCourseId}`);
+      const data = res && res.ok ? await res.json() : [];
       setCollectionLists(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to refresh collection lists', err);
@@ -324,7 +325,8 @@ export const DataProvider = ({ children }) => {
       return;
     }
     try {
-      const data = await fetchWithActing(`/api/notes-lists?courseId=${activeCourseId}`).then((r) => r.json());
+      const res = await fetchWithActing(`/api/notes-lists?courseId=${activeCourseId}`);
+      const data = res && res.ok ? await res.json() : [];
       setNotesLists(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to refresh notes lists', err);
@@ -496,7 +498,8 @@ export const DataProvider = ({ children }) => {
         return;
       }
       if (!activeCourseId) return;
-      const studentsRes = await fetchWithActing(`/api/students?courseId=${activeCourseId}`).then((r) => r.json());
+      const studentsRaw = await fetchWithActing(`/api/students?courseId=${activeCourseId}`);
+      const studentsRes = studentsRaw && studentsRaw.ok ? await studentsRaw.json() : [];
       setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
       await refreshKlassenlehrerLists();
     } catch (err) {

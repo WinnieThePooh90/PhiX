@@ -381,6 +381,37 @@ async function ensureAppUsers() {
   );
 }
 
+// REGISTRATION (global, für alle Benutzer)
+const VALID_REGISTRATION_KEY = 'test';
+
+app.get('/api/registration', async (req, res) => {
+  const row = await prisma.appRegistration.findUnique({ where: { id: 1 } });
+  res.json({ registered: !!row });
+});
+
+app.post('/api/registration', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const { key } = req.body || {};
+  const k = String(key ?? '').trim().toLowerCase();
+  if (k !== VALID_REGISTRATION_KEY) {
+    return res.status(400).json({ error: 'Ungültiger Registrierungsschlüssel.' });
+  }
+  await prisma.appRegistration.upsert({
+    where: { id: 1 },
+    update: { registeredAt: new Date(), registeredBy: acting },
+    create: { id: 1, registeredAt: new Date(), registeredBy: acting },
+  });
+  res.json({ registered: true });
+});
+
+app.delete('/api/registration', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  await prisma.appRegistration.deleteMany({ where: { id: 1 } });
+  res.json({ registered: false });
+});
+
 // MIGRATION ON STARTUP
 const migrateData = async () => {
   const configs = await prisma.config.findMany();
@@ -733,7 +764,6 @@ app.get('/api/students', async (req, res) => {
   if (!courseId) return res.json([]);
   const ok = await assertCourseAccess(req, res, courseId);
   if (!ok) return;
-  // Wichtig: Nicht alle Felder zurückgeben (z.B. kann während Migration `studentNumber` noch fehlen).
   const students = await prisma.student.findMany({
     where: { courseId },
     select: {
@@ -741,6 +771,7 @@ app.get('/api/students', async (req, res) => {
       frontendId: true,
       firstName: true,
       lastName: true,
+      studentNumber: true,
       summaryEndNote: true,
       summaryHJ1Note: true,
       courseId: true,
