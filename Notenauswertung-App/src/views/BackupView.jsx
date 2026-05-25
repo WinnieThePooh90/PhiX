@@ -3,6 +3,7 @@ import { Download, Upload } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
+import PhixRadioOption from '../components/PhixRadioOption';
 
 const RESTORE_CONFIRM = 'WIEDERHERSTELLEN';
 
@@ -330,10 +331,10 @@ export default function BackupView() {
                 Konten zu verändern (außer beim Aufspielen: nur die Kurse dieses Benutzers werden ersetzt).
               </p>
 
-              <label className="backup-confirm-label">
-                <span className="backup-confirm-label-text">Benutzer</span>
+              <label className="program-user-mgmt-label backup-user-select-wrap">
+                <span>Benutzer</span>
                 <select
-                  className="backup-user-select"
+                  className="program-user-mgmt-input backup-user-select"
                   value={selectedAdminUser}
                   onChange={(e) => {
                     setSelectedAdminUser(e.target.value);
