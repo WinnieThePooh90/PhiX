@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Settings,
@@ -94,7 +94,29 @@ function App() {
   const { currentUser } = useAuth();
   const { registered: phixRegistered } = usePhiXRegistration();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
-  const [activeTab, setActiveTab] = useState('summary');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'summary';
+  const [activeTab, setActiveTabRaw] = useState(tabFromUrl);
+
+  const setActiveTab = useCallback((tab, { replace = false } = {}) => {
+    setActiveTabRaw(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'summary') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') || 'summary';
+    if (urlTab !== activeTab) {
+      setActiveTabRaw(urlTab);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
@@ -120,9 +142,9 @@ function App() {
   const showEmptyCoursePrompt = !hasActiveCourse && !TABS_WITHOUT_COURSE.has(activeTab);
 
   useEffect(() => {
-    if (!showTestsTab && activeTab === 'tests') setActiveTab('summary');
-    if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary');
-    if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary');
+    if (!showTestsTab && activeTab === 'tests') setActiveTab('summary', { replace: true });
+    if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary', { replace: true });
+    if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary', { replace: true });
   }, [showTestsTab, showGfsTab, showKlassenlehrerMenu, activeTab]);
 
   useEffect(() => {
@@ -221,13 +243,13 @@ function App() {
 
   useEffect(() => {
     if (!isAdminUser && activeTab === 'dependencies') {
-      setActiveTab('summary');
+      setActiveTab('summary', { replace: true });
     }
   }, [isAdminUser, activeTab]);
 
   useEffect(() => {
     if (hasActiveCourse || TABS_WITHOUT_COURSE.has(activeTab)) return;
-    setActiveTab('summary');
+    setActiveTab('summary', { replace: true });
   }, [hasActiveCourse, activeTab]);
 
   const openMainTab = (tab) => {
@@ -317,7 +339,7 @@ function App() {
       case 'keys':
         return <KeysView />;
       case 'schoolRoster':
-        return <SchoolRosterView onBack={() => openMainTab('summary')} />;
+        return <SchoolRosterView />;
       case 'userManagement':
         return <UserManagementView />;
       case 'backup':

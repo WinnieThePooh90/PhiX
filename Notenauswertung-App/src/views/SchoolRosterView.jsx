@@ -6,7 +6,7 @@ import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear
 
 const GRADE_OPTIONS = [5, 6, 7, 8, 9, 10, 11, 12, 13];
 
-export default function SchoolRosterView({ onBack, backLabel = '← Übersicht' }) {
+export default function SchoolRosterView() {
   const {
     schoolRosterYears,
     activeSchoolRosterYearId,
@@ -356,11 +356,6 @@ export default function SchoolRosterView({ onBack, backLabel = '← Übersicht' 
       />
       <div className="flex flex-wrap items-center gap-3 mb-4" style={{ justifyContent: 'space-between' }}>
         <h2 style={{ margin: 0 }}>Schülerverwaltung</h2>
-        {typeof onBack === 'function' && (
-          <button type="button" className="tab secondary" onClick={onBack} disabled={busy}>
-            {backLabel}
-          </button>
-        )}
       </div>
 
       <div className="glass-panel mb-6" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
