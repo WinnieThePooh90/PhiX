@@ -2207,14 +2207,36 @@ button.equiphi-sidebar-toggle:focus-visible {
   padding: 0.65rem 1.5rem;
 }
 
-.support-overview-btn--coffee {
-  background: hsl(38 90% 50%);
-  border-color: hsl(38 90% 45%);
-  color: #fff;
+/* Buy Me a Coffee Button (Nachbau des offiziellen Widgets) */
+.bmc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: #FFDD00;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  font-family: 'Cookie', cursive;
+  font-size: 1.55rem;
+  color: #000000;
+  text-decoration: none;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
 
-.support-overview-btn--coffee:hover {
-  filter: brightness(1.08);
+.bmc-button:hover {
+  opacity: 0.85;
+}
+
+.bmc-button__icon {
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+}
+
+.bmc-button__text {
+  white-space: nowrap;
 }
 
 .support-phix-label {

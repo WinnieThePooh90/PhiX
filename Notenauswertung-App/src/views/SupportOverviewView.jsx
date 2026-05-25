@@ -1,5 +1,26 @@
 import React from 'react';
-import { Heart, Coffee } from 'lucide-react';
+import { Heart } from 'lucide-react';
+
+const BMC_URL = 'https://buymeacoffee.com/KarstenPaulokat';
+
+function BuyMeACoffeeButton() {
+  return (
+    <a
+      href={BMC_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bmc-button"
+    >
+      <img
+        src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg"
+        alt=""
+        aria-hidden="true"
+        className="bmc-button__icon"
+      />
+      <span className="bmc-button__text">Buy me a coffee</span>
+    </a>
+  );
+}
 
 export default function SupportOverviewView({ onOpenRegistration }) {
   return (
@@ -28,16 +49,7 @@ export default function SupportOverviewView({ onOpenRegistration }) {
           Oder du möchtest dich in Form eines Kaffees erkenntlich zeigen:
         </p>
         <div className="support-overview-cta">
-          <button
-            type="button"
-            className="tab active support-overview-btn support-overview-btn--coffee"
-            onClick={() => {
-              /* TODO: Buy Me a Coffee Link einfügen */
-            }}
-          >
-            <Coffee size={18} strokeWidth={2} aria-hidden />
-            Buy me a Coffee
-          </button>
+          <BuyMeACoffeeButton />
         </div>
       </section>
     </div>

@@ -111,6 +111,8 @@ model Student {
   studentNumber Int
   /** Manuelle Endnote in der Gesamtübersicht (leer = nicht gesetzt); Dezimalzahl als Text */
   summaryEndNote String @default("")
+  /** Manuelle Note Halbjahr 1 (leer = nicht gesetzt); Dezimalzahl als Text */
+  summaryHJ1Note String @default("")
   courseId  Int?
   course    Course?  @relation(fields: [courseId], references: [id])
 

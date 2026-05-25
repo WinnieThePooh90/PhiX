@@ -102,6 +102,7 @@ model Student {
   lastName  String
   studentNumber Int
   summaryEndNote String @default("")
+  summaryHJ1Note String @default("")
   courseId  Int?
   course    Course?  @relation(fields: [courseId], references: [id])
 

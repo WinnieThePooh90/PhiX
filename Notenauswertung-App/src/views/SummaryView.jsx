@@ -32,20 +32,20 @@ function summaryEndNoteDraftFromStored(stored, gradeSystem) {
   return summaryEndNoteInputDisplay(stored);
 }
 
-function SummaryEndNoteCell({ student, updateStudentConfig, gradeSystem }) {
-  const stored = student.summaryEndNote ?? '';
+function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSystem, label }) {
+  const stored = student[field] ?? '';
   const [draft, setDraft] = useState(() => summaryEndNoteDraftFromStored(stored, gradeSystem));
 
   useEffect(() => {
-    setDraft(summaryEndNoteDraftFromStored(student.summaryEndNote ?? '', gradeSystem));
-  }, [student.id, student.summaryEndNote, gradeSystem]);
+    setDraft(summaryEndNoteDraftFromStored(student[field] ?? '', gradeSystem));
+  }, [student.id, student[field], gradeSystem]);
 
-  const manualEndNum = storedGradeStringToClassic(stored, gradeSystem);
+  const manualNum = storedGradeStringToClassic(stored, gradeSystem);
 
   const commit = () => {
     const t = draft.trim();
     if (t === '') {
-      updateStudentConfig(student.id, 'summaryEndNote', '');
+      updateStudentConfig(student.id, field, '');
       setDraft('');
       return;
     }
@@ -55,7 +55,7 @@ function SummaryEndNoteCell({ student, updateStudentConfig, gradeSystem }) {
         setDraft(summaryEndNoteDraftFromStored(stored, gradeSystem));
         return;
       }
-      updateStudentConfig(student.id, 'summaryEndNote', String(np));
+      updateStudentConfig(student.id, field, String(np));
       setDraft(String(np));
       return;
     }
@@ -66,7 +66,7 @@ function SummaryEndNoteCell({ student, updateStudentConfig, gradeSystem }) {
       return;
     }
     const clamped = Math.min(6, Math.max(1, n));
-    updateStudentConfig(student.id, 'summaryEndNote', clamped.toFixed(2));
+    updateStudentConfig(student.id, field, clamped.toFixed(2));
     setDraft(summaryEndNoteInputDisplay(clamped.toFixed(2)));
   };
 
@@ -74,7 +74,7 @@ function SummaryEndNoteCell({ student, updateStudentConfig, gradeSystem }) {
     <input
       type="text"
       inputMode={gradeSystem === 'points' ? 'numeric' : 'decimal'}
-      aria-label={`Endnote für ${student.firstName} ${student.lastName}`}
+      aria-label={`${label} für ${student.firstName} ${student.lastName}`}
       value={draft}
       placeholder={gradeSystem === 'points' ? '0–15' : '—'}
       title={
@@ -96,7 +96,7 @@ function SummaryEndNoteCell({ student, updateStudentConfig, gradeSystem }) {
         borderRadius: '6px',
         border: '1px solid var(--border)',
         background: 'var(--background)',
-        color: manualEndNum !== null && isGradeWorseThan4(manualEndNum) ? 'var(--danger)' : 'var(--foreground)',
+        color: manualNum !== null && isGradeWorseThan4(manualNum) ? 'var(--danger)' : 'var(--foreground)',
         fontWeight: 600,
       }}
     />
@@ -112,6 +112,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
+  const [showHJ1, setShowHJ1] = useState(true);
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
@@ -136,8 +137,25 @@ export default function SummaryView({ studentIdFilterSet = null }) {
     );
   }
 
+  const colCount = 7 + (showHJ1 ? 1 : 0) + 1;
+
   return (
     <div className="view-generic-scroll summary-overview">
+      <div className="flex flex-wrap gap-4 course-meta-settings-row" style={{ marginBottom: '0.75rem' }}>
+        <div className="course-meta-field">
+          <span className="course-meta-field__label">Halbjahresnote anzeigen</span>
+          <div className="course-meta-field__row">
+            <label className="switch" title="Spalte „Note HJ1" ein-/ausblenden">
+              <input
+                type="checkbox"
+                checked={showHJ1}
+                onChange={(e) => setShowHJ1(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+        </div>
+      </div>
       <MaximizableTableSection title="Gesamtübersicht">
       {!hasValidWeighting && (
         <div
@@ -178,6 +196,11 @@ export default function SummaryView({ studentIdFilterSet = null }) {
               <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Gewichteter Mittelwert — Anzeige Notenpunkte 0–15' : undefined}>
                 Endnote (Exakt){npSuffix}
               </th>
+              {showHJ1 && (
+                <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Note Halbjahr 1 als Notenpunkte 0–15' : 'Manuell eintragbare Note Halbjahr 1'}>
+                  Note HJ1{npSuffix}
+                </th>
+              )}
               <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Speicherung als Notenpunkte 0–15' : 'Manuell eintragbare Endnote (z. B. 4,25)'}>
                 Endnote{npSuffix}
               </th>
@@ -186,14 +209,14 @@ export default function SummaryView({ studentIdFilterSet = null }) {
           <tbody>
             {students.length === 0 && (
               <tr>
-                <td colSpan="8" className="text-center text-muted" style={{ padding: '2rem' }}>
+                <td colSpan={colCount} className="text-center text-muted" style={{ padding: '2rem' }}>
                   Keine Schüler angelegt. Wechsle in die Einstellungen.
                 </td>
               </tr>
             )}
             {students.length > 0 && displayStudents.length === 0 && (
               <tr>
-                <td colSpan="8" className="text-center text-muted" style={{ padding: '2rem' }}>
+                <td colSpan={colCount} className="text-center text-muted" style={{ padding: '2rem' }}>
                   Kein Schüler entspricht der Suche.
                 </td>
               </tr>
@@ -233,6 +256,21 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                          {gfmt(finalGrade)}
                        </span>
                     </td>
+                    {showHJ1 && (() => {
+                      const hj1Num = storedGradeStringToClassic(s.summaryHJ1Note, gradeSys);
+                      return (
+                        <td
+                          className="text-center"
+                          style={{
+                            background: hj1Num !== null ? getGradeCellBackground(hj1Num) : undefined,
+                            verticalAlign: 'middle',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <SummaryGradeInputCell student={s} field="summaryHJ1Note" updateStudentConfig={updateStudentConfig} gradeSystem={gradeSys} label="Note HJ1" />
+                        </td>
+                      );
+                    })()}
                     <td
                       className="text-center"
                       style={{
@@ -241,13 +279,13 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <SummaryEndNoteCell student={s} updateStudentConfig={updateStudentConfig} gradeSystem={gradeSys} />
+                      <SummaryGradeInputCell student={s} field="summaryEndNote" updateStudentConfig={updateStudentConfig} gradeSystem={gradeSys} label="Endnote" />
                     </td>
                   </tr>
                   
                   {isExpanded && (
                     <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
-                      <td colSpan="8" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                      <td colSpan={colCount} style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
                         <div className="grid-3 gap-6" style={{ backgroundColor: 'var(--surface)', padding: '1.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                           {[
                             { label: 'Halbjahr 1', filter: '1' },

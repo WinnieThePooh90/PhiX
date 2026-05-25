@@ -742,6 +742,7 @@ app.get('/api/students', async (req, res) => {
       firstName: true,
       lastName: true,
       summaryEndNote: true,
+      summaryHJ1Note: true,
       courseId: true,
     },
   });
