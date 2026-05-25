@@ -2207,6 +2207,16 @@ button.equiphi-sidebar-toggle:focus-visible {
   padding: 0.65rem 1.5rem;
 }
 
+.support-overview-registered {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--success, #16a34a);
+}
+
 /* Buy Me a Coffee Button (Nachbau des offiziellen Widgets) */
 .bmc-button {
   display: inline-flex;
