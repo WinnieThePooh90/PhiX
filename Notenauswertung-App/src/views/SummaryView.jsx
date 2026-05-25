@@ -145,7 +145,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
         <div className="course-meta-field">
           <span className="course-meta-field__label">Halbjahresnote anzeigen</span>
           <div className="course-meta-field__row">
-            <label className="switch" title="Spalte „Note HJ1" ein-/ausblenden">
+            <label className="switch" title="Spalte &#x201E;Note HJ1&#x201C; ein-/ausblenden">
               <input
                 type="checkbox"
                 checked={showHJ1}
