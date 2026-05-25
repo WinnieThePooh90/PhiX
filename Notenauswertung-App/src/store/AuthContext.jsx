@@ -279,6 +279,7 @@ export const AuthProvider = ({ children }) => {
     setPendingRecoveryConfirm(null);
     clearPendingRecoverySetup();
     setCurrentUser(null);
+    try { window.history.replaceState(null, '', '/'); } catch {}
   }, []);
 
   useEffect(() => {

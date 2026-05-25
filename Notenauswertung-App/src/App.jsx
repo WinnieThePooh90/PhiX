@@ -127,6 +127,20 @@ function App() {
       try { if (userTabKey) localStorage.setItem(userTabKey, urlTab); } catch {}
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!userTabKey) return;
+    try {
+      const stored = localStorage.getItem(userTabKey);
+      const restoredTab = stored || 'summary';
+      setActiveTabRaw(restoredTab);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (restoredTab === 'summary') { next.delete('tab'); } else { next.set('tab', restoredTab); }
+        return next;
+      }, { replace: true });
+    } catch {}
+  }, [userTabKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
