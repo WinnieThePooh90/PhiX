@@ -16,7 +16,7 @@ const {
   backupFilenameFromPayload,
   resolveStoredUsername,
 } = require('./lib/phix-backup');
-const { createCryptoSession, destroyCryptoSession, getCryptoSession } = require('./lib/crypto-session');
+const { createCryptoSession, destroyCryptoSession, getCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
 const { getDekFromContext } = require('./lib/crypto-context');
@@ -134,18 +134,23 @@ app.post('/api/auth/login', async (req, res) => {
   } else {
     try {
       const dek = await unlockDekWithPassword(prisma, user.id, password);
-      cryptoSessionToken = createCryptoSession(user.id, dek);
+      const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
+      const ttlMs = ((settings?.inactivityTimeoutMin) || 5) * 60 * 1000;
+      cryptoSessionToken = createCryptoSession(user.id, dek, ttlMs);
     } catch (err) {
       console.error('[auth] DEK-Entschlüsselung fehlgeschlagen:', err);
       return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
     }
   }
 
+  const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
+
   res.json({
     id: String(user.id),
     username: user.username,
     cryptoSessionToken,
     requiresCryptoSetup,
+    settings: settings || { inactivityTimeoutMin: 5, darkMode: false },
   });
 });
 
@@ -380,6 +385,43 @@ async function ensureAppUsers() {
       'Passwort in der App unter Benutzerverwaltung ändern oder mit npm run set-admin-password setzen.',
   );
 }
+
+// USER SETTINGS
+app.get('/api/user-settings', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const user = await prisma.appUser.findFirst({ where: usernameWhere(acting), select: { id: true } });
+  if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+  const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
+  res.json(settings || { inactivityTimeoutMin: 5, darkMode: false });
+});
+
+app.put('/api/user-settings', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const user = await prisma.appUser.findFirst({ where: usernameWhere(acting), select: { id: true } });
+  if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+  const { inactivityTimeoutMin, darkMode } = req.body || {};
+  const data = {};
+  if (inactivityTimeoutMin !== undefined) {
+    const t = Number(inactivityTimeoutMin);
+    if (!Number.isFinite(t) || t < 5 || t > 60) {
+      return res.status(400).json({ error: 'inactivityTimeoutMin muss zwischen 5 und 60 liegen.' });
+    }
+    data.inactivityTimeoutMin = t;
+  }
+  if (darkMode !== undefined) data.darkMode = Boolean(darkMode);
+  const row = await prisma.userSettings.upsert({
+    where: { userId: user.id },
+    update: data,
+    create: { userId: user.id, ...data },
+  });
+  if (data.inactivityTimeoutMin !== undefined) {
+    const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
+    updateSessionTtl(token, data.inactivityTimeoutMin * 60 * 1000);
+  }
+  res.json(row);
+});
 
 // REGISTRATION (global, für alle Benutzer)
 const VALID_REGISTRATION_KEY = 'test';

@@ -34,6 +34,7 @@ import SummaryView from './views/SummaryView';
 import KeysView from './views/KeysView';
 import SupportPhiXView from './views/SupportPhiXView';
 import SupportOverviewView from './views/SupportOverviewView';
+import UserSettingsView from './views/UserSettingsView';
 import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
@@ -54,6 +55,7 @@ const TABS_WITHOUT_COURSE = new Set([
   'dependencies',
   'support',
   'supportOverview',
+  'userSettings',
 ]);
 
 /** Schuljahres-String z. B. „2025/2026“ → erstes Jahr für Sortierung (höher = neuer = weiter oben). */
@@ -362,6 +364,8 @@ function App() {
         return <SupportPhiXView onRegistrationSuccess={() => openMainTab('appInfo')} />;
       case 'supportOverview':
         return <SupportOverviewView onOpenRegistration={() => openMainTab('support')} />;
+      case 'userSettings':
+        return <UserSettingsView />;
       case 'impressum':
         return <ImpressumView />;
       case 'help':

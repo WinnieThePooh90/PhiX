@@ -1,5 +1,6 @@
 /* Equiphi-inspiriertes Theme */
-:root {
+:root,
+[data-theme="light"] {
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
@@ -30,6 +31,33 @@
 
   --radius: 0.5rem;
   --transition: all 0.15s ease-in-out;
+}
+
+[data-theme="dark"] {
+  --background: 222 47% 8%;
+  --foreground: 210 20% 92%;
+  --card: 222 40% 12%;
+  --card-foreground: 210 20% 92%;
+  --muted: 220 20% 18%;
+  --muted-foreground: 215 16% 60%;
+  --accent: 220 20% 20%;
+  --accent-foreground: 210 20% 92%;
+  --border-hsl: 220 15% 25%;
+  --ring: 210 20% 92%;
+  --danger-hsl: 0 70% 55%;
+  --success-hsl: 142 60% 45%;
+
+  --bg-color: hsl(var(--background));
+  --surface: hsl(var(--card));
+  --surface-muted: hsl(var(--muted));
+  --surface-hover: hsl(var(--accent));
+  --text-main: hsl(var(--foreground));
+  --text-muted: hsl(var(--muted-foreground));
+  --border: hsl(var(--border-hsl));
+  --primary: hsl(var(--foreground));
+  --primary-hover: hsl(var(--foreground) / 0.9);
+  --danger: hsl(var(--danger-hsl));
+  --success: hsl(var(--success-hsl));
 }
 
 *,
@@ -4048,4 +4076,81 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .grid-3 {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== User Settings View ===== */
+.user-settings-section {
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-settings-heading {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.user-settings-description {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.user-settings-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.user-settings-label {
+  font-size: 0.9rem;
+}
+
+.user-settings-select {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* ===== Dark Mode Overrides ===== */
+[data-theme="dark"] .slider {
+  background: hsl(220 15% 35%);
+}
+
+[data-theme="dark"] .slider:before {
+  background: hsl(210 20% 85%);
+}
+
+[data-theme="dark"] input:checked + .slider {
+  background: hsl(222 47% 40%);
+}
+
+[data-theme="dark"] .app-login-screen {
+  background: hsl(var(--background));
+}
+
+[data-theme="dark"] .header-bar {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: var(--surface-muted);
+  color: var(--text-main);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .course-tab-btn {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .course-tab-btn.active {
+  color: var(--text-main);
 }

@@ -14,7 +14,17 @@ model AppUser {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  crypto UserCrypto?
+  crypto   UserCrypto?
+  settings UserSettings?
+}
+
+/** Persönliche Einstellungen pro Benutzer (1:1 mit AppUser). */
+model UserSettings {
+  id                   Int     @id @default(autoincrement())
+  userId               Int     @unique
+  user                 AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inactivityTimeoutMin Int     @default(5)
+  darkMode             Boolean @default(false)
 }
 
 /** DEK-Hüllen (Passwort + Recovery); Klartext-DEK nur in Krypto-Session im RAM. */

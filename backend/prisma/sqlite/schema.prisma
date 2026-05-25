@@ -18,6 +18,8 @@ model AppUser {
   passwordHash String
   createdAt    DateTime @default(now())
 
+  settings UserSettings?
+
   crypto UserCrypto?
 }
 
@@ -31,6 +33,14 @@ model UserCrypto {
   dekWrappedPassword String
   dekWrappedRecovery String
   createdAt          DateTime @default(now())
+}
+
+model UserSettings {
+  id                   Int     @id @default(autoincrement())
+  userId               Int     @unique
+  user                 AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inactivityTimeoutMin Int     @default(5)
+  darkMode             Boolean @default(false)
 }
 
 model AppRegistration {

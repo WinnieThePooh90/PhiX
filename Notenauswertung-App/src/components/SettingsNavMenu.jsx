@@ -51,6 +51,9 @@ export default function SettingsNavMenu({
       <button type="button" role="menuitem" onClick={() => pick('backup')}>
         Backup
       </button>
+      <button type="button" role="menuitem" onClick={() => pick('userSettings')}>
+        Einstellungen
+      </button>
       <hr className="header-settings-dropdown-divider" aria-hidden />
       <button type="button" role="menuitem" onClick={() => pick('appInfo')}>
         Info

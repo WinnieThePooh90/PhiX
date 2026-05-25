@@ -8,6 +8,7 @@ import {
   applyCryptoHeader,
 } from '../utils/cryptoSession';
 import { INACTIVITY_LOGOUT_MS } from '../config/session';
+import { applyUserSettings, getUserSettingsFromStorage, clearUserSettings } from '../utils/userSettings';
 import {
   readPendingRecoverySetup,
   clearPendingRecoverySetup,
@@ -159,6 +160,10 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
+        const storedSettings = getUserSettingsFromStorage();
+        if (storedSettings.darkMode) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
         const res = await apiFetch('/api/auth/session', { headers: authHeaders(sessionName) });
         if (cancelled) return;
         if (res.ok) {
@@ -234,6 +239,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         clearCryptoSessionToken();
       }
+      if (body.settings) applyUserSettings(body.settings);
       setCurrentUser(u);
       if (body.requiresCryptoSetup) {
         clearPendingRecoverySetup();
@@ -268,6 +274,7 @@ export const AuthProvider = ({ children }) => {
       /* ignore */
     }
     clearCryptoSessionToken();
+    clearUserSettings();
     setPendingCryptoSetup(null);
     setPendingRecoveryConfirm(null);
     clearPendingRecoverySetup();
@@ -277,27 +284,36 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser?.username || pendingCryptoSetup || pendingRecoveryConfirm) return undefined;
 
+    let timeoutMs = getUserSettingsFromStorage().inactivityTimeoutMin * 60 * 1000 || INACTIVITY_LOGOUT_MS;
     let timerId = null;
     const scheduleLogout = () => {
       if (timerId != null) clearTimeout(timerId);
       timerId = setTimeout(() => {
         void logout();
-      }, INACTIVITY_LOGOUT_MS);
+      }, timeoutMs);
     };
 
     const onActivity = () => scheduleLogout();
+    const onSettingsChanged = (ev) => {
+      if (ev.detail?.inactivityTimeoutMin) {
+        timeoutMs = ev.detail.inactivityTimeoutMin * 60 * 1000;
+        scheduleLogout();
+      }
+    };
     const activityEvents = ['mousedown', 'keydown', 'touchstart', 'click', 'wheel', 'scroll'];
 
     scheduleLogout();
     for (const ev of activityEvents) {
       window.addEventListener(ev, onActivity, { passive: true });
     }
+    window.addEventListener('phix-settings-changed', onSettingsChanged);
 
     return () => {
       if (timerId != null) clearTimeout(timerId);
       for (const ev of activityEvents) {
         window.removeEventListener(ev, onActivity);
       }
+      window.removeEventListener('phix-settings-changed', onSettingsChanged);
     };
   }, [currentUser?.username, pendingCryptoSetup, pendingRecoveryConfirm, logout]);
 

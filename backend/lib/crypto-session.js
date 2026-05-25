@@ -3,7 +3,6 @@
  */
 const crypto = require('crypto');
 
-/** Inaktivität: keine API-Nutzung mit Krypto-Token → Session ungültig (Sliding Refresh bei Zugriff). */
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const sessions = new Map();
 
@@ -17,6 +16,7 @@ function createCryptoSession(userId, dek, ttlMs = DEFAULT_TTL_MS) {
   sessions.set(token, {
     userId: Number(userId),
     dek: Buffer.isBuffer(dek) ? dek : Buffer.from(dek),
+    ttlMs,
     expiresAt: now + ttlMs,
     lastAccess: now,
   });
@@ -32,8 +32,16 @@ function getCryptoSession(token) {
     return null;
   }
   row.lastAccess = Date.now();
-  row.expiresAt = Date.now() + DEFAULT_TTL_MS;
+  row.expiresAt = Date.now() + row.ttlMs;
   return row;
+}
+
+function updateSessionTtl(token, ttlMs) {
+  if (!token) return;
+  const row = sessions.get(String(token));
+  if (!row) return;
+  row.ttlMs = ttlMs;
+  row.expiresAt = row.lastAccess + ttlMs;
 }
 
 function destroyCryptoSession(token) {
@@ -51,6 +59,7 @@ module.exports = {
   DEFAULT_TTL_MS,
   createCryptoSession,
   getCryptoSession,
+  updateSessionTtl,
   destroyCryptoSession,
   destroySessionsForUser,
 };
