@@ -67,7 +67,19 @@ export const DataProvider = ({ children }) => {
   );
 
   const [courses, setCourses] = useState([]);
-  const [activeCourseId, setActiveCourseId] = useState(null);
+  const [activeCourseId, setActiveCourseIdRaw] = useState(() => {
+    try {
+      const stored = localStorage.getItem('phix_last_course_id');
+      return stored ? Number(stored) : null;
+    } catch { return null; }
+  });
+  const setActiveCourseId = useCallback((valOrFn) => {
+    setActiveCourseIdRaw((prev) => {
+      const next = typeof valOrFn === 'function' ? valOrFn(prev) : valOrFn;
+      try { if (next != null) localStorage.setItem('phix_last_course_id', String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   // Der aktuelle 'config' entspricht dem aktiven Kurs
   const config = courses.find(c => c.id === activeCourseId) || null;

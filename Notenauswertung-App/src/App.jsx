@@ -97,11 +97,17 @@ function App() {
   const { registered: phixRegistered } = usePhiXRegistration();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get('tab') || 'summary';
-  const [activeTab, setActiveTabRaw] = useState(tabFromUrl);
+  const tabFromUrl = searchParams.get('tab') || null;
+  const [activeTab, setActiveTabRaw] = useState(() => {
+    if (tabFromUrl) return tabFromUrl;
+    try {
+      return localStorage.getItem('phix_last_tab') || 'summary';
+    } catch { return 'summary'; }
+  });
 
   const setActiveTab = useCallback((tab, { replace = false } = {}) => {
     setActiveTabRaw(tab);
+    try { localStorage.setItem('phix_last_tab', tab); } catch {}
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (tab === 'summary') {
@@ -114,9 +120,10 @@ function App() {
   }, [setSearchParams]);
 
   useEffect(() => {
-    const urlTab = searchParams.get('tab') || 'summary';
-    if (urlTab !== activeTab) {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
       setActiveTabRaw(urlTab);
+      try { localStorage.setItem('phix_last_tab', urlTab); } catch {}
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
