@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
 import { usePhiXRegistration } from '../utils/phixRegistration';
+import { useAuth } from '../store/AuthContext';
 
 /** Offizielle PayPal-Spenden-URL (Hosted Button). */
 const PAYPAL_DONATE_URL = 'https://www.paypal.com/donate/?hosted_button_id=U737ERXEAE5CJ';
@@ -9,11 +10,12 @@ export default function SupportPhiXView({ onRegistrationSuccess }) {
   const [licenseKey, setLicenseKey] = useState('');
   const [registerFeedback, setRegisterFeedback] = useState(null);
   const { registered, register } = usePhiXRegistration();
+  const { currentUser } = useAuth();
 
   const handleRegisterVersion = async (e) => {
     e.preventDefault();
     setRegisterFeedback(null);
-    const ok = await register(licenseKey);
+    const ok = await register(licenseKey, currentUser?.username);
     if (ok) {
       setLicenseKey('');
       onRegistrationSuccess?.();

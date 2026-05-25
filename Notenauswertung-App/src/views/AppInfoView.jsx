@@ -3,11 +3,13 @@ import { APP_NAME } from '../config/app';
 import { APP_VERSION, APP_BUILD_AT } from '../config/appVersion';
 import { formatAppBuildAt } from '../utils/formatAppBuild';
 import { usePhiXRegistration } from '../utils/phixRegistration';
+import { useAuth } from '../store/AuthContext';
 import { DSGVO_SECTIONS } from '../config/dsgvo';
 import LegalContentSections from '../components/LegalContentSections';
 
 export default function AppInfoView({ onOpenSupport }) {
   const { registered, unregister } = usePhiXRegistration();
+  const { currentUser } = useAuth();
 
   return (
     <div className="view-generic-scroll program-view">
@@ -22,7 +24,7 @@ export default function AppInfoView({ onOpenSupport }) {
               <button
                 type="button"
                 className="tab secondary school-roster-control-btn app-info-unregister-btn"
-                onClick={unregister}
+                onClick={() => unregister(currentUser?.username)}
               >
                 Registrierung löschen
               </button>
