@@ -33,6 +33,7 @@ import GfsView from './views/GfsView';
 import SummaryView from './views/SummaryView';
 import KeysView from './views/KeysView';
 import SupportPhiXView from './views/SupportPhiXView';
+import SupportOverviewView from './views/SupportOverviewView';
 import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
@@ -52,6 +53,7 @@ const TABS_WITHOUT_COURSE = new Set([
   'help',
   'dependencies',
   'support',
+  'supportOverview',
 ]);
 
 /** Schuljahres-String z. B. „2025/2026“ → erstes Jahr für Sortierung (höher = neuer = weiter oben). */
@@ -336,6 +338,8 @@ function App() {
         );
       case 'support':
         return <SupportPhiXView onRegistrationSuccess={() => openMainTab('appInfo')} />;
+      case 'supportOverview':
+        return <SupportOverviewView onOpenRegistration={() => openMainTab('support')} />;
       case 'impressum':
         return <ImpressumView />;
       case 'help':
@@ -376,6 +380,7 @@ function App() {
     activeTab === 'appInfo' ||
     activeTab === 'impressum' ||
     activeTab === 'help' ||
+    activeTab === 'supportOverview' ||
     (isAdminUser && activeTab === 'dependencies');
 
   const renderDesktopSettingsControls = () => (

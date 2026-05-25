@@ -2168,6 +2168,55 @@ button.equiphi-sidebar-toggle:focus-visible {
   padding: 1.25rem;
 }
 
+/* Unterstützung-Übersichtsseite */
+.support-overview-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.support-overview-section {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 1.5rem;
+}
+
+.support-overview-text {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text-main);
+  margin: 0 0 1.25rem;
+}
+
+.support-overview-cta {
+  display: flex;
+  justify-content: center;
+}
+
+.support-overview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.65rem 1.5rem;
+}
+
+.support-overview-btn--coffee {
+  background: hsl(38 90% 50%);
+  border-color: hsl(38 90% 45%);
+  color: #fff;
+}
+
+.support-overview-btn--coffee:hover {
+  filter: brightness(1.08);
+}
+
 .support-phix-label {
   display: block;
   margin-bottom: 0.35rem;
