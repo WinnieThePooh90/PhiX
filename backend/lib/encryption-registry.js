@@ -4,7 +4,7 @@
 
 const ENCRYPTED_FIELDS = {
   Course: ['year', 'className', 'subject', 'gradeSystem', 'weighting', 'customGradingKeys'],
-  Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note', 'frontendId'],
+  Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note'],
   SchoolRosterYear: ['label'],
   SchoolRosterStudent: ['firstName', 'lastName'],
   Exam: ['name', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'scores'],
