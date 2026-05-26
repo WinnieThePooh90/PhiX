@@ -132,10 +132,7 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
             className="header-settings-dropdown header-settings-dropdown--portal"
             role="menu"
             aria-label="Benutzer"
-            style={{
-              top: pos.top,
-              right: pos.right,
-            }}
+            style={pos}
           >
             <div className="header-user-menu-info" role="none">
               Angemeldet als <strong>{currentUser.username}</strong>
