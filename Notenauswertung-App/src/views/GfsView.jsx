@@ -130,7 +130,7 @@ export default function GfsView() {
         </div>
       </div>
 
-      <div className="view-table-scroll gfs-table-scroll">
+      <div className="view-table-scroll gfs-table-scroll" style={{ marginTop: '1rem' }}>
       <MaximizableTableSection title="GFS-Einträge">
         <div className="table-container">
           <table>

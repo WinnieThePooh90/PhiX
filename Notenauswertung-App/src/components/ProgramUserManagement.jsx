@@ -85,7 +85,7 @@ export default function ProgramUserManagement() {
       return;
     }
     const ok = await showConfirm(
-      `Benutzer „${u.username}“ wirklich löschen? Die Anmeldung ist danach für diesen Namen nicht mehr möglich.`,
+      `Benutzer „${u.username}“ wirklich löschen?\n\nAlle Klassen, Schülerdaten und Noten dieses Benutzers werden unwiderruflich gelöscht. Eine Anmeldung mit diesem Namen ist danach nicht mehr möglich.`,
       { title: 'Benutzer löschen', danger: true },
     );
     if (!ok) return;
