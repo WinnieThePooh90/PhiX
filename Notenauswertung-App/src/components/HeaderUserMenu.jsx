@@ -38,10 +38,18 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
       const el = btnRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      setPos({
-        top: r.bottom + 6,
-        right: window.innerWidth - r.right,
-      });
+      const spaceBelow = window.innerHeight - r.bottom;
+      if (spaceBelow < 140) {
+        setPos({
+          bottom: window.innerHeight - r.top + 6,
+          right: window.innerWidth - r.right,
+        });
+      } else {
+        setPos({
+          top: r.bottom + 6,
+          right: window.innerWidth - r.right,
+        });
+      }
     };
     sync();
     window.addEventListener('resize', sync);
