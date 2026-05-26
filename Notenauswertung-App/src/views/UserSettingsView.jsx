@@ -14,6 +14,9 @@ const COLOR_SCHEMES = [
   { value: 'orange', label: 'Orange', preview: 'hsl(25 95% 50%)', registered: true },
   { value: 'pink', label: 'Pink', preview: 'hsl(330 75% 50%)', registered: true },
   { value: 'teal', label: 'T\u00FCrkis', preview: 'hsl(180 65% 35%)', registered: true },
+  { value: 'gold', label: 'Gold', preview: 'hsl(45 90% 42%)', registered: true },
+  { value: 'red', label: 'Rot', preview: 'hsl(0 72% 48%)', registered: true },
+  { value: 'indigo', label: 'Indigo', preview: 'hsl(240 60% 52%)', registered: true },
 ];
 
 export default function UserSettingsView() {
