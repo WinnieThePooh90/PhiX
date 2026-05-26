@@ -7,6 +7,7 @@ import {
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
+  getGradeTextColor,
   getNormalizedTestScore,
   normalizeCourseGradeSystem,
   getCustomKeyDefinition,
@@ -593,6 +594,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                     counted && grade !== null
                                       ? (getGradeCellBackground(grade) ?? 'var(--surface)')
                                       : 'var(--surface)',
+                                  color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
                                   borderLeft: '1px solid var(--border)',
                                   verticalAlign: 'middle',
                                 }}

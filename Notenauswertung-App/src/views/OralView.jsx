@@ -5,6 +5,7 @@ import { useDialog } from '../components/PhixDialog';
 import {
   isGradeWorseThan4,
   getGradeCellBackground,
+  getGradeTextColor,
   getNormalizedOralGrade,
   getNormalizedOralWeekPointsArray,
   getOralTotalWeekPoints,
@@ -742,7 +743,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                             borderLeft: '1px solid var(--border)',
                             borderRight: '1px solid var(--border)',
                             boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
-                            color: calcRed ? 'var(--danger)' : 'var(--foreground)',
+                            color: calcRed ? 'var(--danger)' : (getGradeTextColor(calcClassicForColor) || 'var(--foreground)'),
                           }}
                           title={
                             useAbiNotenpunkte
@@ -818,6 +819,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                           counted && gradeClassicForCell !== null
                             ? (getGradeCellBackground(gradeClassicForCell) ?? 'var(--surface)')
                             : 'var(--surface)',
+                        color: counted && gradeClassicForCell !== null ? getGradeTextColor(gradeClassicForCell) : undefined,
                         borderLeft: '1px solid var(--border)',
                         boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
                       }}

@@ -1026,10 +1026,25 @@ export const getGradeCellBackground = (grade) => {
   if (grade === null || grade === undefined) return undefined;
   const g = typeof grade === 'number' ? grade : parseFloat(grade);
   if (Number.isNaN(g)) return undefined;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) return undefined;
   if (g >= 1 && g <= 3) return '#dcfce7';
   if (g > 4) return '#fee2e2';
   if (g >= 3.25 && g <= 4) return '#fef9c3';
   if (g > 3 && g < 3.25) return '#fefce8';
+  return undefined;
+};
+
+export const getGradeTextColor = (grade) => {
+  if (grade === null || grade === undefined) return undefined;
+  const g = typeof grade === 'number' ? grade : parseFloat(grade);
+  if (Number.isNaN(g)) return undefined;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (!isDark) return undefined;
+  if (g >= 1 && g <= 3) return '#4ade80';
+  if (g > 4) return '#f87171';
+  if (g >= 3.25 && g <= 4) return '#facc15';
+  if (g > 3 && g < 3.25) return '#fde047';
   return undefined;
 };
 

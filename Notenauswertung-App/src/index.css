@@ -122,19 +122,19 @@
 
 [data-theme="dark"] {
   --background: 222 47% 8%;
-  --foreground: 210 20% 92%;
+  --foreground: 0 0% 100%;
   --card: 222 40% 12%;
-  --card-foreground: 210 20% 92%;
+  --card-foreground: 0 0% 100%;
   --muted: 220 20% 18%;
-  --muted-foreground: 215 16% 60%;
+  --muted-foreground: 215 16% 80%;
   --accent: 220 20% 20%;
-  --accent-foreground: 210 20% 92%;
+  --accent-foreground: 0 0% 100%;
   --border-hsl: 220 15% 25%;
-  --ring: 210 20% 92%;
+  --ring: 0 0% 100%;
   --danger-hsl: 0 70% 55%;
   --success-hsl: 142 60% 45%;
 
-  --brand-hsl: 210 20% 92%;
+  --brand-hsl: 0 0% 100%;
   --brand: hsl(var(--brand-hsl));
   --brand-hover: hsl(var(--brand-hsl) / 0.85);
   --brand-foreground: hsl(var(--background));

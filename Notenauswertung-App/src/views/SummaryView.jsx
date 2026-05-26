@@ -5,6 +5,7 @@ import {
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
+  getGradeTextColor,
   getExamGradeForStudent,
   getTestGradeForStudent,
   getNormalizedExamScore,
@@ -237,22 +238,22 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
                     <td className="text-center" style={{ background: getGradeCellBackground(examAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(examAvg) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(examAvg)}</span>
+                      <span style={{ color: isGradeWorseThan4(examAvg) ? 'var(--danger)' : (getGradeTextColor(examAvg) || 'var(--foreground)') }}>{gfmt(examAvg)}</span>
                     </td>
                     <td className="text-center" style={{ background: getGradeCellBackground(oralAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(oralAvg) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(oralAvg)}</span>
+                      <span style={{ color: isGradeWorseThan4(oralAvg) ? 'var(--danger)' : (getGradeTextColor(oralAvg) || 'var(--foreground)') }}>{gfmt(oralAvg)}</span>
                     </td>
                     <td className="text-center" style={{ background: getGradeCellBackground(testAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(testAvg) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(testAvg)}</span>
+                      <span style={{ color: isGradeWorseThan4(testAvg) ? 'var(--danger)' : (getGradeTextColor(testAvg) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
                     </td>
                     <td
                       className="text-center"
                       style={{
-                        background: getGradeCellBackground(finalGrade) ?? '#f8fafc',
+                        background: getGradeCellBackground(finalGrade) ?? (document.documentElement.getAttribute('data-theme') === 'dark' ? 'var(--surface)' : '#f8fafc'),
                         fontWeight: 'bold',
                       }}
                     >
-                       <span style={{ color: isGradeWorseThan4(finalGrade) ? 'var(--danger)' : 'var(--foreground)' }}>
+                       <span style={{ color: isGradeWorseThan4(finalGrade) ? 'var(--danger)' : (getGradeTextColor(finalGrade) || 'var(--foreground)') }}>
                          {gfmt(finalGrade)}
                        </span>
                     </td>
@@ -263,6 +264,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                           className="text-center"
                           style={{
                             background: hj1Num !== null ? getGradeCellBackground(hj1Num) : undefined,
+                            color: hj1Num !== null ? getGradeTextColor(hj1Num) : undefined,
                             verticalAlign: 'middle',
                           }}
                           onClick={(e) => e.stopPropagation()}
@@ -275,6 +277,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                       className="text-center"
                       style={{
                         background: manualEndNum !== null ? getGradeCellBackground(manualEndNum) : undefined,
+                        color: manualEndNum !== null ? getGradeTextColor(manualEndNum) : undefined,
                         verticalAlign: 'middle',
                       }}
                       onClick={(e) => e.stopPropagation()}

@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
   getGradeCellBackground,
+  getGradeTextColor,
   isGradeWorseThan4,
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
@@ -228,6 +229,7 @@ export default function GfsView() {
                       style={{
                         verticalAlign: 'middle',
                         background: hasParsedNote ? (getGradeCellBackground(noteNum) ?? undefined) : undefined,
+                        color: hasParsedNote ? getGradeTextColor(noteNum) : undefined,
                       }}
                     >
                       <input

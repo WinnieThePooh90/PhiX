@@ -7,6 +7,7 @@ import {
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
+  getGradeTextColor,
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   getStudentExamMaxPointsForGrade,
@@ -577,6 +578,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                               background: counted && grade !== null
                                 ? (getGradeCellBackground(grade) ?? 'var(--surface)')
                                 : 'var(--surface)',
+                              color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
                               borderLeft: '1px solid var(--border)',
                             }}
                           >
