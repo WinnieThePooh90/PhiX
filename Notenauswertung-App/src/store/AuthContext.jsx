@@ -164,6 +164,9 @@ export const AuthProvider = ({ children }) => {
         if (storedSettings.darkMode) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        if (storedSettings.colorScheme && storedSettings.colorScheme !== 'standard') {
+          document.documentElement.setAttribute('data-color-scheme', storedSettings.colorScheme);
+        }
         const res = await apiFetch('/api/auth/session', { headers: authHeaders(sessionName) });
         if (cancelled) return;
         if (res.ok) {

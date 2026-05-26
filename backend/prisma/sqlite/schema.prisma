@@ -41,6 +41,7 @@ model UserSettings {
   user                 AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   inactivityTimeoutMin Int     @default(5)
   darkMode             Boolean @default(false)
+  colorScheme          String  @default("standard")
 }
 
 model AppRegistration {

@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'phix_user_settings';
 
-const DEFAULTS = { inactivityTimeoutMin: 5, darkMode: false };
+const DEFAULTS = { inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' };
 
 export function getUserSettingsFromStorage() {
   try {
@@ -18,6 +18,7 @@ export function applyUserSettings(settings) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   } catch { /* ignore */ }
   document.documentElement.setAttribute('data-theme', merged.darkMode ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-color-scheme', merged.colorScheme || 'standard');
 }
 
 export function clearUserSettings() {
@@ -25,4 +26,5 @@ export function clearUserSettings() {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch { /* ignore */ }
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-color-scheme');
 }

@@ -406,7 +406,7 @@ export default function SettingsView() {
                 Per Copy &amp; Paste
               </h4>
               <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>
-                Eine Liste einfügen (eine Zeile pro Schüler, Format: <strong>Nachname, Vorname</strong>).
+                Eine Liste einfügen (eine Zeile pro Schüler, Format: <strong>Nachname, Vorname</strong> oder ohne Komma: <strong>Nachname Vorname</strong>).
               </p>
               <textarea
                 value={pasteText}

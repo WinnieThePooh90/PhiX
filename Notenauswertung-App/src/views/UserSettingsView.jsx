@@ -5,9 +5,15 @@ import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const TIMEOUT_OPTIONS = Array.from({ length: 12 }, (_, i) => (i + 1) * 5);
 
+const COLOR_SCHEMES = [
+  { value: 'standard', label: 'Standard', preview: 'hsl(222 47% 11%)' },
+  { value: 'blue', label: 'Hellblau', preview: 'hsl(207 90% 45%)' },
+  { value: 'green', label: 'Hellgr\u00FCn', preview: 'hsl(152 60% 38%)' },
+];
+
 export default function UserSettingsView() {
   const { currentUser } = useAuth();
-  const [settings, setSettings] = useState({ inactivityTimeoutMin: 5, darkMode: false });
+  const [settings, setSettings] = useState({ inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -48,6 +54,9 @@ export default function UserSettingsView() {
         setSettings(data);
         if (key === 'darkMode') {
           document.documentElement.setAttribute('data-theme', value ? 'dark' : 'light');
+        }
+        if (key === 'colorScheme') {
+          document.documentElement.setAttribute('data-color-scheme', value || 'standard');
         }
         if (key === 'inactivityTimeoutMin') {
           window.dispatchEvent(new CustomEvent('phix-settings-changed', { detail: { inactivityTimeoutMin: value } }));
@@ -107,6 +116,28 @@ export default function UserSettingsView() {
             <span className="slider" />
           </label>
           <span className="user-settings-label">Dunkles Design (Dark Mode)</span>
+        </div>
+
+        <div className="user-settings-control" style={{ marginTop: '1.25rem' }}>
+          <span className="user-settings-label" style={{ marginRight: '1rem' }}>Farbschema</span>
+          <div className="color-scheme-options">
+            {COLOR_SCHEMES.map((scheme) => (
+              <button
+                key={scheme.value}
+                type="button"
+                className={`color-scheme-btn${settings.colorScheme === scheme.value ? ' color-scheme-btn--active' : ''}`}
+                disabled={saving}
+                onClick={() => updateSetting('colorScheme', scheme.value)}
+                title={scheme.label}
+              >
+                <span
+                  className="color-scheme-btn__swatch"
+                  style={{ background: scheme.preview }}
+                />
+                <span className="color-scheme-btn__label">{scheme.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
     </div>

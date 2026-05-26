@@ -14,6 +14,11 @@
   --danger-hsl: 0 84% 60%;
   --success-hsl: 142 71% 45%;
 
+  --brand-hsl: 222 47% 11%;
+  --brand: hsl(var(--brand-hsl));
+  --brand-hover: hsl(var(--brand-hsl) / 0.85);
+  --brand-foreground: hsl(var(--background));
+
   --bg-color: hsl(var(--background));
   --surface: hsl(var(--card));
   --surface-muted: hsl(var(--muted));
@@ -21,8 +26,8 @@
   --text-main: hsl(var(--foreground));
   --text-muted: hsl(var(--muted-foreground));
   --border: hsl(var(--border-hsl));
-  --primary: hsl(var(--foreground));
-  --primary-hover: hsl(var(--foreground) / 0.9);
+  --primary: var(--brand);
+  --primary-hover: var(--brand-hover);
   --danger: hsl(var(--danger-hsl));
   --success: hsl(var(--success-hsl));
 
@@ -31,6 +36,22 @@
 
   --radius: 0.5rem;
   --transition: all 0.15s ease-in-out;
+}
+
+/* Farbschema: Hellblau */
+[data-color-scheme="blue"] {
+  --brand-hsl: 207 90% 45%;
+}
+[data-color-scheme="blue"][data-theme="dark"] {
+  --brand-hsl: 207 80% 55%;
+}
+
+/* Farbschema: Hellgrün */
+[data-color-scheme="green"] {
+  --brand-hsl: 152 60% 38%;
+}
+[data-color-scheme="green"][data-theme="dark"] {
+  --brand-hsl: 152 55% 48%;
 }
 
 [data-theme="dark"] {
@@ -47,6 +68,11 @@
   --danger-hsl: 0 70% 55%;
   --success-hsl: 142 60% 45%;
 
+  --brand-hsl: 210 20% 92%;
+  --brand: hsl(var(--brand-hsl));
+  --brand-hover: hsl(var(--brand-hsl) / 0.85);
+  --brand-foreground: hsl(var(--background));
+
   --bg-color: hsl(var(--background));
   --surface: hsl(var(--card));
   --surface-muted: hsl(var(--muted));
@@ -54,8 +80,8 @@
   --text-main: hsl(var(--foreground));
   --text-muted: hsl(var(--muted-foreground));
   --border: hsl(var(--border-hsl));
-  --primary: hsl(var(--foreground));
-  --primary-hover: hsl(var(--foreground) / 0.9);
+  --primary: var(--brand);
+  --primary-hover: var(--brand-hover);
   --danger: hsl(var(--danger-hsl));
   --success: hsl(var(--success-hsl));
 }
@@ -1509,7 +1535,7 @@ tfoot td {
 
 .tab.active {
   background: var(--primary);
-  color: hsl(var(--background));
+  color: var(--brand-foreground);
 }
 
 .header-settings-menu-wrap {
@@ -4115,6 +4141,47 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   color: var(--text-main);
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+/* Farbschema-Auswahl */
+.color-scheme-options {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.color-scheme-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.color-scheme-btn:hover {
+  border-color: var(--text-muted);
+}
+
+.color-scheme-btn--active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px hsl(var(--brand-hsl) / 0.25);
+}
+
+.color-scheme-btn__swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.color-scheme-btn__label {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  white-space: nowrap;
 }
 
 /* ===== PhiX Dialog (Custom Confirm/Alert) ===== */

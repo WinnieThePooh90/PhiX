@@ -25,6 +25,7 @@ model UserSettings {
   user                 AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   inactivityTimeoutMin Int     @default(5)
   darkMode             Boolean @default(false)
+  colorScheme          String  @default("standard")
 }
 
 /** DEK-Hüllen (Passwort + Recovery); Klartext-DEK nur in Krypto-Session im RAM. */
