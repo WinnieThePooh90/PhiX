@@ -150,7 +150,7 @@ app.post('/api/auth/login', async (req, res) => {
     username: user.username,
     cryptoSessionToken,
     requiresCryptoSetup,
-    settings: settings || { inactivityTimeoutMin: 5, darkMode: false },
+    settings: settings || { inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' },
   });
 });
 
@@ -398,7 +398,7 @@ app.get('/api/user-settings', async (req, res) => {
   const user = await prisma.appUser.findFirst({ where: usernameWhere(acting), select: { id: true } });
   if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
   const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
-  res.json(settings || { inactivityTimeoutMin: 5, darkMode: false });
+  res.json(settings || { inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' });
 });
 
 app.put('/api/user-settings', async (req, res) => {
@@ -406,7 +406,7 @@ app.put('/api/user-settings', async (req, res) => {
   if (!acting) return;
   const user = await prisma.appUser.findFirst({ where: usernameWhere(acting), select: { id: true } });
   if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
-  const { inactivityTimeoutMin, darkMode } = req.body || {};
+  const { inactivityTimeoutMin, darkMode, colorScheme } = req.body || {};
   const data = {};
   if (inactivityTimeoutMin !== undefined) {
     const t = Number(inactivityTimeoutMin);
@@ -416,6 +416,7 @@ app.put('/api/user-settings', async (req, res) => {
     data.inactivityTimeoutMin = t;
   }
   if (darkMode !== undefined) data.darkMode = Boolean(darkMode);
+  if (colorScheme !== undefined) data.colorScheme = String(colorScheme || 'standard');
   const row = await prisma.userSettings.upsert({
     where: { userId: user.id },
     update: data,
