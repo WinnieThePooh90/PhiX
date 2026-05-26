@@ -17,6 +17,7 @@ const COLOR_SCHEMES = [
   { value: 'gold', label: 'Gold', preview: 'hsl(45 90% 42%)', registered: true },
   { value: 'red', label: 'Rot', preview: 'hsl(0 72% 48%)', registered: true },
   { value: 'indigo', label: 'Indigo', preview: 'hsl(240 60% 52%)', registered: true },
+  { value: 'yellow', label: 'Gelb', preview: '#ffff00', registered: true },
 ];
 
 export default function UserSettingsView() {

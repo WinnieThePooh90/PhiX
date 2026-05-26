@@ -110,6 +110,16 @@
   --brand-hsl: 240 55% 65%;
 }
 
+/* Farbschema: Gelb (Registriert) */
+[data-color-scheme="yellow"] {
+  --brand-hsl: 60 100% 50%;
+  --brand-foreground: hsl(0 0% 10%);
+}
+[data-color-scheme="yellow"][data-theme="dark"] {
+  --brand-hsl: 60 100% 50%;
+  --brand-foreground: hsl(0 0% 10%);
+}
+
 [data-theme="dark"] {
   --background: 222 47% 8%;
   --foreground: 210 20% 92%;
