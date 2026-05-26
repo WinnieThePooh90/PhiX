@@ -84,7 +84,7 @@ export default function GfsView() {
               aria-label="Schüler auswählen"
               style={{
                 position: 'absolute',
-                right: 0,
+                left: 0,
                 top: 'calc(100% + 6px)',
                 minWidth: '220px',
                 maxHeight: '280px',
