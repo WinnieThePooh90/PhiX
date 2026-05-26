@@ -39,15 +39,17 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
       if (!el) return;
       const r = el.getBoundingClientRect();
       const spaceBelow = window.innerHeight - r.bottom;
+      const rightOffset = Math.max(0, window.innerWidth - r.right);
       if (spaceBelow < 140) {
         setPos({
           bottom: window.innerHeight - r.top + 6,
-          right: window.innerWidth - r.right,
+          right: rightOffset,
+          top: 'auto',
         });
       } else {
         setPos({
           top: r.bottom + 6,
-          right: window.innerWidth - r.right,
+          right: rightOffset,
         });
       }
     };

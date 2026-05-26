@@ -1847,6 +1847,7 @@ tfoot td {
 .header-settings-dropdown--portal {
   position: fixed;
   left: auto;
+  top: auto;
   z-index: 10000;
 }
 
