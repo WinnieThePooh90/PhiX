@@ -30,6 +30,8 @@ export default function SettingsView() {
   const { showConfirm, showAlert } = useDialog();
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
+  const [pasteText, setPasteText] = useState('');
+  const [pasteAdding, setPasteAdding] = useState(false);
   /** `null` = alle Klassenstufen (5–13), sonst nur diese Stufe */
   const [rosterGradeFilter, setRosterGradeFilter] = useState(10);
   const [rosterTransferSearch, setRosterTransferSearch] = useState('');
@@ -164,6 +166,48 @@ export default function SettingsView() {
       }
     } finally {
       setAddingAllRoster(false);
+    }
+  };
+
+  const handlePasteStudents = async () => {
+    const lines = pasteText
+      .split(/\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return;
+    const parsed = [];
+    for (const line of lines) {
+      const sep = line.indexOf(',');
+      if (sep > 0) {
+        const lastName = line.slice(0, sep).trim();
+        const firstName = line.slice(sep + 1).trim();
+        if (lastName && firstName) parsed.push({ firstName, lastName });
+      } else {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          const lastName = parts[0];
+          const firstName = parts.slice(1).join(' ');
+          if (lastName && firstName) parsed.push({ firstName, lastName });
+        }
+      }
+    }
+    if (!parsed.length) {
+      await showAlert('Keine g\u00FCltigen Eintr\u00E4ge erkannt. Bitte das Format \u201ENachname, Vorname\u201C verwenden (eine Zeile pro Sch\u00FCler).', { title: 'Kein Ergebnis' });
+      return;
+    }
+    const ok = await showConfirm(
+      `${parsed.length} Sch\u00FCler erkannt. In den Kurs \u00FCbernehmen?`,
+      { title: 'Sch\u00FCler einf\u00FCgen' },
+    );
+    if (!ok) return;
+    setPasteAdding(true);
+    try {
+      for (const s of parsed) {
+        await addStudent(s);
+      }
+      setPasteText('');
+    } finally {
+      setPasteAdding(false);
     }
   };
 
@@ -356,6 +400,46 @@ export default function SettingsView() {
                 borderTop: '1px solid var(--border)',
                 paddingTop: '1.25rem',
                 marginTop: '0.25rem',
+              }}
+            >
+              <h4 className="text-muted" style={{ fontSize: '0.95rem', margin: '0 0 0.75rem', fontWeight: 600 }}>
+                Per Copy &amp; Paste
+              </h4>
+              <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+                Eine Liste einfügen (eine Zeile pro Schüler, Format: <strong>Nachname, Vorname</strong>).
+              </p>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder={"Mustermann, Max\nMusterfrau, Erika\nBeispiel, Tim"}
+                rows={5}
+                style={{
+                  width: '100%',
+                  maxWidth: '400px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  marginBottom: '0.75rem',
+                }}
+                disabled={pasteAdding}
+              />
+              <div>
+                <button
+                  type="button"
+                  className="tab active"
+                  onClick={handlePasteStudents}
+                  disabled={pasteAdding || !pasteText.trim()}
+                >
+                  {pasteAdding ? 'Wird hinzugefügt…' : 'Liste übernehmen'}
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderTop: '1px solid var(--border)',
+                paddingTop: '1.25rem',
+                marginTop: '1.25rem',
               }}
             >
               <h4 style={{ fontSize: '1.05rem', margin: '0 0 0.75rem' }}>Aus Schülerverwaltung</h4>
