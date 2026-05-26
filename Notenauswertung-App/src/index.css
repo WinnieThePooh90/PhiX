@@ -54,6 +54,38 @@
   --brand-hsl: 152 55% 48%;
 }
 
+/* Farbschema: Lila (Registriert) */
+[data-color-scheme="purple"] {
+  --brand-hsl: 262 70% 50%;
+}
+[data-color-scheme="purple"][data-theme="dark"] {
+  --brand-hsl: 262 60% 62%;
+}
+
+/* Farbschema: Orange (Registriert) */
+[data-color-scheme="orange"] {
+  --brand-hsl: 25 95% 50%;
+}
+[data-color-scheme="orange"][data-theme="dark"] {
+  --brand-hsl: 25 85% 55%;
+}
+
+/* Farbschema: Pink (Registriert) */
+[data-color-scheme="pink"] {
+  --brand-hsl: 330 75% 50%;
+}
+[data-color-scheme="pink"][data-theme="dark"] {
+  --brand-hsl: 330 65% 60%;
+}
+
+/* Farbschema: Türkis (Registriert) */
+[data-color-scheme="teal"] {
+  --brand-hsl: 180 65% 35%;
+}
+[data-color-scheme="teal"][data-theme="dark"] {
+  --brand-hsl: 180 55% 48%;
+}
+
 [data-theme="dark"] {
   --background: 222 47% 8%;
   --foreground: 210 20% 92%;

@@ -50,7 +50,12 @@ export default function AppInfoView({ onOpenSupport }) {
               {registered ? 'Registriert' : 'Nicht registriert'}
             </p>
             {registered ? (
-              <p className="app-info-registration-thanks">Vielen Dank für deine Unterstützung!</p>
+              <>
+                <p className="app-info-registration-thanks">Vielen Dank für deine Unterstützung!</p>
+                <p className="app-info-registration-thanks" style={{ marginTop: '0.25rem' }}>
+                  Du hast jetzt weitere Farbschemas für PhiX als Dankeschön erhalten. Schau in den Einstellungen nach.
+                </p>
+              </>
             ) : null}
           </div>
         </section>

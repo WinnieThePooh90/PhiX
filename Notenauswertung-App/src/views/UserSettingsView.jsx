@@ -1,18 +1,24 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../store/AuthContext';
+import { usePhiXRegistration } from '../utils/phixRegistration';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const TIMEOUT_OPTIONS = Array.from({ length: 12 }, (_, i) => (i + 1) * 5);
 
 const COLOR_SCHEMES = [
-  { value: 'standard', label: 'Standard', preview: 'hsl(222 47% 11%)' },
-  { value: 'blue', label: 'Hellblau', preview: 'hsl(207 90% 45%)' },
-  { value: 'green', label: 'Hellgr\u00FCn', preview: 'hsl(152 60% 38%)' },
+  { value: 'standard', label: 'Standard', preview: 'hsl(222 47% 11%)', registered: false },
+  { value: 'blue', label: 'Hellblau', preview: 'hsl(207 90% 45%)', registered: false },
+  { value: 'green', label: 'Hellgr\u00FCn', preview: 'hsl(152 60% 38%)', registered: false },
+  { value: 'purple', label: 'Lila', preview: 'hsl(262 70% 50%)', registered: true },
+  { value: 'orange', label: 'Orange', preview: 'hsl(25 95% 50%)', registered: true },
+  { value: 'pink', label: 'Pink', preview: 'hsl(330 75% 50%)', registered: true },
+  { value: 'teal', label: 'T\u00FCrkis', preview: 'hsl(180 65% 35%)', registered: true },
 ];
 
 export default function UserSettingsView() {
   const { currentUser } = useAuth();
+  const { registered } = usePhiXRegistration();
   const [settings, setSettings] = useState({ inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,7 +127,7 @@ export default function UserSettingsView() {
         <div className="user-settings-control" style={{ marginTop: '1.25rem' }}>
           <span className="user-settings-label" style={{ marginRight: '1rem' }}>Farbschema</span>
           <div className="color-scheme-options">
-            {COLOR_SCHEMES.map((scheme) => (
+            {COLOR_SCHEMES.filter((s) => !s.registered || registered).map((scheme) => (
               <button
                 key={scheme.value}
                 type="button"
