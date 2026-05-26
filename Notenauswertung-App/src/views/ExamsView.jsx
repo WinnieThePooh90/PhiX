@@ -413,13 +413,13 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
                     <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${EXAM_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
                     {[...Array(displayFieldCount)].map((_, i) => (
-                      <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'rgba(79, 70, 229, 0.06)' : undefined }} title={i >= numFields ? 'Max-Punkte für Zusatzaufgaben (z. B. Nachschreiber)' : undefined}>
+                      <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }} title={i >= numFields ? 'Max-Punkte für Zusatzaufgaben (z. B. Nachschreiber)' : undefined}>
                         <input 
                           type="number" 
                           value={exam.fieldMaxPoints?.[i] ?? ''}
                           onChange={e => handleMaxPointsChange(i, e.target.value)}
                           placeholder="0"
-                          style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'rgba(255,255,255,0.92)' : 'white' }}
+                          style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
                         />
                       </th>
                     ))}

@@ -3336,6 +3336,24 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   box-shadow: inset 0 0 0 1px hsl(142 40% 76%);
 }
 
+/* GFS Gehalten: Darkmode — keine Hintergrundfarbe */
+[data-theme="dark"] .gfs-gehalten-td--unchecked {
+  background: transparent !important;
+  box-shadow: none;
+}
+[data-theme="dark"] .gfs-gehalten-td--checked {
+  background: transparent !important;
+  box-shadow: none;
+}
+[data-theme="dark"] tbody tr:hover td.gfs-gehalten-td--unchecked {
+  background: transparent !important;
+  box-shadow: none;
+}
+[data-theme="dark"] tbody tr:hover td.gfs-gehalten-td--checked {
+  background: transparent !important;
+  box-shadow: none;
+}
+
 /* GFS-Notenfeld: zentriert; schlechter als 4 wie Klausur-Außerhalb-Bereich */
 .gfs-note-input {
   width: 100%;
