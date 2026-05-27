@@ -148,7 +148,7 @@ function App() {
   const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(true);
-  const [mobilePageSettingsExpanded, setMobilePageSettingsExpanded] = useState(true);
+  const [mobilePageSettingsExpanded, setMobilePageSettingsExpanded] = useState(false);
   const mobileHeaderRef = useRef(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState('');
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
@@ -415,7 +415,11 @@ function App() {
   };
 
   const showMobilePageSettingsToggle =
-    activeTab === 'exams' || activeTab === 'oral' || activeTab === 'tests' || activeTab === 'gfs';
+    activeTab === 'summary' ||
+    activeTab === 'exams' ||
+    activeTab === 'oral' ||
+    activeTab === 'tests' ||
+    activeTab === 'gfs';
 
   const settingsTabActive =
     activeTab === 'settings' ||
