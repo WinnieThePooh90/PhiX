@@ -3954,14 +3954,37 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .app-container--mobile .oral-extended-controls-rail {
     margin-left: 0 !important;
     width: auto;
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    align-items: flex-end;
+    /* Rail in der Mobilansicht immer als komplette Zeile anzeigen,
+       damit „Erweitert“-Controls nicht überlagern */
+    flex: 0 0 100% !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    text-align: left !important;
     gap: 0.5rem 0.65rem;
   }
 
   .app-container--mobile .oral-extended-controls-rail .course-meta-control {
     width: auto !important;
+  }
+
+  /* „Erweitert“-Controls: auf Mobil einfach untereinander stapeln */
+  .app-container--mobile .oral-extended-controls-extended {
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    column-gap: 0 !important;
+    row-gap: 0.65rem !important;
+  }
+
+  .app-container--mobile .oral-extended-controls-extended .course-meta-field__row {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .app-container--mobile .oral-extended-controls-extended .course-meta-field__label {
+    text-align: left !important;
+    width: auto;
   }
 
   .app-main-views h2 {
