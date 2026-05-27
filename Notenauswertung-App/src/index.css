@@ -3776,7 +3776,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     display: none;
   }
 
-  /* Seiteneinstellungen eingeklappt (Pfeil unter Suchleiste): mehr Platz für Tabellen */
+  /* Seiteneinstellungen eingeklappt: Suchleiste + Seiten-Toolbar ausblenden */
+  .app-container--mobile.app-mobile-page-settings-collapsed .app-mobile-header-search-row,
   .app-container--mobile.app-mobile-page-settings-collapsed .view-toolbar-block,
   .app-container--mobile.app-mobile-page-settings-collapsed .view-page-nav,
   .app-container--mobile.app-mobile-page-settings-collapsed .course-meta-settings-row,

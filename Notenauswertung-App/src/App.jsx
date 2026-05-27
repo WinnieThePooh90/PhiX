@@ -542,7 +542,9 @@ function App() {
       className={[
         'app-container',
         isMobile ? 'app-container--mobile' : '',
-        isMobile && !mobilePageSettingsExpanded ? 'app-mobile-page-settings-collapsed' : '',
+        isMobile && showMobilePageSettingsToggle && !mobilePageSettingsExpanded
+          ? 'app-mobile-page-settings-collapsed'
+          : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -787,19 +789,6 @@ function App() {
                   </p>
                 </header>
                 {renderMainTabsNav('app-mobile-tabs')}
-                <div className="header-controls-row">
-                  <div className="header-search-wrap">
-                    <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
-                    <input
-                      className="header-search-input"
-                      type="search"
-                      placeholder="Schüler suchen (Name, Nr.)…"
-                      value={headerSearch}
-                      onChange={(e) => setHeaderSearch(e.target.value)}
-                      aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
-                    />
-                  </div>
-                </div>
                 {showMobilePageSettingsToggle && (
                   <button
                     type="button"
@@ -820,6 +809,19 @@ function App() {
                     <span>Einstellungen</span>
                   </button>
                 )}
+                <div className="header-controls-row app-mobile-header-search-row">
+                  <div className="header-search-wrap">
+                    <Search className="header-search-lucide" size={16} strokeWidth={2} aria-hidden />
+                    <input
+                      className="header-search-input"
+                      type="search"
+                      placeholder="Schüler suchen (Name, Nr.)…"
+                      value={headerSearch}
+                      onChange={(e) => setHeaderSearch(e.target.value)}
+                      aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
+                    />
+                  </div>
+                </div>
               </MobileAppHeader>
             ) : (
               <div className="sticky-header">
