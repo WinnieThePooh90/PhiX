@@ -1889,7 +1889,8 @@ tfoot td {
   border-top: 1px solid var(--border);
 }
 
-.header-settings-dropdown button.header-settings-dropdown-item--with-icon {
+.header-settings-dropdown button.header-settings-dropdown-item--with-icon,
+.settings-nav-menu button.header-settings-dropdown-item--with-icon {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -1897,6 +1898,7 @@ tfoot td {
 
 .header-settings-dropdown-icon {
   flex-shrink: 0;
+  display: block;
   color: hsl(var(--muted-foreground));
 }
 
