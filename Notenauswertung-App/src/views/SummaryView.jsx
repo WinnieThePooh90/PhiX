@@ -105,7 +105,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
 }
 
 export default function SummaryView({ studentIdFilterSet = null }) {
-  const { students, exams, orals, tests, gfsEntries, config, updateStudentConfig } = useData();
+  const { students, exams, orals, tests, gfsEntries, config, setConfig, updateStudentConfig } = useData();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -113,7 +113,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
-  const [showHJ1, setShowHJ1] = useState(true);
+  const showHJ1 = config?.summaryShowHJ1 !== false;
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
@@ -150,7 +150,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
               <input
                 type="checkbox"
                 checked={showHJ1}
-                onChange={(e) => setShowHJ1(e.target.checked)}
+                onChange={(e) => setConfig((c) => ({ ...c, summaryShowHJ1: e.target.checked }))}
               />
               <span className="slider" />
             </label>
