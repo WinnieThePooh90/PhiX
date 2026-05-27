@@ -46,6 +46,7 @@ export function buildSummaryOverviewExportData({
       gfsEntries,
       customGradingKeys,
       gradeSys,
+      config?.testsWritten !== false,
     );
     const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
     const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';

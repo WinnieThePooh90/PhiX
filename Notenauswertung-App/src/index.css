@@ -4018,6 +4018,11 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     table-layout: auto;
   }
 
+  /* Smartphone: Maximieren/Verkleinern ausblenden */
+  .app-container--mobile .table-max-host__toggle {
+    display: none !important;
+  }
+
   /*
    * Smartphone: keine fixen / sticky Spalten (Klausuren, Tests, Mündlich, GFS).
    * Inline-Styles aus den Views werden hier überschrieben.

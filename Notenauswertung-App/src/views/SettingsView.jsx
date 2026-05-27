@@ -264,22 +264,38 @@ export default function SettingsView() {
               <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
                 Gib hier die Gewichtung der Noten im Verhältnis an.
               </p>
-              <div className="weighting-ratio-grid mt-4">
-                <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
-                <span className="weighting-ratio-grid__sep-slot" aria-hidden />
-                <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-                <span className="weighting-ratio-grid__sep-slot" aria-hidden />
-                <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-                <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} className="w-full" />
-                <span className="weighting-ratio-grid__colon" aria-hidden>
-                  :
-                </span>
-                <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} className="w-full" />
-                <span className="weighting-ratio-grid__colon" aria-hidden>
-                  :
-                </span>
-                <input type="number" name="tests" value={config.weighting.tests} onChange={handleWeightingChange} className="w-full" />
-              </div>
+              {config.testsWritten !== false ? (
+                <div className="weighting-ratio-grid mt-4">
+                  <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
+                  <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+                  <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
+                  <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+                  <label className="text-muted" style={{ display: 'block' }}>Tests</label>
+                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} className="w-full" />
+                  <span className="weighting-ratio-grid__colon" aria-hidden>
+                    :
+                  </span>
+                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} className="w-full" />
+                  <span className="weighting-ratio-grid__colon" aria-hidden>
+                    :
+                  </span>
+                  <input type="number" name="tests" value={config.weighting.tests} onChange={handleWeightingChange} className="w-full" />
+                </div>
+              ) : (
+                <div
+                  className="weighting-ratio-grid mt-4"
+                  style={{ gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)' }}
+                >
+                  <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
+                  <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+                  <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
+                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} className="w-full" />
+                  <span className="weighting-ratio-grid__colon" aria-hidden>
+                    :
+                  </span>
+                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} className="w-full" />
+                </div>
+              )}
             </section>
 
             <section aria-labelledby="settings-course-options-heading">

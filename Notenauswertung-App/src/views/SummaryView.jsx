@@ -223,7 +223,18 @@ export default function SummaryView({ studentIdFilterSet = null }) {
               </tr>
             )}
             {displayStudents.map((s, idx) => {
-              const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(s.id, exams, orals, tests, config.weighting, null, gfsEntries, customGradingKeys, gradeSys);
+              const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+                s.id,
+                exams,
+                orals,
+                tests,
+                config.weighting,
+                null,
+                gfsEntries,
+                customGradingKeys,
+                gradeSys,
+                config.testsWritten !== false,
+              );
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
               const isExpanded = expandedStudentId === s.id;
               
@@ -295,7 +306,18 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                             { label: 'Halbjahr 2', filter: '2' },
                             { label: 'Gesamt (Durchschnitt)', filter: null }
                           ].map((cat, catIdx) => {
-                            const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(s.id, exams, orals, tests, config.weighting, cat.filter, gfsEntries, customGradingKeys, gradeSys);
+                            const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+                              s.id,
+                              exams,
+                              orals,
+                              tests,
+                              config.weighting,
+                              cat.filter,
+                              gfsEntries,
+                              customGradingKeys,
+                              gradeSys,
+                              config.testsWritten !== false,
+                            );
                             const rounded = finalGrade !== null ? Math.round(finalGrade) : null;
                             
                             return (
@@ -360,22 +382,38 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                   </ul>
                                 </div>
 
-                                <div>
-                                  <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tests ({gfmt(testAvg)})</h4>
-                                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                                    {Object.entries(tests).filter(([_, t]) => t.active && (!cat.filter || t.halbjahr === cat.filter)).map(([id, t]) => {
-                                      const sm = t.scores ?? t.errors;
-                                      const { counted } = getNormalizedTestScore(sm?.[s.id]);
-                                      const gr = counted ? getTestGradeForStudent(t, s.id, customGradingKeys, gradeSys) : null;
-                                      return (
-                                        <li key={id} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                                          <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{t.name}:</span>
-                                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>{counted && gr !== null ? gfmt(gr) : '-'}</strong>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                </div>
+                                {config.testsWritten !== false && (
+                                  <div>
+                                    <h4
+                                      style={{
+                                        color: 'var(--text-main)',
+                                        marginBottom: '0.5rem',
+                                        fontSize: '0.9rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                      }}
+                                    >
+                                      Tests ({gfmt(testAvg)})
+                                    </h4>
+                                    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                      {Object.entries(tests)
+                                        .filter(([_, t]) => t.active && (!cat.filter || t.halbjahr === cat.filter))
+                                        .map(([id, t]) => {
+                                          const sm = t.scores ?? t.errors;
+                                          const { counted } = getNormalizedTestScore(sm?.[s.id]);
+                                          const gr = counted ? getTestGradeForStudent(t, s.id, customGradingKeys, gradeSys) : null;
+                                          return (
+                                            <li key={id} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                                              <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{t.name}:</span>
+                                              <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>
+                                                {counted && gr !== null ? gfmt(gr) : '-'}
+                                              </strong>
+                                            </li>
+                                          );
+                                        })}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

@@ -71,6 +71,7 @@ export default function AnalysisView() {
           gfsEntries,
           Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
           gradeSys,
+          config.testsWritten !== false,
         );
         return { student: s, finalGrade };
       })
@@ -117,6 +118,7 @@ export default function AnalysisView() {
         gfsEntries,
         Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
         gradeSys,
+        config.testsWritten !== false,
       );
       if (finalGrade === null || Number.isNaN(finalGrade)) return;
       rawGrades.push(finalGrade);

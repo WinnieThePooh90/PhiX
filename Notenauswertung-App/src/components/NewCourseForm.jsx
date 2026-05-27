@@ -21,7 +21,7 @@ export default function NewCourseForm() {
     hours: 4,
     weighting: { written: 2, oral: 1, tests: 1 },
     gradeSystem: 'classic',
-    testsWritten: true,
+    testsWritten: false,
     gfsAccepted: true,
     klassenlehrerEnabled: false,
   });
@@ -99,22 +99,38 @@ export default function NewCourseForm() {
         <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
           Gib hier die Gewichtung der Noten im Verhältnis an.
         </p>
-        <div className="weighting-ratio-grid">
-          <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
-          <span className="weighting-ratio-grid__sep-slot" aria-hidden />
-          <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-          <span className="weighting-ratio-grid__sep-slot" aria-hidden />
-          <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-          <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} className="w-full" />
-          <span className="weighting-ratio-grid__colon" aria-hidden>
-            :
-          </span>
-          <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} className="w-full" />
-          <span className="weighting-ratio-grid__colon" aria-hidden>
-            :
-          </span>
-          <input type="number" name="tests" value={newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} className="w-full" />
-        </div>
+        {newCourse.testsWritten !== false ? (
+          <div className="weighting-ratio-grid">
+            <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
+            <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+            <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
+            <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+            <label className="text-muted" style={{ display: 'block' }}>Tests</label>
+            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <span className="weighting-ratio-grid__colon" aria-hidden>
+              :
+            </span>
+            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <span className="weighting-ratio-grid__colon" aria-hidden>
+              :
+            </span>
+            <input type="number" name="tests" value={newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} className="w-full" />
+          </div>
+        ) : (
+          <div
+            className="weighting-ratio-grid"
+            style={{ gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)' }}
+          >
+            <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
+            <span className="weighting-ratio-grid__sep-slot" aria-hidden />
+            <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
+            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <span className="weighting-ratio-grid__colon" aria-hidden>
+              :
+            </span>
+            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} className="w-full" />
+          </div>
+        )}
       </section>
 
       <section aria-labelledby="new-course-options-heading">

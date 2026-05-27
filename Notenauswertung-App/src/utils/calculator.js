@@ -739,6 +739,7 @@ export const calculateStudentGrades = (
   gfsEntries = [],
   customGradingKeys = null,
   gradeSystem = 'classic',
+  testsWritten = true,
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   let examSum = 0;
@@ -789,24 +790,26 @@ export const calculateStudentGrades = (
 
   const oralAvg = oralCount > 0 ? oralSum / oralCount : null;
   
-  let testSum = 0;
-  let testCount = 0;
-  Object.values(tests).forEach((test) => {
-    const scoreMap = test.scores ?? test.errors;
-    if (test.active && scoreMap[studentId] !== undefined) {
-      if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
-      const { counted } = getNormalizedTestScore(scoreMap[studentId]);
-      if (counted) {
-        const g = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
-        if (g !== null) {
-          testSum += g;
-          testCount++;
+  let testAvg = null;
+  if (testsWritten) {
+    let testSum = 0;
+    let testCount = 0;
+    Object.values(tests).forEach((test) => {
+      const scoreMap = test.scores ?? test.errors;
+      if (test.active && scoreMap[studentId] !== undefined) {
+        if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
+        const { counted } = getNormalizedTestScore(scoreMap[studentId]);
+        if (counted) {
+          const g = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
+          if (g !== null) {
+            testSum += g;
+            testCount++;
+          }
         }
       }
-    }
-  });
-
-  const testAvg = testCount > 0 ? testSum / testCount : null;
+    });
+    testAvg = testCount > 0 ? testSum / testCount : null;
+  }
 
   const { gfsAvg, gfsSum, gfsCount } = getGfsGradeStatsForStudent(studentId, gfsEntries, halbjahrFilter, gs);
 
