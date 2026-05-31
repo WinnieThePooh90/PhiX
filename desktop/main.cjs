@@ -1,27 +1,57 @@
 /**
  * Electron-Main: startet das Backend (backend/server.js) und öffnet ein Fenster.
  */
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
 const APP_ICON = path.join(__dirname, 'build', 'icon.png');
 
-const PHI_X_USERDATA = path.join(app.getPath('appData'), 'PhiX');
-const LOG_DIR = path.join(PHI_X_USERDATA, 'logs');
-
-try {
-  if (!fs.existsSync(PHI_X_USERDATA)) {
-    fs.mkdirSync(PHI_X_USERDATA, { recursive: true });
-  }
-  if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-  }
-} catch {
-  /* ignorieren */
+/** Verzeichnis der gestarteten PhiX.exe (ZIP entpackt / Portable) — Daten bleiben auf dem Stick. */
+function resolveInstallRoot() {
+  return path.dirname(process.execPath);
 }
-app.setPath('userData', PHI_X_USERDATA);
+
+function resolvePhiXUserDataDir() {
+  const fromEnv = String(process.env.PHI_X_USERDATA_DIR || '').trim();
+  if (fromEnv) return fromEnv;
+  if (app.isPackaged) {
+    return path.join(resolveInstallRoot(), 'data');
+  }
+  return path.join(app.getPath('appData'), 'PhiX');
+}
+
+let PHI_X_USERDATA;
+let LOG_DIR;
+/** @type {Error | null} */
+let userDataInitError = null;
+
+function initPhiXUserDataPaths() {
+  PHI_X_USERDATA = resolvePhiXUserDataDir();
+  LOG_DIR = path.join(PHI_X_USERDATA, 'logs');
+  try {
+    fs.mkdirSync(PHI_X_USERDATA, { recursive: true });
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    const probe = path.join(PHI_X_USERDATA, '.write-test');
+    fs.writeFileSync(probe, '', 'utf8');
+    fs.unlinkSync(probe);
+    app.setPath('userData', PHI_X_USERDATA);
+  } catch (err) {
+    userDataInitError = err instanceof Error ? err : new Error(String(err));
+  }
+}
+
+initPhiXUserDataPaths();
+
+function formatUserDataInitError(err) {
+  const dir = PHI_X_USERDATA || resolvePhiXUserDataDir();
+  const detail = err?.message || String(err);
+  const portableHint = app.isPackaged
+    ? '\n\nPhiX bitte in einen beschreibbaren Ordner entpacken (z. B. USB-Stick, Desktop) — nicht unter „Program Files“.'
+    : '';
+  return `Datenordner nicht nutzbar:\n${dir}\n\n${detail}${portableHint}`;
+}
 
 function resolveBackendDir() {
   if (app.isPackaged) {
@@ -355,12 +385,16 @@ async function createWindow() {
     width: 1280,
     height: 840,
     show: false,
+    autoHideMenuBar: true,
     ...(fs.existsSync(APP_ICON) ? { icon: APP_ICON } : {}),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
+  // Keine File/Edit/View/Window-Leiste (Windows/Linux); unter macOS kein App-Menü in der Menüleiste.
+  Menu.setApplicationMenu(null);
+  mainWindow.setMenu(null);
   mainWindow.once('ready-to-show', () => mainWindow.show());
   await mainWindow.loadURL(loadURL);
   mainWindow.on('closed', () => {
@@ -369,6 +403,11 @@ async function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (userDataInitError) {
+    showFatal('PhiX - Datenordner', formatUserDataInitError(userDataInitError));
+    app.quit();
+    return;
+  }
   appReady = true;
   createWindow().catch((err) => {
     const msg = err?.message || String(err);

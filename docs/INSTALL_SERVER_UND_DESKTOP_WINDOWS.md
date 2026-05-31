@@ -115,7 +115,7 @@ Es gibt **zwei** im Repository vorgesehene Wege:
 | Variante | Typisch für | Oberfläche nach Start | Datenbank (Standard) |
 |----------|-------------|------------------------|----------------------|
 | **A: Portable-Release** | Endanwender, eine ZIP/eine Setup-Datei | **Browser** → `http://127.0.0.1:3000` | **PostgreSQL** (portable, im Paket) |
-| **B: Electron-Desktop** | App-Fenster („Desktop-Hülle“) | **Eigenes Fenster** (lädt die Web-UI) | oft **SQLite** unter `%APPDATA%\PhiX\phix.db` ohne `DATABASE_URL` |
+| **B: Electron-Desktop** | App-Fenster („Desktop-Hülle“) | **Eigenes Fenster** (lädt die Web-UI) | **SQLite** unter `<Installationsordner>/data/phix.db` (Release; USB-tauglich) |
 
 ---
 
@@ -264,10 +264,10 @@ npm run dist
 
 **Kurzablauf zur Laufzeit** (nach dem Start der gebauten App, siehe `desktop/main.cjs`):
 
-1. Electron setzt den **User-Data-Pfad** auf **`%APPDATA%\PhiX`** (Windows).
+1. **Release (gepackt):** User-Data und SQLite liegen unter **`<Installationsordner>\data\`** (neben `PhiX.exe`). **Entwicklung (`npm run dev`):** weiter **`%APPDATA%\PhiX`**.
 2. Es wird **`node`** (gebündelte `resources\node\node.exe`, falls vorhanden, sonst **systemweites** `node`) mit Argument **`server.js`** gestartet, Arbeitsverzeichnis = **`resources\backend`** (gepackt) bzw. `..\backend` (Entwicklung).
 3. Umgebung u. a. **`APP_MODE=desktop`**, **`PHI_X_USERDATA_DIR`**, **`PORT`** (Standard 3000).  
-   Ist **keine** `DATABASE_URL` gesetzt, wird **`file:…/phix.db`** unter dem User-Data-Ordner gesetzt (**SQLite**).
+   Ist **keine** `DATABASE_URL` gesetzt, wird **`file:…/phix.db`** unter dem PhiX-Datenordner gesetzt (**SQLite**). Ordner muss beschreibbar sein (Fehlerdialog sonst).
 4. Das Fenster wartet, bis **`/api/auth/session`** erreichbar ist, und lädt dann **`http://127.0.0.1:3000`** — sofern Sie nicht im Dev-Modus `ELECTRON_DEV_SERVER` (Vite) nutzen.
 
 #### B.4 Befehle zum Packen
@@ -283,7 +283,7 @@ Liegt das Projekt in **Dropbox** und erscheinen **EBUSY** / `cleanup Failed` bei
 
 Danach die **komplette Reihenfolge aus B.2** (backend → Notenauswertung-App → desktop) ausführen.
 
-**Nach dem Start der .exe:** Bei Problemen Logs unter **`%APPDATA%\PhiX\logs\`**: **`desktop.log`** (Desktop-Hülle), bei Startfehlern zusätzlich **`startup-error-*.log`**, nach Backend-Start **`backend-*.log`**. Der Fehlerdialog nennt die konkrete Datei — nicht nur den Ordner (vor db-push gibt es noch **kein** `backend-*.log`). Gepackte Apps nutzen **Electron als Node** (`ELECTRON_RUN_AS_NODE`) — separates `node` im PATH ist dafür **nicht** nötig.
+**Nach dem Start der .exe:** Bei Problemen Logs unter **`<Installationsordner>\data\logs\`** (Release) bzw. **`%APPDATA%\PhiX\logs\`** (Dev): **`desktop.log`**, bei Startfehlern **`startup-error-*.log`**, nach Backend-Start **`backend-*.log`**. Gepackte Apps nutzen **Electron als Node** (`ELECTRON_RUN_AS_NODE`) — separates `node` im PATH ist dafür **nicht** nötig.
 
 **Prisma / Abhängigkeiten im Paket:** Nach dem Build prüfen:  
 `resources\backend\phix_deps\prisma\build\index.js` muss existieren. Beim **ersten Start** legt die Desktop-App eine Junction **`resources\backend\node_modules` → `phix_deps`** an (Prisma/ESM brauchen den Ordnernamen `node_modules`). Optional: `cd desktop` → **`npm run verify-pack`**. Vor dem Pack: **`backend\`** → **`npm install`** (Prisma-Clients via **`postinstall`**, kein extra Schritt `prisma:generate-all`).
@@ -296,7 +296,7 @@ Danach die **komplette Reihenfolge aus B.2** (backend → Notenauswertung-App �
 
 1. ZIP aus **`desktop\dist-pack\`** entpacken **oder** die portable **`.exe`** starten.
 2. App-Fenster öffnet sich; im Hintergrund läuft das Backend aus **`resources\backend`**.
-3. **SQLite:** ohne eigene `DATABASE_URL` liegt **`phix.db`** unter **`%APPDATA%\PhiX`**. Backup: `docs/SQLITE_DESKTOP.md`.
+3. **SQLite:** ohne eigene `DATABASE_URL` liegt **`phix.db`** unter **`<Installationsordner>\data\`** (gesamten App-Ordner für USB mitkopieren). Backup: `docs/SQLITE_DESKTOP.md`. Vergleich Build-Artefakte: `docs/BUILD_VERSIONEN.md`.
 4. **`.env` im Paket:** wird **nicht** mitkopiert — sensible Werte müssen Sie anders verteilen oder es bleibt bei den Desktop-Defaults (SQLite).
 
 #### B.6 Entwicklung statt Installer-Paket
@@ -330,6 +330,7 @@ Passwort später ändern (nativ, mit installiertem Node im `backend/`-Ordner):
 | Portable-Release im Detail | `installer/RELEASE.md` |
 | Windows-Installer (Node auf dem Zielrechner) | `installer/README.md` |
 | Electron Desktop | `desktop/README.md` |
+| **Build-Varianten vergleichen (ZIP, Portable, Build-Release)** | `docs/BUILD_VERSIONEN.md` |
 | Compose-Ports (Vorlage) | `.env.example` |
 
 ---

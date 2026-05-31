@@ -4,16 +4,15 @@ Siehe **ADR:** `docs/ADR-001-desktop-electron.md`.
 
 ## Benutzerdaten (mutable Daten)
 
-Electron setzt `userData` auf:
+| Kontext | Ordner (Windows) |
+|---------|------------------|
+| **Gepackte App** (ZIP / Portable nach `npm run dist`) | `<Ordner von PhiX.exe>\data\` — darin `phix.db`, `logs/`, Electron-Profil (localStorage) |
+| **Entwicklung** (`npm run dev`) | `%APPDATA%\PhiX` |
+| **Override** | Umgebungsvariable **`PHI_X_USERDATA_DIR`** |
 
-| Plattform | Ordner |
-|-----------|--------|
-| Windows | `%APPDATA%\PhiX` (z. B. `C:\Users\<Benutzer>\AppData\Roaming\PhiX`) |
-| Linux | `~/.config/PhiX` (bzw. `XDG_CONFIG_HOME`) |
-| macOS | `~/Library/Application Support/PhiX` |
+Die SQLite-Datei liegt bei Release unter **`data\phix.db`** (ohne eigene `DATABASE_URL`). **USB:** gesamten entpackten App-Ordner kopieren (inkl. `data\`). Ordner muss beschreibbar sein (nicht unter schreibgeschütztem `Program Files`).
 
-Die Umgebungsvariable **`PHI_X_USERDATA_DIR`** wird beim Start des Backends gesetzt (u. a. SQLite-Datei `phix.db`, wenn keine `DATABASE_URL` gesetzt ist).  
-**Keine** schreibbaren App-Daten unter „Program Files“ — Konfiguration/DB gehören in diesen Ordner.
+Ältere Releases nutzten `%APPDATA%\PhiX\phix.db` — keine automatische Migration; siehe `docs/SQLITE_DESKTOP.md` und `docs/BUILD_VERSIONEN.md`.
 
 ## Voraussetzungen
 
@@ -98,7 +97,7 @@ Legt beim Packen zusätzlich unter **`resources/node/`** die gleiche Struktur wi
 ## Hinweise
 
 - Beim Schließen des Fensters wird der Backend-Prozess beendet.
-- **Gepackte App:** Backend startet über **`ELECTRON_RUN_AS_NODE`** (kein separates `node.exe` nötig). Logs: **`%APPDATA%\PhiX\logs\`**. Bei Startfehlern erscheint ein **Fehlerdialog** mit Hinweis auf die Log-Datei.
+- **Gepackte App:** Backend startet über **`ELECTRON_RUN_AS_NODE`** (kein separates `node.exe` nötig). Logs: **`<Installationsordner>\data\logs\`**. Bei Startfehlern erscheint ein **Fehlerdialog** mit Hinweis auf die Log-Datei.
 - Ports: Backend standard **3000**, Vite standard **5173** — bei Konflikten `PORT` setzen.
 
 ## Abhängigkeiten & Sicherheit

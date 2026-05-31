@@ -4,8 +4,11 @@
 
 | Kontext | Standard |
 |---------|----------|
-| **Electron** (`desktop/main.cjs`) | Wenn `DATABASE_URL` nicht gesetzt: `%APPDATA%\PhiX\phix.db` — URL-Format `file:C:/Users/…/phix.db` (Windows, via `backend/lib/sqlite-database-url.js`) |
-| **Manuell / Entwicklung** | In `backend/.env`, z. B. `DATABASE_URL="file:./phix-dev.sqlite"` (relativ zum `backend/`-Arbeitsverzeichnis) |
+| **Electron Release** (ZIP / Portable, gepackt) | Wenn `DATABASE_URL` nicht gesetzt: `<Ordner von PhiX.exe>/data/phix.db` (portabel mit dem App-Ordner, z. B. USB) |
+| **Electron Entwicklung** (`npm run dev`) | `%APPDATA%\PhiX\phix.db` (Windows) |
+| **Manuell / Backend-Dev** | In `backend/.env`, z. B. `DATABASE_URL="file:./phix-dev.sqlite"` (relativ zum `backend/`-Arbeitsverzeichnis) |
+
+URL-Format unter Windows: `file:C:/…/phix.db` via `backend/lib/sqlite-database-url.js`. Override: `PHI_X_USERDATA_DIR`.
 
 Schema und Client: `prisma/sqlite/schema.prisma` → generiert nach `generated/prisma-sqlite/`.
 
@@ -18,7 +21,8 @@ Schema und Client: `prisma/sqlite/schema.prisma` → generiert nach `generated/p
 ## Postgres vs. SQLite
 
 - **Server / Docker / Portable mit Postgres:** weiter `DATABASE_URL=postgresql://…`.
-- **Desktop ohne eigene URL:** SQLite unter UserData (siehe oben).
+- **Desktop Release ohne eigene URL:** SQLite im Installationsordner `data/phix.db` (siehe oben).
+- **Desktop Dev:** SQLite unter `%APPDATA%\PhiX\` (siehe oben).
 
 ## Generieren beider Clients
 

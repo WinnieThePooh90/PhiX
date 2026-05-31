@@ -54,7 +54,7 @@ Leitprinzip: **Ein gemeinsamer Codekern**, zwei Laufzeitprofile (`web`, `desktop
 
 ### B3. Packaging vorbereiten
 - [x] Windows-Build erzeugt lauffaehiges Desktop-Artefakt (`desktop`: `npm run dist` / `dist-pack`, siehe `desktop/README.md`).
-- [x] Datenpfade in benutzerschreibbaren Ordnern (`%APPDATA%\PhiX` / `PHI_X_USERDATA_DIR`, keine mutable Daten unter Program Files).
+- [x] Datenpfade in benutzerschreibbaren Ordnern (Release: `<Installationsordner>/data/`; Dev: `%APPDATA%\PhiX`; Override `PHI_X_USERDATA_DIR`).
 
 **Abnahme Phase B:**
 - Web weiter stabil.
@@ -142,7 +142,7 @@ Leitprinzip: **Ein gemeinsamer Codekern**, zwei Laufzeitprofile (`web`, `desktop
 
 - ~~Desktop-Framework: Electron oder Tauri?~~ **Electron** (`docs/ADR-001-desktop-electron.md`).
 - ~~Prisma-Setup: ein Schema oder zwei Schema-Dateien?~~ **Zwei Prisma-Projekte** (`docs/ADR-002-prisma-postgres-sqlite.md`); SQLite unter `prisma/sqlite/`.
-- ~~Desktop-Datenpfad und Backup-Format?~~ **`%APPDATA%\PhiX\phix.db`** (Electron), Backup: **`docs/SQLITE_DESKTOP.md`**
+- ~~Desktop-Datenpfad und Backup-Format?~~ Release: **`<Installationsordner>/data/phix.db`**; Dev: **`%APPDATA%\PhiX\phix.db`** — Backup: **`docs/SQLITE_DESKTOP.md`**
 - Migrationspolitik: automatische Migration beim Start oder expliziter Migrationsschritt? → vorerst **`prisma db push`** beim Serverstart (wie bisher Postgres); SQLite identisch.
 
 ---
