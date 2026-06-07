@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import {
   calculateStudentGrades,
@@ -70,6 +71,225 @@ function summaryEndNoteDraftFromStored(stored, gradeSystem) {
   if (stored === undefined || stored === null || stored === '') return '';
   if (gradeSystem === 'points') return String(stored).trim();
   return summaryEndNoteInputDisplay(stored);
+}
+
+function resolveSummaryWeighting(weighting) {
+  const rawWritten = Number(weighting?.written);
+  const rawOral = Number(weighting?.oral);
+  const rawTests = Number(weighting?.tests);
+  const hasAnyValidWeight = Number.isFinite(rawWritten) || Number.isFinite(rawOral) || Number.isFinite(rawTests);
+  return {
+    written: Number.isFinite(rawWritten) ? rawWritten : (hasAnyValidWeight ? 0 : 2),
+    oral: Number.isFinite(rawOral) ? rawOral : (hasAnyValidWeight ? 0 : 1),
+    tests: Number.isFinite(rawTests) ? rawTests : (hasAnyValidWeight ? 0 : 1),
+    hasAnyValidWeight,
+  };
+}
+
+function getActivePercentProjects(projects) {
+  return Object.entries(projects || {})
+    .filter(([_, p]) => p.active && p.weightingMode === 'percent' && Number(p.weightPercent) > 0)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([id, p]) => ({
+      id,
+      name: p.name || `Projekt ${id}`,
+      percent: Number(p.weightPercent),
+    }));
+}
+
+function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
+  if (!open) return null;
+
+  const weights = resolveSummaryWeighting(config?.weighting);
+  const testsWritten = config?.testsWritten !== false;
+  const percentProjects = getActivePercentProjects(projects);
+  const totalPercent = percentProjects.reduce((s, p) => s + p.percent, 0);
+  const remainingFactor = Math.max(0, (100 - totalPercent) / 100);
+  const wSum = weights.written + weights.oral + (testsWritten ? weights.tests : 0);
+
+  const weightLine = testsWritten
+    ? <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong>, <strong>w<sub>T</sub> = {weights.tests}</strong></>
+    : <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong> (Tests fließen nicht ein)</>;
+
+  const standardClassicNumerator = testsWritten
+    ? <>w<sub>S</sub>·S + w<sub>M</sub>·M + w<sub>T</sub>·T</>
+    : <>w<sub>S</sub>·S + w<sub>M</sub>·M</>;
+
+  const standardClassicDenom = testsWritten
+    ? <>w<sub>S</sub> + w<sub>M</sub> + w<sub>T</sub></>
+    : <>w<sub>S</sub> + w<sub>M</sub></>;
+
+  const standardNpNumerator = testsWritten
+    ? <>w<sub>S</sub>·NP(S) + w<sub>M</sub>·NP(M) + w<sub>T</sub>·NP(T)</>
+    : <>w<sub>S</sub>·NP(S) + w<sub>M</sub>·NP(M)</>;
+
+  return createPortal(
+    <div
+      className="oral-formula-modal-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="oral-formula-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="summary-formula-modal-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 'min(36rem, calc(100vw - 2rem))' }}
+      >
+        <div className="oral-formula-modal-header">
+          <h2 id="summary-formula-modal-title" style={{ margin: 0, fontSize: '1.05rem' }}>
+            Berechnungsvorschrift — Gesamtübersicht
+          </h2>
+          <button type="button" className="tab secondary" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+        <div className="oral-formula-modal-body text-muted" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
+          <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
+            Die Spalte <strong>Endnote (Exakt)</strong> ist das gewichtete Mittel der Teildurchschnitte Schriftlich, Mündlich und Tests
+            {percentProjects.length > 0 ? ' sowie prozentualer Projektanteile' : ''}.
+          </p>
+
+          <p style={{ margin: '0 0 0.5rem', color: 'var(--text-main)', fontWeight: 600 }}>Teildurchschnitte</p>
+          <ul style={{ margin: '0 0 1rem', paddingLeft: '1.25rem' }}>
+            <li style={{ marginBottom: '0.45rem' }}>
+              <strong>S</strong> (Schriftlich): arithmetisches Mittel aller zählenden Klausur-Noten, gehaltener GFS-Noten
+              (jede GFS zählt wie eine Klausur) und aktiver Projekte mit Gewichtung „zu schriftlich“.
+            </li>
+            <li style={{ marginBottom: '0.45rem' }}>
+              <strong>M</strong> (Mündlich): arithmetisches Mittel aller aktiven mündlichen Bereiche und Projekte mit Gewichtung „zu mündlich“.
+            </li>
+            {testsWritten && (
+              <li style={{ marginBottom: '0.45rem' }}>
+                <strong>T</strong> (Tests): arithmetisches Mittel aller aktiven, zählenden Test-Noten.
+              </li>
+            )}
+            {percentProjects.length > 0 && (
+              <li>
+                <strong>g<sub>i</sub></strong>, <strong>p<sub>i</sub></strong>: Note bzw. Prozentanteil (0–100) pro aktivem Projekt mit Gewichtung „prozentual“
+                {percentProjects.map((p) => (
+                  <span key={p.id}>
+                    {' '}
+                    (<em>{p.name}</em>: p = {p.percent} %)
+                  </span>
+                ))}.
+              </li>
+            )}
+          </ul>
+
+          <p style={{ margin: '0 0 0.35rem', color: 'var(--text-main)', fontWeight: 600 }}>{weightLine}</p>
+          {percentProjects.length > 0 && (
+            <p style={{ margin: '0 0 0.75rem' }}>
+              Restfaktor für die drei Säulen:{' '}
+              <strong>
+                f = (100 − Σp<sub>i</sub>) / 100 = {remainingFactor.toLocaleString('de-DE', { maximumFractionDigits: 4 })}
+              </strong>
+              {totalPercent > 100 && (
+                <span style={{ color: 'var(--danger)' }}> (Summe der Prozentanteile &gt; 100 % — f wird auf 0 begrenzt)</span>
+              )}
+            </p>
+          )}
+
+          <p style={{ margin: '0 0 0.5rem', color: 'var(--text-main)', fontWeight: 600 }}>Gesamtformel</p>
+          <p style={{ margin: '0 0 0.65rem', fontSize: '0.82rem' }}>
+            Fehlt ein Teildurchschnitt (keine zählenden Noten), entfällt die jeweilige Säule im Zähler und Nenner.
+          </p>
+
+          {gradeSys === 'points' ? (
+            <>
+              <div className="summary-formula-math-block">
+                {percentProjects.length > 0 ? (
+                  <>
+                    NP<sub>end</sub> = round{' '}
+                    <span className="summary-formula-math-fraction">
+                      <span>f · ({standardNpNumerator})</span>
+                      <span>{standardClassicDenom}</span>
+                    </span>
+                    {' '}+ Σ (NP(g<sub>i</sub>) · p<sub>i</sub> / 100)
+                  </>
+                ) : (
+                  <>
+                    NP<sub>end</sub> = round{' '}
+                    <span className="summary-formula-math-fraction">
+                      <span>{standardNpNumerator}</span>
+                      <span>{standardClassicDenom}</span>
+                    </span>
+                  </>
+                )}
+              </div>
+              <p style={{ margin: '0.75rem 0 0' }}>
+                <strong>NP(·)</strong> bildet den angezeigten Teildurchschnitt auf Notenpunkte 0–15 ab;{' '}
+                <strong>round</strong> rundet auf ganze Notenpunkte. Die <strong>Endnote (Exakt)</strong> ist die zugehörige Schulnote
+                (Abitur-Zuordnungstabelle).
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="summary-formula-math-block">
+                {percentProjects.length > 0 ? (
+                  <>
+                    Endnote = f ·{' '}
+                    <span className="summary-formula-math-fraction">
+                      <span>{standardClassicNumerator}</span>
+                      <span>{standardClassicDenom}</span>
+                    </span>
+                    {' '}+ Σ (g<sub>i</sub> · p<sub>i</sub> / 100)
+                  </>
+                ) : wSum > 0 ? (
+                  <>
+                    Endnote ={' '}
+                    <span className="summary-formula-math-fraction">
+                      <span>{standardClassicNumerator}</span>
+                      <span>{standardClassicDenom}</span>
+                    </span>
+                  </>
+                ) : (
+                  <>Endnote = Σ (g<sub>i</sub> · p<sub>i</sub> / 100)</>
+                )}
+              </div>
+              <p style={{ margin: '0.75rem 0 0' }}>
+                Noten liegen kontinuierlich auf der Skala 1–6 (wie in den Spalten Schriftlich/Mündlich/Tests angezeigt).
+                Gibt es nur prozentuale Projektanteile ohne die drei Säulen, ist die Endnote allein die Summe Σ(g<sub>i</sub>·p<sub>i</sub>/100).
+              </p>
+            </>
+          )}
+
+          {wSum > 0 && (
+            <p style={{ margin: '0.75rem 0 0', fontSize: '0.82rem' }}>
+              Mit den aktuellen Gewichten{percentProjects.length > 0 ? ' und f' : ''} numerisch:{' '}
+              {gradeSys === 'points' ? (
+                percentProjects.length > 0 ? (
+                  <>
+                    NP<sub>end</sub> = round(f · ({weights.written}·NP(S) + {weights.oral}·NP(M)
+                    {testsWritten ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum}
+                    {percentProjects.map((p) => ` + ${p.percent}%·NP(g${p.id})`).join('')})
+                  </>
+                ) : (
+                  <>
+                    NP<sub>end</sub> = round(({weights.written}·NP(S) + {weights.oral}·NP(M)
+                    {testsWritten ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum})
+                  </>
+                )
+              ) : percentProjects.length > 0 ? (
+                <>
+                  Endnote = {remainingFactor.toLocaleString('de-DE', { maximumFractionDigits: 4 })} · ({weights.written}·S + {weights.oral}·M
+                  {testsWritten ? ` + ${weights.tests}·T` : ''}) / {wSum}
+                  {percentProjects.map((p) => ` + ${(p.percent / 100).toLocaleString('de-DE', { maximumFractionDigits: 4 })}·g${p.id}`).join('')}
+                </>
+              ) : (
+                <>
+                  Endnote = ({weights.written}·S + {weights.oral}·M
+                  {testsWritten ? ` + ${weights.tests}·T` : ''}) / {wSum}
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSystem, label }) {
@@ -152,6 +372,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
+  const [formulaModalOpen, setFormulaModalOpen] = useState(false);
   const showHJ1 = config?.summaryShowHJ1 !== false;
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
@@ -181,7 +402,10 @@ export default function SummaryView({ studentIdFilterSet = null }) {
 
   return (
     <div className="view-generic-scroll summary-overview">
-      <div className="flex flex-wrap gap-4 course-meta-settings-row" style={{ marginBottom: '0.75rem' }}>
+      <div
+        className="flex flex-wrap gap-4 course-meta-settings-row"
+        style={{ marginBottom: '0.75rem', width: '100%', justifyContent: 'space-between', alignItems: 'flex-end' }}
+      >
         <div className="course-meta-field">
           <span className="course-meta-field__label">Halbjahresnote anzeigen</span>
           <div className="course-meta-field__row">
@@ -195,6 +419,15 @@ export default function SummaryView({ studentIdFilterSet = null }) {
             </label>
           </div>
         </div>
+        <button
+          type="button"
+          className="tab secondary course-meta-inline-btn"
+          onClick={() => setFormulaModalOpen(true)}
+          title="Berechnungsvorschrift und Erläuterungen zur Endnote"
+          style={{ whiteSpace: 'nowrap', marginLeft: 'auto' }}
+        >
+          Info
+        </button>
       </div>
       <MaximizableTableSection title="Gesamtübersicht">
       {!hasValidWeighting && (
@@ -501,6 +734,14 @@ export default function SummaryView({ studentIdFilterSet = null }) {
         </table>
       </div>
       </MaximizableTableSection>
+
+      <SummaryFormulaModal
+        open={formulaModalOpen}
+        onClose={() => setFormulaModalOpen(false)}
+        config={config}
+        projects={projects}
+        gradeSys={gradeSys}
+      />
     </div>
   );
 }
