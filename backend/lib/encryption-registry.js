@@ -8,7 +8,7 @@ const ENCRYPTED_FIELDS = {
   SchoolRosterYear: ['label'],
   SchoolRosterStudent: ['firstName', 'lastName'],
   Exam: ['name', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'scores'],
-  Project: ['name', 'description', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'scores'],
+  Project: ['name', 'description', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'fieldNames', 'scores'],
   Test: ['name', 'date', 'halbjahr', 'keyType', 'scores'],
   Oral: ['name', 'date', 'halbjahr', 'grades'],
   GfsEntry: ['thema', 'art', 'date', 'halbjahr', 'note'],
@@ -27,6 +27,7 @@ const JSON_FIELDS = new Set([
   'weighting',
   'customGradingKeys',
   'fieldMaxPoints',
+  'fieldNames',
   'scores',
   'grades',
 ]);

@@ -1149,6 +1149,7 @@ export const DataProvider = ({ children }) => {
       maxPoints: 50,
       numFields: 1,
       fieldMaxPoints: {},
+      fieldNames: {},
       keyType: defaultKeyType,
       date: '',
       halbjahr: '1',
@@ -1174,6 +1175,15 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  const updateProjectFields = (id, fields) => {
+    setProjects((prev) => {
+      const nextProject = { ...prev[id], ...fields };
+      const nextProjects = { ...prev, [id]: nextProject };
+      apiCall(`/api/projects/${id}`, 'PUT', { ...nextProject, courseId: activeCourseId });
+      return nextProjects;
+    });
+  };
+
   const removeProject = async (projectId) => {
     const key = String(projectId);
     setProjects((prev) => {
@@ -1182,6 +1192,20 @@ export const DataProvider = ({ children }) => {
       return next;
     });
     await apiCall(`/api/projects/${projectId}?courseId=${activeCourseId}`, 'DELETE');
+  };
+
+  const updateProjectFieldNames = (projectId, fieldIndex, name) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const prevNames = project.fieldNames || {};
+      const newNames = { ...prevNames, [fieldIndex]: name };
+      const newProject = {
+        ...project,
+        fieldNames: newNames,
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
   };
 
   const updateProjectFieldMaxPoints = (projectId, fieldIndex, points) => {
@@ -1814,7 +1838,7 @@ export const DataProvider = ({ children }) => {
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
-      projects, addProject, removeProject, updateProject, updateProjectScore, updateProjectFieldMaxPoints, updateProjectCounted,
+      projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentNachschreiber, updateProjectStudentNachschreiberFields,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,

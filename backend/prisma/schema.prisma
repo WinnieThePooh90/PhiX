@@ -343,6 +343,8 @@ model Project {
   maxPoints      Float
   numFields      Int
   fieldMaxPoints Json
+  /** Anzeigenamen der Themenfelder: { "0": "Recherche", "1": "Präsentation", … } */
+  fieldNames     Json     @default("{}")
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")

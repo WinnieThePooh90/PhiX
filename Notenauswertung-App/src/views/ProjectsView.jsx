@@ -24,6 +24,19 @@ import { useDialog } from '../components/PhixDialog';
 
 const PROJECT_INDEX_COL_PX = 52;
 
+function getProjectFieldNameStored(project, fieldIndex) {
+  const names = project?.fieldNames;
+  if (!names || typeof names !== 'object') return '';
+  const keyStr = String(fieldIndex);
+  const raw = names[fieldIndex] ?? names[keyStr];
+  if (raw === undefined || raw === null) return '';
+  return String(raw);
+}
+
+function getProjectFieldNamePlaceholder(fieldIndex) {
+  return `Thema ${fieldIndex + 1}`;
+}
+
 function getExamTaskMaxRule(exam, fieldIndex) {
   const fmp = exam.fieldMaxPoints;
   if (!fmp || typeof fmp !== 'object') {
@@ -82,12 +95,6 @@ function ProjectRowBookmark({ variant }) {
   );
 }
 
-function weightingModeLabel(mode, percent) {
-  if (mode === 'oral') return 'Mündlich';
-  if (mode === 'percent') return `Prozentual (${percent || 0} %)`;
-  return 'Schriftlich';
-}
-
 const EMPTY_CREATE_FORM = {
   name: '',
   description: '',
@@ -99,8 +106,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const {
     projects,
     updateProject,
+    updateProjectFields,
     removeProject,
     updateProjectScore,
+    updateProjectFieldNames,
     updateProjectFieldMaxPoints,
     updateProjectCounted,
     updateProjectStudentNachschreiber,
@@ -270,12 +279,52 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
               />
             </div>
-            <div className="course-meta-field">
-              <span className="course-meta-field__label">Gewichtung</span>
-              <div className="course-meta-field__row text-muted" style={{ fontSize: '0.9rem' }}>
-                {weightingModeLabel(project.weightingMode, project.weightPercent)}
-              </div>
+            <div className="course-meta-field" style={{ minWidth: '220px' }}>
+              <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
+                Gewichtung
+              </label>
+              <select
+                id={`project-weighting-${activeProject}`}
+                className="course-meta-control"
+                value={project.weightingMode || 'written'}
+                onChange={(e) => {
+                  const mode = e.target.value;
+                  if (mode === 'percent') {
+                    updateProjectFields(activeProject, {
+                      weightingMode: mode,
+                      weightPercent: Number(project.weightPercent) > 0 ? project.weightPercent : 20,
+                    });
+                  } else {
+                    updateProjectFields(activeProject, { weightingMode: mode, weightPercent: 0 });
+                  }
+                }}
+              >
+                <option value="written">Zu schriftlich</option>
+                <option value="oral">Zu mündlich</option>
+                <option value="percent">Prozentual (Anteil an der Endnote)</option>
+              </select>
             </div>
+            {project.weightingMode === 'percent' && (
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
+                  Prozentanteil
+                </label>
+                <input
+                  id={`project-percent-${activeProject}`}
+                  className="course-meta-control"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={project.weightPercent ?? 0}
+                  onChange={(e) => {
+                    const v = parseFloat(String(e.target.value).replace(',', '.'));
+                    updateProject(activeProject, 'weightPercent', Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0);
+                  }}
+                  style={{ width: '5rem' }}
+                />
+              </div>
+            )}
             <div className="course-meta-field">
               <span className="course-meta-field__label">Aktiv</span>
               <div className="course-meta-field__row">
@@ -287,16 +336,19 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   />
                   <span className="slider" />
                 </label>
-                {!project.active && (
-                  <button
-                    type="button"
-                    className="tab secondary course-meta-inline-btn"
-                    onClick={handleDeleteProject}
-                    title="Projekt dauerhaft aus diesem Kurs entfernen"
-                  >
-                    Projekt löschen
-                  </button>
-                )}
+              </div>
+            </div>
+            <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
+              <span className="course-meta-field__label">Aktion</span>
+              <div className="course-meta-field__row">
+                <button
+                  type="button"
+                  className="tab secondary course-meta-inline-btn"
+                  onClick={handleDeleteProject}
+                  title="Projekt dauerhaft aus diesem Kurs entfernen"
+                >
+                  Projekt löschen
+                </button>
               </div>
             </div>
             {project.active && (
@@ -315,7 +367,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 </div>
                 <div className="course-meta-field">
                   <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
-                    Aufgabenfelder
+                    Themenfelder
                   </label>
                   <input
                     id={`project-numfields-${activeProject}`}
@@ -409,7 +461,36 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                           <th className="exam-th-sticky-left exam-th-r1" style={{ width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, left: 0 }}>#</th>
                           <th className="exam-th-sticky-left exam-th-r1" style={{ left: `${PROJECT_INDEX_COL_PX}px` }}>NAME</th>
                           {[...Array(displayFieldCount)].map((_, i) => (
-                            <th key={i} className="text-center exam-th-r1 exam-task-col" style={{ width: '80px', minWidth: '80px' }}>A{i + 1}</th>
+                            <th
+                              key={i}
+                              className="text-center exam-th-r1 exam-task-col"
+                              style={{
+                                width: '100px',
+                                minWidth: '100px',
+                                textTransform: 'none',
+                                background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.04)' : undefined,
+                                verticalAlign: 'bottom',
+                                padding: '0.35rem 0.25rem',
+                              }}
+                            >
+                              <input
+                                type="text"
+                                value={getProjectFieldNameStored(project, i)}
+                                onChange={(e) => updateProjectFieldNames(activeProject, i, e.target.value)}
+                                placeholder={getProjectFieldNamePlaceholder(i)}
+                                title="Spaltenname des Themenfelds bearbeiten"
+                                aria-label={`Name Themenfeld ${i + 1}`}
+                                style={{
+                                  textAlign: 'center',
+                                  width: '100%',
+                                  minWidth: '72px',
+                                  borderRadius: 0,
+                                  fontWeight: 600,
+                                  fontSize: '0.8rem',
+                                  background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)',
+                                }}
+                              />
+                            </th>
                           ))}
                           <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
                           <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
@@ -577,7 +658,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                                       </label>
                                       {isNach && (
                                         <>
-                                          <span className="text-muted" style={{ fontSize: '0.875rem' }}>Aufgabenfelder:</span>
+                                          <span className="text-muted" style={{ fontSize: '0.875rem' }}>Themenfelder:</span>
                                           <input
                                             type="number"
                                             min={1}
@@ -665,6 +746,9 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 }
 
 function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
+  const fieldLabelStyle = { display: 'block', marginBottom: '0.35rem' };
+  const fieldControlStyle = { width: '100%', boxSizing: 'border-box' };
+
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
@@ -676,45 +760,59 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
         style={{ maxWidth: '480px', width: 'calc(100% - 2rem)' }}
       >
         <h2 id="create-project-title" style={{ marginTop: 0 }}>Neues Projekt</h2>
-        <div className="flex flex-col gap-4" style={{ marginTop: '1rem' }}>
-          <label className="flex flex-col gap-1">
-            <span className="course-meta-field__label">Name</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+          <div>
+            <label className="course-meta-field__label" htmlFor="create-project-name" style={fieldLabelStyle}>
+              Name
+            </label>
             <input
+              id="create-project-name"
               className="course-meta-control"
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="z. B. Versuchsprotokoll"
+              style={fieldControlStyle}
               autoFocus
             />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="course-meta-field__label">Beschreibung</span>
+          </div>
+          <div>
+            <label className="course-meta-field__label" htmlFor="create-project-description" style={fieldLabelStyle}>
+              Beschreibung
+            </label>
             <textarea
+              id="create-project-description"
               className="course-meta-control"
               rows={3}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Kurzbeschreibung des Projekts"
-              style={{ resize: 'vertical' }}
+              style={{ ...fieldControlStyle, resize: 'vertical' }}
             />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="course-meta-field__label">Gewichtung</span>
+          </div>
+          <div>
+            <label className="course-meta-field__label" htmlFor="create-project-weighting" style={fieldLabelStyle}>
+              Gewichtung
+            </label>
             <select
+              id="create-project-weighting"
               className="course-meta-control"
               value={form.weightingMode}
               onChange={(e) => setForm((f) => ({ ...f, weightingMode: e.target.value }))}
+              style={fieldControlStyle}
             >
               <option value="written">Zu schriftlich</option>
               <option value="oral">Zu mündlich</option>
               <option value="percent">Prozentual (Anteil an der Endnote)</option>
             </select>
-          </label>
+          </div>
           {form.weightingMode === 'percent' && (
-            <label className="flex flex-col gap-1">
-              <span className="course-meta-field__label">Prozentanteil an der Endnote</span>
+            <div>
+              <label className="course-meta-field__label" htmlFor="create-project-percent" style={fieldLabelStyle}>
+                Prozentanteil an der Endnote
+              </label>
               <input
+                id="create-project-percent"
                 className="course-meta-control"
                 type="number"
                 min="0"
@@ -722,12 +820,15 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
                 step="1"
                 value={form.weightPercent}
                 onChange={(e) => setForm((f) => ({ ...f, weightPercent: e.target.value }))}
-                style={{ width: '120px' }}
+                style={{ width: '8rem' }}
               />
-            </label>
+            </div>
           )}
         </div>
-        <div className="flex gap-2 justify-end" style={{ marginTop: '1.5rem' }}>
+        <div
+          className="flex gap-2"
+          style={{ marginTop: '1.5rem', justifyContent: 'flex-end' }}
+        >
           <button type="button" className="secondary" onClick={onClose} disabled={submitting}>
             Abbrechen
           </button>

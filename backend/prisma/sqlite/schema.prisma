@@ -323,6 +323,7 @@ model Project {
   maxPoints      Float
   numFields      Int
   fieldMaxPoints Json
+  fieldNames     Json     @default("{}")
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")
