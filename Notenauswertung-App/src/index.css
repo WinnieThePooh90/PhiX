@@ -3019,7 +3019,8 @@ a.support-phix-paypal-btn:active {
 }
 
 .course-meta-settings-row .course-meta-inline-btn.tab,
-.course-meta-settings-row button.course-meta-inline-btn.tab {
+.course-meta-settings-row button.course-meta-inline-btn.tab,
+.course-meta-settings-row button.course-meta-inline-btn.danger {
   height: var(--course-meta-control-height);
   min-height: var(--course-meta-control-height);
   box-sizing: border-box;

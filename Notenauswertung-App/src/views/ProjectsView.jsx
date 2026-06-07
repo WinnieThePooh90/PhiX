@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
   formatGrade,
@@ -144,6 +145,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [groupSetupOpen, setGroupSetupOpen] = useState(false);
   const [pendingProject, setPendingProject] = useState(null);
+  const [metaBarHidden, setMetaBarHidden] = useState(false);
 
   const project = activeProject ? projects[activeProject] : null;
   const projectManualGradeMode = project ? isProjectManualGradeMode(project) : false;
@@ -188,6 +190,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 
   useEffect(() => {
     setExpandedScoreKey(null);
+  }, [activeProject]);
+
+  useEffect(() => {
+    setMetaBarHidden(false);
   }, [activeProject]);
 
   useEffect(() => {
@@ -321,6 +327,17 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   return (
     <>
       <div className="view-page-scroll">
+        {metaBarHidden ? (
+          <div style={{ marginBottom: '0.75rem' }}>
+            <button
+              type="button"
+              className="tab secondary course-meta-inline-btn"
+              onClick={() => setMetaBarHidden(false)}
+            >
+              Menüleiste zeigen
+            </button>
+          </div>
+        ) : (
         <div className="view-toolbar-block exams-toolbar">
           <div className="flex justify-between items-center mb-4 pt-2 view-page-nav">
             <h2 style={{ margin: 0 }}>Projekte</h2>
@@ -534,14 +551,30 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
               <div className="projects-meta-settings__group projects-meta-settings__group--end">
                 <div className="course-meta-field">
                   <span className="course-meta-field__label">Aktion</span>
-                  <div className="course-meta-field__row">
+                  <div className="course-meta-field__row" style={{ gap: '0.5rem' }}>
                     <button
                       type="button"
                       className="tab secondary course-meta-inline-btn"
-                      onClick={handleDeleteProject}
-                      title="Projekt dauerhaft aus diesem Kurs entfernen"
+                      onClick={() => setMetaBarHidden(true)}
                     >
-                      Projekt löschen
+                      Menüleiste verbergen
+                    </button>
+                    <button
+                      type="button"
+                      className="danger course-meta-inline-btn"
+                      onClick={handleDeleteProject}
+                      title="Projekt löschen"
+                      aria-label="Projekt löschen"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 0.45rem',
+                        minWidth: 'var(--course-meta-control-height)',
+                        width: 'var(--course-meta-control-height)',
+                      }}
+                    >
+                      <Trash2 size={18} strokeWidth={2} aria-hidden />
                     </button>
                   </div>
                 </div>
@@ -564,9 +597,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
             </div>
           </div>
         </div>
+        )}
 
         {project.active ? (
-          <div className={`exams-active-body ${showKey ? 'sidebar-layout' : ''}`}>
+          <div className={`exams-active-body ${showKey && !metaBarHidden ? 'sidebar-layout' : ''}`}>
             <div className={`exams-main-stack ${showKey ? 'main-content' : ''}`}>
               <div className="exams-body-scroll view-table-scroll exam-table-scroll" style={isGroupMode ? { display: 'flex', flexDirection: 'column', gap: '1.25rem' } : undefined}>
                 {isGroupMode ? (
@@ -631,7 +665,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 )}
               </div>
             </div>
-            {showKey && !projectManualGradeMode && (
+            {showKey && !metaBarHidden && !projectManualGradeMode && (
               <aside className="exams-sidebar">
                 <GradingKeyTable
                   keyType={project.keyType || '1'}
