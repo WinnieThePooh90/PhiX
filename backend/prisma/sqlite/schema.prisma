@@ -324,6 +324,7 @@ model Project {
   numFields      Int
   fieldMaxPoints Json
   fieldNames     Json     @default("{}")
+  gradeMode      String   @default("key")
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")

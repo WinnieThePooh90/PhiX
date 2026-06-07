@@ -345,6 +345,8 @@ model Project {
   fieldMaxPoints Json
   /** Anzeigenamen der Themenfelder: { "0": "Recherche", "1": "Präsentation", … } */
   fieldNames     Json     @default("{}")
+  /** key = Note aus Notenschlüssel; manual = Note nur per Hand in der Tabelle */
+  gradeMode      String   @default("key")
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")

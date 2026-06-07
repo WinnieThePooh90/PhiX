@@ -729,8 +729,24 @@ const getGfsGradeStatsForStudent = (studentId, gfsEntries, halbjahrFilter, grade
   return { gfsAvg: sum / count, gfsSum: sum, gfsCount: count };
 };
 
+export const isProjectManualGradeMode = (project) => project?.gradeMode === 'manual';
+
+/** Projekt-Note: bei gradeMode manual nur handschriftlich, sonst wie Klausur. */
+export const getProjectGradeForStudent = (project, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
+  const rawScoreData = project.scores?.[studentId];
+  const effN = getStudentEffectiveExamFieldCount(project, studentId);
+  const { counted } = getNormalizedExamScore(rawScoreData, effN);
+  if (!counted) return null;
+
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (isProjectManualGradeMode(project)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+  }
+  return getExamGradeForStudent(project, studentId, customGradingKeys);
+};
+
 /** Klausur-ähnliche Bewertung (Klausur, Projekt) für Teilmittelwerte. */
-const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGradingKeys) => {
+const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGradingKeys, gradeSystem = 'classic') => {
   if (!item?.active) return null;
   if (halbjahrFilter && item.halbjahr !== halbjahrFilter) return null;
 
@@ -744,6 +760,11 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
   const effN = getStudentEffectiveExamFieldCount(item, studentId);
   const { counted } = getNormalizedExamScore(rawScoreData, effN);
   if (!counted) return null;
+
+  if (isProjectManualGradeMode(item)) {
+    const g = getProjectGradeForStudent(item, studentId, customGradingKeys, gradeSystem);
+    return g;
+  }
 
   const gManual = getExamGradeForStudent(item, studentId, customGradingKeys);
   return Number.isFinite(gManual) ? gManual : 6.0;
@@ -767,7 +788,7 @@ export const calculateStudentGrades = (
   let examCount = 0;
   
   Object.values(exams).forEach((exam) => {
-    const g = getExamLikeGradeContribution(exam, studentId, halbjahrFilter, customGradingKeys);
+    const g = getExamLikeGradeContribution(exam, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
     examSum += g;
     examCount++;
@@ -775,7 +796,7 @@ export const calculateStudentGrades = (
 
   Object.values(projects || {}).forEach((project) => {
     if (project.weightingMode !== 'written') return;
-    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
     examSum += g;
     examCount++;
@@ -802,7 +823,7 @@ export const calculateStudentGrades = (
 
   Object.values(projects || {}).forEach((project) => {
     if (project.weightingMode !== 'oral') return;
-    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
     oralSum += g;
     oralCount++;
@@ -862,7 +883,7 @@ export const calculateStudentGrades = (
     if (project.weightingMode !== 'percent') return;
     const pct = Number(project.weightPercent);
     if (!Number.isFinite(pct) || pct <= 0) return;
-    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
     totalPercentWeight += pct;
     percentClassicAcc += g * (pct / 100);

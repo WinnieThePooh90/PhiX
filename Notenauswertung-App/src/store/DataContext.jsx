@@ -1131,6 +1131,7 @@ export const DataProvider = ({ children }) => {
     description = '',
     weightingMode = 'written',
     weightPercent = 0,
+    gradeMode = 'key',
   } = {}) => {
     const projectNumbers = Object.keys(projects).map(Number);
     const nextNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
@@ -1138,6 +1139,7 @@ export const DataProvider = ({ children }) => {
     const defaultKeyType = gs === 'points' ? 'abi' : '1';
     const mode = ['written', 'oral', 'percent'].includes(weightingMode) ? weightingMode : 'written';
     const pct = mode === 'percent' ? Math.max(0, Number(weightPercent) || 0) : 0;
+    const gMode = gradeMode === 'manual' ? 'manual' : 'key';
 
     const newProjectData = {
       projectNumber: nextNumber,
@@ -1150,6 +1152,7 @@ export const DataProvider = ({ children }) => {
       numFields: 1,
       fieldMaxPoints: {},
       fieldNames: {},
+      gradeMode: gMode,
       keyType: defaultKeyType,
       date: '',
       halbjahr: '1',

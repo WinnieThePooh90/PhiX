@@ -9,7 +9,8 @@ import {
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   getStudentExamMaxPointsForGrade,
-  getExamGradeForStudent,
+  getProjectGradeForStudent,
+  isProjectManualGradeMode,
   getExamDisplayFieldCount,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
@@ -100,6 +101,7 @@ const EMPTY_CREATE_FORM = {
   description: '',
   weightingMode: 'written',
   weightPercent: '20',
+  gradeMode: 'key',
 };
 
 export default function ProjectsView({ studentIdFilterSet = null }) {
@@ -138,6 +140,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const [createSubmitting, setCreateSubmitting] = useState(false);
 
   const project = activeProject ? projects[activeProject] : null;
+  const projectManualGradeMode = project ? isProjectManualGradeMode(project) : false;
 
   useEffect(() => {
     if (activeProject && projects[activeProject]) return;
@@ -147,6 +150,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   useEffect(() => {
     setExpandedStudentId(null);
   }, [activeProject]);
+
+  useEffect(() => {
+    if (projectManualGradeMode) setShowKey(false);
+  }, [projectManualGradeMode, activeProject]);
 
   useEffect(() => {
     if (!createOpen) return undefined;
@@ -175,6 +182,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
         weightPercent: createForm.weightingMode === 'percent'
           ? parseFloat(String(createForm.weightPercent).replace(',', '.')) || 0
           : 0,
+        gradeMode: createForm.gradeMode === 'manual' ? 'manual' : 'key',
       });
       setCreateOpen(false);
       if (newNum) setActiveProject(String(newNum));
@@ -217,8 +225,8 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     const effN = getStudentEffectiveExamFieldCount(project, studentId);
     const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
     const maxPts = getStudentExamMaxPointsForGrade(project, studentId);
-    const isManual = isExamManualGradeActive(rawSc);
-    const grade = counted ? getExamGradeForStudent(project, studentId, customKeysList) : null;
+    const isManual = projectManualGradeMode || isExamManualGradeActive(rawSc);
+    const grade = counted ? getProjectGradeForStudent(project, studentId, customKeysList, gradeSys) : null;
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
@@ -412,38 +420,60 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   </select>
                 </div>
                 <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
-                    Notenschlüssel
+                  <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
+                    Notenermittlung
                   </label>
                   <select
-                    id={`project-key-${activeProject}`}
+                    id={`project-grade-mode-${activeProject}`}
                     className="course-meta-control"
-                    value={project.keyType || '1'}
-                    onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
+                    value={project.gradeMode === 'manual' ? 'manual' : 'key'}
+                    onChange={(e) => {
+                      const mode = e.target.value === 'manual' ? 'manual' : 'key';
+                      updateProject(activeProject, 'gradeMode', mode);
+                      if (mode === 'manual') setShowKey(false);
+                    }}
                   >
-                    <option value="1">Schlüssel 1</option>
-                    <option value="2">Schlüssel 2</option>
-                    <option value="3">Schlüssel 3</option>
-                    <option value="4">Schlüssel 4 (Plateaus)</option>
-                    <option value="5">Schlüssel 5 (Plateaus)</option>
-                    <option value="6">Schlüssel 6 (Plateaus)</option>
-                    <option value="abi">ABI BaWü 2026 120 BE</option>
-                    {customKeysList.map((k) => (
-                      <option key={k.id} value={`custom:${k.id}`}>
-                        {k.name}
-                      </option>
-                    ))}
+                    <option value="key">Notenschlüssel</option>
+                    <option value="manual">Manuell</option>
                   </select>
                 </div>
-                <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
-                  <span className="course-meta-field__label">Schlüssel zeigen</span>
-                  <div className="course-meta-field__row">
-                    <label className="switch">
-                      <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
+                {!projectManualGradeMode && (
+                  <>
+                    <div className="course-meta-field">
+                      <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
+                        Notenschlüssel
+                      </label>
+                      <select
+                        id={`project-key-${activeProject}`}
+                        className="course-meta-control"
+                        value={project.keyType || '1'}
+                        onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
+                      >
+                        <option value="1">Schlüssel 1</option>
+                        <option value="2">Schlüssel 2</option>
+                        <option value="3">Schlüssel 3</option>
+                        <option value="4">Schlüssel 4 (Plateaus)</option>
+                        <option value="5">Schlüssel 5 (Plateaus)</option>
+                        <option value="6">Schlüssel 6 (Plateaus)</option>
+                        <option value="abi">ABI BaWü 2026 120 BE</option>
+                        {customKeysList.map((k) => (
+                          <option key={k.id} value={`custom:${k.id}`}>
+                            {k.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
+                      <span className="course-meta-field__label">Schlüssel zeigen</span>
+                      <div className="course-meta-field__row">
+                        <label className="switch">
+                          <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                          <span className="slider" />
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -669,29 +699,33 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                                           />
                                         </>
                                       )}
-                                      <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
-                                      <label className="switch switch--table-row">
-                                        <input
-                                          type="checkbox"
-                                          checked={isManual}
-                                          onChange={(e) => {
-                                            const checked = e.target.checked;
-                                            if (!checked) {
-                                              updateProjectStudentManualGrade(activeProject, s.id, false);
-                                              return;
-                                            }
-                                            const stored = getExamManualGradeStoredValue(rawSc);
-                                            if (stored.trim() !== '') {
-                                              updateProjectStudentManualGrade(activeProject, s.id, true);
-                                              return;
-                                            }
-                                            const { grade: calcGrade } = projectRowStats(s.id);
-                                            const seed = calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
-                                            updateProjectStudentManualGrade(activeProject, s.id, true, seed);
-                                          }}
-                                        />
-                                        <span className="slider" />
-                                      </label>
+                                      {!projectManualGradeMode && (
+                                        <>
+                                          <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
+                                          <label className="switch switch--table-row">
+                                            <input
+                                              type="checkbox"
+                                              checked={isManual}
+                                              onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                if (!checked) {
+                                                  updateProjectStudentManualGrade(activeProject, s.id, false);
+                                                  return;
+                                                }
+                                                const stored = getExamManualGradeStoredValue(rawSc);
+                                                if (stored.trim() !== '') {
+                                                  updateProjectStudentManualGrade(activeProject, s.id, true);
+                                                  return;
+                                                }
+                                                const { grade: calcGrade } = projectRowStats(s.id);
+                                                const seed = calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                                updateProjectStudentManualGrade(activeProject, s.id, true, seed);
+                                              }}
+                                            />
+                                            <span className="slider" />
+                                          </label>
+                                        </>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -705,7 +739,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 </MaximizableTableSection>
               </div>
             </div>
-            {showKey && (
+            {showKey && !projectManualGradeMode && (
               <aside className="exams-sidebar">
                 <GradingKeyTable
                   keyType={project.keyType || '1'}
@@ -824,6 +858,21 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
               />
             </div>
           )}
+          <div>
+            <label className="course-meta-field__label" htmlFor="create-project-grade-mode" style={fieldLabelStyle}>
+              Notenermittlung
+            </label>
+            <select
+              id="create-project-grade-mode"
+              className="course-meta-control"
+              value={form.gradeMode}
+              onChange={(e) => setForm((f) => ({ ...f, gradeMode: e.target.value }))}
+              style={fieldControlStyle}
+            >
+              <option value="key">Notenschlüssel</option>
+              <option value="manual">Manuell</option>
+            </select>
+          </div>
         </div>
         <div
           className="flex gap-2"
