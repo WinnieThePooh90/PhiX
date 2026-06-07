@@ -1269,65 +1269,6 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const updateProjectStudentNachschreiber = (projectId, studentId, active) => {
-    setProjects((prev) => {
-      const project = prev[projectId];
-      const baseFields = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
-      const cap = baseFields > 0 ? baseFields : 1;
-      const prevStudentScores = project.scores[studentId];
-      let newScores;
-      if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
-        if (active) {
-          newScores = {
-            ...prevStudentScores,
-            _nachschreiber: true,
-            _nachschreiberFields: cap,
-          };
-        } else {
-          const { _nachschreiber, _nachschreiberFields, ...rest } = prevStudentScores;
-          newScores = rest;
-        }
-      } else if (active) {
-        newScores = prevStudentScores !== undefined && prevStudentScores !== null
-          ? { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: cap }
-          : { _counted: true, _nachschreiber: true, _nachschreiberFields: cap };
-      } else {
-        newScores = prevStudentScores !== undefined && prevStudentScores !== null
-          ? { 0: prevStudentScores }
-          : {};
-      }
-      const newProject = {
-        ...project,
-        scores: { ...project.scores, [studentId]: newScores },
-      };
-      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [projectId]: newProject };
-    });
-  };
-
-  const updateProjectStudentNachschreiberFields = (projectId, studentId, rawN) => {
-    setProjects((prev) => {
-      const project = prev[projectId];
-      const baseFields = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
-      const minN = baseFields > 0 ? 1 : 1;
-      const n = Math.max(minN, Math.min(EXAM_ABS_MAX_FIELDS, parseInt(rawN, 10) || minN));
-      const prevStudentScores = project.scores[studentId];
-      const base = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
-        ? { ...prevStudentScores, _nachschreiber: true, _nachschreiberFields: n }
-        : { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: n };
-      const newScores = { ...base };
-      Object.keys(newScores).forEach((k) => {
-        if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete newScores[k];
-      });
-      const newProject = {
-        ...project,
-        scores: { ...project.scores, [studentId]: newScores },
-      };
-      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [projectId]: newProject };
-    });
-  };
-
   const ensureProjectStudentScoreObject = (prevStudentScores) => {
     if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
       return { ...prevStudentScores };
@@ -1853,7 +1794,6 @@ export const DataProvider = ({ children }) => {
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
-      updateProjectStudentNachschreiber, updateProjectStudentNachschreiberFields,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,

@@ -119,13 +119,12 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     updateProjectFieldNames,
     updateProjectFieldMaxPoints,
     updateProjectCounted,
-    updateProjectStudentNachschreiber,
-    updateProjectStudentNachschreiberFields,
     updateProjectStudentManualGrade,
     updateProjectStudentManualGradeValue,
     students,
     addProject,
     config,
+    setConfig,
   } = useData();
   const { showConfirm } = useDialog();
 
@@ -145,7 +144,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [groupSetupOpen, setGroupSetupOpen] = useState(false);
   const [pendingProject, setPendingProject] = useState(null);
-  const [metaBarHidden, setMetaBarHidden] = useState(false);
+  const metaBarHidden = config?.projectsMetaBarHidden === true;
+  const setMetaBarHidden = (hidden) => {
+    setConfig((c) => ({ ...c, projectsMetaBarHidden: hidden }));
+  };
 
   const project = activeProject ? projects[activeProject] : null;
   const projectManualGradeMode = project ? isProjectManualGradeMode(project) : false;
@@ -190,10 +192,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 
   useEffect(() => {
     setExpandedScoreKey(null);
-  }, [activeProject]);
-
-  useEffect(() => {
-    setMetaBarHidden(false);
   }, [activeProject]);
 
   useEffect(() => {
@@ -627,8 +625,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                         updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
                         updateProjectScore={updateProjectScore}
                         updateProjectCounted={updateProjectCounted}
-                        updateProjectStudentNachschreiber={updateProjectStudentNachschreiber}
-                        updateProjectStudentNachschreiberFields={updateProjectStudentNachschreiberFields}
                         updateProjectStudentManualGrade={updateProjectStudentManualGrade}
                         updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
                         nameColumnLabel="GRUPPE"
@@ -654,8 +650,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
                       updateProjectScore={updateProjectScore}
                       updateProjectCounted={updateProjectCounted}
-                      updateProjectStudentNachschreiber={updateProjectStudentNachschreiber}
-                      updateProjectStudentNachschreiberFields={updateProjectStudentNachschreiberFields}
                       updateProjectStudentManualGrade={updateProjectStudentManualGrade}
                       updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
                       nameColumnLabel="NAME"
@@ -865,8 +859,6 @@ function ProjectScoresTable({
   updateProjectFieldMaxPoints,
   updateProjectScore,
   updateProjectCounted,
-  updateProjectStudentNachschreiber,
-  updateProjectStudentNachschreiberFields,
   updateProjectStudentManualGrade,
   updateProjectStudentManualGradeValue,
   nameColumnLabel,
@@ -957,10 +949,8 @@ function ProjectScoresTable({
               manualGradeInput,
             } = projectScoreRowStats(scoreKey);
             const rawSc = project.scores?.[scoreKey];
-            const isNach = typeof rawSc === 'object' && rawSc !== null && !!rawSc._nachschreiber;
             const showAbsentFlag = !counted;
-            const showNachFlag = counted && isNach;
-            const showIndexFlag = showAbsentFlag || showNachFlag;
+            const showIndexFlag = showAbsentFlag;
             const isExpanded = expandedScoreKey === scoreKey;
 
             return (
@@ -972,18 +962,18 @@ function ProjectScoresTable({
                         <span
                           className="exam-index-flag"
                           role="img"
-                          aria-label={showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber'}
+                          aria-label="Note ausgesetzt"
                           onMouseEnter={(e) => {
                             const r = e.currentTarget.getBoundingClientRect();
                             setProjectIndexTooltip({
-                              text: showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber',
+                              text: 'Note ausgesetzt',
                               left: Math.min(window.innerWidth - 12, Math.max(12, r.left + r.width / 2)),
                               top: r.bottom + 8,
                             });
                           }}
                           onMouseLeave={() => setProjectIndexTooltip(null)}
                         >
-                          <ProjectRowBookmark variant={showAbsentFlag ? 'absent' : 'nach'} />
+                          <ProjectRowBookmark variant="absent" />
                         </span>
                       )}
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</span>
@@ -1000,7 +990,7 @@ function ProjectScoresTable({
                       }
                     }}
                     style={{ position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1, background: 'var(--surface)', borderRight: '1px solid var(--border)', cursor: 'pointer' }}
-                    title="Klicken für Teilnahme / Details"
+                    title="Klicken für Note aussetzen / Details"
                   >
                     {row.label}
                   </td>
@@ -1067,29 +1057,16 @@ function ProjectScoresTable({
                   <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
                     <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
                       <div style={{ position: 'sticky', left: 0, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: 'var(--surface)', boxShadow: '4px 0 14px rgba(0, 0, 0, 0.08)' }}>
-                        <span className="text-muted" style={{ fontSize: '0.875rem' }}>Teilgenommen:</span>
+                        <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
                         <label className="switch switch--table-row">
-                          <input type="checkbox" checked={counted} onChange={(e) => updateProjectCounted(activeProject, scoreKey, e.target.checked)} />
+                          <input
+                            type="checkbox"
+                            checked={!counted}
+                            onChange={(e) => updateProjectCounted(activeProject, scoreKey, !e.target.checked)}
+                            aria-label="Note aussetzen"
+                          />
                           <span className="slider" />
                         </label>
-                        <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Nachschreiber:</span>
-                        <label className="switch switch--table-row">
-                          <input type="checkbox" checked={isNach} onChange={(e) => updateProjectStudentNachschreiber(activeProject, scoreKey, e.target.checked)} />
-                          <span className="slider" />
-                        </label>
-                        {isNach && (
-                          <>
-                            <span className="text-muted" style={{ fontSize: '0.875rem' }}>Themenfelder:</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={EXAM_ABS_MAX_FIELDS}
-                              value={effN}
-                              onChange={(e) => updateProjectStudentNachschreiberFields(activeProject, scoreKey, e.target.value)}
-                              style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
-                            />
-                          </>
-                        )}
                         {!projectManualGradeMode && (
                           <>
                             <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>

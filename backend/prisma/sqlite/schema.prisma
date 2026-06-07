@@ -73,6 +73,7 @@ model Course {
   gfsAccepted Boolean @default(true)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
+  projectsMetaBarHidden Boolean @default(false)
   klassenlehrerEnabled Boolean @default(false)
   ownerUsername String @default("admin")
 

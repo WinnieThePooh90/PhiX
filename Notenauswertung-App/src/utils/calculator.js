@@ -90,27 +90,11 @@ export const getProjectScoreKeyForStudent = (project, studentId) => {
   return studentId;
 };
 
-const getEffectiveProjectFieldCountFromScore = (project, scoreData) => {
-  const baseN = getProjectNumFields(project);
-  if (scoreData && typeof scoreData === 'object' && scoreData._nachschreiber) {
-    const n = parseInt(scoreData._nachschreiberFields, 10);
-    if (!Number.isNaN(n)) return Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, n));
-    return baseN > 0 ? baseN : 1;
-  }
-  return baseN;
-};
+export const getStudentEffectiveProjectFieldCount = (project, _studentId) =>
+  getProjectNumFields(project);
 
-export const getStudentEffectiveProjectFieldCount = (project, studentId) => {
-  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
-  if (isProjectGroupGradeMode(project) && !scoreKey) return getProjectNumFields(project);
-  const sc = scoreKey != null ? project.scores?.[scoreKey] : undefined;
-  return getEffectiveProjectFieldCountFromScore(project, sc);
-};
-
-export const getProjectEffectiveFieldCountForScoreKey = (project, scoreKey) => {
-  const sc = project.scores?.[scoreKey];
-  return getEffectiveProjectFieldCountFromScore(project, sc);
-};
+export const getProjectEffectiveFieldCountForScoreKey = (project, _scoreKey) =>
+  getProjectNumFields(project);
 
 export const getProjectDisplayFieldCount = (project, studentsList) => {
   let m = getProjectNumFields(project);
