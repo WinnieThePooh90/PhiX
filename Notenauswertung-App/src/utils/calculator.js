@@ -60,6 +60,43 @@ export const getExamDisplayFieldCount = (exam, studentsList) => {
   return Math.min(EXAM_ABS_MAX_FIELDS, m);
 };
 
+/** Projekt-Themenfelder: 0 … EXAM_ABS_MAX_FIELDS (im Gegensatz zu Klausuren mindestens 1). */
+export const getProjectNumFields = (project) =>
+  Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project?.numFields) || 0));
+
+export const getStudentEffectiveProjectFieldCount = (project, studentId) => {
+  const baseN = getProjectNumFields(project);
+  const sc = project.scores?.[studentId];
+  if (sc && typeof sc === 'object' && sc._nachschreiber) {
+    const n = parseInt(sc._nachschreiberFields, 10);
+    if (!Number.isNaN(n)) return Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, n));
+    return baseN > 0 ? baseN : 1;
+  }
+  return baseN;
+};
+
+export const getProjectDisplayFieldCount = (project, studentsList) => {
+  let m = getProjectNumFields(project);
+  (studentsList || []).forEach((s) => {
+    m = Math.max(m, getStudentEffectiveProjectFieldCount(project, s.id));
+  });
+  return Math.min(EXAM_ABS_MAX_FIELDS, m);
+};
+
+export const getStudentProjectMaxPointsForGrade = (project, studentId) => {
+  const n = getStudentEffectiveProjectFieldCount(project, studentId);
+  const baseN = getProjectNumFields(project);
+  let sum = 0;
+  for (let i = 0; i < n; i += 1) {
+    sum += parseFloat(project.fieldMaxPoints?.[i]) || 0;
+  }
+  if (sum <= 0) {
+    if (n <= baseN) return parseFloat(project.maxPoints) || 0;
+    return 0;
+  }
+  return sum;
+};
+
 /** Summe der Maximalpunkte nur für die für diesen Schüler gültigen Aufgabenfelder */
 export const getStudentExamMaxPointsForGrade = (exam, studentId) => {
   const n = getStudentEffectiveExamFieldCount(exam, studentId);
@@ -731,18 +768,26 @@ const getGfsGradeStatsForStudent = (studentId, gfsEntries, halbjahrFilter, grade
 
 export const isProjectManualGradeMode = (project) => project?.gradeMode === 'manual';
 
-/** Projekt-Note: bei gradeMode manual nur handschriftlich, sonst wie Klausur. */
+/** Projekt-Note: bei gradeMode manual nur handschriftlich, sonst über Notenschlüssel (0 Themenfelder möglich). */
 export const getProjectGradeForStudent = (project, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
   const rawScoreData = project.scores?.[studentId];
-  const effN = getStudentEffectiveExamFieldCount(project, studentId);
-  const { counted } = getNormalizedExamScore(rawScoreData, effN);
+  const effN = getStudentEffectiveProjectFieldCount(project, studentId);
+  const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
   if (!counted) return null;
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isProjectManualGradeMode(project)) {
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
-  return getExamGradeForStudent(project, studentId, customGradingKeys);
+
+  if (isExamManualGradeActive(rawScoreData)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+  }
+
+  const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
+  const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
+  const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
+  return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
 /** Klausur-ähnliche Bewertung (Klausur, Projekt) für Teilmittelwerte. */
@@ -757,13 +802,17 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
     rawScoreData._counted === false;
   if (explicitlyNotCounted) return null;
 
-  const effN = getStudentEffectiveExamFieldCount(item, studentId);
+  const isProject = item?.projectNumber !== undefined;
+  const effN = isProject
+    ? getStudentEffectiveProjectFieldCount(item, studentId)
+    : getStudentEffectiveExamFieldCount(item, studentId);
   const { counted } = getNormalizedExamScore(rawScoreData, effN);
   if (!counted) return null;
 
-  if (isProjectManualGradeMode(item)) {
+  if (isProject) {
     const g = getProjectGradeForStudent(item, studentId, customGradingKeys, gradeSystem);
-    return g;
+    if (isProjectManualGradeMode(item)) return g;
+    return Number.isFinite(g) ? g : 6.0;
   }
 
   const gManual = getExamGradeForStudent(item, studentId, customGradingKeys);

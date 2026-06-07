@@ -1216,7 +1216,7 @@ export const DataProvider = ({ children }) => {
       const project = prev[projectId];
       const prevFieldMax = project.fieldMaxPoints || {};
       const newFieldMax = { ...prevFieldMax, [fieldIndex]: points };
-      const nf = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, project.numFields || 1));
+      const nf = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
       let totalMax = 0;
       for (let i = 0; i < nf; i += 1) {
         totalMax += parseFloat(newFieldMax[i]) || 0;
@@ -1264,7 +1264,8 @@ export const DataProvider = ({ children }) => {
   const updateProjectStudentNachschreiber = (projectId, studentId, active) => {
     setProjects((prev) => {
       const project = prev[projectId];
-      const cap = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, project.numFields || 1));
+      const baseFields = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
+      const cap = baseFields > 0 ? baseFields : 1;
       const prevStudentScores = project.scores[studentId];
       let newScores;
       if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
@@ -1299,7 +1300,9 @@ export const DataProvider = ({ children }) => {
   const updateProjectStudentNachschreiberFields = (projectId, studentId, rawN) => {
     setProjects((prev) => {
       const project = prev[projectId];
-      const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, parseInt(rawN, 10) || 1));
+      const baseFields = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
+      const minN = baseFields > 0 ? 1 : 1;
+      const n = Math.max(minN, Math.min(EXAM_ABS_MAX_FIELDS, parseInt(rawN, 10) || minN));
       const prevStudentScores = project.scores[studentId];
       const base = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
         ? { ...prevStudentScores, _nachschreiber: true, _nachschreiberFields: n }

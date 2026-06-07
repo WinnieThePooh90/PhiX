@@ -7,11 +7,12 @@ import {
   getGradeCellBackground,
   getGradeTextColor,
   getNormalizedExamScore,
-  getStudentEffectiveExamFieldCount,
-  getStudentExamMaxPointsForGrade,
+  getStudentEffectiveProjectFieldCount,
+  getStudentProjectMaxPointsForGrade,
   getProjectGradeForStudent,
   isProjectManualGradeMode,
-  getExamDisplayFieldCount,
+  getProjectDisplayFieldCount,
+  getProjectNumFields,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
@@ -215,16 +216,16 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     );
   }
 
-  const numFields = project.numFields || 1;
-  const displayFieldCount = getExamDisplayFieldCount(project, displayStudents);
+  const numFields = getProjectNumFields(project);
+  const displayFieldCount = getProjectDisplayFieldCount(project, displayStudents);
   const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, project.keyType || '1');
 
   const projectRowStats = (studentId) => {
     const rawSc = project.scores?.[studentId];
-    const effN = getStudentEffectiveExamFieldCount(project, studentId);
+    const effN = getStudentEffectiveProjectFieldCount(project, studentId);
     const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
-    const maxPts = getStudentExamMaxPointsForGrade(project, studentId);
+    const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
     const isManual = projectManualGradeMode || isExamManualGradeActive(rawSc);
     const grade = counted ? getProjectGradeForStudent(project, studentId, customKeysList, gradeSys) : null;
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
@@ -274,208 +275,212 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 course-meta-settings-row">
-            <div className="course-meta-field" style={{ minWidth: '180px', flex: '1 1 180px' }}>
-              <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
-                Name
-              </label>
-              <input
-                id={`project-name-${activeProject}`}
-                className="course-meta-control"
-                type="text"
-                value={project.name || ''}
-                onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
-              />
-            </div>
-            <div className="course-meta-field" style={{ minWidth: '220px' }}>
-              <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
-                Gewichtung
-              </label>
-              <select
-                id={`project-weighting-${activeProject}`}
-                className="course-meta-control"
-                value={project.weightingMode || 'written'}
-                onChange={(e) => {
-                  const mode = e.target.value;
-                  if (mode === 'percent') {
-                    updateProjectFields(activeProject, {
-                      weightingMode: mode,
-                      weightPercent: Number(project.weightPercent) > 0 ? project.weightPercent : 20,
-                    });
-                  } else {
-                    updateProjectFields(activeProject, { weightingMode: mode, weightPercent: 0 });
-                  }
-                }}
-              >
-                <option value="written">Zu schriftlich</option>
-                <option value="oral">Zu mündlich</option>
-                <option value="percent">Prozentual (Anteil an der Endnote)</option>
-              </select>
-            </div>
-            {project.weightingMode === 'percent' && (
+          <div className="projects-meta-settings course-meta-settings-row">
+            <div className="projects-meta-settings__row projects-meta-settings__row--end">
               <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
-                  Prozentanteil
+                <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
+                  Notenermittlung
+                </label>
+                <select
+                  id={`project-grade-mode-${activeProject}`}
+                  className="course-meta-control"
+                  value={project.gradeMode === 'manual' ? 'manual' : 'key'}
+                  onChange={(e) => {
+                    const mode = e.target.value === 'manual' ? 'manual' : 'key';
+                    updateProject(activeProject, 'gradeMode', mode);
+                    if (mode === 'manual') setShowKey(false);
+                  }}
+                >
+                  <option value="key">Notenschlüssel</option>
+                  <option value="manual">Manuell</option>
+                </select>
+              </div>
+              {!projectManualGradeMode && (
+                <>
+                  <div className="course-meta-field">
+                    <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
+                      Notenschlüssel
+                    </label>
+                    <select
+                      id={`project-key-${activeProject}`}
+                      className="course-meta-control"
+                      value={project.keyType || '1'}
+                      onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
+                    >
+                      <option value="1">Schlüssel 1</option>
+                      <option value="2">Schlüssel 2</option>
+                      <option value="3">Schlüssel 3</option>
+                      <option value="4">Schlüssel 4 (Plateaus)</option>
+                      <option value="5">Schlüssel 5 (Plateaus)</option>
+                      <option value="6">Schlüssel 6 (Plateaus)</option>
+                      <option value="abi">ABI BaWü 2026 120 BE</option>
+                      {customKeysList.map((k) => (
+                        <option key={k.id} value={`custom:${k.id}`}>
+                          {k.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="course-meta-field">
+                    <span className="course-meta-field__label">Schlüssel zeigen</span>
+                    <div className="course-meta-field__row">
+                      <label className="switch">
+                        <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                        <span className="slider" />
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="projects-meta-settings__row">
+              <div className="course-meta-field">
+                <span className="course-meta-field__label">Aktiv</span>
+                <div className="course-meta-field__row">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={project.active}
+                      onChange={(e) => updateProject(activeProject, 'active', e.target.checked)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+              <div className="course-meta-field" style={{ minWidth: '180px', flex: '1 1 180px' }}>
+                <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
+                  Name
                 </label>
                 <input
-                  id={`project-percent-${activeProject}`}
+                  id={`project-name-${activeProject}`}
+                  className="course-meta-control"
+                  type="text"
+                  value={project.name || ''}
+                  onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
+                />
+              </div>
+              <div className="course-meta-field" style={{ minWidth: '220px' }}>
+                <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
+                  Gewichtung
+                </label>
+                <select
+                  id={`project-weighting-${activeProject}`}
+                  className="course-meta-control"
+                  value={project.weightingMode || 'written'}
+                  onChange={(e) => {
+                    const mode = e.target.value;
+                    if (mode === 'percent') {
+                      updateProjectFields(activeProject, {
+                        weightingMode: mode,
+                        weightPercent: Number(project.weightPercent) > 0 ? project.weightPercent : 20,
+                      });
+                    } else {
+                      updateProjectFields(activeProject, { weightingMode: mode, weightPercent: 0 });
+                    }
+                  }}
+                >
+                  <option value="written">Zu schriftlich</option>
+                  <option value="oral">Zu mündlich</option>
+                  <option value="percent">Prozentual (Anteil an der Endnote)</option>
+                </select>
+              </div>
+              {project.weightingMode === 'percent' && (
+                <div className="course-meta-field">
+                  <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
+                    Prozentanteil
+                  </label>
+                  <input
+                    id={`project-percent-${activeProject}`}
+                    className="course-meta-control"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={project.weightPercent ?? 0}
+                    onChange={(e) => {
+                      const v = parseFloat(String(e.target.value).replace(',', '.'));
+                      updateProject(activeProject, 'weightPercent', Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0);
+                    }}
+                    style={{ width: '5rem' }}
+                  />
+                </div>
+              )}
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
+                  Halbjahr
+                </label>
+                <select
+                  id={`project-hj-${activeProject}`}
+                  className="course-meta-control"
+                  value={project.halbjahr || '1'}
+                  onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
+                >
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </div>
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
+                  Datum
+                </label>
+                <input
+                  id={`project-date-${activeProject}`}
+                  className="course-meta-control"
+                  type="date"
+                  value={project.date || ''}
+                  onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
+                />
+              </div>
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
+                  Themenfelder
+                </label>
+                <input
+                  id={`project-numfields-${activeProject}`}
                   className="course-meta-control"
                   type="number"
                   min="0"
-                  max="100"
-                  step="1"
-                  value={project.weightPercent ?? 0}
+                  max={EXAM_ABS_MAX_FIELDS}
+                  value={numFields}
                   onChange={(e) => {
-                    const v = parseFloat(String(e.target.value).replace(',', '.'));
-                    updateProject(activeProject, 'weightPercent', Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0);
+                    const fields = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(fields) && fields >= 0 && fields <= EXAM_ABS_MAX_FIELDS) {
+                      updateProject(activeProject, 'numFields', fields);
+                    }
                   }}
-                  style={{ width: '5rem' }}
+                  style={{ width: '70px' }}
                 />
               </div>
-            )}
-            <div className="course-meta-field">
-              <span className="course-meta-field__label">Aktiv</span>
-              <div className="course-meta-field__row">
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={project.active}
-                    onChange={(e) => updateProject(activeProject, 'active', e.target.checked)}
-                  />
-                  <span className="slider" />
+              <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
+                <span className="course-meta-field__label">Aktion</span>
+                <div className="course-meta-field__row">
+                  <button
+                    type="button"
+                    className="tab secondary course-meta-inline-btn"
+                    onClick={handleDeleteProject}
+                    title="Projekt dauerhaft aus diesem Kurs entfernen"
+                  >
+                    Projekt löschen
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="projects-meta-settings__row projects-meta-settings__row--description">
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`project-desc-${activeProject}`}>
+                  Beschreibung
                 </label>
+                <input
+                  id={`project-desc-${activeProject}`}
+                  className="course-meta-control"
+                  type="text"
+                  value={project.description || ''}
+                  onChange={(e) => updateProject(activeProject, 'description', e.target.value)}
+                />
               </div>
             </div>
-            <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
-              <span className="course-meta-field__label">Aktion</span>
-              <div className="course-meta-field__row">
-                <button
-                  type="button"
-                  className="tab secondary course-meta-inline-btn"
-                  onClick={handleDeleteProject}
-                  title="Projekt dauerhaft aus diesem Kurs entfernen"
-                >
-                  Projekt löschen
-                </button>
-              </div>
-            </div>
-            {project.active && (
-              <>
-                <div className="course-meta-field" style={{ minWidth: '220px', flex: '2 1 220px' }}>
-                  <label className="course-meta-field__label" htmlFor={`project-desc-${activeProject}`}>
-                    Beschreibung
-                  </label>
-                  <input
-                    id={`project-desc-${activeProject}`}
-                    className="course-meta-control"
-                    type="text"
-                    value={project.description || ''}
-                    onChange={(e) => updateProject(activeProject, 'description', e.target.value)}
-                  />
-                </div>
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
-                    Themenfelder
-                  </label>
-                  <input
-                    id={`project-numfields-${activeProject}`}
-                    className="course-meta-control"
-                    type="number"
-                    min="1"
-                    max={EXAM_ABS_MAX_FIELDS}
-                    value={numFields}
-                    onChange={(e) => {
-                      const fields = parseInt(e.target.value, 10);
-                      if (fields >= 1 && fields <= EXAM_ABS_MAX_FIELDS) {
-                        updateProject(activeProject, 'numFields', fields);
-                      }
-                    }}
-                    style={{ width: '70px' }}
-                  />
-                </div>
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
-                    Datum
-                  </label>
-                  <input
-                    id={`project-date-${activeProject}`}
-                    className="course-meta-control"
-                    type="date"
-                    value={project.date || ''}
-                    onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
-                  />
-                </div>
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
-                    Halbjahr
-                  </label>
-                  <select
-                    id={`project-hj-${activeProject}`}
-                    className="course-meta-control"
-                    value={project.halbjahr || '1'}
-                    onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                  </select>
-                </div>
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
-                    Notenermittlung
-                  </label>
-                  <select
-                    id={`project-grade-mode-${activeProject}`}
-                    className="course-meta-control"
-                    value={project.gradeMode === 'manual' ? 'manual' : 'key'}
-                    onChange={(e) => {
-                      const mode = e.target.value === 'manual' ? 'manual' : 'key';
-                      updateProject(activeProject, 'gradeMode', mode);
-                      if (mode === 'manual') setShowKey(false);
-                    }}
-                  >
-                    <option value="key">Notenschlüssel</option>
-                    <option value="manual">Manuell</option>
-                  </select>
-                </div>
-                {!projectManualGradeMode && (
-                  <>
-                    <div className="course-meta-field">
-                      <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
-                        Notenschlüssel
-                      </label>
-                      <select
-                        id={`project-key-${activeProject}`}
-                        className="course-meta-control"
-                        value={project.keyType || '1'}
-                        onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
-                      >
-                        <option value="1">Schlüssel 1</option>
-                        <option value="2">Schlüssel 2</option>
-                        <option value="3">Schlüssel 3</option>
-                        <option value="4">Schlüssel 4 (Plateaus)</option>
-                        <option value="5">Schlüssel 5 (Plateaus)</option>
-                        <option value="6">Schlüssel 6 (Plateaus)</option>
-                        <option value="abi">ABI BaWü 2026 120 BE</option>
-                        {customKeysList.map((k) => (
-                          <option key={k.id} value={`custom:${k.id}`}>
-                            {k.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
-                      <span className="course-meta-field__label">Schlüssel zeigen</span>
-                      <div className="course-meta-field__row">
-                        <label className="switch">
-                          <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
-                          <span className="slider" />
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
           </div>
         </div>
 

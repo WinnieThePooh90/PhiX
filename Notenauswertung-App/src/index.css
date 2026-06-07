@@ -2925,6 +2925,34 @@ a.support-phix-paypal-btn:active {
   align-items: flex-end;
 }
 
+.projects-meta-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.projects-meta-settings__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.projects-meta-settings__row--end {
+  justify-content: flex-end;
+}
+
+.projects-meta-settings__row--description .course-meta-field {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.projects-meta-settings__row--description .course-meta-control {
+  width: 100%;
+}
+
 .course-meta-settings-row .course-meta-field {
   display: flex;
   flex-direction: column;
