@@ -321,10 +321,12 @@ model Project {
   weightingMode  String   @default("written")
   weightPercent  Float    @default(0)
   maxPoints      Float
-  numFields      Int
+  numFields      Int      @default(0)
   fieldMaxPoints Json
   fieldNames     Json     @default("{}")
   gradeMode      String   @default("key")
+  gradeScope     String   @default("individual")
+  groups         Json     @default("{}")
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")

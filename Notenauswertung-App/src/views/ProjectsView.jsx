@@ -7,12 +7,14 @@ import {
   getGradeCellBackground,
   getGradeTextColor,
   getNormalizedExamScore,
-  getStudentEffectiveProjectFieldCount,
-  getStudentProjectMaxPointsForGrade,
-  getProjectGradeForStudent,
   isProjectManualGradeMode,
   getProjectDisplayFieldCount,
   getProjectNumFields,
+  isProjectGroupGradeMode,
+  getProjectGroups,
+  getProjectGradeForScoreKey,
+  getProjectEffectiveFieldCountForScoreKey,
+  getProjectMaxPointsForScoreKey,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
@@ -103,6 +105,7 @@ const EMPTY_CREATE_FORM = {
   weightingMode: 'written',
   weightPercent: '20',
   gradeMode: 'key',
+  gradeScope: 'individual',
 };
 
 export default function ProjectsView({ studentIdFilterSet = null }) {
@@ -134,14 +137,49 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const projectNumbers = Object.keys(projects).sort((a, b) => Number(a) - Number(b));
   const [activeProject, setActiveProject] = useState(projectNumbers.length > 0 ? projectNumbers[0] : null);
   const [showKey, setShowKey] = useState(false);
-  const [expandedStudentId, setExpandedStudentId] = useState(null);
+  const [expandedScoreKey, setExpandedScoreKey] = useState(null);
   const [projectIndexTooltip, setProjectIndexTooltip] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [groupSetupOpen, setGroupSetupOpen] = useState(false);
+  const [pendingProject, setPendingProject] = useState(null);
 
   const project = activeProject ? projects[activeProject] : null;
   const projectManualGradeMode = project ? isProjectManualGradeMode(project) : false;
+  const isGroupMode = project ? isProjectGroupGradeMode(project) : false;
+
+  const studentById = useMemo(() => {
+    const map = new Map();
+    students.forEach((s) => map.set(Number(s.id), s));
+    return map;
+  }, [students]);
+
+  const scoreRows = useMemo(() => {
+    if (!project) return [];
+    if (isGroupMode) {
+      const rows = Object.entries(getProjectGroups(project))
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([gid, grp]) => {
+          const memberIds = Array.isArray(grp?.studentIds) ? grp.studentIds : [];
+          const members = memberIds.map((sid) => studentById.get(Number(sid))).filter(Boolean);
+          return {
+            scoreKey: gid,
+            label: grp?.name || `Gruppe ${gid}`,
+            members,
+            memberLine: members.map((s) => `${s.lastName}, ${s.firstName}`).join(' · '),
+          };
+        });
+      if (studentIdFilterSet == null) return rows;
+      return rows.filter((row) => row.members.some((s) => studentIdFilterSet.has(s.id)));
+    }
+    return displayStudents.map((s) => ({
+      scoreKey: s.id,
+      label: `${s.lastName}, ${s.firstName}`,
+      members: [s],
+      memberLine: null,
+    }));
+  }, [project, isGroupMode, displayStudents, studentById, studentIdFilterSet]);
 
   useEffect(() => {
     if (activeProject && projects[activeProject]) return;
@@ -149,7 +187,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   }, [projectNumbers.join(','), activeProject, projects]);
 
   useEffect(() => {
-    setExpandedStudentId(null);
+    setExpandedScoreKey(null);
   }, [activeProject]);
 
   useEffect(() => {
@@ -170,22 +208,44 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     setCreateOpen(true);
   }, []);
 
+  const buildProjectCreatePayload = (form) => ({
+    name: form.name.trim(),
+    description: form.description,
+    weightingMode: form.weightingMode,
+    weightPercent: form.weightingMode === 'percent'
+      ? parseFloat(String(form.weightPercent).replace(',', '.')) || 0
+      : 0,
+    gradeMode: form.gradeMode === 'manual' ? 'manual' : 'key',
+    gradeScope: form.gradeScope === 'group' ? 'group' : 'individual',
+  });
+
   const handleCreateProject = async () => {
     if (createSubmitting) return;
     const name = createForm.name.trim();
     if (!name) return;
+    if (createForm.gradeScope === 'group') {
+      setPendingProject(buildProjectCreatePayload(createForm));
+      setCreateOpen(false);
+      setGroupSetupOpen(true);
+      return;
+    }
     setCreateSubmitting(true);
     try {
-      const newNum = await addProject({
-        name,
-        description: createForm.description,
-        weightingMode: createForm.weightingMode,
-        weightPercent: createForm.weightingMode === 'percent'
-          ? parseFloat(String(createForm.weightPercent).replace(',', '.')) || 0
-          : 0,
-        gradeMode: createForm.gradeMode === 'manual' ? 'manual' : 'key',
-      });
+      const newNum = await addProject(buildProjectCreatePayload(createForm));
       setCreateOpen(false);
+      if (newNum) setActiveProject(String(newNum));
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  const handleFinalizeGroupProject = async (groups) => {
+    if (createSubmitting || !pendingProject) return;
+    setCreateSubmitting(true);
+    try {
+      const newNum = await addProject({ ...pendingProject, groups });
+      setGroupSetupOpen(false);
+      setPendingProject(null);
       if (newNum) setActiveProject(String(newNum));
     } finally {
       setCreateSubmitting(false);
@@ -212,6 +272,19 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
           />,
           document.body,
         )}
+        {groupSetupOpen && pendingProject && createPortal(
+          <GroupSetupModal
+            projectName={pendingProject.name}
+            students={students}
+            onClose={() => {
+              setGroupSetupOpen(false);
+              setPendingProject(null);
+            }}
+            onCreate={handleFinalizeGroupProject}
+            submitting={createSubmitting}
+          />,
+          document.body,
+        )}
       </>
     );
   }
@@ -221,13 +294,13 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, project.keyType || '1');
 
-  const projectRowStats = (studentId) => {
-    const rawSc = project.scores?.[studentId];
-    const effN = getStudentEffectiveProjectFieldCount(project, studentId);
+  const projectScoreRowStats = (scoreKey) => {
+    const rawSc = project.scores?.[scoreKey];
+    const effN = getProjectEffectiveFieldCountForScoreKey(project, scoreKey);
     const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
-    const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
+    const maxPts = getProjectMaxPointsForScoreKey(project, scoreKey);
     const isManual = projectManualGradeMode || isExamManualGradeActive(rawSc);
-    const grade = counted ? getProjectGradeForStudent(project, studentId, customKeysList, gradeSys) : null;
+    const grade = counted ? getProjectGradeForScoreKey(project, scoreKey, customKeysList, gradeSys) : null;
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
@@ -495,261 +568,67 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
         {project.active ? (
           <div className={`exams-active-body ${showKey ? 'sidebar-layout' : ''}`}>
             <div className={`exams-main-stack ${showKey ? 'main-content' : ''}`}>
-              <div className="exams-body-scroll view-table-scroll exam-table-scroll">
-                <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
-                  <div className="table-container">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th className="exam-th-sticky-left exam-th-r1" style={{ width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, left: 0 }}>#</th>
-                          <th className="exam-th-sticky-left exam-th-r1" style={{ left: `${PROJECT_INDEX_COL_PX}px` }}>NAME</th>
-                          {[...Array(displayFieldCount)].map((_, i) => (
-                            <th
-                              key={i}
-                              className="text-center exam-th-r1 exam-task-col"
-                              style={{
-                                width: '100px',
-                                minWidth: '100px',
-                                textTransform: 'none',
-                                background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.04)' : undefined,
-                                verticalAlign: 'bottom',
-                                padding: '0.35rem 0.25rem',
-                              }}
-                            >
-                              <input
-                                type="text"
-                                value={getProjectFieldNameStored(project, i)}
-                                onChange={(e) => updateProjectFieldNames(activeProject, i, e.target.value)}
-                                placeholder={getProjectFieldNamePlaceholder(i)}
-                                title="Spaltenname des Themenfelds bearbeiten"
-                                aria-label={`Name Themenfeld ${i + 1}`}
-                                style={{
-                                  textAlign: 'center',
-                                  width: '100%',
-                                  minWidth: '72px',
-                                  borderRadius: 0,
-                                  fontWeight: 600,
-                                  fontSize: '0.8rem',
-                                  background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)',
-                                }}
-                              />
-                            </th>
-                          ))}
-                          <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
-                          <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
-                        </tr>
-                        <tr className="exam-thead-max-row" style={{ background: 'var(--bg-color)', fontWeight: 'bold' }}>
-                          <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
-                          <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
-                          {[...Array(displayFieldCount)].map((_, i) => (
-                            <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
-                              <input
-                                type="number"
-                                value={project.fieldMaxPoints?.[i] ?? ''}
-                                onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, parseFloat(e.target.value) || 0)}
-                                placeholder="0"
-                                style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
-                              />
-                            </th>
-                          ))}
-                          <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
-                            {project.maxPoints}
-                          </th>
-                          <th style={{ position: 'sticky', right: 0, top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {displayStudents.length === 0 && students.length > 0 && (
-                          <tr>
-                            <td colSpan={4 + displayFieldCount} className="text-center text-muted" style={{ padding: '2rem' }}>
-                              Kein Schüler entspricht der Suche.
-                            </td>
-                          </tr>
-                        )}
-                        {displayStudents.map((s, idx) => {
-                          const {
-                            effN,
-                            fields,
-                            counted,
-                            total: totalPoints,
-                            maxPts,
-                            grade,
-                            isManual,
-                            manualGradeInput,
-                          } = projectRowStats(s.id);
-                          const rawSc = project.scores?.[s.id];
-                          const isNach = typeof rawSc === 'object' && rawSc !== null && !!rawSc._nachschreiber;
-                          const showAbsentFlag = !counted;
-                          const showNachFlag = counted && isNach;
-                          const showIndexFlag = showAbsentFlag || showNachFlag;
-                          const isExpanded = expandedStudentId === s.id;
-                          const detailColSpan = 4 + displayFieldCount;
-
-                          return (
-                            <React.Fragment key={s.id}>
-                              <tr style={{ transition: 'background 0.2s', background: isExpanded ? 'rgba(79, 70, 229, 0.05)' : '' }}>
-                                <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--surface)', borderRight: '1px solid var(--border)', width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, verticalAlign: 'middle', textAlign: 'center', padding: 0 }}>
-                                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: showIndexFlag ? 34 : undefined, paddingTop: showIndexFlag ? 2 : 0 }}>
-                                    {showIndexFlag && (
-                                      <span
-                                        className="exam-index-flag"
-                                        role="img"
-                                        aria-label={showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber'}
-                                        onMouseEnter={(e) => {
-                                          const r = e.currentTarget.getBoundingClientRect();
-                                          setProjectIndexTooltip({
-                                            text: showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber',
-                                            left: Math.min(window.innerWidth - 12, Math.max(12, r.left + r.width / 2)),
-                                            top: r.bottom + 8,
-                                          });
-                                        }}
-                                        onMouseLeave={() => setProjectIndexTooltip(null)}
-                                      >
-                                        <ProjectRowBookmark variant={showAbsentFlag ? 'absent' : 'nach'} />
-                                      </span>
-                                    )}
-                                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</span>
-                                  </div>
-                                </td>
-                                <td
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => setExpandedStudentId((prev) => (prev === s.id ? null : s.id))}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                      setExpandedStudentId((prev) => (prev === s.id ? null : s.id));
-                                    }
-                                  }}
-                                  style={{ position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1, background: 'var(--surface)', borderRight: '1px solid var(--border)', cursor: 'pointer' }}
-                                  title="Klicken für Teilnahme / Details"
-                                >
-                                  {s.lastName}, {s.firstName}
-                                </td>
-                                {[...Array(displayFieldCount)].map((_, fieldIndex) => {
-                                  const beyond = fieldIndex >= effN;
-                                  const val = fields[fieldIndex] !== undefined ? fields[fieldIndex] : '';
-                                  const maxRule = getExamTaskMaxRule(project, fieldIndex);
-                                  const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
-                                  return (
-                                    <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
-                                      {beyond ? (
-                                        <span className="text-muted" title="Für diesen Schüler nicht gewertet">—</span>
-                                      ) : (
-                                        <input
-                                          type="text"
-                                          inputMode="decimal"
-                                          value={val}
-                                          onChange={(e) => updateProjectScore(activeProject, s.id, fieldIndex, e.target.value)}
-                                          placeholder="0"
-                                          className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
-                                          style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}
-                                        />
-                                      )}
-                                    </td>
-                                  );
-                                })}
-                                <td className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', zIndex: 1, background: 'var(--surface)', fontWeight: 'bold', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
-                                  {totalPoints}
-                                  <span className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.8rem' }}> / {maxPts}</span>
-                                </td>
-                                <td
-                                  className="text-center"
-                                  style={{
-                                    width: '100px',
-                                    minWidth: '100px',
-                                    position: 'sticky',
-                                    right: 0,
-                                    zIndex: 1,
-                                    background: counted && grade !== null ? (getGradeCellBackground(grade) ?? 'var(--surface)') : 'var(--surface)',
-                                    color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
-                                    borderLeft: '1px solid var(--border)',
-                                  }}
-                                >
-                                  {counted && isManual ? (
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      className="exam-manual-grade-input"
-                                      value={manualGradeInput}
-                                      onChange={(e) => updateProjectStudentManualGradeValue(activeProject, s.id, e.target.value)}
-                                      placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
-                                      style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
-                                    />
-                                  ) : counted && grade !== null ? (
-                                    <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)' }}>
-                                      {formatGrade(grade, gradeSys)}
-                                    </span>
-                                  ) : (
-                                    '-'
-                                  )}
-                                </td>
-                              </tr>
-                              {isExpanded && (
-                                <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
-                                  <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
-                                    <div style={{ position: 'sticky', left: 0, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: 'var(--surface)', boxShadow: '4px 0 14px rgba(0, 0, 0, 0.08)' }}>
-                                      <span className="text-muted" style={{ fontSize: '0.875rem' }}>Teilgenommen:</span>
-                                      <label className="switch switch--table-row">
-                                        <input type="checkbox" checked={counted} onChange={(e) => updateProjectCounted(activeProject, s.id, e.target.checked)} />
-                                        <span className="slider" />
-                                      </label>
-                                      <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Nachschreiber:</span>
-                                      <label className="switch switch--table-row">
-                                        <input type="checkbox" checked={isNach} onChange={(e) => updateProjectStudentNachschreiber(activeProject, s.id, e.target.checked)} />
-                                        <span className="slider" />
-                                      </label>
-                                      {isNach && (
-                                        <>
-                                          <span className="text-muted" style={{ fontSize: '0.875rem' }}>Themenfelder:</span>
-                                          <input
-                                            type="number"
-                                            min={1}
-                                            max={EXAM_ABS_MAX_FIELDS}
-                                            value={effN}
-                                            onChange={(e) => updateProjectStudentNachschreiberFields(activeProject, s.id, e.target.value)}
-                                            style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
-                                          />
-                                        </>
-                                      )}
-                                      {!projectManualGradeMode && (
-                                        <>
-                                          <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
-                                          <label className="switch switch--table-row">
-                                            <input
-                                              type="checkbox"
-                                              checked={isManual}
-                                              onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                if (!checked) {
-                                                  updateProjectStudentManualGrade(activeProject, s.id, false);
-                                                  return;
-                                                }
-                                                const stored = getExamManualGradeStoredValue(rawSc);
-                                                if (stored.trim() !== '') {
-                                                  updateProjectStudentManualGrade(activeProject, s.id, true);
-                                                  return;
-                                                }
-                                                const { grade: calcGrade } = projectRowStats(s.id);
-                                                const seed = calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
-                                                updateProjectStudentManualGrade(activeProject, s.id, true, seed);
-                                              }}
-                                            />
-                                            <span className="slider" />
-                                          </label>
-                                        </>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </MaximizableTableSection>
+              <div className="exams-body-scroll view-table-scroll exam-table-scroll" style={isGroupMode ? { display: 'flex', flexDirection: 'column', gap: '1.25rem' } : undefined}>
+                {isGroupMode ? (
+                  scoreRows.map((row) => (
+                    <MaximizableTableSection key={row.scoreKey} title={row.label}>
+                      {row.memberLine && (
+                        <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+                          {row.memberLine}
+                        </p>
+                      )}
+                      <ProjectScoresTable
+                        project={project}
+                        activeProject={activeProject}
+                        rows={[row]}
+                        numFields={numFields}
+                        displayFieldCount={displayFieldCount}
+                        projectManualGradeMode={projectManualGradeMode}
+                        gradeSys={gradeSys}
+                        expandedScoreKey={expandedScoreKey}
+                        setExpandedScoreKey={setExpandedScoreKey}
+                        setProjectIndexTooltip={setProjectIndexTooltip}
+                        projectScoreRowStats={projectScoreRowStats}
+                        updateProjectFieldNames={updateProjectFieldNames}
+                        updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
+                        updateProjectScore={updateProjectScore}
+                        updateProjectCounted={updateProjectCounted}
+                        updateProjectStudentNachschreiber={updateProjectStudentNachschreiber}
+                        updateProjectStudentNachschreiberFields={updateProjectStudentNachschreiberFields}
+                        updateProjectStudentManualGrade={updateProjectStudentManualGrade}
+                        updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
+                        nameColumnLabel="GRUPPE"
+                        showEmptyFilterHint={false}
+                      />
+                    </MaximizableTableSection>
+                  ))
+                ) : (
+                  <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
+                    <ProjectScoresTable
+                      project={project}
+                      activeProject={activeProject}
+                      rows={scoreRows}
+                      numFields={numFields}
+                      displayFieldCount={displayFieldCount}
+                      projectManualGradeMode={projectManualGradeMode}
+                      gradeSys={gradeSys}
+                      expandedScoreKey={expandedScoreKey}
+                      setExpandedScoreKey={setExpandedScoreKey}
+                      setProjectIndexTooltip={setProjectIndexTooltip}
+                      projectScoreRowStats={projectScoreRowStats}
+                      updateProjectFieldNames={updateProjectFieldNames}
+                      updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
+                      updateProjectScore={updateProjectScore}
+                      updateProjectCounted={updateProjectCounted}
+                      updateProjectStudentNachschreiber={updateProjectStudentNachschreiber}
+                      updateProjectStudentNachschreiberFields={updateProjectStudentNachschreiberFields}
+                      updateProjectStudentManualGrade={updateProjectStudentManualGrade}
+                      updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
+                      nameColumnLabel="NAME"
+                      showEmptyFilterHint={displayStudents.length === 0 && students.length > 0}
+                    />
+                  </MaximizableTableSection>
+                )}
               </div>
             </div>
             {showKey && !projectManualGradeMode && (
@@ -774,6 +653,20 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
           setForm={setCreateForm}
           onClose={() => setCreateOpen(false)}
           onCreate={handleCreateProject}
+          submitting={createSubmitting}
+        />,
+        document.body,
+      )}
+
+      {groupSetupOpen && pendingProject && createPortal(
+        <GroupSetupModal
+          projectName={pendingProject.name}
+          students={students}
+          onClose={() => {
+            setGroupSetupOpen(false);
+            setPendingProject(null);
+          }}
+          onCreate={handleFinalizeGroupProject}
           submitting={createSubmitting}
         />,
         document.body,
@@ -886,6 +779,21 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
               <option value="manual">Manuell</option>
             </select>
           </div>
+          <div>
+            <label className="course-meta-field__label" htmlFor="create-project-grade-scope" style={fieldLabelStyle}>
+              Notenvergabe
+            </label>
+            <select
+              id="create-project-grade-scope"
+              className="course-meta-control"
+              value={form.gradeScope}
+              onChange={(e) => setForm((f) => ({ ...f, gradeScope: e.target.value }))}
+              style={fieldControlStyle}
+            >
+              <option value="individual">Einzelnoten</option>
+              <option value="group">Gruppennoten</option>
+            </select>
+          </div>
         </div>
         <div
           className="flex gap-2"
@@ -899,6 +807,441 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
             onClick={onCreate}
             disabled={submitting || !form.name.trim()}
           >
+            {form.gradeScope === 'group' ? 'Weiter' : 'Erstellen'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectScoresTable({
+  project,
+  activeProject,
+  rows,
+  numFields,
+  displayFieldCount,
+  projectManualGradeMode,
+  gradeSys,
+  expandedScoreKey,
+  setExpandedScoreKey,
+  setProjectIndexTooltip,
+  projectScoreRowStats,
+  updateProjectFieldNames,
+  updateProjectFieldMaxPoints,
+  updateProjectScore,
+  updateProjectCounted,
+  updateProjectStudentNachschreiber,
+  updateProjectStudentNachschreiberFields,
+  updateProjectStudentManualGrade,
+  updateProjectStudentManualGradeValue,
+  nameColumnLabel,
+  showEmptyFilterHint,
+}) {
+  const detailColSpan = 4 + displayFieldCount;
+
+  return (
+    <div className="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th className="exam-th-sticky-left exam-th-r1" style={{ width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, left: 0 }}>#</th>
+            <th className="exam-th-sticky-left exam-th-r1" style={{ left: `${PROJECT_INDEX_COL_PX}px` }}>{nameColumnLabel}</th>
+            {[...Array(displayFieldCount)].map((_, i) => (
+              <th
+                key={i}
+                className="text-center exam-th-r1 exam-task-col"
+                style={{
+                  width: '100px',
+                  minWidth: '100px',
+                  textTransform: 'none',
+                  background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.04)' : undefined,
+                  verticalAlign: 'bottom',
+                  padding: '0.35rem 0.25rem',
+                }}
+              >
+                <input
+                  type="text"
+                  value={getProjectFieldNameStored(project, i)}
+                  onChange={(e) => updateProjectFieldNames(activeProject, i, e.target.value)}
+                  placeholder={getProjectFieldNamePlaceholder(i)}
+                  title="Spaltenname des Themenfelds bearbeiten"
+                  aria-label={`Name Themenfeld ${i + 1}`}
+                  style={{
+                    textAlign: 'center',
+                    width: '100%',
+                    minWidth: '72px',
+                    borderRadius: 0,
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)',
+                  }}
+                />
+              </th>
+            ))}
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
+          </tr>
+          <tr className="exam-thead-max-row" style={{ background: 'var(--bg-color)', fontWeight: 'bold' }}>
+            <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
+            <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
+            {[...Array(displayFieldCount)].map((_, i) => (
+              <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
+                <input
+                  type="number"
+                  value={project.fieldMaxPoints?.[i] ?? ''}
+                  onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
+                />
+              </th>
+            ))}
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
+              {project.maxPoints}
+            </th>
+            <th style={{ position: 'sticky', right: 0, top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
+          </tr>
+        </thead>
+        <tbody>
+          {showEmptyFilterHint && (
+            <tr>
+              <td colSpan={detailColSpan} className="text-center text-muted" style={{ padding: '2rem' }}>
+                Kein Schüler entspricht der Suche.
+              </td>
+            </tr>
+          )}
+          {rows.map((row, idx) => {
+            const scoreKey = row.scoreKey;
+            const {
+              effN,
+              fields,
+              counted,
+              total: totalPoints,
+              maxPts,
+              grade,
+              isManual,
+              manualGradeInput,
+            } = projectScoreRowStats(scoreKey);
+            const rawSc = project.scores?.[scoreKey];
+            const isNach = typeof rawSc === 'object' && rawSc !== null && !!rawSc._nachschreiber;
+            const showAbsentFlag = !counted;
+            const showNachFlag = counted && isNach;
+            const showIndexFlag = showAbsentFlag || showNachFlag;
+            const isExpanded = expandedScoreKey === scoreKey;
+
+            return (
+              <React.Fragment key={String(scoreKey)}>
+                <tr style={{ transition: 'background 0.2s', background: isExpanded ? 'rgba(79, 70, 229, 0.05)' : '' }}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--surface)', borderRight: '1px solid var(--border)', width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, verticalAlign: 'middle', textAlign: 'center', padding: 0 }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: showIndexFlag ? 34 : undefined, paddingTop: showIndexFlag ? 2 : 0 }}>
+                      {showIndexFlag && (
+                        <span
+                          className="exam-index-flag"
+                          role="img"
+                          aria-label={showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber'}
+                          onMouseEnter={(e) => {
+                            const r = e.currentTarget.getBoundingClientRect();
+                            setProjectIndexTooltip({
+                              text: showAbsentFlag ? 'Nicht teilgenommen' : 'Nachschreiber',
+                              left: Math.min(window.innerWidth - 12, Math.max(12, r.left + r.width / 2)),
+                              top: r.bottom + 8,
+                            });
+                          }}
+                          onMouseLeave={() => setProjectIndexTooltip(null)}
+                        >
+                          <ProjectRowBookmark variant={showAbsentFlag ? 'absent' : 'nach'} />
+                        </span>
+                      )}
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</span>
+                    </div>
+                  </td>
+                  <td
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setExpandedScoreKey((prev) => (prev === scoreKey ? null : scoreKey))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setExpandedScoreKey((prev) => (prev === scoreKey ? null : scoreKey));
+                      }
+                    }}
+                    style={{ position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1, background: 'var(--surface)', borderRight: '1px solid var(--border)', cursor: 'pointer' }}
+                    title="Klicken für Teilnahme / Details"
+                  >
+                    {row.label}
+                  </td>
+                  {[...Array(displayFieldCount)].map((_, fieldIndex) => {
+                    const beyond = fieldIndex >= effN;
+                    const val = fields[fieldIndex] !== undefined ? fields[fieldIndex] : '';
+                    const maxRule = getExamTaskMaxRule(project, fieldIndex);
+                    const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
+                    return (
+                      <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
+                        {beyond ? (
+                          <span className="text-muted" title="Nicht gewertet">—</span>
+                        ) : (
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={val}
+                            onChange={(e) => updateProjectScore(activeProject, scoreKey, fieldIndex, e.target.value)}
+                            placeholder="0"
+                            className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
+                            style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', zIndex: 1, background: 'var(--surface)', fontWeight: 'bold', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                    {totalPoints}
+                    <span className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.8rem' }}> / {maxPts}</span>
+                  </td>
+                  <td
+                    className="text-center"
+                    style={{
+                      width: '100px',
+                      minWidth: '100px',
+                      position: 'sticky',
+                      right: 0,
+                      zIndex: 1,
+                      background: counted && grade !== null ? (getGradeCellBackground(grade) ?? 'var(--surface)') : 'var(--surface)',
+                      color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
+                      borderLeft: '1px solid var(--border)',
+                    }}
+                  >
+                    {counted && isManual ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="exam-manual-grade-input"
+                        value={manualGradeInput}
+                        onChange={(e) => updateProjectStudentManualGradeValue(activeProject, scoreKey, e.target.value)}
+                        placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                        style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
+                      />
+                    ) : counted && grade !== null ? (
+                      <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)' }}>
+                        {formatGrade(grade, gradeSys)}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
+                    <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
+                      <div style={{ position: 'sticky', left: 0, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: 'var(--surface)', boxShadow: '4px 0 14px rgba(0, 0, 0, 0.08)' }}>
+                        <span className="text-muted" style={{ fontSize: '0.875rem' }}>Teilgenommen:</span>
+                        <label className="switch switch--table-row">
+                          <input type="checkbox" checked={counted} onChange={(e) => updateProjectCounted(activeProject, scoreKey, e.target.checked)} />
+                          <span className="slider" />
+                        </label>
+                        <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Nachschreiber:</span>
+                        <label className="switch switch--table-row">
+                          <input type="checkbox" checked={isNach} onChange={(e) => updateProjectStudentNachschreiber(activeProject, scoreKey, e.target.checked)} />
+                          <span className="slider" />
+                        </label>
+                        {isNach && (
+                          <>
+                            <span className="text-muted" style={{ fontSize: '0.875rem' }}>Themenfelder:</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={EXAM_ABS_MAX_FIELDS}
+                              value={effN}
+                              onChange={(e) => updateProjectStudentNachschreiberFields(activeProject, scoreKey, e.target.value)}
+                              style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
+                            />
+                          </>
+                        )}
+                        {!projectManualGradeMode && (
+                          <>
+                            <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
+                            <label className="switch switch--table-row">
+                              <input
+                                type="checkbox"
+                                checked={isManual}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  if (!checked) {
+                                    updateProjectStudentManualGrade(activeProject, scoreKey, false);
+                                    return;
+                                  }
+                                  const stored = getExamManualGradeStoredValue(rawSc);
+                                  if (stored.trim() !== '') {
+                                    updateProjectStudentManualGrade(activeProject, scoreKey, true);
+                                    return;
+                                  }
+                                  const { grade: calcGrade } = projectScoreRowStats(scoreKey);
+                                  const seed = calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                  updateProjectStudentManualGrade(activeProject, scoreKey, true, seed);
+                                }}
+                              />
+                              <span className="slider" />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function GroupSetupModal({ projectName, students, onClose, onCreate, submitting }) {
+  const [groups, setGroups] = useState([{ id: '1', name: 'Gruppe 1' }]);
+  const [assignments, setAssignments] = useState(() => {
+    const init = {};
+    students.forEach((s) => { init[s.id] = ''; });
+    return init;
+  });
+
+  const nextGroupId = () => {
+    const nums = groups.map((g) => Number(g.id)).filter((n) => Number.isFinite(n));
+    return String((nums.length > 0 ? Math.max(...nums) : 0) + 1);
+  };
+
+  const addGroup = () => {
+    const id = nextGroupId();
+    setGroups((prev) => [...prev, { id, name: `Gruppe ${id}` }]);
+  };
+
+  const removeGroup = (id) => {
+    if (groups.length <= 1) return;
+    setGroups((prev) => prev.filter((g) => g.id !== id));
+    setAssignments((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((sid) => {
+        if (next[sid] === id) next[sid] = '';
+      });
+      return next;
+    });
+  };
+
+  const updateGroupName = (id, name) => {
+    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, name } : g)));
+  };
+
+  const assignedCount = students.filter((s) => assignments[s.id] && groups.some((g) => g.id === assignments[s.id])).length;
+  const allAssigned = students.length > 0 && assignedCount === students.length;
+  const allGroupNamesValid = groups.every((g) => g.name.trim().length > 0);
+  const canCreate = allAssigned && allGroupNamesValid && !submitting;
+
+  const handleCreate = () => {
+    if (!canCreate) return;
+    const groupsPayload = {};
+    groups.forEach((g) => {
+      const studentIds = students
+        .filter((s) => assignments[s.id] === g.id)
+        .map((s) => s.id);
+      if (studentIds.length > 0) {
+        groupsPayload[g.id] = { name: g.name.trim(), studentIds };
+      }
+    });
+    onCreate(groupsPayload);
+  };
+
+  const fieldLabelStyle = { display: 'block', marginBottom: '0.35rem' };
+
+  return (
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        className="modal-card"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="group-setup-title"
+        style={{ maxWidth: '640px', width: 'calc(100% - 2rem)', maxHeight: 'min(90vh, 720px)', overflow: 'auto' }}
+      >
+        <h2 id="group-setup-title" style={{ marginTop: 0 }}>Gruppen einteilen</h2>
+        <p className="text-muted" style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+          Projekt: <strong>{projectName}</strong>
+        </p>
+
+        <div style={{ marginTop: '1.25rem' }}>
+          <div className="flex flex-wrap gap-2" style={{ alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Gruppen</span>
+            <button type="button" className="secondary" onClick={addGroup} disabled={submitting}>
+              + Gruppe
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            {groups.map((g) => (
+              <div key={g.id} className="flex gap-2" style={{ alignItems: 'center' }}>
+                <input
+                  className="course-meta-control"
+                  type="text"
+                  value={g.name}
+                  onChange={(e) => updateGroupName(g.id, e.target.value)}
+                  placeholder="Gruppenname"
+                  style={{ flex: 1 }}
+                />
+                {groups.length > 1 && (
+                  <button type="button" className="secondary" onClick={() => removeGroup(g.id)} disabled={submitting} title="Gruppe entfernen">
+                    Entfernen
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Schüler zuordnen</span>
+          {students.length === 0 ? (
+            <p className="text-muted" style={{ marginTop: '0.5rem' }}>Keine Schüler im Kurs.</p>
+          ) : (
+            <div className="table-container" style={{ marginTop: '0.5rem', maxHeight: '280px', overflow: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Schüler</th>
+                    <th style={{ width: '200px' }}>Gruppe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.lastName}, {s.firstName}</td>
+                      <td>
+                        <select
+                          className="course-meta-control"
+                          value={assignments[s.id] || ''}
+                          onChange={(e) => setAssignments((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                          style={{ width: '100%' }}
+                        >
+                          <option value="">— nicht zugeordnet —</option>
+                          {groups.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name || `Gruppe ${g.id}`}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {students.length > 0 && !allAssigned && (
+            <p className="text-muted" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+              Noch {students.length - assignedCount} Schüler ohne Gruppe.
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2" style={{ marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <button type="button" className="secondary" onClick={onClose} disabled={submitting}>
+            Abbrechen
+          </button>
+          <button type="button" onClick={handleCreate} disabled={!canCreate}>
             Erstellen
           </button>
         </div>

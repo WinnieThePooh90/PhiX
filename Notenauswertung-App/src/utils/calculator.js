@@ -64,27 +64,69 @@ export const getExamDisplayFieldCount = (exam, studentsList) => {
 export const getProjectNumFields = (project) =>
   Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project?.numFields) || 0));
 
-export const getStudentEffectiveProjectFieldCount = (project, studentId) => {
+export const isProjectGroupGradeMode = (project) => project?.gradeScope === 'group';
+
+export const getProjectGroups = (project) => {
+  const g = project?.groups;
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return {};
+  return g;
+};
+
+export const getStudentProjectGroupId = (project, studentId) => {
+  if (!isProjectGroupGradeMode(project)) return null;
+  const sid = Number(studentId);
+  for (const [gid, grp] of Object.entries(getProjectGroups(project))) {
+    const ids = Array.isArray(grp?.studentIds) ? grp.studentIds : [];
+    if (ids.some((id) => Number(id) === sid)) return gid;
+  }
+  return null;
+};
+
+/** Schlüssel in project.scores: bei Gruppennoten die Gruppen-ID, sonst die Schüler-ID. */
+export const getProjectScoreKeyForStudent = (project, studentId) => {
+  if (isProjectGroupGradeMode(project)) {
+    return getStudentProjectGroupId(project, studentId);
+  }
+  return studentId;
+};
+
+const getEffectiveProjectFieldCountFromScore = (project, scoreData) => {
   const baseN = getProjectNumFields(project);
-  const sc = project.scores?.[studentId];
-  if (sc && typeof sc === 'object' && sc._nachschreiber) {
-    const n = parseInt(sc._nachschreiberFields, 10);
+  if (scoreData && typeof scoreData === 'object' && scoreData._nachschreiber) {
+    const n = parseInt(scoreData._nachschreiberFields, 10);
     if (!Number.isNaN(n)) return Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, n));
     return baseN > 0 ? baseN : 1;
   }
   return baseN;
 };
 
+export const getStudentEffectiveProjectFieldCount = (project, studentId) => {
+  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
+  if (isProjectGroupGradeMode(project) && !scoreKey) return getProjectNumFields(project);
+  const sc = scoreKey != null ? project.scores?.[scoreKey] : undefined;
+  return getEffectiveProjectFieldCountFromScore(project, sc);
+};
+
+export const getProjectEffectiveFieldCountForScoreKey = (project, scoreKey) => {
+  const sc = project.scores?.[scoreKey];
+  return getEffectiveProjectFieldCountFromScore(project, sc);
+};
+
 export const getProjectDisplayFieldCount = (project, studentsList) => {
   let m = getProjectNumFields(project);
-  (studentsList || []).forEach((s) => {
-    m = Math.max(m, getStudentEffectiveProjectFieldCount(project, s.id));
-  });
+  if (isProjectGroupGradeMode(project)) {
+    Object.keys(getProjectGroups(project)).forEach((gid) => {
+      m = Math.max(m, getProjectEffectiveFieldCountForScoreKey(project, gid));
+    });
+  } else {
+    (studentsList || []).forEach((s) => {
+      m = Math.max(m, getStudentEffectiveProjectFieldCount(project, s.id));
+    });
+  }
   return Math.min(EXAM_ABS_MAX_FIELDS, m);
 };
 
-export const getStudentProjectMaxPointsForGrade = (project, studentId) => {
-  const n = getStudentEffectiveProjectFieldCount(project, studentId);
+const getProjectMaxPointsForFieldCount = (project, n) => {
   const baseN = getProjectNumFields(project);
   let sum = 0;
   for (let i = 0; i < n; i += 1) {
@@ -95,6 +137,16 @@ export const getStudentProjectMaxPointsForGrade = (project, studentId) => {
     return 0;
   }
   return sum;
+};
+
+export const getStudentProjectMaxPointsForGrade = (project, studentId) => {
+  const n = getStudentEffectiveProjectFieldCount(project, studentId);
+  return getProjectMaxPointsForFieldCount(project, n);
+};
+
+export const getProjectMaxPointsForScoreKey = (project, scoreKey) => {
+  const n = getProjectEffectiveFieldCountForScoreKey(project, scoreKey);
+  return getProjectMaxPointsForFieldCount(project, n);
 };
 
 /** Summe der Maximalpunkte nur für die für diesen Schüler gültigen Aufgabenfelder */
@@ -770,7 +822,9 @@ export const isProjectManualGradeMode = (project) => project?.gradeMode === 'man
 
 /** Projekt-Note: bei gradeMode manual nur handschriftlich, sonst über Notenschlüssel (0 Themenfelder möglich). */
 export const getProjectGradeForStudent = (project, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
-  const rawScoreData = project.scores?.[studentId];
+  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
+  if (isProjectGroupGradeMode(project) && !scoreKey) return null;
+  const rawScoreData = project.scores?.[scoreKey];
   const effN = getStudentEffectiveProjectFieldCount(project, studentId);
   const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
   if (!counted) return null;
@@ -790,19 +844,57 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
+/** Projekt-Note für einen direkten Score-Schlüssel (Schüler- oder Gruppen-ID in project.scores). */
+export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys = null, gradeSystem = 'classic') => {
+  const rawScoreData = project.scores?.[scoreKey];
+  const effN = getProjectEffectiveFieldCountForScoreKey(project, scoreKey);
+  const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
+  if (!counted) return null;
+
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (isProjectManualGradeMode(project)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+  }
+
+  if (isExamManualGradeActive(rawScoreData)) {
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+  }
+
+  const maxPts = (() => {
+    const baseN = getProjectNumFields(project);
+    let sum = 0;
+    for (let i = 0; i < effN; i += 1) {
+      sum += parseFloat(project.fieldMaxPoints?.[i]) || 0;
+    }
+    if (sum <= 0) {
+      if (effN <= baseN) return parseFloat(project.maxPoints) || 0;
+      return 0;
+    }
+    return sum;
+  })();
+  const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
+  const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
+  return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
+};
+
 /** Klausur-ähnliche Bewertung (Klausur, Projekt) für Teilmittelwerte. */
 const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGradingKeys, gradeSystem = 'classic') => {
   if (!item?.active) return null;
   if (halbjahrFilter && item.halbjahr !== halbjahrFilter) return null;
 
-  const rawScoreData = item.scores?.[studentId];
+  const isProject = item?.projectNumber !== undefined;
+  const scoreKey = isProject && isProjectGroupGradeMode(item)
+    ? getStudentProjectGroupId(item, studentId)
+    : studentId;
+  if (isProject && isProjectGroupGradeMode(item) && !scoreKey) return null;
+
+  const rawScoreData = item.scores?.[scoreKey];
   const explicitlyNotCounted =
     rawScoreData &&
     typeof rawScoreData === 'object' &&
     rawScoreData._counted === false;
   if (explicitlyNotCounted) return null;
 
-  const isProject = item?.projectNumber !== undefined;
   const effN = isProject
     ? getStudentEffectiveProjectFieldCount(item, studentId)
     : getStudentEffectiveExamFieldCount(item, studentId);

@@ -14,6 +14,7 @@ import {
   getNormalizedTestScore,
   getCustomKeyDefinition,
   getProjectGradeForStudent,
+  getProjectScoreKeyForStudent,
   getStudentEffectiveProjectFieldCount,
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
@@ -22,7 +23,9 @@ import MaximizableTableSection from '../components/MaximizableTableSection';
 
 function isProjectScoreCounted(project, studentId) {
   if (!project?.active) return false;
-  const raw = project.scores?.[studentId];
+  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
+  if (scoreKey == null) return false;
+  const raw = project.scores?.[scoreKey];
   if (raw && typeof raw === 'object' && raw._counted === false) return false;
   const { counted } = getNormalizedExamScore(raw, getStudentEffectiveProjectFieldCount(project, studentId));
   return counted;
