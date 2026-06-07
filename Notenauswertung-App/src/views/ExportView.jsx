@@ -59,7 +59,7 @@ function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, on
 }
 
 export default function ExportView() {
-  const { config, students, exams, orals, tests, gfsEntries } = useData();
+  const { config, students, exams, orals, tests, projects, gfsEntries } = useData();
   const [busyKey, setBusyKey] = useState(null);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
@@ -108,6 +108,7 @@ export default function ExportView() {
         exams,
         orals,
         tests,
+        projects,
         gfsEntries,
         config,
       });
@@ -127,6 +128,7 @@ export default function ExportView() {
         exams,
         orals,
         tests,
+        projects,
         gfsEntries,
         config,
       });

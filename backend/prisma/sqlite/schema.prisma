@@ -80,6 +80,7 @@ model Course {
   exams      Exam[]
   orals      Oral[]
   tests      Test[]
+  projects   Project[]
   gfsEntries   GfsEntry[]
   moneyLists        MoneyList[]
   attendanceLists   AttendanceList[]
@@ -309,4 +310,23 @@ model Test {
   scores     Json
   courseId   Int?
   course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id             Int      @id @default(autoincrement())
+  projectNumber  Int
+  active         Boolean
+  name           String
+  description    String   @default("")
+  weightingMode  String   @default("written")
+  weightPercent  Float    @default(0)
+  maxPoints      Float
+  numFields      Int
+  fieldMaxPoints Json
+  keyType        String
+  date           String   @default("")
+  halbjahr       String   @default("1")
+  scores         Json
+  courseId       Int?
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }

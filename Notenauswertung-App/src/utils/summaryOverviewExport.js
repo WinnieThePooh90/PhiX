@@ -14,6 +14,7 @@ export function buildSummaryOverviewExportData({
   exams,
   orals,
   tests,
+  projects = {},
   gfsEntries,
   config,
 }) {
@@ -47,6 +48,7 @@ export function buildSummaryOverviewExportData({
       customGradingKeys,
       gradeSys,
       config?.testsWritten !== false,
+      projects,
     );
     const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
     const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';

@@ -41,6 +41,7 @@ const PG_SEQUENCE_TABLES = [
   'NotesListEntry',
   'GfsEntry',
   'Exam',
+  'Project',
   'Oral',
   'Test',
 ];
@@ -54,6 +55,7 @@ const EMPTY_DATA = {
   schoolRosterYears: [],
   schoolRosterStudents: [],
   exams: [],
+  projects: [],
   orals: [],
   tests: [],
   gfsEntries: [],
@@ -106,6 +108,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     return {
       students: [],
       exams: [],
+      projects: [],
       orals: [],
       tests: [],
       gfsEntries: [],
@@ -123,6 +126,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
   const [
     students,
     exams,
+    projects,
     orals,
     tests,
     gfsEntries,
@@ -137,6 +141,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
   ] = await Promise.all([
     prisma.student.findMany({ where: inCourses }),
     prisma.exam.findMany({ where: inCourses }),
+    prisma.project.findMany({ where: inCourses }),
     prisma.oral.findMany({ where: inCourses }),
     prisma.test.findMany({ where: inCourses }),
     prisma.gfsEntry.findMany({ where: inCourses }),
@@ -156,6 +161,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
   return {
     students,
     exams,
+    projects,
     orals,
     tests,
     gfsEntries,
@@ -207,6 +213,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     schoolRosterYears,
     schoolRosterStudents,
     exams,
+    projects,
     orals,
     tests,
     gfsEntries,
@@ -227,6 +234,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.schoolRosterYear.findMany(),
     prisma.schoolRosterStudent.findMany(),
     prisma.exam.findMany(),
+    prisma.project.findMany(),
     prisma.oral.findMany(),
     prisma.test.findMany(),
     prisma.gfsEntry.findMany(),
@@ -252,6 +260,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
       schoolRosterYears,
       schoolRosterStudents,
       exams,
+      projects,
       orals,
       tests,
       gfsEntries,
@@ -356,6 +365,7 @@ async function clearAllPhixData(tx) {
   await tx.moneyList.deleteMany();
   await tx.gfsEntry.deleteMany();
   await tx.test.deleteMany();
+  await tx.project.deleteMany();
   await tx.oral.deleteMany();
   await tx.exam.deleteMany();
   await tx.student.deleteMany();
@@ -389,6 +399,7 @@ async function clearUserPhixData(tx, ownerUsername) {
   await tx.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.test.deleteMany({ where: { courseId: { in: courseIds } } });
+  await tx.project.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.oral.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.exam.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.student.deleteMany({ where: { courseId: { in: courseIds } } });
@@ -450,6 +461,7 @@ function countDataSummary(d) {
     courses: d.courses?.length ?? 0,
     students: d.students?.length ?? 0,
     exams: d.exams?.length ?? 0,
+    projects: d.projects?.length ?? 0,
     orals: d.orals?.length ?? 0,
     tests: d.tests?.length ?? 0,
     gfsEntries: d.gfsEntries?.length ?? 0,
@@ -478,6 +490,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents);
       await insertMany(tx, 'Student', d.students);
       await insertMany(tx, 'Exam', d.exams);
+      await insertMany(tx, 'Project', d.projects);
       await insertMany(tx, 'Oral', d.orals);
       await insertMany(tx, 'Test', d.tests);
       await insertMany(tx, 'GfsEntry', d.gfsEntries);
@@ -538,6 +551,7 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents, insertOpts);
       await insertMany(tx, 'Student', d.students, insertOpts);
       await insertMany(tx, 'Exam', d.exams, insertOpts);
+      await insertMany(tx, 'Project', d.projects, insertOpts);
       await insertMany(tx, 'Oral', d.orals, insertOpts);
       await insertMany(tx, 'Test', d.tests, insertOpts);
       await insertMany(tx, 'GfsEntry', d.gfsEntries, insertOpts);

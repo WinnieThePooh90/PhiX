@@ -54,7 +54,7 @@ function RiskStudentsTable({ rows, gradeColor, gradeSystem }) {
 }
 
 export default function AnalysisView() {
-  const { students, exams, orals, tests, gfsEntries, config } = useData();
+  const { students, exams, orals, tests, projects, gfsEntries, config } = useData();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
 
   const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
@@ -72,6 +72,7 @@ export default function AnalysisView() {
           Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
           gradeSys,
           config.testsWritten !== false,
+          projects,
         );
         return { student: s, finalGrade };
       })
@@ -91,7 +92,7 @@ export default function AnalysisView() {
       .sort(sortWorstFirst);
 
     return { starkGefaehrdet: stark, gefaehrdet: gef };
-  }, [students, exams, orals, tests, gfsEntries, config, gradeSys]);
+  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys } = useMemo(() => {
     const isPoints = gradeSys === 'points';
@@ -119,6 +120,7 @@ export default function AnalysisView() {
         Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
         gradeSys,
         config.testsWritten !== false,
+        projects,
       );
       if (finalGrade === null || Number.isNaN(finalGrade)) return;
       rawGrades.push(finalGrade);
@@ -137,7 +139,7 @@ export default function AnalysisView() {
       studentsWithGrade: rawGrades.length,
       distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
     };
-  }, [students, exams, orals, tests, gfsEntries, config, gradeSys]);
+  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
 
   return (
     <div className="view-generic-scroll" style={{ padding: '0 0 2rem' }}>

@@ -1093,6 +1093,56 @@ app.put('/api/tests/:id', async (req, res) => {
   }
 });
 
+// PROJECTS
+app.get('/api/projects', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json({});
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const projects = await prisma.project.findMany({ where: { courseId } });
+  const result = {};
+  projects.forEach((p) => { result[p.projectNumber] = p; });
+  res.json(result);
+});
+
+app.put('/api/projects/:id', async (req, res) => {
+  const projectNumber = Number(req.params.id);
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) {
+    return res.status(400).json({ error: 'courseId required' });
+  }
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const existing = await prisma.project.findFirst({ where: { projectNumber, courseId } });
+  if (existing) {
+    const { id, projectNumber: pn, courseId: cid, ...data } = req.body;
+    const project = await prisma.project.update({
+      where: { id: existing.id },
+      data,
+    });
+    res.json(project);
+  } else {
+    const { id, projectNumber: pn, ...data } = req.body;
+    const project = await prisma.project.create({
+      data: { ...data, projectNumber, courseId },
+    });
+    res.json(project);
+  }
+});
+
+app.delete('/api/projects/:id', async (req, res) => {
+  const projectNumber = Number(req.params.id);
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const existing = await prisma.project.findFirst({ where: { projectNumber, courseId } });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  await prisma.project.delete({ where: { id: existing.id } });
+  res.status(204).send();
+});
+
 // GFS (Gleichwertige Feststellung der Schülerleistungen)
 app.get('/api/gfs', async (req, res) => {
   const courseId = Number(req.query.courseId);

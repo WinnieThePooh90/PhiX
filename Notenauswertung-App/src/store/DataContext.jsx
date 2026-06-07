@@ -92,6 +92,7 @@ export const DataProvider = ({ children }) => {
   const [exams, setExams] = useState({});
   const [orals, setOrals] = useState({});
   const [tests, setTests] = useState({});
+  const [projects, setProjects] = useState({});
   const [gfsEntries, setGfsEntries] = useState([]);
   const [moneyLists, setMoneyLists] = useState([]);
   const [attendanceLists, setAttendanceLists] = useState([]);
@@ -255,6 +256,7 @@ export const DataProvider = ({ children }) => {
           examsRes,
           oralsRes,
           testsRes,
+          projectsRes,
           gfsRes,
           moneyListsRes,
           attendanceListsRes,
@@ -265,6 +267,7 @@ export const DataProvider = ({ children }) => {
           safeFetchJson(`/api/exams?courseId=${activeCourseId}`, {}),
           safeFetchJson(`/api/orals?courseId=${activeCourseId}`, {}),
           safeFetchJson(`/api/tests?courseId=${activeCourseId}`, {}),
+          safeFetchJson(`/api/projects?courseId=${activeCourseId}`, {}),
           safeFetchJson(`/api/gfs?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/money-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/attendance-lists?courseId=${activeCourseId}`, []),
@@ -275,6 +278,7 @@ export const DataProvider = ({ children }) => {
         setExams(examsRes);
         setOrals(oralsRes);
         setTests(testsRes);
+        setProjects(projectsRes);
         setGfsEntries(Array.isArray(gfsRes) ? gfsRes : []);
         setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
@@ -448,29 +452,34 @@ export const DataProvider = ({ children }) => {
       }
     }
 
-    if (toGs === 'points') {
-      for (const examId of Object.keys(exams)) {
-        const ex = exams[examId];
-        if (!ex) continue;
-        const kt = ex.keyType || '1';
-        if (kt === '1') {
-          const newExam = { ...ex, keyType: 'abi' };
-          await apiCall(`/api/exams/${examId}`, 'PUT', { ...newExam, courseId: activeCourseId });
-          setExams((prev) => ({ ...prev, [examId]: { ...prev[examId], keyType: 'abi' } }));
+    const migrateExamLikeKeyType = async (collection, apiPrefix, setter) => {
+      if (toGs === 'points') {
+        for (const id of Object.keys(collection)) {
+          const item = collection[id];
+          if (!item) continue;
+          const kt = item.keyType || '1';
+          if (kt === '1') {
+            const next = { ...item, keyType: 'abi' };
+            await apiCall(`${apiPrefix}/${id}`, 'PUT', { ...next, courseId: activeCourseId });
+            setter((prev) => ({ ...prev, [id]: { ...prev[id], keyType: 'abi' } }));
+          }
         }
       }
-    }
-    if (toGs === 'classic') {
-      for (const examId of Object.keys(exams)) {
-        const ex = exams[examId];
-        if (!ex) continue;
-        if (ex.keyType === 'abi') {
-          const newExam = { ...ex, keyType: '1' };
-          await apiCall(`/api/exams/${examId}`, 'PUT', { ...newExam, courseId: activeCourseId });
-          setExams((prev) => ({ ...prev, [examId]: { ...prev[examId], keyType: '1' } }));
+      if (toGs === 'classic') {
+        for (const id of Object.keys(collection)) {
+          const item = collection[id];
+          if (!item) continue;
+          if (item.keyType === 'abi') {
+            const next = { ...item, keyType: '1' };
+            await apiCall(`${apiPrefix}/${id}`, 'PUT', { ...next, courseId: activeCourseId });
+            setter((prev) => ({ ...prev, [id]: { ...prev[id], keyType: '1' } }));
+          }
         }
       }
-    }
+    };
+
+    await migrateExamLikeKeyType(exams, '/api/exams', setExams);
+    await migrateExamLikeKeyType(projects, '/api/projects', setProjects);
   };
 
   const deleteCourse = async (id) => {
@@ -487,6 +496,7 @@ export const DataProvider = ({ children }) => {
         setExams({});
         setOrals({});
         setTests({});
+        setProjects({});
         setGfsEntries([]);
       }
     }
@@ -1115,6 +1125,225 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  // Projects Helpers
+  const addProject = async ({
+    name = '',
+    description = '',
+    weightingMode = 'written',
+    weightPercent = 0,
+  } = {}) => {
+    const projectNumbers = Object.keys(projects).map(Number);
+    const nextNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
+    const gs = normalizeCourseGradeSystem(config?.gradeSystem);
+    const defaultKeyType = gs === 'points' ? 'abi' : '1';
+    const mode = ['written', 'oral', 'percent'].includes(weightingMode) ? weightingMode : 'written';
+    const pct = mode === 'percent' ? Math.max(0, Number(weightPercent) || 0) : 0;
+
+    const newProjectData = {
+      projectNumber: nextNumber,
+      active: true,
+      name: String(name).trim() || `Projekt ${nextNumber}`,
+      description: String(description).trim(),
+      weightingMode: mode,
+      weightPercent: pct,
+      maxPoints: 50,
+      numFields: 1,
+      fieldMaxPoints: {},
+      keyType: defaultKeyType,
+      date: '',
+      halbjahr: '1',
+      scores: {},
+      courseId: activeCourseId,
+    };
+
+    setProjects((prev) => ({ ...prev, [nextNumber]: newProjectData }));
+
+    const created = await apiCall(`/api/projects/${nextNumber}`, 'PUT', newProjectData);
+    if (created) {
+      setProjects((prev) => ({ ...prev, [nextNumber]: created }));
+      return nextNumber;
+    }
+    return nextNumber;
+  };
+
+  const updateProject = (id, field, value) => {
+    setProjects((prev) => {
+      const nextProjects = { ...prev, [id]: { ...prev[id], [field]: value } };
+      apiCall(`/api/projects/${id}`, 'PUT', { ...nextProjects[id], courseId: activeCourseId });
+      return nextProjects;
+    });
+  };
+
+  const removeProject = async (projectId) => {
+    const key = String(projectId);
+    setProjects((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    await apiCall(`/api/projects/${projectId}?courseId=${activeCourseId}`, 'DELETE');
+  };
+
+  const updateProjectFieldMaxPoints = (projectId, fieldIndex, points) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const prevFieldMax = project.fieldMaxPoints || {};
+      const newFieldMax = { ...prevFieldMax, [fieldIndex]: points };
+      const nf = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, project.numFields || 1));
+      let totalMax = 0;
+      for (let i = 0; i < nf; i += 1) {
+        totalMax += parseFloat(newFieldMax[i]) || 0;
+      }
+      const newProject = {
+        ...project,
+        fieldMaxPoints: newFieldMax,
+        maxPoints: totalMax > 0 ? totalMax : project.maxPoints,
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectScore = (projectId, studentId, fieldIndex, points) => {
+    setProjects((prev) => {
+      const prevStudentScores = prev[projectId].scores[studentId] || {};
+      const newScores = typeof prevStudentScores === 'object'
+        ? { ...prevStudentScores, [fieldIndex]: points }
+        : { 0: prevStudentScores, [fieldIndex]: points };
+      const newProject = {
+        ...prev[projectId],
+        scores: { ...prev[projectId].scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectCounted = (projectId, studentId, counted) => {
+    setProjects((prev) => {
+      const prevStudentScores = prev[projectId].scores[studentId];
+      const newScores = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
+        ? { ...prevStudentScores, _counted: counted }
+        : { 0: prevStudentScores, _counted: counted };
+      const newProject = {
+        ...prev[projectId],
+        scores: { ...prev[projectId].scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectStudentNachschreiber = (projectId, studentId, active) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const cap = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, project.numFields || 1));
+      const prevStudentScores = project.scores[studentId];
+      let newScores;
+      if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
+        if (active) {
+          newScores = {
+            ...prevStudentScores,
+            _nachschreiber: true,
+            _nachschreiberFields: cap,
+          };
+        } else {
+          const { _nachschreiber, _nachschreiberFields, ...rest } = prevStudentScores;
+          newScores = rest;
+        }
+      } else if (active) {
+        newScores = prevStudentScores !== undefined && prevStudentScores !== null
+          ? { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: cap }
+          : { _counted: true, _nachschreiber: true, _nachschreiberFields: cap };
+      } else {
+        newScores = prevStudentScores !== undefined && prevStudentScores !== null
+          ? { 0: prevStudentScores }
+          : {};
+      }
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectStudentNachschreiberFields = (projectId, studentId, rawN) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, parseInt(rawN, 10) || 1));
+      const prevStudentScores = project.scores[studentId];
+      const base = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
+        ? { ...prevStudentScores, _nachschreiber: true, _nachschreiberFields: n }
+        : { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: n };
+      const newScores = { ...base };
+      Object.keys(newScores).forEach((k) => {
+        if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete newScores[k];
+      });
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const ensureProjectStudentScoreObject = (prevStudentScores) => {
+    if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
+      return { ...prevStudentScores };
+    }
+    if (prevStudentScores !== undefined && prevStudentScores !== null) {
+      return { 0: prevStudentScores, _counted: true };
+    }
+    return { _counted: true };
+  };
+
+  const updateProjectStudentManualGrade = (projectId, studentId, active, seedValue = undefined) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const base = ensureProjectStudentScoreObject(project.scores[studentId]);
+      let newScores;
+      if (active) {
+        newScores = { ...base, _manualGrade: true };
+        const hasStored =
+          newScores._manualGradeValue !== undefined &&
+          newScores._manualGradeValue !== null &&
+          String(newScores._manualGradeValue).trim() !== '';
+        if (!hasStored && seedValue !== undefined && seedValue !== null && String(seedValue).trim() !== '') {
+          newScores._manualGradeValue = String(seedValue).trim();
+        }
+      } else {
+        newScores = { ...base, _manualGrade: false };
+      }
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectStudentManualGradeValue = (projectId, studentId, value) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const base = ensureProjectStudentScoreObject(project.scores[studentId]);
+      const newScores = {
+        ...base,
+        _manualGrade: true,
+        _manualGradeValue: value,
+      };
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
   const addGfsEntry = async (studentId) => {
     const created = await apiCall('/api/gfs', 'POST', {
       courseId: activeCourseId,
@@ -1585,6 +1814,9 @@ export const DataProvider = ({ children }) => {
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
+      projects, addProject, removeProject, updateProject, updateProjectScore, updateProjectFieldMaxPoints, updateProjectCounted,
+      updateProjectStudentNachschreiber, updateProjectStudentNachschreiberFields,
+      updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,

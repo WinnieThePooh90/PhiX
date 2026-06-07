@@ -17,6 +17,7 @@ export function buildCourseFullExportSheets({
   exams,
   orals,
   tests,
+  projects = {},
   gfsEntries,
   config,
 }) {
@@ -28,6 +29,7 @@ export function buildCourseFullExportSheets({
     exams,
     orals,
     tests,
+    projects,
     gfsEntries,
     config,
   });

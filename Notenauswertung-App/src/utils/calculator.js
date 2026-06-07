@@ -729,6 +729,26 @@ const getGfsGradeStatsForStudent = (studentId, gfsEntries, halbjahrFilter, grade
   return { gfsAvg: sum / count, gfsSum: sum, gfsCount: count };
 };
 
+/** Klausur-ähnliche Bewertung (Klausur, Projekt) für Teilmittelwerte. */
+const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGradingKeys) => {
+  if (!item?.active) return null;
+  if (halbjahrFilter && item.halbjahr !== halbjahrFilter) return null;
+
+  const rawScoreData = item.scores?.[studentId];
+  const explicitlyNotCounted =
+    rawScoreData &&
+    typeof rawScoreData === 'object' &&
+    rawScoreData._counted === false;
+  if (explicitlyNotCounted) return null;
+
+  const effN = getStudentEffectiveExamFieldCount(item, studentId);
+  const { counted } = getNormalizedExamScore(rawScoreData, effN);
+  if (!counted) return null;
+
+  const gManual = getExamGradeForStudent(item, studentId, customGradingKeys);
+  return Number.isFinite(gManual) ? gManual : 6.0;
+};
+
 export const calculateStudentGrades = (
   studentId,
   exams,
@@ -740,31 +760,23 @@ export const calculateStudentGrades = (
   customGradingKeys = null,
   gradeSystem = 'classic',
   testsWritten = true,
+  projects = {},
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   let examSum = 0;
   let examCount = 0;
   
   Object.values(exams).forEach((exam) => {
-    if (!exam.active) return;
-    if (halbjahrFilter && exam.halbjahr !== halbjahrFilter) return;
+    const g = getExamLikeGradeContribution(exam, studentId, halbjahrFilter, customGradingKeys);
+    if (g === null) return;
+    examSum += g;
+    examCount++;
+  });
 
-    const rawScoreData = exam.scores?.[studentId];
-    const explicitlyNotCounted =
-      rawScoreData &&
-      typeof rawScoreData === 'object' &&
-      rawScoreData._counted === false;
-    if (explicitlyNotCounted) return;
-
-    // Auch ohne eingetragene Aufgabenwerte gilt 0 Punkte (=> Note 6),
-    // sofern der Schüler nicht explizit auf "nicht teilgenommen" gesetzt ist.
-    const effN = getStudentEffectiveExamFieldCount(exam, studentId);
-    const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
-    if (!counted) return;
-
-    const gManual = getExamGradeForStudent(exam, studentId, customGradingKeys);
-    const g = Number.isFinite(gManual) ? gManual : 6.0;
-
+  Object.values(projects || {}).forEach((project) => {
+    if (project.weightingMode !== 'written') return;
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    if (g === null) return;
     examSum += g;
     examCount++;
   });
@@ -786,6 +798,14 @@ export const calculateStudentGrades = (
         }
       }
     }
+  });
+
+  Object.values(projects || {}).forEach((project) => {
+    if (project.weightingMode !== 'oral') return;
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    if (g === null) return;
+    oralSum += g;
+    oralCount++;
   });
 
   const oralAvg = oralCount > 0 ? oralSum / oralCount : null;
@@ -835,6 +855,22 @@ export const calculateStudentGrades = (
   const oral = Number.isFinite(rawOral) ? rawOral : (hasAnyValidWeight ? 0 : 1);
   const wTest = Number.isFinite(rawTests) ? rawTests : (hasAnyValidWeight ? 0 : 1);
 
+  let percentClassicAcc = 0;
+  let percentNpAcc = 0;
+  let totalPercentWeight = 0;
+  Object.values(projects || {}).forEach((project) => {
+    if (project.weightingMode !== 'percent') return;
+    const pct = Number(project.weightPercent);
+    if (!Number.isFinite(pct) || pct <= 0) return;
+    const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys);
+    if (g === null) return;
+    totalPercentWeight += pct;
+    percentClassicAcc += g * (pct / 100);
+    const np = gradeToNotenpunkte(g);
+    if (np !== null) percentNpAcc += np * (pct / 100);
+  });
+  const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
+
   let finalGrade = null;
 
   if (gs === 'points') {
@@ -862,8 +898,12 @@ export const calculateStudentGrades = (
       }
     }
     if (wSum > 0) {
-      const avgNp = npAcc / wSum;
+      const standardNp = (npAcc / wSum) * remainingFactor;
+      const avgNp = standardNp + percentNpAcc;
       const roundedNp = Math.round(Math.min(15, Math.max(0, avgNp)));
+      finalGrade = notenpunkteToGrade(roundedNp);
+    } else if (percentNpAcc > 0) {
+      const roundedNp = Math.round(Math.min(15, Math.max(0, percentNpAcc)));
       finalGrade = notenpunkteToGrade(roundedNp);
     }
   } else {
@@ -882,7 +922,9 @@ export const calculateStudentGrades = (
       wSum += wTest;
     }
     if (wSum > 0) {
-      finalGrade = classicAcc / wSum;
+      finalGrade = (classicAcc / wSum) * remainingFactor + percentClassicAcc;
+    } else if (percentClassicAcc > 0) {
+      finalGrade = percentClassicAcc;
     }
   }
 

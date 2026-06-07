@@ -81,6 +81,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     const [
       students,
       exams,
+      projects,
       orals,
       tests,
       gfsEntries,
@@ -95,6 +96,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     ] = await Promise.all([
       prisma.student.findMany({ where: inCourses }),
       prisma.exam.findMany({ where: inCourses }),
+      prisma.project.findMany({ where: inCourses }),
       prisma.oral.findMany({ where: inCourses }),
       prisma.test.findMany({ where: inCourses }),
       prisma.gfsEntry.findMany({ where: inCourses }),
@@ -113,6 +115,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     ]);
     updated += await encryptModelRows(prisma, 'Student', students, dek);
     updated += await encryptModelRows(prisma, 'Exam', exams, dek);
+    updated += await encryptModelRows(prisma, 'Project', projects, dek);
     updated += await encryptModelRows(prisma, 'Oral', orals, dek);
     updated += await encryptModelRows(prisma, 'Test', tests, dek);
     updated += await encryptModelRows(prisma, 'GfsEntry', gfsEntries, dek);

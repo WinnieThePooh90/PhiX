@@ -29,6 +29,7 @@ import KlassenlehrerView from './views/KlassenlehrerView';
 import ExamsView from './views/ExamsView';
 import OralView from './views/OralView';
 import TestsView from './views/TestsView';
+import ProjectsView from './views/ProjectsView';
 import GfsView from './views/GfsView';
 import SummaryView from './views/SummaryView';
 import KeysView from './views/KeysView';
@@ -356,6 +357,8 @@ function App() {
         return <OralView studentIdFilterSet={studentIdFilterSet} />;
       case 'tests':
         return <TestsView studentIdFilterSet={studentIdFilterSet} />;
+      case 'projects':
+        return <ProjectsView studentIdFilterSet={studentIdFilterSet} />;
       case 'gfs':
         return <GfsView />;
       case 'summary':
@@ -419,6 +422,7 @@ function App() {
     activeTab === 'exams' ||
     activeTab === 'oral' ||
     activeTab === 'tests' ||
+    activeTab === 'projects' ||
     activeTab === 'gfs';
 
   const settingsTabActive =
@@ -506,6 +510,9 @@ function App() {
           Tests
         </button>
       )}
+      <button type="button" className={`tab ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => setActiveTab('projects')}>
+        Projekte
+      </button>
       {showGfsTab && (
         <button type="button" className={`tab ${activeTab === 'gfs' ? 'active' : ''}`} onClick={() => setActiveTab('gfs')}>
           GFS

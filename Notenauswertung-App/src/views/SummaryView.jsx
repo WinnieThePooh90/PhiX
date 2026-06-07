@@ -105,7 +105,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
 }
 
 export default function SummaryView({ studentIdFilterSet = null }) {
-  const { students, exams, orals, tests, gfsEntries, config, setConfig, updateStudentConfig } = useData();
+  const { students, exams, orals, tests, projects, gfsEntries, config, setConfig, updateStudentConfig } = useData();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -234,6 +234,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                 customGradingKeys,
                 gradeSys,
                 config.testsWritten !== false,
+                projects,
               );
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
               const isExpanded = expandedStudentId === s.id;
@@ -317,6 +318,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                               customGradingKeys,
                               gradeSys,
                               config.testsWritten !== false,
+                              projects,
                             );
                             const rounded = finalGrade !== null ? Math.round(finalGrade) : null;
                             
