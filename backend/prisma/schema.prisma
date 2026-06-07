@@ -74,6 +74,8 @@ model Course {
   testsWritten Boolean @default(true)
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
+  /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */
+  projectsAccepted Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   /** Wenn true: Menüleiste im Tab Projekte eingeklappt (nur Tabellen sichtbar). */

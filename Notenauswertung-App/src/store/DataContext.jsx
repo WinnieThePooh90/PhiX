@@ -1135,6 +1135,7 @@ export const DataProvider = ({ children }) => {
     gradeScope = 'individual',
     groups = {},
   } = {}) => {
+    if (config?.projectsAccepted !== true) return null;
     const projectNumbers = Object.keys(projects).map(Number);
     const nextNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
     const gs = normalizeCourseGradeSystem(config?.gradeSystem);

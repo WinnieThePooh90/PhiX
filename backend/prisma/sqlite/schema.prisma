@@ -71,6 +71,7 @@ model Course {
   customGradingKeys Json @default("[]")
   testsWritten Boolean @default(true)
   gfsAccepted Boolean @default(true)
+  projectsAccepted Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)

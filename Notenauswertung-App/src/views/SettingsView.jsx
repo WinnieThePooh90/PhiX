@@ -334,6 +334,12 @@ export default function SettingsView() {
                   GFS werden angenommen
                 </PhixCheckboxOption>
                 <PhixCheckboxOption
+                  checked={config.projectsAccepted === true}
+                  onChange={(e) => setConfig((c) => ({ ...c, projectsAccepted: e.target.checked }))}
+                >
+                  Projekte werden durchgeführt
+                </PhixCheckboxOption>
+                <PhixCheckboxOption
                   checked={config.klassenlehrerEnabled === true}
                   onChange={(e) => setConfig((c) => ({ ...c, klassenlehrerEnabled: e.target.checked }))}
                 >

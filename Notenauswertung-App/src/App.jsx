@@ -163,14 +163,16 @@ function App() {
   const hasActiveCourse = Boolean(config);
   const showTestsTab = config?.testsWritten !== false;
   const showGfsTab = config?.gfsAccepted !== false;
+  const showProjectsTab = config?.projectsAccepted === true;
   const showKlassenlehrerMenu = config?.klassenlehrerEnabled === true;
   const showEmptyCoursePrompt = !hasActiveCourse && !TABS_WITHOUT_COURSE.has(activeTab);
 
   useEffect(() => {
     if (!showTestsTab && activeTab === 'tests') setActiveTab('summary', { replace: true });
     if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary', { replace: true });
+    if (!showProjectsTab && activeTab === 'projects') setActiveTab('summary', { replace: true });
     if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary', { replace: true });
-  }, [showTestsTab, showGfsTab, showKlassenlehrerMenu, activeTab]);
+  }, [showTestsTab, showGfsTab, showProjectsTab, showKlassenlehrerMenu, activeTab]);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MEDIA);
@@ -340,6 +342,7 @@ function App() {
     headerSearch,
     showTestsTab,
     showGfsTab,
+    showProjectsTab,
     showKlassenlehrerMenu,
   ]);
 
@@ -422,7 +425,7 @@ function App() {
     activeTab === 'exams' ||
     activeTab === 'oral' ||
     activeTab === 'tests' ||
-    activeTab === 'projects' ||
+    (showProjectsTab && activeTab === 'projects') ||
     activeTab === 'gfs';
 
   const settingsTabActive =
@@ -510,9 +513,11 @@ function App() {
           Tests
         </button>
       )}
-      <button type="button" className={`tab ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => setActiveTab('projects')}>
-        Projekte
-      </button>
+      {showProjectsTab && (
+        <button type="button" className={`tab ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => setActiveTab('projects')}>
+          Projekte
+        </button>
+      )}
       {showGfsTab && (
         <button type="button" className={`tab ${activeTab === 'gfs' ? 'active' : ''}`} onClick={() => setActiveTab('gfs')}>
           GFS

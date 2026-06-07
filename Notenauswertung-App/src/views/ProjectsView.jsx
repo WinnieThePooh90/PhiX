@@ -134,6 +134,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
+  const projectsAllowed = config?.projectsAccepted === true;
   const projectNumbers = Object.keys(projects).sort((a, b) => Number(a) - Number(b));
   const [activeProject, setActiveProject] = useState(projectNumbers.length > 0 ? projectNumbers[0] : null);
   const [showKey, setShowKey] = useState(false);
@@ -255,6 +256,16 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
       setCreateSubmitting(false);
     }
   };
+
+  if (!projectsAllowed) {
+    return (
+      <div className="text-center mt-8 text-muted">
+        Für dieses Fach sind keine Projekte vorgesehen.
+        <br />
+        Aktiviere unter Einstellungen die Option „Projekte werden durchgeführt“, um Projekte anzulegen.
+      </div>
+    );
+  }
 
   if (!project) {
     return (

@@ -23,6 +23,7 @@ export default function NewCourseForm() {
     gradeSystem: 'classic',
     testsWritten: false,
     gfsAccepted: true,
+    projectsAccepted: false,
     klassenlehrerEnabled: false,
   });
 
@@ -167,6 +168,12 @@ export default function NewCourseForm() {
             onChange={(e) => setNewCourse((p) => ({ ...p, gfsAccepted: e.target.checked }))}
           >
             GFS werden angenommen
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={newCourse.projectsAccepted === true}
+            onChange={(e) => setNewCourse((p) => ({ ...p, projectsAccepted: e.target.checked }))}
+          >
+            Projekte werden durchgeführt
           </PhixCheckboxOption>
           <PhixCheckboxOption
             checked={newCourse.klassenlehrerEnabled === true}
