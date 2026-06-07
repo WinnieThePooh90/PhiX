@@ -2944,6 +2944,24 @@ a.support-phix-paypal-btn:active {
   justify-content: flex-end;
 }
 
+.projects-meta-settings__row--split {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.projects-meta-settings__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.projects-meta-settings__group--end {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
 .projects-meta-settings__row--description .course-meta-field {
   flex: 1 1 100%;
   width: 100%;

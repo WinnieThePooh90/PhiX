@@ -13,10 +13,46 @@ import {
   getNormalizedOralGrade,
   getNormalizedTestScore,
   getCustomKeyDefinition,
+  getProjectGradeForStudent,
+  getStudentEffectiveProjectFieldCount,
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection from '../components/MaximizableTableSection';
+
+function isProjectScoreCounted(project, studentId) {
+  if (!project?.active) return false;
+  const raw = project.scores?.[studentId];
+  if (raw && typeof raw === 'object' && raw._counted === false) return false;
+  const { counted } = getNormalizedExamScore(raw, getStudentEffectiveProjectFieldCount(project, studentId));
+  return counted;
+}
+
+function filterProjectsForSummary(projects, weightingMode, halbjahrFilter) {
+  return Object.entries(projects || {})
+    .filter(([_, p]) => p.active && (p.weightingMode || 'written') === weightingMode && (!halbjahrFilter || p.halbjahr === halbjahrFilter))
+    .sort(([a], [b]) => Number(a) - Number(b));
+}
+
+function renderProjectListItems(projectEntries, studentId, customGradingKeys, gradeSys, gfmt, showPercent = false) {
+  return projectEntries.map(([id, p]) => {
+    const counted = isProjectScoreCounted(p, studentId);
+    const gr = getProjectGradeForStudent(p, studentId, customGradingKeys, gradeSys);
+    const pct =
+      showPercent && Number.isFinite(Number(p.weightPercent)) && Number(p.weightPercent) > 0
+        ? ` (${p.weightPercent}%)`
+        : '';
+    const label = `${p.name || `Projekt ${id}`}${pct}`;
+    return (
+      <li key={`proj-${id}`} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{label}:</span>
+        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>
+          {counted && gr !== null ? gfmt(gr) : '-'}
+        </strong>
+      </li>
+    );
+  });
+}
 
 /** Anzeige im Eingabefeld: gespeicherten Wert mit Komma */
 function summaryEndNoteInputDisplay(raw) {
@@ -321,7 +357,10 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                               projects,
                             );
                             const rounded = finalGrade !== null ? Math.round(finalGrade) : null;
-                            
+                            const writtenProjects = filterProjectsForSummary(projects, 'written', cat.filter);
+                            const oralProjects = filterProjectsForSummary(projects, 'oral', cat.filter);
+                            const percentProjects = filterProjectsForSummary(projects, 'percent', cat.filter);
+
                             return (
                               <div key={catIdx} style={{ borderRight: catIdx < 2 ? '1px solid var(--border)' : 'none', paddingRight: catIdx < 2 ? '1.5rem' : 0 }}>
                                 <div style={{ marginBottom: '1.25rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>
@@ -336,7 +375,9 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                 <div className="mb-4">
                                   <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Schriftlich ({gfmt(examAvg)})
-                                    <span style={{ fontWeight: 'normal', fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>Klausuren + GFS</span>
+                                    <span style={{ fontWeight: 'normal', fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
+                                      {writtenProjects.length > 0 ? 'Klausuren, GFS & Projekte' : 'Klausuren + GFS'}
+                                    </span>
                                   </h4>
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(exams).filter(([_, e]) => e.active && (!cat.filter || e.halbjahr === cat.filter)).map(([id, e]) => {
@@ -365,11 +406,17 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                           </li>
                                         );
                                       })}
+                                    {renderProjectListItems(writtenProjects, s.id, customGradingKeys, gradeSys, gfmt)}
                                   </ul>
                                 </div>
 
                                 <div className="mb-4">
-                                  <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mündlich ({gfmt(oralAvg)})</h4>
+                                  <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Mündlich ({gfmt(oralAvg)})
+                                    {oralProjects.length > 0 && (
+                                      <span style={{ fontWeight: 'normal', fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>inkl. Projekte</span>
+                                    )}
+                                  </h4>
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(orals).filter(([_, o]) => o.active !== false && (!cat.filter || o.halbjahr === cat.filter)).map(([id, o]) => {
                                       const { value, counted } = getNormalizedOralGrade(o.grades[s.id]);
@@ -381,6 +428,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                         </li>
                                       );
                                     })}
+                                    {renderProjectListItems(oralProjects, s.id, customGradingKeys, gradeSys, gfmt)}
                                   </ul>
                                 </div>
 
@@ -413,6 +461,26 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                             </li>
                                           );
                                         })}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {percentProjects.length > 0 && (
+                                  <div>
+                                    <h4
+                                      style={{
+                                        color: 'var(--text-main)',
+                                        marginBottom: '0.5rem',
+                                        fontSize: '0.9rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        marginTop: config.testsWritten !== false ? '1rem' : 0,
+                                      }}
+                                    >
+                                      Projekte (prozentual)
+                                    </h4>
+                                    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                      {renderProjectListItems(percentProjects, s.id, customGradingKeys, gradeSys, gfmt, true)}
                                     </ul>
                                   </div>
                                 )}
