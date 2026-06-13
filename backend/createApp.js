@@ -20,6 +20,7 @@ const { createCryptoSession, destroyCryptoSession, getCryptoSession, updateSessi
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
 const { getDekFromContext } = require('./lib/crypto-context');
+const { decryptKlassenlehrerListEntry } = require('./lib/encrypted-fields');
 const {
   createUserCryptoRecord,
   migratePlaintextForOwner,
@@ -1384,6 +1385,10 @@ function parseExternalPersonNames(body) {
   return { firstName, lastName };
 }
 
+function prepareListEntry(entry, entryModelName) {
+  return decryptKlassenlehrerListEntry(getDekFromContext(), entry, entryModelName);
+}
+
 function mapSerializedListEntry(e, statusField) {
   const isExternal = e.studentId == null;
   const row = {
@@ -1446,7 +1451,7 @@ function parseOptionalSessionDate(raw) {
 
 function serializeMoneyList(list) {
   const entries = sortSerializedListEntries(
-    (list.entries || []).map((e) => mapSerializedListEntry(e, 'paid')),
+    (list.entries || []).map((e) => mapSerializedListEntry(prepareListEntry(e, 'MoneyListEntry'), 'paid')),
   );
   return {
     id: list.id,
@@ -1631,7 +1636,7 @@ app.put('/api/money-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({ ...mapSerializedListEntry(updated, 'paid'), moneyListId: updated.moneyListId });
+  res.json({ ...mapSerializedListEntry(prepareListEntry(updated, 'MoneyListEntry'), 'paid'), moneyListId: updated.moneyListId });
 });
 
 app.post('/api/money-lists/:id/external-entries', async (req, res) => {
@@ -1660,7 +1665,7 @@ app.post('/api/money-lists/:id/external-entries', async (req, res) => {
     include: { student: true },
   });
 
-  res.status(201).json({ ...mapSerializedListEntry(entry, 'paid'), moneyListId: entry.moneyListId });
+  res.status(201).json({ ...mapSerializedListEntry(prepareListEntry(entry, 'MoneyListEntry'), 'paid'), moneyListId: entry.moneyListId });
 });
 
 app.delete('/api/money-list-entries/:id', async (req, res) => {
@@ -1684,7 +1689,7 @@ app.delete('/api/money-list-entries/:id', async (req, res) => {
 
 function serializeAttendanceList(list) {
   const entries = sortSerializedListEntries(
-    (list.entries || []).map((e) => mapSerializedListEntry(e, 'present')),
+    (list.entries || []).map((e) => mapSerializedListEntry(prepareListEntry(e, 'AttendanceListEntry'), 'present')),
   );
   return {
     id: list.id,
@@ -1850,7 +1855,7 @@ app.put('/api/attendance-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({ ...mapSerializedListEntry(updated, 'present'), attendanceListId: updated.attendanceListId });
+  res.json({ ...mapSerializedListEntry(prepareListEntry(updated, 'AttendanceListEntry'), 'present'), attendanceListId: updated.attendanceListId });
 });
 
 app.post('/api/attendance-lists/:id/external-entries', async (req, res) => {
@@ -1879,7 +1884,7 @@ app.post('/api/attendance-lists/:id/external-entries', async (req, res) => {
     include: { student: true },
   });
 
-  res.status(201).json({ ...mapSerializedListEntry(entry, 'present'), attendanceListId: entry.attendanceListId });
+  res.status(201).json({ ...mapSerializedListEntry(prepareListEntry(entry, 'AttendanceListEntry'), 'present'), attendanceListId: entry.attendanceListId });
 });
 
 app.delete('/api/attendance-list-entries/:id', async (req, res) => {
@@ -1903,7 +1908,7 @@ app.delete('/api/attendance-list-entries/:id', async (req, res) => {
 
 function serializeCollectionList(list) {
   const entries = sortSerializedListEntries(
-    (list.entries || []).map((e) => mapSerializedListEntry(e, 'collected')),
+    (list.entries || []).map((e) => mapSerializedListEntry(prepareListEntry(e, 'CollectionListEntry'), 'collected')),
   );
   return {
     id: list.id,
@@ -2069,7 +2074,7 @@ app.put('/api/collection-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({ ...mapSerializedListEntry(updated, 'collected'), collectionListId: updated.collectionListId });
+  res.json({ ...mapSerializedListEntry(prepareListEntry(updated, 'CollectionListEntry'), 'collected'), collectionListId: updated.collectionListId });
 });
 
 app.post('/api/collection-lists/:id/external-entries', async (req, res) => {
@@ -2098,7 +2103,7 @@ app.post('/api/collection-lists/:id/external-entries', async (req, res) => {
     include: { student: true },
   });
 
-  res.status(201).json({ ...mapSerializedListEntry(entry, 'collected'), collectionListId: entry.collectionListId });
+  res.status(201).json({ ...mapSerializedListEntry(prepareListEntry(entry, 'CollectionListEntry'), 'collected'), collectionListId: entry.collectionListId });
 });
 
 app.delete('/api/collection-list-entries/:id', async (req, res) => {
@@ -2121,7 +2126,9 @@ app.delete('/api/collection-list-entries/:id', async (req, res) => {
 });
 
 function serializeNotesList(list) {
-  const entries = sortSerializedListEntries((list.entries || []).map(mapSerializedNotesListEntry));
+  const entries = sortSerializedListEntries(
+    (list.entries || []).map((e) => mapSerializedNotesListEntry(prepareListEntry(e, 'NotesListEntry'))),
+  );
   return {
     id: list.id,
     subject: list.subject,
@@ -2288,7 +2295,7 @@ app.put('/api/notes-list-entries/:id', async (req, res) => {
     include: { student: true },
   });
 
-  res.json({ ...mapSerializedNotesListEntry(updated), notesListId: updated.notesListId });
+  res.json({ ...mapSerializedNotesListEntry(prepareListEntry(updated, 'NotesListEntry')), notesListId: updated.notesListId });
 });
 
 app.post('/api/notes-lists/:id/external-entries', async (req, res) => {
@@ -2317,7 +2324,7 @@ app.post('/api/notes-lists/:id/external-entries', async (req, res) => {
     include: { student: true },
   });
 
-  res.status(201).json({ ...mapSerializedNotesListEntry(entry), notesListId: entry.notesListId });
+  res.status(201).json({ ...mapSerializedNotesListEntry(prepareListEntry(entry, 'NotesListEntry')), notesListId: entry.notesListId });
 });
 
 app.delete('/api/notes-list-entries/:id', async (req, res) => {
