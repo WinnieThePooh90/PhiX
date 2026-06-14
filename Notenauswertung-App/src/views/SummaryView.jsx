@@ -20,7 +20,7 @@ import {
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
-import MaximizableTableSection from '../components/MaximizableTableSection';
+import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 
 function isProjectScoreCounted(project, studentId) {
   if (!project?.active) return false;
@@ -373,6 +373,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
+  const [overviewMaximized, setOverviewMaximized] = useState(false);
   const showHJ1 = config?.summaryShowHJ1 !== false;
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
@@ -419,17 +420,27 @@ export default function SummaryView({ studentIdFilterSet = null }) {
             </label>
           </div>
         </div>
-        <button
-          type="button"
-          className="tab secondary course-meta-inline-btn"
-          onClick={() => setFormulaModalOpen(true)}
-          title="Berechnungsvorschrift und Erläuterungen zur Endnote"
-          style={{ whiteSpace: 'nowrap', marginLeft: 'auto' }}
-        >
-          Info
-        </button>
+        <div className="summary-overview-toolbar-actions">
+          <button
+            type="button"
+            className="tab secondary course-meta-inline-btn"
+            onClick={() => setFormulaModalOpen(true)}
+            title="Berechnungsvorschrift und Erläuterungen zur Endnote"
+          >
+            Info
+          </button>
+          <TableMaximizeToggle
+            maximized={overviewMaximized}
+            onClick={() => setOverviewMaximized((m) => !m)}
+          />
+        </div>
       </div>
-      <MaximizableTableSection title="Gesamtübersicht">
+      <MaximizableTableSection
+        title="Gesamtübersicht"
+        maximized={overviewMaximized}
+        onMaximizedChange={setOverviewMaximized}
+        embeddedToggle
+      >
       {!hasValidWeighting && (
         <div
           role="status"

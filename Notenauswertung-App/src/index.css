@@ -1392,7 +1392,7 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
       var(--course-header-name-size) * var(--course-header-name-lh) +
       var(--course-header-meta-gap) +
       var(--course-header-meta-size) * var(--course-header-meta-lh)
-    ) / 2
+    ) * 0.75
   );
   aspect-ratio: 1;
 }
@@ -3147,6 +3147,19 @@ a.support-phix-paypal-btn:active {
   font-size: 0.875rem;
   line-height: 1.2;
   font-weight: 600;
+}
+
+.summary-overview-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.table-max-host__toolbar--embedded-hidden {
+  display: none;
 }
 
 /* Schülerverwaltung: Buttons auf Höhe der Eingabefelder (nicht der Label-Zeile) */

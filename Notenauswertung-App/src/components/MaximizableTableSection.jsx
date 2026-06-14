@@ -55,13 +55,55 @@ function syncMKeyListener() {
   }
 }
 
-export default function MaximizableTableSection({ children, title = 'Tabelle' }) {
-  const [maximized, setMaximized] = useState(false);
+export function TableMaximizeToggle({
+  maximized,
+  onClick,
+  className = 'tab secondary course-meta-inline-btn',
+}) {
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={onClick}
+      aria-label={maximized ? 'Tabelle verkleinern' : 'Tabelle maximieren'}
+      aria-keyshortcuts="M"
+      title={maximized ? 'Verkleinern (Esc oder M)' : 'Vollbild (M)'}
+    >
+      {maximized ? (
+        <Minimize2 size={16} strokeWidth={2} aria-hidden />
+      ) : (
+        <Maximize2 size={16} strokeWidth={2} aria-hidden />
+      )}
+    </button>
+  );
+}
+
+export default function MaximizableTableSection({
+  children,
+  title = 'Tabelle',
+  maximized: maximizedProp,
+  onMaximizedChange,
+  embeddedToggle = false,
+}) {
+  const [maximizedInternal, setMaximizedInternal] = useState(false);
+  const isControlled = maximizedProp !== undefined;
+  const maximized = isControlled ? maximizedProp : maximizedInternal;
   const hostRef = useRef(null);
   const [floatBtnStyle, setFloatBtnStyle] = useState(null);
 
+  const setMaximized = useCallback(
+    (value) => {
+      const next = typeof value === 'function' ? value(maximized) : value;
+      if (isControlled) onMaximizedChange?.(next);
+      else setMaximizedInternal(next);
+    },
+    [isControlled, maximized, onMaximizedChange],
+  );
+
+  const useFloatingToggle = !embeddedToggle || maximized;
+
   const syncFloatButton = useCallback(() => {
-    if (maximized) {
+    if (!useFloatingToggle || maximized) {
       setFloatBtnStyle(null);
       return;
     }
@@ -75,7 +117,6 @@ export default function MaximizableTableSection({ children, title = 'Tabelle' })
     const sr = scrollEl.getBoundingClientRect();
     const cs = window.getComputedStyle(scrollEl);
     const borderTop = parseFloat(cs.borderTopWidth) || 0;
-    /* Deutlich über Kante + Rahmen, damit Track/Thumb nicht mehr unter dem Button liegt */
     const liftPx = 18;
     const padX = 2;
     setFloatBtnStyle({
@@ -85,10 +126,10 @@ export default function MaximizableTableSection({ children, title = 'Tabelle' })
       zIndex: 45,
       transform: 'translateY(-4px)',
     });
-  }, [maximized]);
+  }, [maximized, useFloatingToggle]);
 
   useLayoutEffect(() => {
-    if (maximized) {
+    if (!useFloatingToggle || maximized) {
       setFloatBtnStyle(null);
       return undefined;
     }
@@ -120,11 +161,11 @@ export default function MaximizableTableSection({ children, title = 'Tabelle' })
       window.removeEventListener('resize', scheduleSync);
       window.removeEventListener('scroll', scheduleSync, { capture: true });
     };
-  }, [maximized, syncFloatButton]);
+  }, [maximized, syncFloatButton, useFloatingToggle]);
 
   const toggle = useCallback(() => {
     setMaximized((m) => !m);
-  }, []);
+  }, [setMaximized]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -160,23 +201,25 @@ export default function MaximizableTableSection({ children, title = 'Tabelle' })
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
     };
-  }, [maximized]);
+  }, [maximized, setMaximized]);
 
   return (
     <div ref={hostRef} className={`table-max-host${maximized ? ' table-max-host--maximized' : ''}`}>
-      <div className="table-max-host__toolbar">
+      <div className={`table-max-host__toolbar${embeddedToggle && !maximized ? ' table-max-host__toolbar--embedded-hidden' : ''}`}>
         <span className="table-max-host__title">{title}</span>
-        <button
-          type="button"
-          className="table-max-host__toggle"
-          style={!maximized && floatBtnStyle ? floatBtnStyle : undefined}
-          onClick={toggle}
-          aria-label={maximized ? 'Tabelle verkleinern' : 'Tabelle maximieren'}
-          aria-keyshortcuts="M"
-          title={maximized ? 'Verkleinern (Esc oder M)' : 'Vollbild (M)'}
-        >
-          {maximized ? <Minimize2 size={18} strokeWidth={2} aria-hidden /> : <Maximize2 size={12} strokeWidth={2} aria-hidden />}
-        </button>
+        {useFloatingToggle ? (
+          <button
+            type="button"
+            className="table-max-host__toggle"
+            style={!maximized && floatBtnStyle ? floatBtnStyle : undefined}
+            onClick={toggle}
+            aria-label={maximized ? 'Tabelle verkleinern' : 'Tabelle maximieren'}
+            aria-keyshortcuts="M"
+            title={maximized ? 'Verkleinern (Esc oder M)' : 'Vollbild (M)'}
+          >
+            {maximized ? <Minimize2 size={18} strokeWidth={2} aria-hidden /> : <Maximize2 size={12} strokeWidth={2} aria-hidden />}
+          </button>
+        ) : null}
       </div>
       <div className="table-max-host__body">{children}</div>
     </div>
