@@ -18,6 +18,20 @@ export const EXAM_ABS_MAX_FIELDS = 100;
 
 const isExamFieldIndexKey = (k) => /^\d+$/.test(String(k));
 
+/** Deutsche und englische Dezimalschreibweise (z. B. „0,5“ oder „3.5“). */
+export const parseLocalizedDecimal = (raw, fallback = NaN) => {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : fallback;
+  const n = parseFloat(String(raw).trim().replace(/\s/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : fallback;
+};
+
+/** Punktefeld: leer oder ungültig → 0. */
+export const parseScorePointsValue = (raw) => {
+  const n = parseLocalizedDecimal(raw, NaN);
+  return Number.isFinite(n) ? n : 0;
+};
+
 /**
  * @param {unknown} scoreData
  * @param {number|null|undefined} maxFieldCount — nur Felder 0 .. maxFieldCount-1 in die Summe (Nachschreiber); weglassen = alle numerischen Feldschlüssel wie bisher
@@ -33,10 +47,10 @@ export const getNormalizedExamScore = (scoreData, maxFieldCount = null) => {
         if (maxFieldCount == null || maxFieldCount === undefined) return true;
         return parseInt(k, 10) < maxFieldCount;
       })
-      .reduce((sum, [_, v]) => sum + (parseFloat(v) || 0), 0);
+      .reduce((sum, [_, v]) => sum + parseScorePointsValue(v), 0);
     return { fields: scoreData, counted, total };
   }
-  return { fields: { 0: scoreData }, counted: true, total: parseFloat(scoreData) || 0 };
+  return { fields: { 0: scoreData }, counted: true, total: parseScorePointsValue(scoreData) };
 };
 
 /** Anzahl Aufgabenfelder für die Berechnung (Nachschreiber kann über exam.numFields hinausgehen) */
@@ -114,10 +128,10 @@ const getProjectMaxPointsForFieldCount = (project, n) => {
   const baseN = getProjectNumFields(project);
   let sum = 0;
   for (let i = 0; i < n; i += 1) {
-    sum += parseFloat(project.fieldMaxPoints?.[i]) || 0;
+    sum += parseScorePointsValue(project.fieldMaxPoints?.[i]);
   }
   if (sum <= 0) {
-    if (n <= baseN) return parseFloat(project.maxPoints) || 0;
+    if (n <= baseN) return parseScorePointsValue(project.maxPoints);
     return 0;
   }
   return sum;
@@ -139,10 +153,10 @@ export const getStudentExamMaxPointsForGrade = (exam, studentId) => {
   const baseN = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam.numFields || 1));
   let sum = 0;
   for (let i = 0; i < n; i += 1) {
-    sum += parseFloat(exam.fieldMaxPoints?.[i]) || 0;
+    sum += parseScorePointsValue(exam.fieldMaxPoints?.[i]);
   }
   if (sum <= 0) {
-    if (n <= baseN) return parseFloat(exam.maxPoints) || 0;
+    if (n <= baseN) return parseScorePointsValue(exam.maxPoints);
     return 0;
   }
   return sum;
@@ -693,8 +707,8 @@ function gradeFromThreeAnchors(percent, percent1, percent2, percent4) {
 // optional customKey: { bands: [{ g, lo, hi }] } — überschreibt type/override für die Umrechnung
 export const calculateGradeFromThresholds = (points, maxPoints, type, overrideThresholds = null, customKey = null) => {
   if (points === null || points === undefined || points === '') return null;
-  const p = parseFloat(points);
-  const max = parseFloat(maxPoints);
+  const p = parseLocalizedDecimal(points, NaN);
+  const max = parseLocalizedDecimal(maxPoints, NaN);
   // Kein gültiger Maßstab: bei gültiger Punktzahl (z. B. 0) Note 6 — sonst keine Note.
   if (max <= 0) {
     return Number.isFinite(p) ? 6.0 : null;
@@ -848,10 +862,10 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
     const baseN = getProjectNumFields(project);
     let sum = 0;
     for (let i = 0; i < effN; i += 1) {
-      sum += parseFloat(project.fieldMaxPoints?.[i]) || 0;
+      sum += parseScorePointsValue(project.fieldMaxPoints?.[i]);
     }
     if (sum <= 0) {
-      if (effN <= baseN) return parseFloat(project.maxPoints) || 0;
+      if (effN <= baseN) return parseScorePointsValue(project.maxPoints);
       return 0;
     }
     return sum;

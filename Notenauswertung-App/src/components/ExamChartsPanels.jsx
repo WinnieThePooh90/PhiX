@@ -6,6 +6,7 @@ import {
   gradeToNotenpunkte,
   notenpunkteToGrade,
   normalizeCourseGradeSystem,
+  parseScorePointsValue,
 } from '../utils/calculator';
 
 function barColorForClassicRounded(rounded1to6) {
@@ -571,12 +572,12 @@ export default function ExamChartsPanels({
             }}
           >
             {[...Array(displayFieldCount)].map((_, i) => {
-              const maxForTask = parseFloat(exam.fieldMaxPoints[i]) || 0;
+              const maxForTask = parseScorePointsValue(exam.fieldMaxPoints[i]);
               const totalAchieved = students.reduce((acc, s) => {
                 const effN = getStudentEffectiveExamFieldCount(exam, s.id);
                 if (i >= effN) return acc;
                 const { counted, fields } = getNormalizedExamScore(exam.scores?.[s.id], effN);
-                if (counted) return acc + (parseFloat(fields[i]) || 0);
+                if (counted) return acc + parseScorePointsValue(fields[i]);
                 return acc;
               }, 0);
 

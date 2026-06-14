@@ -6,6 +6,7 @@ import {
   migrateStoredGradeString,
   migrateOralGradeEntry,
   normalizeCourseGradeSystem,
+  parseScorePointsValue,
 } from '../utils/calculator';
 import { sortSchoolYears } from '../utils/schoolYear';
 import { apiFetch } from '../utils/apiBase';
@@ -610,7 +611,7 @@ export const DataProvider = ({ children }) => {
       const nf = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam.numFields || 1));
       let totalMax = 0;
       for (let i = 0; i < nf; i += 1) {
-        totalMax += parseFloat(newFieldMax[i]) || 0;
+        totalMax += parseScorePointsValue(newFieldMax[i]);
       }
 
       const newExam = {
@@ -1228,7 +1229,7 @@ export const DataProvider = ({ children }) => {
       const nf = Math.max(0, Math.min(EXAM_ABS_MAX_FIELDS, Number(project.numFields) || 0));
       let totalMax = 0;
       for (let i = 0; i < nf; i += 1) {
-        totalMax += parseFloat(newFieldMax[i]) || 0;
+        totalMax += parseScorePointsValue(newFieldMax[i]);
       }
       const newProject = {
         ...project,

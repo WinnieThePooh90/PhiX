@@ -19,6 +19,7 @@ import {
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
   classicGradeToStoredString,
+  parseScorePointsValue,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import GradingKeyTable from '../components/GradingKeyTable';
@@ -30,9 +31,11 @@ import { useDialog } from '../components/PhixDialog';
 const getSum = (scoreData) => {
   if (!scoreData) return 0;
   if (typeof scoreData === 'object') {
-    return Object.values(scoreData).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+    return Object.entries(scoreData)
+      .filter(([k]) => /^\d+$/.test(String(k)))
+      .reduce((sum, [, v]) => sum + parseScorePointsValue(v), 0);
   }
-  return parseFloat(scoreData) || 0;
+  return parseScorePointsValue(scoreData);
 };
 
 /** Breite der #-Spalte; NAME klebt bei `left` gleich diesem Wert */
@@ -219,7 +222,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   };
 
   const handleMaxPointsChange = (fieldIndex, value) => {
-    updateExamFieldMaxPoints(activeKlausur, fieldIndex, parseFloat(value) || 0);
+    updateExamFieldMaxPoints(activeKlausur, fieldIndex, value);
   };
 
   const handleNumFieldsChange = (e) => {

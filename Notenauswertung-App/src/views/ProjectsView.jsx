@@ -962,7 +962,7 @@ function ProjectScoresTable({
                 <input
                   type="number"
                   value={project.fieldMaxPoints?.[i] ?? ''}
-                  onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, parseFloat(e.target.value) || 0)}
+                  onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, e.target.value)}
                   placeholder="0"
                   style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
                 />
