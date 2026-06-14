@@ -466,10 +466,17 @@ export default function OralView({ studentIdFilterSet = null }) {
               </div>
             </div>
           )}
-          <TableMaximizeToggle
-            maximized={tableMaximized}
-            onClick={() => setTableMaximized((m) => !m)}
-          />
+        </div>
+        <div className="course-meta-field projects-meta-maximize-field">
+          <span className="course-meta-field__label" aria-hidden="true">
+            &nbsp;
+          </span>
+          <div className="course-meta-field__row">
+            <TableMaximizeToggle
+              maximized={tableMaximized}
+              onClick={() => setTableMaximized((m) => !m)}
+            />
+          </div>
         </div>
           </>
         )}

@@ -3169,16 +3169,42 @@ a.support-phix-paypal-btn:active {
 .summary-overview-toolbar-actions,
 .view-toolbar-actions {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-left: auto;
   flex-shrink: 0;
 }
 
-.projects-meta-settings__actions {
-  width: 100%;
-  margin-top: 0.15rem;
+.projects-meta-maximize-field {
+  flex: 0 0 auto;
+}
+
+button.table-maximize-toggle-btn.course-meta-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  min-width: 1.875rem;
+  height: 1.875rem;
+  min-height: 1.875rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.course-meta-settings-row button.table-maximize-toggle-btn.course-meta-inline-btn,
+.projects-meta-settings button.table-maximize-toggle-btn.course-meta-inline-btn {
+  height: 1.875rem;
+  min-height: 1.875rem;
+  width: 1.875rem;
+  min-width: 1.875rem;
+  padding: 0;
+}
+
+.projects-meta-maximize-field .course-meta-field__row {
+  min-height: var(--course-meta-control-height);
+  align-items: center;
+  justify-content: center;
 }
 
 .table-max-host__toolbar--embedded-hidden {

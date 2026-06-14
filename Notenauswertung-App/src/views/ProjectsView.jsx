@@ -430,6 +430,19 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     <option value="manual">Manuell</option>
                   </select>
                 </div>
+                {project.active ? (
+                  <div className="course-meta-field projects-meta-maximize-field">
+                    <span className="course-meta-field__label" aria-hidden="true">
+                      &nbsp;
+                    </span>
+                    <div className="course-meta-field__row">
+                      <TableMaximizeToggle
+                        maximized={tableMaximized}
+                        onClick={() => setTableMaximized((m) => !m)}
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 {!projectManualGradeMode && (
                   <>
                     <div className="course-meta-field">
@@ -612,14 +625,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 />
               </div>
             </div>
-            {project.active ? (
-              <div className="view-toolbar-actions projects-meta-settings__actions">
-                <TableMaximizeToggle
-                  maximized={tableMaximized}
-                  onClick={() => setTableMaximized((m) => !m)}
-                />
-              </div>
-            ) : null}
           </div>
         </div>
         )}

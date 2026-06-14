@@ -58,7 +58,7 @@ function syncMKeyListener() {
 export function TableMaximizeToggle({
   maximized,
   onClick,
-  className = 'tab secondary course-meta-inline-btn',
+  className = 'tab secondary course-meta-inline-btn table-maximize-toggle-btn',
 }) {
   return (
     <button
@@ -70,9 +70,9 @@ export function TableMaximizeToggle({
       title={maximized ? 'Verkleinern (Esc oder M)' : 'Vollbild (M)'}
     >
       {maximized ? (
-        <Minimize2 size={16} strokeWidth={2} aria-hidden />
+        <Minimize2 size={14} strokeWidth={2} aria-hidden />
       ) : (
-        <Maximize2 size={16} strokeWidth={2} aria-hidden />
+        <Maximize2 size={14} strokeWidth={2} aria-hidden />
       )}
     </button>
   );
