@@ -26,6 +26,11 @@ import {
 import GradingKeyTable from '../components/GradingKeyTable';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
+import {
+  createScoreTaskTabHandler,
+  focusScoreTaskInput,
+  scoreTaskInputDataAttr,
+} from '../utils/scoreTaskTabNavigation';
 
 const PROJECT_INDEX_COL_PX = 52;
 
@@ -911,6 +916,7 @@ function ProjectScoresTable({
   showEmptyFilterHint,
 }) {
   const detailColSpan = 4 + displayFieldCount;
+  const scoreInputScope = `project-${activeProject}`;
 
   return (
     <div className="table-container">
@@ -1027,7 +1033,7 @@ function ProjectScoresTable({
                   </td>
                   <td
                     role="button"
-                    tabIndex={0}
+                    tabIndex={-1}
                     onClick={() => setExpandedScoreKey((prev) => (prev === scoreKey ? null : scoreKey))}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -1053,8 +1059,31 @@ function ProjectScoresTable({
                           <input
                             type="text"
                             inputMode="decimal"
+                            data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, scoreKey, fieldIndex)}
                             value={val}
                             onChange={(e) => updateProjectScore(activeProject, scoreKey, fieldIndex, e.target.value)}
+                            onKeyDown={createScoreTaskTabHandler({
+                              fieldIndex,
+                              effectiveFieldCount: effN,
+                              onTabForwardFromLastField: () => {
+                                const rowIdx = rows.findIndex((row) => row.scoreKey === scoreKey);
+                                const nextRow = rows[rowIdx + 1];
+                                if (!nextRow) return;
+                                const nextEffN = getProjectEffectiveFieldCountForScoreKey(project, nextRow.scoreKey);
+                                if (nextEffN > 0) {
+                                  focusScoreTaskInput(scoreInputScope, nextRow.scoreKey, 0);
+                                }
+                              },
+                              onShiftTabFromFirstField: () => {
+                                const rowIdx = rows.findIndex((row) => row.scoreKey === scoreKey);
+                                const prevRow = rows[rowIdx - 1];
+                                if (!prevRow) return;
+                                const prevEffN = getProjectEffectiveFieldCountForScoreKey(project, prevRow.scoreKey);
+                                if (prevEffN > 0) {
+                                  focusScoreTaskInput(scoreInputScope, prevRow.scoreKey, prevEffN - 1);
+                                }
+                              },
+                            })}
                             placeholder="0"
                             className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
                             style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}

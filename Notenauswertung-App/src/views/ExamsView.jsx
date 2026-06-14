@@ -26,6 +26,11 @@ import GradingKeyTable from '../components/GradingKeyTable';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
 import { useDialog } from '../components/PhixDialog';
+import {
+  createScoreTaskTabHandler,
+  focusScoreTaskInput,
+  scoreTaskInputDataAttr,
+} from '../utils/scoreTaskTabNavigation';
 
 // Hilfsfunktion: Berechnet die Summe aller Felder, falls die Scores ein Objekt sind.
 const getSum = (scoreData) => {
@@ -202,6 +207,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   
   const numFields = exam.numFields || 1;
   const displayFieldCount = getExamDisplayFieldCount(exam, displayStudents);
+  const scoreInputScope = `exam-${activeKlausur}`;
 
   const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, exam.keyType || '1');
@@ -529,7 +535,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                           </td>
                           <td
                             role="button"
-                            tabIndex={0}
+                            tabIndex={-1}
                             onClick={() => toggleStudentRow(s.id)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -562,8 +568,31 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                   <input
                                     type="text"
                                     inputMode="decimal"
+                                    data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, fieldIndex)}
                                     value={val}
                                     onChange={e => handleScoreChange(s.id, fieldIndex, e.target.value)}
+                                    onKeyDown={createScoreTaskTabHandler({
+                                      fieldIndex,
+                                      effectiveFieldCount: effN,
+                                      onTabForwardFromLastField: () => {
+                                        const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                        const nextStudent = displayStudents[rowIdx + 1];
+                                        if (!nextStudent) return;
+                                        const nextEffN = getStudentEffectiveExamFieldCount(exam, nextStudent.id);
+                                        if (nextEffN > 0) {
+                                          focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
+                                        }
+                                      },
+                                      onShiftTabFromFirstField: () => {
+                                        const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                        const prevStudent = displayStudents[rowIdx - 1];
+                                        if (!prevStudent) return;
+                                        const prevEffN = getStudentEffectiveExamFieldCount(exam, prevStudent.id);
+                                        if (prevEffN > 0) {
+                                          focusScoreTaskInput(scoreInputScope, prevStudent.id, prevEffN - 1);
+                                        }
+                                      },
+                                    })}
                                     placeholder="0"
                                     className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
                                     title={

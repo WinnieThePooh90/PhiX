@@ -21,6 +21,11 @@ import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimu
 import GradingKeyTable from '../components/GradingKeyTable';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
+import {
+  createScoreTaskTabHandler,
+  focusScoreTaskInput,
+  scoreTaskInputDataAttr,
+} from '../utils/scoreTaskTabNavigation';
 
 const TEST_INDEX_COL_PX = 52;
 const TEST_DETAIL_COL_SPAN = 5;
@@ -158,6 +163,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
   const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, test.keyType || '1');
   const maxPtsDisplay = Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0 ? parseFloat(test.maxPoints) : 10;
+  const scoreInputScope = `test-${activeTest}`;
 
   const testRowStats = useCallback(
     (studentId) => {
@@ -542,7 +548,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                               </td>
                               <td
                                 role="button"
-                                tabIndex={0}
+                                tabIndex={-1}
                                 onClick={() => toggleStudentRow(s.id)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
@@ -566,8 +572,27 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                 <input
                                   type="text"
                                   inputMode="decimal"
+                                  data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, 0)}
                                   value={pointsStr === undefined ? '' : pointsStr}
                                   onChange={(e) => handlePointsChange(s.id, e.target.value)}
+                                  onKeyDown={createScoreTaskTabHandler({
+                                    fieldIndex: 0,
+                                    effectiveFieldCount: 1,
+                                    onTabForwardFromLastField: () => {
+                                      const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                      const nextStudent = displayStudents[rowIdx + 1];
+                                      if (nextStudent) {
+                                        focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
+                                      }
+                                    },
+                                    onShiftTabFromFirstField: () => {
+                                      const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                      const prevStudent = displayStudents[rowIdx - 1];
+                                      if (prevStudent) {
+                                        focusScoreTaskInput(scoreInputScope, prevStudent.id, 0);
+                                      }
+                                    },
+                                  })}
                                   placeholder="0"
                                   className={pointsOut ? 'exam-score-input--out-of-range' : undefined}
                                   title={
