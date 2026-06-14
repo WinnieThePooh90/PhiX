@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
+import AppLogo from '../components/AppLogo';
 import { useAuth } from '../store/AuthContext';
 
 export default function LoginView({ onRecovery }) {
@@ -21,7 +22,10 @@ export default function LoginView({ onRecovery }) {
   return (
     <div className="app-login-screen">
       <div className="app-login-card">
-        <h1 className="app-login-title">{APP_NAME}</h1>
+        <div className="app-login-brand">
+          <AppLogo size={72} />
+          <h1 className="app-login-title">{APP_NAME}</h1>
+        </div>
         <p className="app-login-subtitle">Bitte anmelden</p>
         <form className="app-login-form" onSubmit={onSubmit}>
           <label className="app-login-label">

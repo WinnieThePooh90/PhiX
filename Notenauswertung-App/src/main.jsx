@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
+import AppLogo from './components/AppLogo';
 import LoginView from './views/LoginView';
 import RecoveryUnlockView from './views/RecoveryUnlockView';
 import CryptoSetupModal from './components/CryptoSetupModal';
@@ -28,7 +29,10 @@ function AuthenticatedApp() {
     return (
       <div className="app-login-screen" aria-busy="true" aria-live="polite">
         <div className="app-login-card">
-          <h1 className="app-login-title">{APP_NAME}</h1>
+          <div className="app-login-brand">
+            <AppLogo size={72} />
+            <h1 className="app-login-title">{APP_NAME}</h1>
+          </div>
           <p className="app-login-subtitle">Wird geladen…</p>
         </div>
       </div>
@@ -68,7 +72,10 @@ function AuthenticatedApp() {
       return (
         <div className="app-login-screen">
           <div className="app-login-card">
-            <h1 className="app-login-title">{APP_NAME}</h1>
+            <div className="app-login-brand">
+              <AppLogo size={72} />
+              <h1 className="app-login-title">{APP_NAME}</h1>
+            </div>
             <p className="app-login-subtitle">
               {pendingCryptoSetup.needsSetup
                 ? 'Bitte erneut anmelden. Beim ersten Login nach dem Update richten Sie die Verschlüsselung ein (Recovery-Key).'

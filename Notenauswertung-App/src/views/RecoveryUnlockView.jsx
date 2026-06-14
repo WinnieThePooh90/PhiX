@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
+import AppLogo from '../components/AppLogo';
 import { apiFetch } from '../utils/apiBase';
 import { writeCryptoSessionToken } from '../utils/cryptoSession';
 
@@ -37,7 +38,10 @@ export default function RecoveryUnlockView({ onUnlocked }) {
   return (
     <div className="app-login-screen">
       <div className="app-login-card">
-        <h1 className="app-login-title">{APP_NAME}</h1>
+        <div className="app-login-brand">
+          <AppLogo size={72} />
+          <h1 className="app-login-title">{APP_NAME}</h1>
+        </div>
         <p className="app-login-subtitle">Passwort mit Recovery-Key zurücksetzen</p>
         <form className="app-login-form" onSubmit={onSubmit}>
           <label className="app-login-label">

@@ -6,7 +6,10 @@
 #define MyAppVersion "1.0.0"
 #define MyReleaseDir "..\release\PhiX-Windows-x64"
 
+#define MyAppIcon "phix.ico"
+
 [Setup]
+SetupIconFile={#MyAppIcon}
 AppId={{B2E4F8A1-3C5D-4E7F-9A2B-6D8E0F1C4A39}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -32,8 +35,8 @@ Name: "desktopicon"; Description: "Verknuepfung auf dem Desktop"; GroupDescripti
 Source: "{#MyReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\PhiX.cmd"; WorkingDir: "{app}"; IconFilename: "{sys}\imageres.dll"; IconIndex: 109
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\PhiX.cmd"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{sys}\imageres.dll"; IconIndex: 109
+Name: "{group}\{#MyAppName}"; Filename: "{app}\PhiX.cmd"; WorkingDir: "{app}"; IconFilename: "{#MyAppIcon}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\PhiX.cmd"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{#MyAppIcon}"
 
 [Run]
 Filename: "{app}\PhiX.cmd"; Description: "{#MyAppName} jetzt starten"; Flags: nowait postinstall skipifsilent unchecked

@@ -8,7 +8,10 @@
 #define MyAppURL "https://nodejs.org/"
 #define MySourceDir ".."
 
+#define MyAppIcon "phix.ico"
+
 [Setup]
+SetupIconFile={#MyAppIcon}
 AppId={{A8F3C2E1-9B4D-4F6A-8E2C-1D5B7A9E3F40}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -35,9 +38,9 @@ Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 Source: "{#MySourceDir}\installer\*"; DestDir: "{app}\installer"; Flags: ignoreversion recursesubdirs; Excludes: "output\*"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\PhiX-start.bat"; WorkingDir: "{app}"; IconFilename: "{sys}\imageres.dll"; IconIndex: 109
+Name: "{group}\{#MyAppName}"; Filename: "{app}\PhiX-start.bat"; WorkingDir: "{app}"; IconFilename: "{#MyAppIcon}"
 Name: "{group}\PhiX deinstallieren"; Filename: "{app}\Deinstallieren.bat"; WorkingDir: "{app}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\PhiX-start.bat"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{sys}\imageres.dll"; IconIndex: 109
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\PhiX-start.bat"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{#MyAppIcon}"
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\install-dependencies.ps1"" -InstallRoot ""{app}"""; StatusMsg: "Abhaengigkeiten werden installiert (npm)..."; Flags: runhidden waituntilterminated

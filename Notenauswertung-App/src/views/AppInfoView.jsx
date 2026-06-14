@@ -1,5 +1,6 @@
 import React from 'react';
 import { APP_NAME } from '../config/app';
+import AppLogo from '../components/AppLogo';
 import { APP_VERSION, APP_BUILD_AT } from '../config/appVersion';
 import { formatAppBuildAt } from '../utils/formatAppBuild';
 import { usePhiXRegistration } from '../utils/phixRegistration';
@@ -66,10 +67,15 @@ export default function AppInfoView({ onOpenSupport }) {
         <h4 id="app-info-version-heading" className="visually-hidden">
           Programmversion
         </h4>
-        <p className="app-info-version-number">Version {APP_VERSION}</p>
-        <p className="app-info-version-build text-muted">
-          Letzter Build: {formatAppBuildAt(APP_BUILD_AT)}
-        </p>
+        <div className="app-info-version-brand">
+          <AppLogo size={56} />
+          <div>
+            <p className="app-info-version-number">Version {APP_VERSION}</p>
+            <p className="app-info-version-build text-muted">
+              Letzter Build: {formatAppBuildAt(APP_BUILD_AT)}
+            </p>
+          </div>
+        </div>
       </section>
 
       <h3 className="program-view-section-heading">Angaben nach DSGVO</h3>

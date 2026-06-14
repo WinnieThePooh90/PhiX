@@ -775,16 +775,23 @@ p {
   margin-bottom: 0.5rem;
 }
 
+.app-info-version-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .app-info-version-number {
   margin: 0 0 0.5rem;
-  text-align: center;
+  text-align: left;
   font-size: 1.15rem;
   font-weight: 600;
 }
 
 .app-info-version-build {
   margin: 0;
-  text-align: center;
+  text-align: left;
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -1359,6 +1366,59 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
   text-align: left;
 }
 
+.course-header-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.course-header-title__brand {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.course-header-title__logo {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+  max-height: none;
+}
+
+.course-header-title__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.course-header-title__name {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.course-header-title__meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.course-header-title--mobile .course-header-title__name {
+  font-size: 1.125rem;
+}
+
+.course-header-title--mobile .course-header-title__meta {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
 .sticky-header-top-row .sticky-header-tabs.equiphi-tabs {
   flex: 1 1 auto;
   min-width: 0;
@@ -1744,11 +1804,27 @@ tfoot td {
     0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
+.app-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.app-logo {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 0.65rem;
+  object-fit: contain;
+}
+
 .app-login-title {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--primary);
+  text-align: center;
 }
 
 .app-login-subtitle {
@@ -3693,14 +3769,16 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     overscroll-behavior: contain;
   }
 
-  .app-mobile-header-course-title h1 {
+  .app-mobile-header-course-title.course-header-title--mobile h1,
+  .course-header-title--mobile .course-header-title__name {
     margin: 0;
     font-size: 1.125rem;
     line-height: 1.25;
     color: var(--primary);
   }
 
-  .app-mobile-header-course-title p {
+  .app-mobile-header-course-title.course-header-title--mobile p,
+  .course-header-title--mobile .course-header-title__meta {
     margin: 0.25rem 0 0;
     font-size: 0.8125rem;
     color: var(--text-muted);

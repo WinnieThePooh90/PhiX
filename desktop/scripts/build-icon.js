@@ -1,26 +1,19 @@
 /**
- * Erzeugt desktop/build/icon.png aus dem Web-Tab-Favicon (Notenauswertung-App/public/favicon.svg).
+ * Kopiert desktop/build/icon.png aus dem PhiX-Icon-Set (icons/favicon.pub).
  * electron-builder wandelt die PNG für Windows in .ico um.
  */
 const fs = require('fs');
 const path = require('path');
-const { Resvg } = require('@resvg/resvg-js');
 
-const svgPath = path.resolve(__dirname, '../../Notenauswertung-App/public/favicon.svg');
+const srcPng = path.resolve(__dirname, '../../icons/favicon.pub/android-chrome-512x512.png');
 const outDir = path.resolve(__dirname, '../build');
 const outPng = path.join(outDir, 'icon.png');
 
-if (!fs.existsSync(svgPath)) {
-  console.error('Favicon fehlt:', svgPath);
+if (!fs.existsSync(srcPng)) {
+  console.error('PhiX-Icon fehlt:', srcPng);
   process.exit(1);
 }
 
-const svg = fs.readFileSync(svgPath, 'utf8');
-const resvg = new Resvg(svg, {
-  fitTo: { mode: 'width', value: 256 },
-});
-const png = resvg.render().asPng();
-
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(outPng, png);
+fs.copyFileSync(srcPng, outPng);
 console.log('Icon erzeugt:', outPng);

@@ -238,7 +238,7 @@ npm run dist
   →  electron-builder --win zip portable
 ```
 
-**Schritt 0 – `build-icon`:** erzeugt **`desktop/build/icon.png`** aus **`Notenauswertung-App/public/favicon.svg`** (gleiches Symbol wie im Browser-Tab). **electron-builder** setzt daraus das **.exe**-Icon.
+**Schritt 0 – `build-icon`:** kopiert **`desktop/build/icon.png`** aus **`icons/favicon.pub/android-chrome-512x512.png`** (gleiches Symbol wie im Browser-Tab). **electron-builder** setzt daraus das **.exe**-Icon.
 
 **Schritt 1 – `stage-backend`:** kopiert das Backend nach **`%LOCALAPPDATA%\PhiX\pack-backend`**, führt dort **`npm ci`** aus und benennt **`node_modules` → `phix_deps`** um. **electron-builder lässt Ordner namens `node_modules` in `extraResources` weg** — ohne `phix_deps` fehlt im Paket die komplette Laufzeit (nur der Schema-Ordner `prisma/` bliebe übrig).
 

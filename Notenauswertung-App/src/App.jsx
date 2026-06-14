@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import MobileAppHeader from './components/MobileAppHeader';
+import CourseHeaderTitle from './components/CourseHeaderTitle';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
@@ -786,20 +787,7 @@ function App() {
           <>
             {isMobile ? (
               <MobileAppHeader {...mobileHeaderProps}>
-                <header className="app-mobile-header-course-title">
-                  <h1>
-                    {config.subject} {config.className || config.class}
-                  </h1>
-                  <p>
-                    Schuljahr: {config.year}
-                    {config.weighting != null && (
-                      <>
-                        {' · '}
-                        Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
-                      </>
-                    )}
-                  </p>
-                </header>
+                <CourseHeaderTitle config={config} className="app-mobile-header-course-title course-header-title--mobile" />
                 {renderMainTabsNav('app-mobile-tabs')}
                 {showMobilePageSettingsToggle && (
                   <button
@@ -839,20 +827,7 @@ function App() {
               <div className="sticky-header">
                 <div className="sticky-header-inner">
                   <div className="sticky-header-top-row">
-                    <header className="sticky-header-course-title">
-                      <h1 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.5rem' }}>
-                        {config.subject} {config.className || config.class}
-                      </h1>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
-                        Schuljahr: {config.year}
-                        {config.weighting != null && (
-                          <>
-                            {' · '}
-                            Gewichtung: {config.weighting.written ?? '—'}:{config.weighting.oral ?? '—'}:{config.weighting.tests ?? '—'}
-                          </>
-                        )}
-                      </p>
-                    </header>
+                    <CourseHeaderTitle config={config} className="sticky-header-course-title" />
                     {renderMainTabsNav('sticky-header-tabs')}
                   </div>
                   {!sidebarCollapsed && (
