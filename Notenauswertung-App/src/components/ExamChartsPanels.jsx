@@ -1,17 +1,35 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  formatGrade,
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   gradeToNotenpunkte,
   notenpunkteToGrade,
   normalizeCourseGradeSystem,
+  normalizeQuarterGrade,
   parseScorePointsValue,
 } from '../utils/calculator';
 
-function barColorForClassicRounded(rounded1to6) {
-  return rounded1to6 >= 4 ? 'var(--danger)' : 'var(--success)';
+function formatQuarterAxisLabel(g) {
+  return Number(g).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+function barColorForClassicRounded(rounded1to6) {
+  return Math.round(rounded1to6) >= 4 ? 'var(--danger)' : 'var(--success)';
+}
+
+/** Mittelpunkt eines Kreissegments (Prozent auf dem Ring) — Winkel wie SVG stroke nach rotate(-90deg). */
+function pieSegmentLabelPos(startPercent, sweepPercent) {
+  const midDeg = -90 + ((startPercent + sweepPercent / 2) / 100) * 360;
+  const rad = (midDeg * Math.PI) / 180;
+  return {
+    left: `${50 + 40 * Math.cos(rad)}%`,
+    top: `${50 + 40 * Math.sin(rad)}%`,
+  };
+}
+
+const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
 
 /** Farbe für NP-Säule anhand der zugeordneten Schulnote dieser NP-Stufe */
 function barColorForNpBucket(np) {
@@ -40,10 +58,9 @@ export default function ExamChartsPanels({
   showTaskAnalysis = true,
 }) {
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  const classicBuckets = [1, 2, 3, 4, 5, 6];
   const npBuckets = Array.from({ length: 16 }, (_, i) => i);
 
-  const distributionKeys = gs === 'points' ? npBuckets : classicBuckets;
+  const distributionKeys = gs === 'points' ? npBuckets : CLASSIC_QUARTER_BUCKETS;
 
   const countForBucket = (key) =>
     students.reduce((acc, s) => {
@@ -53,8 +70,21 @@ export default function ExamChartsPanels({
         const np = gradeToNotenpunkte(g);
         return np === key ? acc + 1 : acc;
       }
-      return Math.round(g) === key ? acc + 1 : acc;
+      return normalizeQuarterGrade(g) === key ? acc + 1 : acc;
     }, 0);
+
+  const classAverage = useMemo(() => {
+    let sum = 0;
+    let count = 0;
+    students.forEach((s) => {
+      const { counted, grade: g } = examRowStats(s.id);
+      if (counted && g !== null) {
+        sum += g;
+        count += 1;
+      }
+    });
+    return count > 0 ? sum / count : null;
+  }, [students, examRowStats]);
 
   const maxCount = Math.max(...distributionKeys.map((k) => countForBucket(k)), 1);
 
@@ -68,7 +98,7 @@ export default function ExamChartsPanels({
       const { counted, grade: g } = examRowStats(s.id);
       if (!counted || g === null) return false;
       if (gs === 'points') return gradeToNotenpunkte(g) === tooltipGrade;
-      return Math.round(g) === tooltipGrade;
+      return normalizeQuarterGrade(g) === tooltipGrade;
     });
   }, [tooltipGrade, students, examRowStats, gs]);
 
@@ -194,7 +224,7 @@ export default function ExamChartsPanels({
   const barPortalTitle = showBarPortal
     ? gs === 'points'
       ? `NP ${tooltipGrade}`
-      : `Note ${tooltipGrade}`
+      : `Note ${formatQuarterAxisLabel(tooltipGrade)}`
     : '';
   const barListMaxH = barPopoverGeom
     ? Math.max(120, Math.min(360, window.innerHeight - barPopoverGeom.top - 110))
@@ -340,6 +370,12 @@ export default function ExamChartsPanels({
   return (
     <>
       {popoverPortal}
+      <div className="exam-charts-class-average" aria-live="polite">
+        <span className="exam-charts-class-average-label">Klassenschnitt</span>
+        <span className="exam-charts-class-average-value">
+          {classAverage === null ? '—' : formatGrade(classAverage, gs)}
+        </span>
+      </div>
       <div className={`${showTaskAnalysis ? 'grid-3' : 'grid-2'} gap-8 exam-charts-grid`}>
         <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
           <h3 className="mb-6">Notenverteilung</h3>
@@ -349,10 +385,10 @@ export default function ExamChartsPanels({
               alignItems: 'flex-end',
               justifyContent: 'space-between',
               height: distributionChartHeight,
-              gap: gs === 'points' ? '0.15rem' : '0.5rem',
+              gap: gs === 'points' ? '0.15rem' : '0.12rem',
               padding: '0.35rem 0.25rem 0',
               marginTop: '0.25rem',
-              overflowX: gs === 'points' ? 'auto' : undefined,
+              overflowX: 'auto',
               overflowY: 'visible',
             }}
           >
@@ -363,15 +399,15 @@ export default function ExamChartsPanels({
                 gs === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicRounded(bucketKey);
               const isTooltipActive = tooltipGrade === bucketKey;
 
-              const axisLabel = gs === 'points' ? String(bucketKey) : `N${bucketKey}`;
+              const axisLabel = gs === 'points' ? String(bucketKey) : formatQuarterAxisLabel(bucketKey);
 
               return (
                 <div
                   key={bucketKey}
                   data-exam-distribution-anchor={String(bucketKey)}
                   style={{
-                    flex: gs === 'points' ? '0 0 auto' : 1,
-                    minWidth: gs === 'points' ? '1.1rem' : 0,
+                    flex: '0 0 auto',
+                    minWidth: gs === 'points' ? '1.1rem' : '1.35rem',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -394,7 +430,7 @@ export default function ExamChartsPanels({
                     <div
                       onClick={() => setTooltipGrade(isTooltipActive ? null : bucketKey)}
                       style={{
-                        width: gs === 'points' ? '70%' : '80%',
+                        width: gs === 'points' ? '70%' : '75%',
                         height: heightPercent > 0 ? `${heightPercent}%` : '4px',
                         background: counts > 0 ? barColor : '#eee',
                         borderRadius: '4px 4px 0 0',
@@ -432,7 +468,7 @@ export default function ExamChartsPanels({
                       width: '100%',
                       textAlign: 'center',
                       paddingTop: '0.5rem',
-                      fontSize: gs === 'points' ? '0.65rem' : '0.8rem',
+                      fontSize: gs === 'points' ? '0.65rem' : '0.55rem',
                     }}
                   >
                     {axisLabel}
@@ -441,11 +477,11 @@ export default function ExamChartsPanels({
               );
             })}
           </div>
-          {gs === 'points' && (
-            <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
-              Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.
-            </p>
-          )}
+          <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
+            {gs === 'points'
+              ? 'Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.'
+              : 'Balken = Anzahl Schüler je Note (1,0–6,0 in 0,25er-Schritten).'}
+          </p>
         </div>
 
         <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
@@ -471,10 +507,13 @@ export default function ExamChartsPanels({
               });
               const total = goodCount + badCount;
               const goodPercent = total > 0 ? (goodCount / total) * 100 : 0;
+              const badPercent = total > 0 ? 100 - goodPercent : 0;
+              const goodLabelPos = pieSegmentLabelPos(0, goodPercent);
+              const badLabelPos = pieSegmentLabelPos(goodPercent, badPercent);
 
               return (
                 <>
-                  <div data-exam-pie-anchor style={{ position: 'relative', flexShrink: 0 }}>
+                  <div data-exam-pie-anchor style={{ position: 'relative', flexShrink: 0, width: 140, height: 140 }}>
                     <svg width="140" height="140" viewBox="0 0 100 100" style={{ cursor: 'pointer', transform: 'rotate(-90deg)' }}>
                       {total > 0 ? (
                         <>
@@ -506,21 +545,42 @@ export default function ExamChartsPanels({
                       ) : (
                         <circle cx="50" cy="50" r="40" fill="transparent" stroke="#eee" strokeWidth="20" />
                       )}
-                      <circle cx="50" cy="50" r="30" fill="white" />
                     </svg>
 
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'none',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{total}</div>
-                    </div>
+                    {total > 0 && goodPercent > 0 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: goodLabelPos.left,
+                          top: goodLabelPos.top,
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: '#fff',
+                          pointerEvents: 'none',
+                          textShadow: '0 0 3px rgba(0,0,0,0.45)',
+                        }}
+                      >
+                        {Math.round(goodPercent)}%
+                      </span>
+                    )}
+                    {total > 0 && badPercent > 0 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: badLabelPos.left,
+                          top: badLabelPos.top,
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: '#fff',
+                          pointerEvents: 'none',
+                          textShadow: '0 0 3px rgba(0,0,0,0.45)',
+                        }}
+                      >
+                        {Math.round(badPercent)}%
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem' }}>
@@ -588,6 +648,7 @@ export default function ExamChartsPanels({
               }).length;
               const maxPossible = maxForTask * countedStudents;
               const successPercent = maxPossible > 0 ? (totalAchieved / maxPossible) * 100 : 0;
+              const avgAchieved = countedStudents > 0 ? totalAchieved / countedStudents : null;
 
               const barColor = successPercent >= 75 ? 'var(--success)' : successPercent >= 50 ? '#f59e0b' : 'var(--danger)';
 
@@ -619,6 +680,11 @@ export default function ExamChartsPanels({
                     A{i + 1}
                   </div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(successPercent)}%</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    {avgAchieved !== null
+                      ? `Ø ${avgAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
+                      : '—'}
+                  </div>
                 </div>
               );
             })}

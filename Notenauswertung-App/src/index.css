@@ -3368,6 +3368,34 @@ button.school-roster-control-btn.danger {
   padding-bottom: 2rem;
 }
 
+.exam-charts-class-average {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 10px;
+  background: hsl(var(--muted) / 0.35);
+  border: 1px solid var(--border);
+}
+
+.exam-charts-class-average-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.exam-charts-class-average-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
 /* Klausur-Analyse: keine gleich hohen Karten — vermeidet unnötiges Scrollen in Spalten */
 .exam-charts-grid {
   align-items: start;
