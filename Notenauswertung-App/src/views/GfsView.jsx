@@ -134,6 +134,7 @@ export default function GfsView() {
         <TableMaximizeToggle
           maximized={tableMaximized}
           onClick={() => setTableMaximized((m) => !m)}
+          matchAdjacent
         />
         </div>
       </div>

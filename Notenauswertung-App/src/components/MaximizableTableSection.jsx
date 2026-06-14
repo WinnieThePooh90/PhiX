@@ -58,21 +58,34 @@ function syncMKeyListener() {
 export function TableMaximizeToggle({
   maximized,
   onClick,
-  className = 'tab secondary course-meta-inline-btn table-maximize-toggle-btn',
+  className,
+  matchAdjacent = false,
 }) {
+  const iconSize = matchAdjacent ? 16 : 14;
+  const resolvedClassName = [
+    'tab',
+    'secondary',
+    'course-meta-inline-btn',
+    'table-maximize-toggle-btn',
+    matchAdjacent ? 'table-maximize-toggle-btn--match-adjacent' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <button
       type="button"
-      className={className}
+      className={resolvedClassName}
       onClick={onClick}
       aria-label={maximized ? 'Tabelle verkleinern' : 'Tabelle maximieren'}
       aria-keyshortcuts="M"
       title={maximized ? 'Verkleinern (Esc oder M)' : 'Vollbild (M)'}
     >
       {maximized ? (
-        <Minimize2 size={14} strokeWidth={2} aria-hidden />
+        <Minimize2 size={iconSize} strokeWidth={2} aria-hidden />
       ) : (
-        <Maximize2 size={14} strokeWidth={2} aria-hidden />
+        <Maximize2 size={iconSize} strokeWidth={2} aria-hidden />
       )}
     </button>
   );

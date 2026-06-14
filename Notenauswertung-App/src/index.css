@@ -3207,6 +3207,20 @@ button.table-maximize-toggle-btn.course-meta-inline-btn {
   justify-content: center;
 }
 
+button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
+  width: var(--course-meta-control-height);
+  min-width: var(--course-meta-control-height);
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+}
+
+.view-page-chrome .view-toolbar-actions button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+}
+
 .table-max-host__toolbar--embedded-hidden {
   display: none;
 }

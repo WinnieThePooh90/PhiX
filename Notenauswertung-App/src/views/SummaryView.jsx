@@ -432,6 +432,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
           <TableMaximizeToggle
             maximized={overviewMaximized}
             onClick={() => setOverviewMaximized((m) => !m)}
+            matchAdjacent
           />
         </div>
       </div>
