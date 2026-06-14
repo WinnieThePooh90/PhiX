@@ -2881,6 +2881,17 @@ a.support-phix-paypal-btn:active {
   overflow: visible;
 }
 
+.projects-group-tables-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.projects-group-table-block__members {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+
 /*
  * Wird per JS auf den Scroll-Parent gelegt (neben MaximizableTableSection).
  * WebKit/Blink: vertikaler Track oben verkürzen, damit Pfeil/Thumb nicht unter dem Max-Button liegt.

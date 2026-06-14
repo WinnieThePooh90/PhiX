@@ -611,38 +611,42 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
         {project.active ? (
           <div className={`exams-active-body ${showKey && !metaBarHidden ? 'sidebar-layout' : ''}`}>
             <div className={`exams-main-stack ${showKey ? 'main-content' : ''}`}>
-              <div className="exams-body-scroll view-table-scroll exam-table-scroll" style={isGroupMode ? { display: 'flex', flexDirection: 'column', gap: '1.25rem' } : undefined}>
+              <div className="exams-body-scroll view-table-scroll exam-table-scroll">
                 {isGroupMode ? (
-                  scoreRows.map((row) => (
-                    <MaximizableTableSection key={row.scoreKey} title={row.label}>
-                      {row.memberLine && (
-                        <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-                          {row.memberLine}
-                        </p>
-                      )}
-                      <ProjectScoresTable
-                        project={project}
-                        activeProject={activeProject}
-                        rows={[row]}
-                        numFields={numFields}
-                        displayFieldCount={displayFieldCount}
-                        projectManualGradeMode={projectManualGradeMode}
-                        gradeSys={gradeSys}
-                        expandedScoreKey={expandedScoreKey}
-                        setExpandedScoreKey={setExpandedScoreKey}
-                        setProjectIndexTooltip={setProjectIndexTooltip}
-                        projectScoreRowStats={projectScoreRowStats}
-                        updateProjectFieldNames={updateProjectFieldNames}
-                        updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
-                        updateProjectScore={updateProjectScore}
-                        updateProjectCounted={updateProjectCounted}
-                        updateProjectStudentManualGrade={updateProjectStudentManualGrade}
-                        updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
-                        nameColumnLabel="GRUPPE"
-                        showEmptyFilterHint={false}
-                      />
-                    </MaximizableTableSection>
-                  ))
+                  <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
+                    <div className="projects-group-tables-stack">
+                      {scoreRows.map((row) => (
+                        <div key={row.scoreKey} className="projects-group-table-block">
+                          {row.memberLine && (
+                            <p className="text-muted projects-group-table-block__members">
+                              {row.memberLine}
+                            </p>
+                          )}
+                          <ProjectScoresTable
+                            project={project}
+                            activeProject={activeProject}
+                            rows={[row]}
+                            numFields={numFields}
+                            displayFieldCount={displayFieldCount}
+                            projectManualGradeMode={projectManualGradeMode}
+                            gradeSys={gradeSys}
+                            expandedScoreKey={expandedScoreKey}
+                            setExpandedScoreKey={setExpandedScoreKey}
+                            setProjectIndexTooltip={setProjectIndexTooltip}
+                            projectScoreRowStats={projectScoreRowStats}
+                            updateProjectFieldNames={updateProjectFieldNames}
+                            updateProjectFieldMaxPoints={updateProjectFieldMaxPoints}
+                            updateProjectScore={updateProjectScore}
+                            updateProjectCounted={updateProjectCounted}
+                            updateProjectStudentManualGrade={updateProjectStudentManualGrade}
+                            updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
+                            nameColumnLabel="GRUPPE"
+                            showEmptyFilterHint={false}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </MaximizableTableSection>
                 ) : (
                   <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
                     <ProjectScoresTable
