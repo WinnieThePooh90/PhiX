@@ -299,6 +299,79 @@ const CALCULATION_CATEGORIES = [
   { key: 'all', label: 'Gesamt' },
 ];
 
+function MathFraction({ numerator, denominator }) {
+  return (
+    <span className="summary-formula-math-fraction">
+      <span>{numerator}</span>
+      <span>{denominator}</span>
+    </span>
+  );
+}
+
+function CalculationStepLine({ step }) {
+  switch (step.type) {
+    case 'sources':
+      return (
+        <>
+          {step.label} ({step.key}) aus:{' '}
+          {step.items.map((item, idx) => (
+            <span key={`${item.label}-${idx}`}>
+              {idx > 0 ? ', ' : ''}
+              {item.label}: <strong>{item.grade}</strong>
+            </span>
+          ))}
+        </>
+      );
+    case 'fraction':
+      return (
+        <span className="calc-step-math">
+          {step.label != null && step.label !== '' && <>{step.label} = </>}
+          <MathFraction numerator={step.numerator} denominator={step.denominator} />
+          {step.factor != null && <> · {step.factor}</>}
+          {step.result != null && (
+            <>
+              {' '}
+              = <strong>{step.result}</strong>
+            </>
+          )}
+        </span>
+      );
+    case 'mulFraction':
+      return (
+        <span className="calc-step-math">
+          {step.prefix}: {step.left} · <MathFraction numerator={step.percent} denominator="100" /> = <strong>{step.result}</strong>
+        </span>
+      );
+    case 'restFactor':
+      return (
+        <span className="calc-step-math">
+          Restfaktor f = <MathFraction numerator={`100 − ${step.totalPercent} %`} denominator="100" /> = <strong>{step.result}</strong>
+        </span>
+      );
+    case 'sum':
+      return (
+        <span className="calc-step-math">
+          {step.label} = {step.parts.join(' + ')} = <strong>{step.result}</strong>
+        </span>
+      );
+    case 'npNote':
+      return (
+        <span className="calc-step-math">
+          NP({step.key}) = <strong>{step.np}</strong> (aus {step.key} = {step.from})
+        </span>
+      );
+    case 'mapping':
+      return (
+        <span className="calc-step-math">
+          {step.label} = Zuordnung {step.from} → <strong>{step.to}</strong>
+        </span>
+      );
+    case 'text':
+    default:
+      return <span>{step.text}</span>;
+  }
+}
+
 function SummaryStudentCalculationModal({
   open,
   onClose,
@@ -370,17 +443,16 @@ function SummaryStudentCalculationModal({
           </div>
 
           <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
-            Konkrete Rechnung für <strong>{categoryLabel}</strong>
-            {gradeSys === 'points' ? ' (Punktesystem)' : ' (klassische Notenskala)'}:
+            Konkrete Rechnung für <strong>{categoryLabel}</strong>:
           </p>
 
           {breakdown.steps.length === 0 ? (
             <p style={{ margin: 0 }}>Keine zählenden Noten für diese Auswahl.</p>
           ) : (
-            <ol style={{ margin: '0 0 1rem', paddingLeft: '1.35rem' }}>
+            <ol className="calc-step-list">
               {breakdown.steps.map((step, idx) => (
-                <li key={idx} style={{ marginBottom: '0.45rem', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: '0.82rem' }}>
-                  {step}
+                <li key={idx} className={step.type === 'text' ? 'calc-step-list__plain' : 'calc-step-list__math'}>
+                  <CalculationStepLine step={step} />
                 </li>
               ))}
             </ol>

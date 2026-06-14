@@ -1200,15 +1200,25 @@ function averageLine(label, key, items) {
   const sum = items.reduce((acc, item) => acc + item.grade, 0);
   const avg = sum / items.length;
   const gradesPart = items.map((item) => fmtCalcNum(item.grade)).join(' + ');
-  const detail = items.map((item) => `${item.label}: ${fmtCalcNum(item.grade)}`).join(', ');
   return {
     key,
     label,
     items,
     average: avg,
-    lines: [
-      `${label} (${key}) aus: ${detail}`,
-      `${key} = (${gradesPart}) / ${items.length} = ${fmtCalcNum(avg)}`,
+    steps: [
+      {
+        type: 'sources',
+        label,
+        key,
+        items: items.map((item) => ({ label: item.label, grade: fmtCalcNum(item.grade) })),
+      },
+      {
+        type: 'fraction',
+        label: key,
+        numerator: gradesPart,
+        denominator: String(items.length),
+        result: fmtCalcNum(avg),
+      },
     ],
   };
 }
@@ -1305,21 +1315,24 @@ export function getStudentGradeCalculationBreakdown(
   const wSum = pillars.reduce((sum, pillar) => sum + pillar.weight, 0);
   const steps = [];
 
-  if (writtenDetail) steps.push(...writtenDetail.lines);
-  if (oralDetail) steps.push(...oralDetail.lines);
-  if (testDetail) steps.push(...testDetail.lines);
+  if (writtenDetail) steps.push(...writtenDetail.steps);
+  if (oralDetail) steps.push(...oralDetail.steps);
+  if (testDetail) steps.push(...testDetail.steps);
 
   if (percentContributions.length > 0) {
-    steps.push(
-      `Restfaktor f = (100 − ${fmtCalcNum(totalPercentWeight, 0)} %) / 100 = ${fmtCalcNum(remainingFactor)}`,
-    );
+    steps.push({
+      type: 'restFactor',
+      totalPercent: fmtCalcNum(totalPercentWeight, 0),
+      result: fmtCalcNum(remainingFactor),
+    });
   }
 
-  steps.push(
-    `Gewichte: w_S = ${fmtCalcNum(written, 0)}, w_M = ${fmtCalcNum(oral, 0)}${
+  steps.push({
+    type: 'text',
+    text: `Gewichte: w_S = ${fmtCalcNum(written, 0)}, w_M = ${fmtCalcNum(oral, 0)}${
       testsWritten ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ' (Tests fließen nicht ein)'
     }`,
-  );
+  });
 
   if (gs === 'points') {
     const npPillars = pillars.map((pillar) => ({
@@ -1329,7 +1342,12 @@ export function getStudentGradeCalculationBreakdown(
 
     if (npPillars.length > 0) {
       npPillars.forEach((pillar) => {
-        steps.push(`NP(${pillar.key}) = ${fmtCalcNum(pillar.np, 0)} (aus ${pillar.key} = ${fmtCalcNum(pillar.value)})`);
+        steps.push({
+          type: 'npNote',
+          key: pillar.key,
+          np: fmtCalcNum(pillar.np, 0),
+          from: fmtCalcNum(pillar.value),
+        });
       });
     }
 
@@ -1342,37 +1360,72 @@ export function getStudentGradeCalculationBreakdown(
       const roundedNp = Math.round(Math.min(15, Math.max(0, avgNp)));
 
       if (percentContributions.length > 0) {
-        steps.push(
-          `NP_standard = (${numeratorTerms}) / (${denomTerms}) · ${fmtCalcNum(remainingFactor)} = ${fmtCalcNum(standardNp)}`,
-        );
-        percentContributions.forEach((entry) => {
-          steps.push(
-            `${entry.name}: NP = ${fmtCalcNum(entry.np, 0)}, Anteil ${fmtCalcNum(entry.percent, 0)} % → ${fmtCalcNum(entry.np, 0)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.npContribution)}`,
-          );
+        steps.push({
+          type: 'fraction',
+          label: 'NP_standard',
+          numerator: numeratorTerms,
+          denominator: denomTerms,
+          factor: fmtCalcNum(remainingFactor),
+          result: fmtCalcNum(standardNp),
         });
-        steps.push(
-          `NP_end = ${fmtCalcNum(standardNp)} + ${fmtCalcNum(percentNpAcc)} = ${fmtCalcNum(avgNp)}`,
-        );
+        percentContributions.forEach((entry) => {
+          steps.push({
+            type: 'mulFraction',
+            prefix: `${entry.name} (NP = ${fmtCalcNum(entry.np, 0)}, Anteil ${fmtCalcNum(entry.percent, 0)} %)`,
+            left: fmtCalcNum(entry.np, 0),
+            percent: fmtCalcNum(entry.percent, 0),
+            result: fmtCalcNum(entry.npContribution),
+          });
+        });
+        steps.push({
+          type: 'sum',
+          label: 'NP_end',
+          parts: [fmtCalcNum(standardNp), fmtCalcNum(percentNpAcc)],
+          result: fmtCalcNum(avgNp),
+        });
       } else {
-        steps.push(`NP_end = (${numeratorTerms}) / (${denomTerms}) = ${fmtCalcNum(avgNp)}`);
+        steps.push({
+          type: 'fraction',
+          label: 'NP_end',
+          numerator: numeratorTerms,
+          denominator: denomTerms,
+          result: fmtCalcNum(avgNp),
+        });
       }
-      steps.push(`NP_end (gerundet) = ${fmtCalcNum(roundedNp, 0)}`);
+      steps.push({ type: 'text', text: `NP_end (gerundet) = ${fmtCalcNum(roundedNp, 0)}` });
       if (finalGrade !== null) {
-        steps.push(`Endnote (Exakt) = Zuordnung NP ${fmtCalcNum(roundedNp, 0)} → ${fmtCalcNum(finalGrade)}`);
+        steps.push({
+          type: 'mapping',
+          label: 'Endnote (Exakt)',
+          from: `NP ${fmtCalcNum(roundedNp, 0)}`,
+          to: fmtCalcNum(finalGrade),
+        });
       }
     } else if (percentNpAcc > 0) {
       const roundedNp = Math.round(Math.min(15, Math.max(0, percentNpAcc)));
       percentContributions.forEach((entry) => {
-        steps.push(
-          `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.npContribution)}`,
-        );
+        steps.push({
+          type: 'mulFraction',
+          prefix: entry.name,
+          left: fmtCalcNum(entry.grade),
+          percent: fmtCalcNum(entry.percent, 0),
+          result: fmtCalcNum(entry.npContribution),
+        });
       });
-      steps.push(`NP_end = ${fmtCalcNum(percentNpAcc)} → gerundet ${fmtCalcNum(roundedNp, 0)}`);
+      steps.push({
+        type: 'text',
+        text: `NP_end = ${fmtCalcNum(percentNpAcc)} → gerundet ${fmtCalcNum(roundedNp, 0)}`,
+      });
       if (finalGrade !== null) {
-        steps.push(`Endnote (Exakt) = Zuordnung NP ${fmtCalcNum(roundedNp, 0)} → ${fmtCalcNum(finalGrade)}`);
+        steps.push({
+          type: 'mapping',
+          label: 'Endnote (Exakt)',
+          from: `NP ${fmtCalcNum(roundedNp, 0)}`,
+          to: fmtCalcNum(finalGrade),
+        });
       }
     } else {
-      steps.push('Keine zählenden Noten für die Endnote in dieser Auswahl.');
+      steps.push({ type: 'text', text: 'Keine zählenden Noten für die Endnote in dieser Auswahl.' });
     }
   } else if (wSum > 0) {
     const weightedSum = pillars.reduce((sum, pillar) => sum + pillar.weight * pillar.value, 0);
@@ -1381,29 +1434,51 @@ export function getStudentGradeCalculationBreakdown(
     const standardPart = (weightedSum / wSum) * remainingFactor;
 
     if (percentContributions.length > 0) {
-      steps.push(
-        `Standardanteil = (${numeratorTerms}) / (${denomTerms}) · ${fmtCalcNum(remainingFactor)} = ${fmtCalcNum(standardPart)}`,
-      );
-      percentContributions.forEach((entry) => {
-        steps.push(
-          `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.classicContribution)}`,
-        );
+      steps.push({
+        type: 'fraction',
+        label: 'Standardanteil',
+        numerator: numeratorTerms,
+        denominator: denomTerms,
+        factor: fmtCalcNum(remainingFactor),
+        result: fmtCalcNum(standardPart),
       });
-      steps.push(
-        `Endnote (Exakt) = ${fmtCalcNum(standardPart)} + ${fmtCalcNum(percentClassicAcc)} = ${fmtCalcNum(finalGrade)}`,
-      );
+      percentContributions.forEach((entry) => {
+        steps.push({
+          type: 'mulFraction',
+          prefix: entry.name,
+          left: fmtCalcNum(entry.grade),
+          percent: fmtCalcNum(entry.percent, 0),
+          result: fmtCalcNum(entry.classicContribution),
+        });
+      });
+      steps.push({
+        type: 'sum',
+        label: 'Endnote (Exakt)',
+        parts: [fmtCalcNum(standardPart), fmtCalcNum(percentClassicAcc)],
+        result: fmtCalcNum(finalGrade),
+      });
     } else {
-      steps.push(`Endnote (Exakt) = (${numeratorTerms}) / (${denomTerms}) = ${fmtCalcNum(finalGrade)}`);
+      steps.push({
+        type: 'fraction',
+        label: 'Endnote (Exakt)',
+        numerator: numeratorTerms,
+        denominator: denomTerms,
+        result: fmtCalcNum(finalGrade),
+      });
     }
   } else if (percentClassicAcc > 0) {
     percentContributions.forEach((entry) => {
-      steps.push(
-        `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.classicContribution)}`,
-      );
+      steps.push({
+        type: 'mulFraction',
+        prefix: entry.name,
+        left: fmtCalcNum(entry.grade),
+        percent: fmtCalcNum(entry.percent, 0),
+        result: fmtCalcNum(entry.classicContribution),
+      });
     });
-    steps.push(`Endnote (Exakt) = ${fmtCalcNum(percentClassicAcc)}`);
+    steps.push({ type: 'text', text: `Endnote (Exakt) = ${fmtCalcNum(percentClassicAcc)}` });
   } else {
-    steps.push('Keine zählenden Noten für die Endnote in dieser Auswahl.');
+    steps.push({ type: 'text', text: 'Keine zählenden Noten für die Endnote in dieser Auswahl.' });
   }
 
   return {
