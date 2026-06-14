@@ -1928,11 +1928,13 @@ tfoot td {
 
 .app-login-relogin-actions {
   display: flex;
-  justify-content: center;
+  width: 100%;
 }
 
 .app-login-relogin-actions .app-login-submit {
   margin-top: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .app-main-empty-state-user {
