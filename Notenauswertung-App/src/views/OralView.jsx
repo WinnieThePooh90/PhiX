@@ -39,6 +39,29 @@ const ORAL_NOTE_COL_PX = 112;
 
 const ORAL_RIGHT_STICKY_OFFSET = ORAL_NOTE_COL_PX + ORAL_BERECHNET_COL_PX;
 
+function OralRowBookmark() {
+  return (
+    <svg
+      width="9"
+      height="12"
+      viewBox="0 0 10 14"
+      aria-hidden
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 1px 1px rgba(185, 28, 28, 0.35))',
+      }}
+    >
+      <path
+        d="M1.25 1C1.25 0.72 1.47 0.5 1.75 0.5H8.25C8.53 0.5 8.75 0.72 8.75 1V9.35L5 12.15L1.25 9.35V1Z"
+        fill="#fee2e2"
+        stroke="#dc2626"
+        strokeWidth="0.65"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function formatOralDeDecimal(v, fractionDigits) {
   return v.toFixed(fractionDigits).replace('.', ',');
 }
@@ -60,6 +83,7 @@ export default function OralView({ studentIdFilterSet = null }) {
   const [oralNoteDraft, setOralNoteDraft] = useState('');
   const [oralFormulaModalOpen, setOralFormulaModalOpen] = useState(false);
   const [tableMaximized, setTableMaximized] = useState(false);
+  const [oralIndexTooltip, setOralIndexTooltip] = useState(null);
 
   /** Refs für manuelle „Note“-Felder — Tab springt direkt zur nächsten/vorherigen Zeile */
   const oralManualNoteRefs = useRef({});
@@ -91,7 +115,19 @@ export default function OralView({ studentIdFilterSet = null }) {
     setOralNoteEditingId(null);
     setOralNoteDraft('');
     setTableMaximized(false);
+    setOralIndexTooltip(null);
   }, [activeOral]);
+
+  useEffect(() => {
+    if (!oralIndexTooltip) return undefined;
+    const hide = () => setOralIndexTooltip(null);
+    window.addEventListener('scroll', hide, { capture: true, passive: true });
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, { capture: true });
+      window.removeEventListener('resize', hide);
+    };
+  }, [oralIndexTooltip]);
 
   useEffect(() => {
     if (!oralFormulaModalOpen) return undefined;
@@ -655,6 +691,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                   ? calculatedGrade < 5
                   : calcClassicForColor !== null && isGradeWorseThan4(calcClassicForColor));
               const isExpanded = expandedStudentId === s.id;
+              const showNotCountedFlag = !counted;
 
               return (
                 <React.Fragment key={s.id}>
@@ -668,13 +705,44 @@ export default function OralView({ studentIdFilterSet = null }) {
                         minWidth: `${ORAL_INDEX_COL_PX}px`,
                         verticalAlign: 'middle',
                         textAlign: 'center',
-                        fontVariantNumeric: 'tabular-nums',
                         background: 'var(--surface)',
                         borderRight: '1px solid var(--border)',
                         boxShadow: '2px 0 6px rgba(0, 0, 0, 0.04)',
+                        padding: 0,
                       }}
                     >
-                      {idx + 1}
+                      <div
+                        style={{
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: showNotCountedFlag ? 34 : undefined,
+                          paddingTop: showNotCountedFlag ? 2 : 0,
+                        }}
+                      >
+                        {showNotCountedFlag && (
+                          <span
+                            className="exam-index-flag"
+                            role="img"
+                            aria-label="Mündlich werten aus"
+                            onMouseEnter={(e) => {
+                              const r = e.currentTarget.getBoundingClientRect();
+                              const pad = 12;
+                              const cx = r.left + r.width / 2;
+                              setOralIndexTooltip({
+                                text: 'Mündlich werten aus',
+                                left: Math.min(window.innerWidth - pad, Math.max(pad, cx)),
+                                top: r.bottom + 8,
+                              });
+                            }}
+                            onMouseLeave={() => setOralIndexTooltip(null)}
+                          >
+                            <OralRowBookmark />
+                          </span>
+                        )}
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</span>
+                      </div>
                     </td>
                     <td
                       role="button"
@@ -1080,6 +1148,24 @@ export default function OralView({ studentIdFilterSet = null }) {
           </div>,
           document.body,
         )}
+      {oralIndexTooltip
+        ? createPortal(
+            <div
+              className="exam-index-tooltip-portal"
+              role="tooltip"
+              style={{
+                position: 'fixed',
+                left: oralIndexTooltip.left,
+                top: oralIndexTooltip.top,
+                transform: 'translate(-50%, 0)',
+                zIndex: 10050,
+              }}
+            >
+              {oralIndexTooltip.text}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
