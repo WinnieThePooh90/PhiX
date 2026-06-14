@@ -816,6 +816,39 @@ app.delete('/api/school-roster-students/:id', async (req, res) => {
 
 
 // STUDENTS
+
+function compareCourseStudentsByName(a, b) {
+  const ln = String(a.lastName || '').localeCompare(String(b.lastName || ''), 'de', { sensitivity: 'base' });
+  if (ln !== 0) return ln;
+  const fn = String(a.firstName || '').localeCompare(String(b.firstName || ''), 'de', { sensitivity: 'base' });
+  if (fn !== 0) return fn;
+  return (a.id ?? 0) - (b.id ?? 0);
+}
+
+/** Schülernummern 1…n nach Nachname, Vorname (de-DE) vergeben. */
+async function syncCourseStudentNumbers(courseId) {
+  const rows = await prisma.student.findMany({ where: { courseId } });
+  const sorted = [...rows].sort(compareCourseStudentsByName);
+  if (sorted.length === 0) return;
+
+  await prisma.$transaction(
+    sorted.map((s, index) =>
+      prisma.student.update({
+        where: { id: s.id },
+        data: { studentNumber: -(index + 1) },
+      }),
+    ),
+  );
+  await prisma.$transaction(
+    sorted.map((s, index) =>
+      prisma.student.update({
+        where: { id: s.id },
+        data: { studentNumber: index + 1 },
+      }),
+    ),
+  );
+}
+
 app.get('/api/students', async (req, res) => {
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.json([]);
@@ -834,8 +867,9 @@ app.get('/api/students', async (req, res) => {
       courseId: true,
     },
   });
+  const sorted = [...students].sort(compareCourseStudentsByName);
   res.json(
-    students.map((s) => ({
+    sorted.map((s) => ({
       ...s,
       frontendId: s.frontendId ? s.frontendId.toString() : null,
     })),
@@ -880,11 +914,16 @@ app.post('/api/students', async (req, res) => {
       frontendId: frontendId ? BigInt(frontendId) : null,
     }
   });
+  await syncCourseStudentNumbers(targetCourseId);
+  const refreshed = await prisma.student.findUnique({ where: { id: student.id } });
   await syncMoneyListEntriesForCourse(targetCourseId);
   await syncAttendanceListEntriesForCourse(targetCourseId);
   await syncCollectionListEntriesForCourse(targetCourseId);
   await syncNotesListEntriesForCourse(targetCourseId);
-  res.json({ ...student, frontendId: student.frontendId ? student.frontendId.toString() : null });
+  res.json({
+    ...refreshed,
+    frontendId: refreshed.frontendId ? refreshed.frontendId.toString() : null,
+  });
 });
 
 app.put('/api/students/:id', async (req, res) => {
@@ -913,6 +952,16 @@ app.put('/api/students/:id', async (req, res) => {
     where: { id: sid },
     data: payload,
   });
+  const courseIdForSync = student.courseId ?? existingStudent.courseId;
+  const nameTouched = data.firstName !== undefined || data.lastName !== undefined;
+  if (nameTouched && courseIdForSync != null) {
+    await syncCourseStudentNumbers(courseIdForSync);
+    const refreshed = await prisma.student.findUnique({ where: { id: sid } });
+    return res.json({
+      ...refreshed,
+      frontendId: refreshed.frontendId ? refreshed.frontendId.toString() : null,
+    });
+  }
   res.json({ ...student, frontendId: student.frontendId ? student.frontendId.toString() : null });
 });
 
@@ -934,18 +983,7 @@ app.delete('/api/students/:id', async (req, res) => {
   await prisma.student.delete({ where: { id } });
 
   if (courseId != null) {
-    const remaining = await prisma.student.findMany({
-      where: { courseId },
-      orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
-    });
-    await prisma.$transaction(
-      remaining.map((s, index) =>
-        prisma.student.update({
-          where: { id: s.id },
-          data: { studentNumber: index + 1 },
-        }),
-      ),
-    );
+    await syncCourseStudentNumbers(courseId);
     await syncMoneyListEntriesForCourse(courseId);
     await syncAttendanceListEntriesForCourse(courseId);
     await syncCollectionListEntriesForCourse(courseId);

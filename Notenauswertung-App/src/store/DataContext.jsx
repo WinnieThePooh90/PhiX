@@ -24,16 +24,16 @@ function sortSchoolRosterRows(rows) {
   });
 }
 
-/** Kurs-Schüler wie beim ersten Laden: nach Schülernummer, sonst nach id */
+/** Kurs-Schüler: Nachname, Vorname (de-DE), dann Schülernummer */
 function sortCourseStudents(rows) {
   return [...(rows || [])].sort((a, b) => {
+    const ln = String(a.lastName || '').localeCompare(String(b.lastName || ''), 'de', { sensitivity: 'base' });
+    if (ln !== 0) return ln;
+    const fn = String(a.firstName || '').localeCompare(String(b.firstName || ''), 'de', { sensitivity: 'base' });
+    if (fn !== 0) return fn;
     const an = a.studentNumber;
     const bn = b.studentNumber;
-    const anOk = an !== undefined && an !== null;
-    const bnOk = bn !== undefined && bn !== null;
-    if (anOk && bnOk) return an - bn;
-    if (anOk && !bnOk) return -1;
-    if (!anOk && bnOk) return 1;
+    if (an != null && bn != null) return an - bn;
     return (a.id ?? 0) - (b.id ?? 0);
   });
 }
@@ -506,12 +506,13 @@ export const DataProvider = ({ children }) => {
   // Students Helpers
   const addStudent = async (student) => {
     const tempId = Date.now();
-    setStudents(prev => [...prev, { ...student, id: tempId, frontendId: tempId, studentNumber: (prev.reduce((m, s) => Math.max(m, s.studentNumber || 0), 0) + 1) }]);
-    const created = await apiCall('/api/students', 'POST', { ...student, frontendId: tempId, courseId: activeCourseId });
-    if (created) {
-      setStudents(prev => prev.map(s => s.frontendId == tempId ? created : s));
-      await refreshKlassenlehrerLists();
-    }
+    setStudents((prev) => [...prev, { ...student, id: tempId, frontendId: tempId, studentNumber: prev.length + 1 }]);
+    await apiCall('/api/students', 'POST', { ...student, frontendId: tempId, courseId: activeCourseId });
+    if (!activeCourseId) return;
+    const studentsRaw = await fetchWithActing(`/api/students?courseId=${activeCourseId}`);
+    const studentsRes = studentsRaw && studentsRaw.ok ? await studentsRaw.json() : [];
+    setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
+    await refreshKlassenlehrerLists();
   };
 
   const removeStudent = async (id) => {
@@ -539,14 +540,20 @@ export const DataProvider = ({ children }) => {
   };
   
   const updateStudentConfig = (id, field, value) => {
+    const shouldResortStudents = field === 'firstName' || field === 'lastName';
     const syncKlassenlehrerListsAfterSave =
-      field === 'firstName' || field === 'lastName' || field === 'studentNumber';
+      shouldResortStudents || field === 'studentNumber';
     setStudents((prev) => {
       const student = prev.find((s) => s.id === id);
       if (!student) return prev;
       const merged = { ...student, [field]: value };
       void apiCall(`/api/students/${id}`, 'PUT', { ...merged, courseId: merged.courseId ?? activeCourseId }).then(
-        () => {
+        async () => {
+          if (shouldResortStudents && activeCourseId) {
+            const studentsRaw = await fetchWithActing(`/api/students?courseId=${activeCourseId}`);
+            const studentsRes = studentsRaw && studentsRaw.ok ? await studentsRaw.json() : [];
+            setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
+          }
           if (syncKlassenlehrerListsAfterSave) refreshKlassenlehrerLists();
         },
       );
