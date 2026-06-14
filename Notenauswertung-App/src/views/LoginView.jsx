@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
+import { APP_VERSION } from '../config/appVersion';
 import AppLogo from '../components/AppLogo';
 import { useAuth } from '../store/AuthContext';
 
@@ -24,7 +25,6 @@ export default function LoginView({ onRecovery }) {
       <div className="app-login-card">
         <div className="app-login-brand">
           <AppLogo size={72} />
-          <h1 className="app-login-title">{APP_NAME}</h1>
         </div>
         <p className="app-login-subtitle">Bitte anmelden</p>
         <form className="app-login-form" onSubmit={onSubmit}>
@@ -72,6 +72,9 @@ export default function LoginView({ onRecovery }) {
           ) : null}
         </form>
       </div>
+      <p className="app-login-build-info">
+        {APP_NAME} - Build {APP_VERSION}
+      </p>
     </div>
   );
 }

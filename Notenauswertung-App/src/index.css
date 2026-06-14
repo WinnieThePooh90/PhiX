@@ -1370,22 +1370,31 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
   flex: 0 1 auto;
   min-width: 0;
   text-align: left;
+  --course-header-name-size: 1.5rem;
+  --course-header-name-lh: 1.25;
+  --course-header-meta-gap: 0.25rem;
+  --course-header-meta-size: 0.875rem;
+  --course-header-meta-lh: 1.45;
 }
 
 .course-header-title__brand {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 0.75rem;
   min-width: 0;
 }
 
 .course-header-title__logo {
   flex-shrink: 0;
-  align-self: stretch;
   width: auto;
-  height: auto;
+  height: calc(
+    (
+      var(--course-header-name-size) * var(--course-header-name-lh) +
+      var(--course-header-meta-gap) +
+      var(--course-header-meta-size) * var(--course-header-meta-lh)
+    ) / 2
+  );
   aspect-ratio: 1;
-  max-height: none;
 }
 
 .course-header-title__text {
@@ -1408,6 +1417,12 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
   font-size: 0.875rem;
   line-height: 1.45;
   color: var(--text-muted);
+}
+
+.course-header-title--mobile {
+  --course-header-name-size: 1.125rem;
+  --course-header-meta-size: 0.8125rem;
+  --course-header-meta-lh: 1.35;
 }
 
 .course-header-title--mobile .course-header-title__name {
@@ -1695,6 +1710,7 @@ tfoot td {
 }
 
 .app-login-screen {
+  position: relative;
   flex: 1 1 auto;
   min-height: 100%;
   min-height: 100vh;
@@ -1706,6 +1722,19 @@ tfoot td {
   padding: 1.5rem;
   background: hsl(var(--background));
   overflow: auto;
+}
+
+.app-login-build-info {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+  opacity: 0.72;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Recovery-Key nach Erstlogin */
