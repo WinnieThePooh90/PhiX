@@ -1227,39 +1227,12 @@ function averageLine(label, key, items) {
  * Allgemeine Berechnungsvorschrift für einen Schüler (nur tatsächlich genutzte Säulen/Projekte).
  */
 function buildStudentGeneralFormula({
-  writtenDetail,
-  oralDetail,
-  testDetail,
   pillars,
   percentContributions,
   gradeSystem,
 }) {
-  const partialAverages = [];
-  if (writtenDetail) {
-    partialAverages.push({
-      key: 'S',
-      label: 'Schriftlich',
-      hint: 'Mittel der zählenden Klausur-, GFS- und schriftlichen Projektnoten',
-    });
-  }
-  if (oralDetail) {
-    partialAverages.push({
-      key: 'M',
-      label: 'Mündlich',
-      hint: 'Mittel der zählenden mündlichen Bereiche und mündlichen Projektnoten',
-    });
-  }
-  if (testDetail) {
-    partialAverages.push({
-      key: 'T',
-      label: 'Tests',
-      hint: 'Mittel der zählenden Testnoten',
-    });
-  }
-
   const hasPillars = pillars.length > 0;
   const hasPercent = percentContributions.length > 0;
-  const showRestFactor = hasPercent && hasPillars;
 
   let mode = 'none';
   if (gradeSystem === 'points') {
@@ -1272,8 +1245,6 @@ function buildStudentGeneralFormula({
   }
 
   return {
-    partialAverages,
-    showRestFactor,
     pillars: pillars.map((pillar) => ({
       key: pillar.key,
       weight: pillar.weight,
@@ -1379,6 +1350,16 @@ export function getStudentGradeCalculationBreakdown(
   const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
   const wSum = pillars.reduce((sum, pillar) => sum + pillar.weight, 0);
   const steps = [];
+  const generalFormula = buildStudentGeneralFormula({
+    pillars,
+    percentContributions,
+    gradeSystem: gs,
+  });
+  const pushGeneralFinalStep = () => {
+    if (generalFormula.mode !== 'none') {
+      steps.push({ type: 'generalFinal', generalFormula });
+    }
+  };
 
   if (writtenDetail) steps.push(...writtenDetail.steps);
   if (oralDetail) steps.push(...oralDetail.steps);
@@ -1417,6 +1398,7 @@ export function getStudentGradeCalculationBreakdown(
     }
 
     if (wSum > 0 && npPillars.length > 0) {
+      pushGeneralFinalStep();
       const npAcc = npPillars.reduce((sum, pillar) => sum + pillar.np * pillar.weight, 0);
       const numeratorTerms = npPillars.map((pillar) => `${fmtCalcNum(pillar.weight, 0)} · ${fmtCalcNum(pillar.np, 0)}`).join(' + ');
       const denomTerms = npPillars.map((pillar) => fmtCalcNum(pillar.weight, 0)).join(' + ');
@@ -1467,6 +1449,7 @@ export function getStudentGradeCalculationBreakdown(
         });
       }
     } else if (percentNpAcc > 0) {
+      pushGeneralFinalStep();
       const roundedNp = Math.round(Math.min(15, Math.max(0, percentNpAcc)));
       percentContributions.forEach((entry) => {
         steps.push({
@@ -1493,6 +1476,7 @@ export function getStudentGradeCalculationBreakdown(
       steps.push({ type: 'text', text: 'Keine zählenden Noten für die Endnote in dieser Auswahl.' });
     }
   } else if (wSum > 0) {
+    pushGeneralFinalStep();
     const weightedSum = pillars.reduce((sum, pillar) => sum + pillar.weight * pillar.value, 0);
     const numeratorTerms = pillars.map((pillar) => `${fmtCalcNum(pillar.weight, 0)} · ${fmtCalcNum(pillar.value)}`).join(' + ');
     const denomTerms = pillars.map((pillar) => fmtCalcNum(pillar.weight, 0)).join(' + ');
@@ -1532,6 +1516,7 @@ export function getStudentGradeCalculationBreakdown(
       });
     }
   } else if (percentClassicAcc > 0) {
+    pushGeneralFinalStep();
     percentContributions.forEach((entry) => {
       steps.push({
         type: 'mulFraction',
@@ -1562,14 +1547,6 @@ export function getStudentGradeCalculationBreakdown(
     oralDetail,
     testDetail,
     steps,
-    generalFormula: buildStudentGeneralFormula({
-      writtenDetail,
-      oralDetail,
-      testDetail,
-      pillars,
-      percentContributions,
-      gradeSystem: gs,
-    }),
     gradeSystem: gs,
   };
 }
