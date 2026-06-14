@@ -3177,6 +3177,10 @@ a.support-phix-paypal-btn:active {
   flex-shrink: 0;
 }
 
+.course-meta-settings-row .view-toolbar-actions {
+  align-items: flex-end;
+}
+
 .projects-meta-maximize-field {
   flex: 0 0 auto;
 }
