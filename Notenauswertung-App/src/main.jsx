@@ -71,30 +71,31 @@ function AuthenticatedApp() {
     if (pendingCryptoSetup.needsRelogin) {
       return (
         <div className="app-login-screen">
-          <div className="app-login-card">
+          <div className="app-login-card app-login-card--relogin">
             <div className="app-login-brand">
               <AppLogo size={72} />
-              <h1 className="app-login-title">{APP_NAME}</h1>
             </div>
             <p className="app-login-subtitle">
               {pendingCryptoSetup.needsSetup
                 ? 'Bitte erneut anmelden. Beim ersten Login nach dem Update richten Sie die Verschlüsselung ein (Recovery-Key).'
                 : 'Die Verschlüsselungs-Sitzung ist abgelaufen oder ungültig. Bitte erneut anmelden.'}
             </p>
-            <button
-              type="button"
-              className="app-login-submit"
-              onClick={() => {
-                try {
-                  localStorage.removeItem('notenauswertung_session_username');
-                } catch {
-                  /* ignore */
-                }
-                window.location.reload();
-              }}
-            >
-              Zur Anmeldung
-            </button>
+            <div className="app-login-relogin-actions">
+              <button
+                type="button"
+                className="app-login-submit"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('notenauswertung_session_username');
+                  } catch {
+                    /* ignore */
+                  }
+                  window.location.reload();
+                }}
+              >
+                Zur Anmeldung
+              </button>
+            </div>
           </div>
         </div>
       );

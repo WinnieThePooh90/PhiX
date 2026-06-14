@@ -8,7 +8,7 @@ import {
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
-import MaximizableTableSection from '../components/MaximizableTableSection';
+import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
 function gfsNotePointsDisplay(note) {
@@ -22,6 +22,7 @@ export default function GfsView() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [gfsNoteEditingId, setGfsNoteEditingId] = useState(null);
   const [gfsNoteDraft, setGfsNoteDraft] = useState('');
+  const [tableMaximized, setTableMaximized] = useState(false);
   const wrapRef = useRef(null);
 
   const usedStudentIds = new Set(gfsEntries.map((e) => e.studentId));
@@ -56,6 +57,7 @@ export default function GfsView() {
         <div>
           <h2 style={{ margin: 0 }}>GFS</h2>
         </div>
+        <div className="view-toolbar-actions">
         <div ref={wrapRef} style={{ position: 'relative' }}>
           <button
             type="button"
@@ -129,10 +131,20 @@ export default function GfsView() {
             </div>
           )}
         </div>
+        <TableMaximizeToggle
+          maximized={tableMaximized}
+          onClick={() => setTableMaximized((m) => !m)}
+        />
+        </div>
       </div>
 
       <div className="view-table-scroll gfs-table-scroll" style={{ marginTop: '1rem' }}>
-      <MaximizableTableSection title="GFS-Einträge">
+      <MaximizableTableSection
+        title="GFS-Einträge"
+        maximized={tableMaximized}
+        onMaximizedChange={setTableMaximized}
+        embeddedToggle
+      >
         <div className="table-container">
           <table>
             <thead>

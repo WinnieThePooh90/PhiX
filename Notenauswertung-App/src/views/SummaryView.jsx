@@ -420,7 +420,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
             </label>
           </div>
         </div>
-        <div className="summary-overview-toolbar-actions">
+        <div className="view-toolbar-actions">
           <button
             type="button"
             className="tab secondary course-meta-inline-btn"

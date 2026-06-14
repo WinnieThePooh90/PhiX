@@ -23,10 +23,9 @@ export default function LoginView({ onRecovery }) {
   return (
     <div className="app-login-screen">
       <div className="app-login-card">
-        <div className="app-login-brand">
+        <div className="app-login-brand app-login-brand--solo">
           <AppLogo size={72} />
         </div>
-        <p className="app-login-subtitle">Bitte anmelden</p>
         <form className="app-login-form" onSubmit={onSubmit}>
           <label className="app-login-label">
             <span>Benutzername</span>

@@ -1392,7 +1392,7 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
       var(--course-header-name-size) * var(--course-header-name-lh) +
       var(--course-header-meta-gap) +
       var(--course-header-meta-size) * var(--course-header-meta-lh)
-    ) * 0.75
+    ) * 0.825
   );
   aspect-ratio: 1;
 }
@@ -1841,6 +1841,10 @@ tfoot td {
   margin-bottom: 0.25rem;
 }
 
+.app-login-brand--solo {
+  margin-bottom: 1rem;
+}
+
 .app-logo {
   display: block;
   flex-shrink: 0;
@@ -1916,6 +1920,19 @@ tfoot td {
 .app-login-submit:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.app-login-card--relogin .app-login-subtitle {
+  text-align: center;
+}
+
+.app-login-relogin-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.app-login-relogin-actions .app-login-submit {
+  margin-top: 0;
 }
 
 .app-main-empty-state-user {
@@ -3149,13 +3166,19 @@ a.support-phix-paypal-btn:active {
   font-weight: 600;
 }
 
-.summary-overview-toolbar-actions {
+.summary-overview-toolbar-actions,
+.view-toolbar-actions {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.projects-meta-settings__actions {
+  width: 100%;
+  margin-top: 0.15rem;
 }
 
 .table-max-host__toolbar--embedded-hidden {

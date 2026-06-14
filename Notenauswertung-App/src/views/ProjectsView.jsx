@@ -24,7 +24,7 @@ import {
   classicGradeToStoredString,
 } from '../utils/calculator';
 import GradingKeyTable from '../components/GradingKeyTable';
-import MaximizableTableSection from '../components/MaximizableTableSection';
+import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
 
 const PROJECT_INDEX_COL_PX = 52;
@@ -145,6 +145,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [groupSetupOpen, setGroupSetupOpen] = useState(false);
   const [pendingProject, setPendingProject] = useState(null);
+  const [tableMaximized, setTableMaximized] = useState(false);
   const metaBarHidden = config?.projectsMetaBarHidden === true;
   const setMetaBarHidden = (hidden) => {
     setConfig((c) => ({ ...c, projectsMetaBarHidden: hidden }));
@@ -193,6 +194,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 
   useEffect(() => {
     setExpandedScoreKey(null);
+    setTableMaximized(false);
   }, [activeProject]);
 
   useEffect(() => {
@@ -337,7 +339,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     <>
       <div className="view-page-scroll">
         {metaBarHidden ? (
-          <div style={{ marginBottom: '0.75rem' }}>
+          <div className="view-toolbar-actions" style={{ marginBottom: '0.75rem' }}>
             <button
               type="button"
               className="tab secondary course-meta-inline-btn"
@@ -345,6 +347,12 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
             >
               Menüleiste zeigen
             </button>
+            {project.active ? (
+              <TableMaximizeToggle
+                maximized={tableMaximized}
+                onClick={() => setTableMaximized((m) => !m)}
+              />
+            ) : null}
           </div>
         ) : (
         <div className="view-toolbar-block exams-toolbar">
@@ -604,6 +612,14 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 />
               </div>
             </div>
+            {project.active ? (
+              <div className="view-toolbar-actions projects-meta-settings__actions">
+                <TableMaximizeToggle
+                  maximized={tableMaximized}
+                  onClick={() => setTableMaximized((m) => !m)}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
         )}
@@ -613,7 +629,12 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
             <div className={`exams-main-stack ${showKey ? 'main-content' : ''}`}>
               <div className="exams-body-scroll view-table-scroll exam-table-scroll">
                 {isGroupMode ? (
-                  <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
+                  <MaximizableTableSection
+                    title={project.name || `Projekt P${activeProject}`}
+                    maximized={tableMaximized}
+                    onMaximizedChange={setTableMaximized}
+                    embeddedToggle
+                  >
                     <div className="projects-group-tables-stack">
                       {scoreRows.map((row) => (
                         <div key={row.scoreKey} className="projects-group-table-block">
@@ -648,7 +669,12 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     </div>
                   </MaximizableTableSection>
                 ) : (
-                  <MaximizableTableSection title={project.name || `Projekt P${activeProject}`}>
+                  <MaximizableTableSection
+                    title={project.name || `Projekt P${activeProject}`}
+                    maximized={tableMaximized}
+                    onMaximizedChange={setTableMaximized}
+                    embeddedToggle
+                  >
                     <ProjectScoresTable
                       project={project}
                       activeProject={activeProject}

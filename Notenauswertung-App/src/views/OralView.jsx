@@ -26,7 +26,7 @@ import {
   computeOralExtendedCalculatedGrade,
   roundOralNoteToQuarter,
 } from '../utils/calculator';
-import MaximizableTableSection from '../components/MaximizableTableSection';
+import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 
 const ORAL_WEEK_COL_CAP = 24;
 const ORAL_INDEX_COL_PX = 52;
@@ -59,6 +59,7 @@ export default function OralView({ studentIdFilterSet = null }) {
   const [oralNoteEditingId, setOralNoteEditingId] = useState(null);
   const [oralNoteDraft, setOralNoteDraft] = useState('');
   const [oralFormulaModalOpen, setOralFormulaModalOpen] = useState(false);
+  const [tableMaximized, setTableMaximized] = useState(false);
 
   /** Refs für manuelle „Note“-Felder — Tab springt direkt zur nächsten/vorherigen Zeile */
   const oralManualNoteRefs = useRef({});
@@ -89,6 +90,7 @@ export default function OralView({ studentIdFilterSet = null }) {
     setExpandedStudentId(null);
     setOralNoteEditingId(null);
     setOralNoteDraft('');
+    setTableMaximized(false);
   }, [activeOral]);
 
   useEffect(() => {
@@ -464,6 +466,10 @@ export default function OralView({ studentIdFilterSet = null }) {
               </div>
             </div>
           )}
+          <TableMaximizeToggle
+            maximized={tableMaximized}
+            onClick={() => setTableMaximized((m) => !m)}
+          />
         </div>
           </>
         )}
@@ -472,7 +478,12 @@ export default function OralView({ studentIdFilterSet = null }) {
 
       {oralIsActive ? (
       <div className="view-table-scroll oral-table-scroll">
-        <MaximizableTableSection title="Mündliche Noten">
+        <MaximizableTableSection
+          title="Mündliche Noten"
+          maximized={tableMaximized}
+          onMaximizedChange={setTableMaximized}
+          embeddedToggle
+        >
         <div className="table-container">
         <table>
           <thead>

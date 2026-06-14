@@ -22,7 +22,7 @@ import {
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import GradingKeyTable from '../components/GradingKeyTable';
-import MaximizableTableSection from '../components/MaximizableTableSection';
+import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
 import { useDialog } from '../components/PhixDialog';
 
@@ -138,12 +138,14 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   /** Fähnchen-Tooltip per Portal (sonst Abschneiden durch Tabellen-Scroll-Container) */
   const [examIndexTooltip, setExamIndexTooltip] = useState(null);
   const [chartsModalOpen, setChartsModalOpen] = useState(false);
+  const [tableMaximized, setTableMaximized] = useState(false);
 
   useEffect(() => {
     setExpandedStudentId(null);
     setChartsModalOpen(false);
     setTooltipGrade(null);
     setPieTooltip(null);
+    setTableMaximized(false);
   }, [activeKlausur]);
 
   useEffect(() => {
@@ -378,14 +380,20 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                   </button>
                 </div>
               </div>
-              <div className="course-meta-field" style={{ marginLeft: 'auto' }}>
-                <span className="course-meta-field__label">Schlüssel zeigen</span>
-                <div className="course-meta-field__row">
-                  <label className="switch">
-                    <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
-                    <span className="slider" />
-                  </label>
+              <div className="view-toolbar-actions">
+                <div className="course-meta-field">
+                  <span className="course-meta-field__label">Schlüssel zeigen</span>
+                  <div className="course-meta-field__row">
+                    <label className="switch">
+                      <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                      <span className="slider" />
+                    </label>
+                  </div>
                 </div>
+                <TableMaximizeToggle
+                  maximized={tableMaximized}
+                  onClick={() => setTableMaximized((m) => !m)}
+                />
               </div>
             </>
           )}
@@ -396,7 +404,12 @@ export default function ExamsView({ studentIdFilterSet = null }) {
         <div className={`exams-active-body ${showKey ? 'sidebar-layout' : ''}`}>
           <div className={`exams-main-stack ${showKey ? 'main-content' : ''}`}>
             <div className="exams-body-scroll view-table-scroll exam-table-scroll">
-              <MaximizableTableSection title={`Klausur KA ${activeKlausur}`}>
+              <MaximizableTableSection
+                title={`Klausur KA ${activeKlausur}`}
+                maximized={tableMaximized}
+                onMaximizedChange={setTableMaximized}
+                embeddedToggle
+              >
               <div className="table-container">
               <table>
                 <thead>
