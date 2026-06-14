@@ -3166,10 +3166,9 @@ a.support-phix-paypal-btn:active {
   font-weight: 600;
 }
 
-.summary-overview-toolbar-actions,
 .view-toolbar-actions {
   display: inline-flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-left: auto;
@@ -3192,8 +3191,8 @@ button.table-maximize-toggle-btn.course-meta-inline-btn {
   box-sizing: border-box;
 }
 
-.course-meta-settings-row button.table-maximize-toggle-btn.course-meta-inline-btn,
-.projects-meta-settings button.table-maximize-toggle-btn.course-meta-inline-btn {
+.course-meta-settings-row button.table-maximize-toggle-btn.course-meta-inline-btn:not(.table-maximize-toggle-btn--match-adjacent),
+.projects-meta-settings button.table-maximize-toggle-btn.course-meta-inline-btn:not(.table-maximize-toggle-btn--match-adjacent) {
   height: 1.875rem;
   min-height: 1.875rem;
   width: 1.875rem;
