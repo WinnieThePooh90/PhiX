@@ -1132,6 +1132,300 @@ export const gradeToNotenpunkte = (grade) => {
   return bestNp;
 };
 
+function fmtCalcNum(value, maxFractionDigits = 4) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return n.toLocaleString('de-DE', { maximumFractionDigits: maxFractionDigits });
+}
+
+function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs) {
+  const items = [];
+  Object.entries(exams || {}).forEach(([id, exam]) => {
+    const grade = getExamLikeGradeContribution(exam, studentId, halbjahrFilter, customGradingKeys, gs);
+    if (grade !== null) items.push({ label: `KA ${id}`, grade });
+  });
+  (gfsEntries || []).forEach((entry) => {
+    if (entry.studentId !== studentId) return;
+    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
+    if (entry.gehalten !== true) return;
+    const grade = storedGradeStringToClassic(entry.note, gs);
+    if (grade === null) return;
+    const label = [entry.thema, entry.art].filter(Boolean).join(' · ') || 'GFS';
+    items.push({ label: `GFS ${label}`, grade });
+  });
+  Object.entries(projects || {}).forEach(([id, project]) => {
+    if (project.weightingMode !== 'written') return;
+    const grade = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
+    if (grade !== null) items.push({ label: project.name || `Projekt ${id}`, grade });
+  });
+  return items;
+}
+
+function collectOralGradeItems(studentId, orals, projects, halbjahrFilter, customGradingKeys, gs) {
+  const items = [];
+  Object.values(orals || {}).forEach((oral) => {
+    if (oral.active === false) return;
+    if (halbjahrFilter && oral.halbjahr !== halbjahrFilter) return;
+    const { value, counted } = getNormalizedOralGrade(oral.grades?.[studentId]);
+    if (!counted) return;
+    const grade = storedGradeStringToClassic(value, gs);
+    if (grade === null) return;
+    items.push({ label: oral.name || 'Mündlich', grade });
+  });
+  Object.entries(projects || {}).forEach(([id, project]) => {
+    if (project.weightingMode !== 'oral') return;
+    const grade = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
+    if (grade !== null) items.push({ label: project.name || `Projekt ${id}`, grade });
+  });
+  return items;
+}
+
+function collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs) {
+  const items = [];
+  Object.values(tests || {}).forEach((test) => {
+    if (!test.active) return;
+    if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
+    const scoreMap = test.scores ?? test.errors;
+    if (scoreMap?.[studentId] === undefined) return;
+    const { counted } = getNormalizedTestScore(scoreMap[studentId]);
+    if (!counted) return;
+    const grade = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
+    if (grade !== null) items.push({ label: test.name || 'Test', grade });
+  });
+  return items;
+}
+
+function averageLine(label, key, items) {
+  if (items.length === 0) return null;
+  const sum = items.reduce((acc, item) => acc + item.grade, 0);
+  const avg = sum / items.length;
+  const gradesPart = items.map((item) => fmtCalcNum(item.grade)).join(' + ');
+  const detail = items.map((item) => `${item.label}: ${fmtCalcNum(item.grade)}`).join(', ');
+  return {
+    key,
+    label,
+    items,
+    average: avg,
+    lines: [
+      `${label} (${key}) aus: ${detail}`,
+      `${key} = (${gradesPart}) / ${items.length} = ${fmtCalcNum(avg)}`,
+    ],
+  };
+}
+
+/**
+ * Konkrete Berechnungsschritte für die Gesamtübersicht (ein Schüler, optional Halbjahr-Filter).
+ */
+export function getStudentGradeCalculationBreakdown(
+  studentId,
+  exams,
+  orals,
+  tests,
+  weighting,
+  halbjahrFilter = null,
+  gfsEntries = [],
+  customGradingKeys = null,
+  gradeSystem = 'classic',
+  testsWritten = true,
+  projects = {},
+) {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+    studentId,
+    exams,
+    orals,
+    tests,
+    weighting,
+    halbjahrFilter,
+    gfsEntries,
+    customGradingKeys,
+    gs,
+    testsWritten,
+    projects,
+  );
+
+  const rawWritten = Number(weighting?.written);
+  const rawOral = Number(weighting?.oral);
+  const rawTests = Number(weighting?.tests);
+  const hasAnyValidWeight = Number.isFinite(rawWritten) || Number.isFinite(rawOral) || Number.isFinite(rawTests);
+  const written = Number.isFinite(rawWritten) ? rawWritten : (hasAnyValidWeight ? 0 : 2);
+  const oral = Number.isFinite(rawOral) ? rawOral : (hasAnyValidWeight ? 0 : 1);
+  const wTest = Number.isFinite(rawTests) ? rawTests : (hasAnyValidWeight ? 0 : 1);
+
+  const writtenDetail = averageLine('Schriftlich', 'S', collectWrittenGradeItems(
+    studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs,
+  ));
+  const oralDetail = averageLine('Mündlich', 'M', collectOralGradeItems(
+    studentId, orals, projects, halbjahrFilter, customGradingKeys, gs,
+  ));
+  const testDetail = testsWritten
+    ? averageLine('Tests', 'T', collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs))
+    : null;
+
+  const pillars = [];
+  if (examAvg !== null && Number.isFinite(examAvg)) {
+    pillars.push({ key: 'S', label: 'Schriftlich', value: examAvg, weight: written });
+  }
+  if (oralAvg !== null && Number.isFinite(oralAvg)) {
+    pillars.push({ key: 'M', label: 'Mündlich', value: oralAvg, weight: oral });
+  }
+  if (testsWritten && testAvg !== null && Number.isFinite(testAvg)) {
+    pillars.push({ key: 'T', label: 'Tests', value: testAvg, weight: wTest });
+  }
+
+  const percentContributions = [];
+  let totalPercentWeight = 0;
+  let percentClassicAcc = 0;
+  let percentNpAcc = 0;
+  Object.entries(projects || {}).forEach(([id, project]) => {
+    if (!project.active || project.weightingMode !== 'percent') return;
+    if (halbjahrFilter && project.halbjahr !== halbjahrFilter) return;
+    const pct = Number(project.weightPercent);
+    if (!Number.isFinite(pct) || pct <= 0) return;
+    const grade = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
+    if (grade === null) return;
+    totalPercentWeight += pct;
+    const classicContribution = grade * (pct / 100);
+    percentClassicAcc += classicContribution;
+    const np = gradeToNotenpunkte(grade);
+    const npContribution = np !== null ? np * (pct / 100) : null;
+    if (np !== null) percentNpAcc += npContribution;
+    percentContributions.push({
+      id,
+      name: project.name || `Projekt ${id}`,
+      percent: pct,
+      grade,
+      classicContribution,
+      np,
+      npContribution,
+    });
+  });
+
+  const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
+  const wSum = pillars.reduce((sum, pillar) => sum + pillar.weight, 0);
+  const steps = [];
+
+  if (writtenDetail) steps.push(...writtenDetail.lines);
+  if (oralDetail) steps.push(...oralDetail.lines);
+  if (testDetail) steps.push(...testDetail.lines);
+
+  if (percentContributions.length > 0) {
+    steps.push(
+      `Restfaktor f = (100 − ${fmtCalcNum(totalPercentWeight, 0)} %) / 100 = ${fmtCalcNum(remainingFactor)}`,
+    );
+  }
+
+  steps.push(
+    `Gewichte: w_S = ${fmtCalcNum(written, 0)}, w_M = ${fmtCalcNum(oral, 0)}${
+      testsWritten ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ' (Tests fließen nicht ein)'
+    }`,
+  );
+
+  if (gs === 'points') {
+    const npPillars = pillars.map((pillar) => ({
+      ...pillar,
+      np: gradeToNotenpunkte(pillar.value),
+    })).filter((pillar) => pillar.np !== null);
+
+    if (npPillars.length > 0) {
+      npPillars.forEach((pillar) => {
+        steps.push(`NP(${pillar.key}) = ${fmtCalcNum(pillar.np, 0)} (aus ${pillar.key} = ${fmtCalcNum(pillar.value)})`);
+      });
+    }
+
+    if (wSum > 0 && npPillars.length > 0) {
+      const npAcc = npPillars.reduce((sum, pillar) => sum + pillar.np * pillar.weight, 0);
+      const numeratorTerms = npPillars.map((pillar) => `${fmtCalcNum(pillar.weight, 0)} · ${fmtCalcNum(pillar.np, 0)}`).join(' + ');
+      const denomTerms = npPillars.map((pillar) => fmtCalcNum(pillar.weight, 0)).join(' + ');
+      const standardNp = (npAcc / wSum) * remainingFactor;
+      const avgNp = standardNp + percentNpAcc;
+      const roundedNp = Math.round(Math.min(15, Math.max(0, avgNp)));
+
+      if (percentContributions.length > 0) {
+        steps.push(
+          `NP_standard = (${numeratorTerms}) / (${denomTerms}) · ${fmtCalcNum(remainingFactor)} = ${fmtCalcNum(standardNp)}`,
+        );
+        percentContributions.forEach((entry) => {
+          steps.push(
+            `${entry.name}: NP = ${fmtCalcNum(entry.np, 0)}, Anteil ${fmtCalcNum(entry.percent, 0)} % → ${fmtCalcNum(entry.np, 0)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.npContribution)}`,
+          );
+        });
+        steps.push(
+          `NP_end = ${fmtCalcNum(standardNp)} + ${fmtCalcNum(percentNpAcc)} = ${fmtCalcNum(avgNp)}`,
+        );
+      } else {
+        steps.push(`NP_end = (${numeratorTerms}) / (${denomTerms}) = ${fmtCalcNum(avgNp)}`);
+      }
+      steps.push(`NP_end (gerundet) = ${fmtCalcNum(roundedNp, 0)}`);
+      if (finalGrade !== null) {
+        steps.push(`Endnote (Exakt) = Zuordnung NP ${fmtCalcNum(roundedNp, 0)} → ${fmtCalcNum(finalGrade)}`);
+      }
+    } else if (percentNpAcc > 0) {
+      const roundedNp = Math.round(Math.min(15, Math.max(0, percentNpAcc)));
+      percentContributions.forEach((entry) => {
+        steps.push(
+          `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.npContribution)}`,
+        );
+      });
+      steps.push(`NP_end = ${fmtCalcNum(percentNpAcc)} → gerundet ${fmtCalcNum(roundedNp, 0)}`);
+      if (finalGrade !== null) {
+        steps.push(`Endnote (Exakt) = Zuordnung NP ${fmtCalcNum(roundedNp, 0)} → ${fmtCalcNum(finalGrade)}`);
+      }
+    } else {
+      steps.push('Keine zählenden Noten für die Endnote in dieser Auswahl.');
+    }
+  } else if (wSum > 0) {
+    const weightedSum = pillars.reduce((sum, pillar) => sum + pillar.weight * pillar.value, 0);
+    const numeratorTerms = pillars.map((pillar) => `${fmtCalcNum(pillar.weight, 0)} · ${fmtCalcNum(pillar.value)}`).join(' + ');
+    const denomTerms = pillars.map((pillar) => fmtCalcNum(pillar.weight, 0)).join(' + ');
+    const standardPart = (weightedSum / wSum) * remainingFactor;
+
+    if (percentContributions.length > 0) {
+      steps.push(
+        `Standardanteil = (${numeratorTerms}) / (${denomTerms}) · ${fmtCalcNum(remainingFactor)} = ${fmtCalcNum(standardPart)}`,
+      );
+      percentContributions.forEach((entry) => {
+        steps.push(
+          `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.classicContribution)}`,
+        );
+      });
+      steps.push(
+        `Endnote (Exakt) = ${fmtCalcNum(standardPart)} + ${fmtCalcNum(percentClassicAcc)} = ${fmtCalcNum(finalGrade)}`,
+      );
+    } else {
+      steps.push(`Endnote (Exakt) = (${numeratorTerms}) / (${denomTerms}) = ${fmtCalcNum(finalGrade)}`);
+    }
+  } else if (percentClassicAcc > 0) {
+    percentContributions.forEach((entry) => {
+      steps.push(
+        `${entry.name}: ${fmtCalcNum(entry.grade)} · ${fmtCalcNum(entry.percent, 0)} / 100 = ${fmtCalcNum(entry.classicContribution)}`,
+      );
+    });
+    steps.push(`Endnote (Exakt) = ${fmtCalcNum(percentClassicAcc)}`);
+  } else {
+    steps.push('Keine zählenden Noten für die Endnote in dieser Auswahl.');
+  }
+
+  return {
+    examAvg,
+    oralAvg,
+    testAvg,
+    finalGrade,
+    weights: { written, oral, tests: wTest },
+    testsWritten,
+    remainingFactor,
+    totalPercentWeight,
+    wSum,
+    percentContributions,
+    pillars,
+    writtenDetail,
+    oralDetail,
+    testDetail,
+    steps,
+    gradeSystem: gs,
+  };
+}
+
 /** Kurs-Notensystem aus API/State robust als `classic` | `points` erkennen. */
 export const normalizeCourseGradeSystem = (raw) => {
   const s = String(raw ?? 'classic').trim().toLowerCase();

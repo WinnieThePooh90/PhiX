@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import {
   calculateStudentGrades,
+  getStudentGradeCalculationBreakdown,
   formatGrade,
   isGradeWorseThan4,
   getGradeCellBackground,
@@ -292,6 +293,122 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
   );
 }
 
+const CALCULATION_CATEGORIES = [
+  { key: '1', label: 'Halbjahr 1' },
+  { key: '2', label: 'Halbjahr 2' },
+  { key: 'all', label: 'Gesamt' },
+];
+
+function SummaryStudentCalculationModal({
+  open,
+  onClose,
+  student,
+  config,
+  exams,
+  orals,
+  tests,
+  projects,
+  gfsEntries,
+  customGradingKeys,
+  gradeSys,
+}) {
+  const [categoryKey, setCategoryKey] = useState('all');
+
+  useEffect(() => {
+    if (open) setCategoryKey('all');
+  }, [open, student?.id]);
+
+  if (!open || !student) return null;
+
+  const halbjahrFilter = categoryKey === 'all' ? null : categoryKey;
+  const categoryLabel = CALCULATION_CATEGORIES.find((cat) => cat.key === categoryKey)?.label ?? 'Gesamt';
+  const breakdown = getStudentGradeCalculationBreakdown(
+    student.id,
+    exams,
+    orals,
+    tests,
+    config?.weighting,
+    halbjahrFilter,
+    gfsEntries,
+    customGradingKeys,
+    gradeSys,
+    config?.testsWritten !== false,
+    projects,
+  );
+  const gfmt = (g) => formatGrade(g, gradeSys);
+
+  return createPortal(
+    <div className="oral-formula-modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="oral-formula-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="summary-student-calc-modal-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 'min(40rem, calc(100vw - 2rem))' }}
+      >
+        <div className="oral-formula-modal-header">
+          <h2 id="summary-student-calc-modal-title" style={{ margin: 0, fontSize: '1.05rem' }}>
+            Berechnung — {student.lastName}, {student.firstName}
+          </h2>
+          <button type="button" className="tab secondary" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+        <div className="oral-formula-modal-body text-muted" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '1rem' }}>
+            {CALCULATION_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                className={`tab${categoryKey === cat.key ? '' : ' secondary'}`}
+                onClick={() => setCategoryKey(cat.key)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
+            Konkrete Rechnung für <strong>{categoryLabel}</strong>
+            {gradeSys === 'points' ? ' (Punktesystem)' : ' (klassische Notenskala)'}:
+          </p>
+
+          {breakdown.steps.length === 0 ? (
+            <p style={{ margin: 0 }}>Keine zählenden Noten für diese Auswahl.</p>
+          ) : (
+            <ol style={{ margin: '0 0 1rem', paddingLeft: '1.35rem' }}>
+              {breakdown.steps.map((step, idx) => (
+                <li key={idx} style={{ marginBottom: '0.45rem', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: '0.82rem' }}>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <p
+            style={{
+              margin: 0,
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius)',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-main)',
+              fontWeight: 600,
+            }}
+          >
+            Ergebnis — Endnote (Exakt):{' '}
+            <span style={{ color: isGradeWorseThan4(breakdown.finalGrade) ? 'var(--danger)' : 'var(--primary)' }}>
+              {gfmt(breakdown.finalGrade)}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSystem, label }) {
   const stored = student[field] ?? '';
   const [draft, setDraft] = useState(() => summaryEndNoteDraftFromStored(stored, gradeSystem));
@@ -373,6 +490,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
+  const [calculationStudent, setCalculationStudent] = useState(null);
   const [overviewMaximized, setOverviewMaximized] = useState(false);
   const showHJ1 = config?.summaryShowHJ1 !== false;
   const weighting = config?.weighting;
@@ -736,6 +854,19 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                             );
                           })}
                         </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                          <button
+                            type="button"
+                            className="tab secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCalculationStudent(s);
+                            }}
+                            title="Konkrete Berechnung der Endnote mit eingesetzten Zahlen"
+                          >
+                            Berechnung
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -752,6 +883,19 @@ export default function SummaryView({ studentIdFilterSet = null }) {
         onClose={() => setFormulaModalOpen(false)}
         config={config}
         projects={projects}
+        gradeSys={gradeSys}
+      />
+      <SummaryStudentCalculationModal
+        open={calculationStudent !== null}
+        onClose={() => setCalculationStudent(null)}
+        student={calculationStudent}
+        config={config}
+        exams={exams}
+        orals={orals}
+        tests={tests}
+        projects={projects}
+        gfsEntries={gfsEntries}
+        customGradingKeys={customGradingKeys}
         gradeSys={gradeSys}
       />
     </div>
