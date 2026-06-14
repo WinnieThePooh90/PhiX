@@ -684,6 +684,11 @@ export default function ExamChartsPanels({
                   </div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(successPercent)}%</div>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    {countedStudents > 0
+                      ? totalAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })
+                      : '—'}
+                  </div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                     {avgAchieved !== null
                       ? `Ø ${avgAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
                       : '—'}
