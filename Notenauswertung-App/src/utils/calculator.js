@@ -1224,6 +1224,71 @@ function averageLine(label, key, items) {
 }
 
 /**
+ * Allgemeine Berechnungsvorschrift für einen Schüler (nur tatsächlich genutzte Säulen/Projekte).
+ */
+function buildStudentGeneralFormula({
+  writtenDetail,
+  oralDetail,
+  testDetail,
+  pillars,
+  percentContributions,
+  gradeSystem,
+}) {
+  const partialAverages = [];
+  if (writtenDetail) {
+    partialAverages.push({
+      key: 'S',
+      label: 'Schriftlich',
+      hint: 'Mittel der zählenden Klausur-, GFS- und schriftlichen Projektnoten',
+    });
+  }
+  if (oralDetail) {
+    partialAverages.push({
+      key: 'M',
+      label: 'Mündlich',
+      hint: 'Mittel der zählenden mündlichen Bereiche und mündlichen Projektnoten',
+    });
+  }
+  if (testDetail) {
+    partialAverages.push({
+      key: 'T',
+      label: 'Tests',
+      hint: 'Mittel der zählenden Testnoten',
+    });
+  }
+
+  const hasPillars = pillars.length > 0;
+  const hasPercent = percentContributions.length > 0;
+  const showRestFactor = hasPercent && hasPillars;
+
+  let mode = 'none';
+  if (gradeSystem === 'points') {
+    if (hasPillars) mode = hasPercent ? 'points_pillars_percent' : 'points_pillars';
+    else if (hasPercent) mode = 'points_percent_only';
+  } else if (hasPillars) {
+    mode = hasPercent ? 'classic_pillars_percent' : 'classic_pillars';
+  } else if (hasPercent) {
+    mode = 'classic_percent_only';
+  }
+
+  return {
+    partialAverages,
+    showRestFactor,
+    pillars: pillars.map((pillar) => ({
+      key: pillar.key,
+      weight: pillar.weight,
+      label: pillar.label,
+    })),
+    percentProjects: percentContributions.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+    })),
+    mode,
+    gradeSystem,
+  };
+}
+
+/**
  * Konkrete Berechnungsschritte für die Gesamtübersicht (ein Schüler, optional Halbjahr-Filter).
  */
 export function getStudentGradeCalculationBreakdown(
@@ -1497,6 +1562,14 @@ export function getStudentGradeCalculationBreakdown(
     oralDetail,
     testDetail,
     steps,
+    generalFormula: buildStudentGeneralFormula({
+      writtenDetail,
+      oralDetail,
+      testDetail,
+      pillars,
+      percentContributions,
+      gradeSystem: gs,
+    }),
     gradeSystem: gs,
   };
 }

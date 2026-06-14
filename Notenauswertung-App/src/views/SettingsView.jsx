@@ -262,7 +262,7 @@ export default function SettingsView() {
                 Gewichtung
               </h3>
               <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-                Gib hier die Gewichtung der Noten im Verhältnis an.
+                Gib hier die Gewichtung der Noten im Verhältnis an, z. B. 3:1 oder 75:25 oder 3:2:1 oder 75:33:17.
               </p>
               {config.testsWritten !== false ? (
                 <div className="weighting-ratio-grid mt-4">

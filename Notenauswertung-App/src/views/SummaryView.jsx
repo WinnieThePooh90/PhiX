@@ -308,6 +308,134 @@ function MathFraction({ numerator, denominator }) {
   );
 }
 
+function WeightSymbol({ pillarKey }) {
+  return <>w<sub>{pillarKey}</sub></>;
+}
+
+function PillarTerm({ pillar, useNp = false }) {
+  return (
+    <>
+      <WeightSymbol pillarKey={pillar.key} />
+      ·{useNp ? <>NP({pillar.key})</> : pillar.key}
+    </>
+  );
+}
+
+function PercentProjectTerm({ project, useNp = false }) {
+  const symbol = useNp ? <>NP(g<sub>{project.id}</sub>)</> : <>g<sub>{project.id}</sub></>;
+  return (
+    <>
+      {symbol} · <MathFraction numerator={<>p<sub>{project.id}</sub></>} denominator="100" />
+    </>
+  );
+}
+
+function StudentGeneralFormulaSection({ generalFormula }) {
+  if (!generalFormula || generalFormula.mode === 'none') return null;
+
+  const { partialAverages, showRestFactor, pillars, percentProjects, mode } = generalFormula;
+  const useNp = mode.startsWith('points');
+
+  const renderPillarNum = () => pillars.map((pillar, idx) => (
+    <span key={`num-${pillar.key}`}>
+      {idx > 0 ? ' + ' : ''}
+      <PillarTerm pillar={pillar} useNp={useNp} />
+    </span>
+  ));
+  const renderPillarDen = () => pillars.map((pillar, idx) => (
+    <span key={`den-${pillar.key}`}>
+      {idx > 0 ? ' + ' : ''}
+      <WeightSymbol pillarKey={pillar.key} />
+    </span>
+  ));
+  const renderPercentSum = () => percentProjects.map((project, idx) => (
+    <span key={`pct-${project.id}`}>
+      {idx > 0 ? ' + ' : ''}
+      <PercentProjectTerm project={project} useNp={useNp} />
+    </span>
+  ));
+
+  const renderFinalFormula = () => {
+    switch (mode) {
+      case 'classic_pillars':
+        return (
+          <>
+            Endnote (Exakt) = <MathFraction numerator={renderPillarNum()} denominator={renderPillarDen()} />
+          </>
+        );
+      case 'classic_pillars_percent':
+        return (
+          <>
+            Endnote (Exakt) = f · <MathFraction numerator={renderPillarNum()} denominator={renderPillarDen()} />
+            {' + '}
+            {renderPercentSum()}
+          </>
+        );
+      case 'classic_percent_only':
+        return <>Endnote (Exakt) = {renderPercentSum()}</>;
+      case 'points_pillars':
+        return (
+          <>
+            NP<sub>end</sub> = round(<MathFraction numerator={renderPillarNum()} denominator={renderPillarDen()} />)
+          </>
+        );
+      case 'points_pillars_percent':
+        return (
+          <>
+            NP<sub>end</sub> = round(f · <MathFraction numerator={renderPillarNum()} denominator={renderPillarDen()} />
+            {' + '}
+            {renderPercentSum()})
+          </>
+        );
+      case 'points_percent_only':
+        return (
+          <>
+            NP<sub>end</sub> = round({renderPercentSum()})
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <section className="calc-modal-section">
+      <h3 className="calc-modal-section-title">Berechnungsvorschrift (allgemein)</h3>
+      <ul className="calc-general-list">
+        {partialAverages.map((avg) => (
+          <li key={avg.key} className="calc-step-math">
+            <strong>{avg.key}</strong> ={' '}
+            <MathFraction numerator="Σ Einzelnoten" denominator="Anzahl" />
+            <span className="calc-step-hint"> ({avg.hint})</span>
+          </li>
+        ))}
+      </ul>
+      {showRestFactor && (
+        <p className="calc-step-math calc-general-rest">
+          f = <MathFraction numerator={<>100 − Σ p<sub>i</sub></>} denominator="100" />
+        </p>
+      )}
+      <div className="summary-formula-math-block calc-general-final">{renderFinalFormula()}</div>
+      {useNp && (
+        <p className="calc-general-note">
+          Endnote (Exakt) = Zuordnung aus NP<sub>end</sub> (gerundet) über die Notenpunkte-Tabelle
+        </p>
+      )}
+      {percentProjects.length > 0 && (
+        <p className="calc-general-note">
+          Projekte (prozentual):{' '}
+          {percentProjects.map((project, idx) => (
+            <span key={project.id}>
+              {idx > 0 ? '; ' : ''}
+              <em>{project.name}</em> → g<sub>{project.id}</sub>, p<sub>{project.id}</sub>
+            </span>
+          ))}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function CalculationStepLine({ step }) {
   switch (step.type) {
     case 'sources':
@@ -442,38 +570,35 @@ function SummaryStudentCalculationModal({
             ))}
           </div>
 
-          <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
-            Konkrete Rechnung für <strong>{categoryLabel}</strong>:
-          </p>
+          <StudentGeneralFormulaSection generalFormula={breakdown.generalFormula} />
 
-          {breakdown.steps.length === 0 ? (
-            <p style={{ margin: 0 }}>Keine zählenden Noten für diese Auswahl.</p>
-          ) : (
-            <ol className="calc-step-list">
-              {breakdown.steps.map((step, idx) => (
-                <li key={idx} className={step.type === 'text' ? 'calc-step-list__plain' : 'calc-step-list__math'}>
-                  <CalculationStepLine step={step} />
-                </li>
-              ))}
-            </ol>
-          )}
+          <section className="calc-modal-section">
+            <h3 className="calc-modal-section-title">
+              Konkrete Berechnung — {categoryLabel}
+            </h3>
 
-          <p
-            style={{
-              margin: 0,
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius)',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-main)',
-              fontWeight: 600,
-            }}
-          >
-            Ergebnis — Endnote (Exakt):{' '}
-            <span style={{ color: isGradeWorseThan4(breakdown.finalGrade) ? 'var(--danger)' : 'var(--primary)' }}>
-              {gfmt(breakdown.finalGrade)}
-            </span>
-          </p>
+            {breakdown.steps.length === 0 ? (
+              <p style={{ margin: 0 }}>Keine zählenden Noten für diese Auswahl.</p>
+            ) : (
+              <ol className="calc-step-list">
+                {breakdown.steps.map((step, idx) => (
+                  <li key={idx} className={step.type === 'text' ? 'calc-step-list__plain' : 'calc-step-list__math'}>
+                    <CalculationStepLine step={step} />
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="calc-modal-section calc-modal-section--result">
+            <h3 className="calc-modal-section-title">Ergebnis</h3>
+            <p className="calc-modal-result">
+              Endnote (Exakt):{' '}
+              <span style={{ color: isGradeWorseThan4(breakdown.finalGrade) ? 'var(--danger)' : 'var(--primary)' }}>
+                {gfmt(breakdown.finalGrade)}
+              </span>
+            </p>
+          </section>
         </div>
       </div>
     </div>,

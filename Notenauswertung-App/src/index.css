@@ -3492,6 +3492,66 @@ button.school-roster-control-btn.danger {
   font-size: 1.02em;
 }
 
+.calc-modal-section {
+  margin-bottom: 1.25rem;
+}
+
+.calc-modal-section--result {
+  margin-bottom: 0;
+}
+
+.calc-modal-section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calc-general-list {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.calc-general-list li {
+  margin-bottom: 0.45rem;
+}
+
+.calc-step-hint {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.calc-general-rest {
+  margin: 0 0 0.75rem;
+}
+
+.calc-general-final {
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.calc-general-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.calc-modal-result {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
 .sidebar-layout > .exams-main-stack.main-content {
   flex: 1 1 0%;
 }
