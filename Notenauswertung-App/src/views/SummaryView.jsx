@@ -110,7 +110,7 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
 
   const weightLine = testsWritten
     ? <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong>, <strong>w<sub>T</sub> = {weights.tests}</strong></>
-    : <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong> (Tests fließen nicht ein)</>;
+    : <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong></>;
 
   const standardClassicNumerator = testsWritten
     ? <>w<sub>S</sub>·S + w<sub>M</sub>·M + w<sub>T</sub>·T</>
@@ -909,9 +909,6 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                 <div className="mb-4">
                                   <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Schriftlich ({gfmt(examAvg)})
-                                    <span style={{ fontWeight: 'normal', fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
-                                      {writtenProjects.length > 0 ? 'Klausuren, GFS & Projekte' : 'Klausuren + GFS'}
-                                    </span>
                                   </h4>
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(exams).filter(([_, e]) => e.active && (!cat.filter || e.halbjahr === cat.filter)).map(([id, e]) => {
@@ -947,9 +944,6 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                                 <div className="mb-4">
                                   <h4 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Mündlich ({gfmt(oralAvg)})
-                                    {oralProjects.length > 0 && (
-                                      <span style={{ fontWeight: 'normal', fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>inkl. Projekte</span>
-                                    )}
                                   </h4>
                                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                                     {Object.entries(orals).filter(([_, o]) => o.active !== false && (!cat.filter || o.halbjahr === cat.filter)).map(([id, o]) => {

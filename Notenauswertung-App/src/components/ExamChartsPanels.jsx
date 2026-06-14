@@ -15,8 +15,11 @@ function formatQuarterAxisLabel(g) {
   return Number(g).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function barColorForClassicRounded(rounded1to6) {
-  return Math.round(rounded1to6) >= 4 ? 'var(--danger)' : 'var(--success)';
+function barColorForClassicQuarterGrade(grade) {
+  const g = normalizeQuarterGrade(grade);
+  if (g >= 4.25) return 'var(--danger)';
+  if (g >= 3.25) return '#f59e0b';
+  return 'var(--success)';
 }
 
 /** Mittelpunkt eines Kreissegments (Prozent auf dem Ring) — Winkel wie SVG stroke nach rotate(-90deg). */
@@ -219,7 +222,7 @@ export default function ExamChartsPanels({
   const barPortalBorder = showBarPortal
     ? gs === 'points'
       ? barColorForNpBucket(tooltipGrade)
-      : barColorForClassicRounded(tooltipGrade)
+      : barColorForClassicQuarterGrade(tooltipGrade)
     : '';
   const barPortalTitle = showBarPortal
     ? gs === 'points'
@@ -396,7 +399,7 @@ export default function ExamChartsPanels({
               const counts = countForBucket(bucketKey);
               const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
               const barColor =
-                gs === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicRounded(bucketKey);
+                gs === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicQuarterGrade(bucketKey);
               const isTooltipActive = tooltipGrade === bucketKey;
 
               const axisLabel = gs === 'points' ? String(bucketKey) : formatQuarterAxisLabel(bucketKey);
@@ -477,11 +480,11 @@ export default function ExamChartsPanels({
               );
             })}
           </div>
-          <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
-            {gs === 'points'
-              ? 'Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.'
-              : 'Balken = Anzahl Schüler je Note (1,0–6,0 in 0,25er-Schritten).'}
-          </p>
+          {gs === 'points' && (
+            <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
+              Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.
+            </p>
+          )}
         </div>
 
         <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>

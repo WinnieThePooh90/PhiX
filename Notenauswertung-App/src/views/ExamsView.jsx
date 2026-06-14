@@ -223,6 +223,23 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
 
+  const examClassAverage = useMemo(() => {
+    let sum = 0;
+    let count = 0;
+    displayStudents.forEach((s) => {
+      const rawSc = exam.scores?.[s.id];
+      const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+      const { counted } = getNormalizedExamScore(rawSc, effN);
+      if (!counted) return;
+      const grade = getExamGradeForStudent(exam, s.id, customKeysList);
+      if (grade !== null && Number.isFinite(grade)) {
+        sum += grade;
+        count += 1;
+      }
+    });
+    return count > 0 ? Math.round((sum / count) * 100) / 100 : null;
+  }, [displayStudents, exam, customKeysList]);
+
   const handleScoreChange = (studentId, fieldIndex, value) => {
     updateExamScore(activeKlausur, studentId, fieldIndex, value);
   };
@@ -448,7 +465,23 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
                       {exam.maxPoints}
                     </th>
-                    <th style={{ position: 'sticky', right: 0, top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}></th>
+                    <th style={{ position: 'sticky', right: 0, top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', textTransform: 'none', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span title="Klassenschnitt">Ø</span>
+                      {examClassAverage !== null && (
+                        <div
+                          style={{
+                            fontSize: '0.85rem',
+                            marginTop: '0.15rem',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: isGradeWorseThan4(examClassAverage) ? 'var(--danger)' : 'var(--foreground)',
+                          }}
+                        >
+                          {gradeSys === 'points'
+                            ? formatGrade(examClassAverage, gradeSys)
+                            : examClassAverage.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      )}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

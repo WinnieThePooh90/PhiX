@@ -1390,7 +1390,7 @@ export function getStudentGradeCalculationBreakdown(
   steps.push({
     type: 'text',
     text: `Gewichte: w_S = ${fmtCalcNum(written, 0)}, w_M = ${fmtCalcNum(oral, 0)}${
-      testsWritten ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ' (Tests fließen nicht ein)'
+      testsWritten ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ''
     }`,
   });
 
