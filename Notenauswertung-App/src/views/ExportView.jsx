@@ -6,12 +6,18 @@ import {
   courseFullExportFilename,
   examExportFilename,
   oralExportFilename,
+  oralExtendedExportFilename,
   summaryOverviewExportFilename,
   testExportFilename,
 } from '../utils/exportFilenames';
 import { buildCourseFullExportSheets } from '../utils/courseFullExport';
 import { buildExamTableExport, examExportSheetName } from '../utils/examTableExport';
-import { buildOralStandardTableExportData, oralExportSheetName } from '../utils/oralTableExport';
+import {
+  buildOralStandardTableExportData,
+  buildOralExtendedTableExportData,
+  oralExportSheetName,
+  oralExtendedExportSheetName,
+} from '../utils/oralTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
 import { downloadAoaPdf, downloadMultiSectionPdf, downloadSheetDataPdf } from '../utils/phixPdfExport';
@@ -91,7 +97,6 @@ export default function ExportView() {
   const { config, students, exams, orals, tests, projects, gfsEntries } = useData();
   const [busyKey, setBusyKey] = useState(null);
   const [err, setErr] = useState('');
-  const [ok, setOk] = useState('');
   const [expandedSections, setExpandedSections] = useState(() => new Set());
 
   const toggleSection = (sectionId) => {
@@ -119,10 +124,17 @@ export default function ExportView() {
     () => Object.keys(orals ?? {}).sort((a, b) => Number(a) - Number(b)),
     [orals],
   );
+  const oralStandardNumbers = useMemo(
+    () => oralNumbers.filter((id) => !orals[id]?.extended),
+    [oralNumbers, orals],
+  );
+  const oralExtendedNumbers = useMemo(
+    () => oralNumbers.filter((id) => !!orals[id]?.extended),
+    [oralNumbers, orals],
+  );
 
   const runExport = async (key, fn) => {
     setErr('');
-    setOk('');
     if (!config) {
       setErr('Kein Kurs ausgewählt.');
       return;
@@ -133,8 +145,7 @@ export default function ExportView() {
     }
     setBusyKey(key);
     try {
-      const filename = await fn();
-      if (filename) setOk(`Datei „${filename}“ wurde heruntergeladen.`);
+      await fn();
     } catch {
       setErr('Export fehlgeschlagen.');
     } finally {
@@ -230,12 +241,35 @@ export default function ExportView() {
       }
       const sheetData = buildOralStandardTableExportData({ oral, students, config });
       if (!sheetData) {
-        setErr('Erweiterte mündliche Bereiche können nicht im Standardformat exportiert werden.');
+        setErr('Dieser Bereich ist nicht im Standardmodus verfügbar.');
         return null;
       }
       const { headers, rows, layout } = sheetData;
       const sheetName = oralExportSheetName(oralId, oral?.name);
       const filename = oralExportFilename(config, oralId, oral?.name, format);
+      if (format === 'pdf') {
+        downloadSheetDataPdf({ headers, rows }, sheetName, filename);
+      } else {
+        downloadSheetDataXlsx({ headers, rows }, sheetName, filename, layout);
+      }
+      return filename;
+    });
+
+  const exportOralExtended = (oralId, format) =>
+    runExport(`oral-ext-${oralId}-${format}`, async () => {
+      const oral = orals[oralId];
+      if (oral?.active === false) {
+        setErr('Inaktive mündliche Bereiche werden nicht exportiert.');
+        return null;
+      }
+      const sheetData = buildOralExtendedTableExportData({ oral, students, config });
+      if (!sheetData) {
+        setErr('Dieser Bereich ist nicht im Erweitert-Modus verfügbar.');
+        return null;
+      }
+      const { headers, rows, layout } = sheetData;
+      const sheetName = oralExtendedExportSheetName(oralId, oral?.name);
+      const filename = oralExtendedExportFilename(config, oralId, oral?.name, format);
       if (format === 'pdf') {
         downloadSheetDataPdf({ headers, rows }, sheetName, filename);
       } else {
@@ -275,7 +309,7 @@ export default function ExportView() {
           <div className="export-item-row__actions export-course-full-actions">
             <button
               type="button"
-              className="tab primary export-format-btn"
+              className="tab secondary export-format-btn"
               disabled={anyBusy || !config}
               onClick={() => exportFullCourse('xlsx')}
             >
@@ -321,7 +355,7 @@ export default function ExportView() {
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Je Klausur eine Datei mit der Standardtabelle (#, Name, Aufgaben, Gesamt, Note) inkl.
-            Maximalpunkte-Zeile.
+            Maximalpunkte-Zeile und genutzter Notenschlüssel.
           </p>
           {examNumbers.length === 0 ? (
             <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
@@ -402,33 +436,29 @@ export default function ExportView() {
           onToggle={() => toggleSection('oral')}
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            Nur die <strong>Standardtabelle</strong> (#, Name, Note) — Bereiche im Modus „Erweitert“
-            sind hier nicht enthalten.
+            <strong>Standardtabelle</strong> (#, Name, Note) für mündliche Bereiche ohne Erweitert-Modus.
           </p>
-          {oralNumbers.length === 0 ? (
+          {oralStandardNumbers.length === 0 ? (
             <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
-              Keine mündlichen Bereiche angelegt.
+              Keine mündlichen Bereiche im Standardmodus.
             </p>
           ) : (
             <div className="export-item-list">
-              {oralNumbers.map((id) => {
+              {oralStandardNumbers.map((id) => {
                 const oral = orals[id];
-                const extended = !!oral?.extended;
                 const inactive = oral?.active === false;
                 return (
                   <ExportFormatButtons
                     key={id}
                     label={oral?.name?.trim() ? oral.name : `Mündlich ${id}`}
                     sublabel={
-                      extended
-                        ? 'nur Standard — Erweitert aktiv'
-                        : inactive
-                          ? 'inaktiv'
-                          : [oral?.halbjahr ? `HJ ${oral.halbjahr}` : null, oral?.date]
-                              .filter(Boolean)
-                              .join(' · ') || undefined
+                      inactive
+                        ? 'inaktiv'
+                        : [oral?.halbjahr ? `HJ ${oral.halbjahr}` : null, oral?.date]
+                            .filter(Boolean)
+                            .join(' · ') || undefined
                     }
-                    disabled={anyBusy || !config || extended || inactive}
+                    disabled={anyBusy || !config || inactive}
                     busyKey={busyKey}
                     exportKey={`oral-${id}`}
                     onExcel={() => exportOral(id, 'xlsx')}
@@ -440,14 +470,51 @@ export default function ExportView() {
           )}
         </ExportSection>
 
+        <ExportSection
+          sectionId="oral-extended"
+          title="Erweiterte mündliche Noten"
+          expanded={isSectionOpen('oral-extended')}
+          onToggle={() => toggleSection('oral-extended')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
+            <strong>Erweiterte Tabelle</strong> (#, Name, Wochenpunkte, Gesamt, Berechnet, Note) für Bereiche
+            im Modus „Erweitert“.
+          </p>
+          {oralExtendedNumbers.length === 0 ? (
+            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
+              Keine mündlichen Bereiche im Erweitert-Modus.
+            </p>
+          ) : (
+            <div className="export-item-list">
+              {oralExtendedNumbers.map((id) => {
+                const oral = orals[id];
+                const inactive = oral?.active === false;
+                return (
+                  <ExportFormatButtons
+                    key={id}
+                    label={oral?.name?.trim() ? oral.name : `Mündlich ${id}`}
+                    sublabel={
+                      inactive
+                        ? 'inaktiv'
+                        : [oral?.halbjahr ? `HJ ${oral.halbjahr}` : null, oral?.date]
+                            .filter(Boolean)
+                            .join(' · ') || undefined
+                    }
+                    disabled={anyBusy || !config || inactive}
+                    busyKey={busyKey}
+                    exportKey={`oral-ext-${id}`}
+                    onExcel={() => exportOralExtended(id, 'xlsx')}
+                    onPdf={() => exportOralExtended(id, 'pdf')}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </ExportSection>
+
         {err ? (
           <p className="backup-feedback backup-feedback--error" role="alert">
             {err}
-          </p>
-        ) : null}
-        {ok ? (
-          <p className="backup-feedback backup-feedback--ok" role="status">
-            {ok}
           </p>
         ) : null}
       </div>

@@ -33,6 +33,14 @@ export function oralExportFilename(course, oralId, oralName, ext = 'xlsx') {
   return buildExportFilename(['Muendlich', label, course?.subject, course?.className, course?.year], ext);
 }
 
+export function oralExtendedExportFilename(course, oralId, oralName, ext = 'xlsx') {
+  const label = oralName?.trim() ? oralName.trim() : `Muendlich-${oralId}`;
+  return buildExportFilename(
+    ['Muendlich-erweitert', label, course?.subject, course?.className, course?.year],
+    ext,
+  );
+}
+
 /** Gesamtexport des aktuellen Kurses (alle Blätter in einer Datei). */
 export function courseFullExportFilename(course, ext = 'xlsx') {
   return buildExportFilename(['Klasse', course?.subject, course?.className, course?.year], ext);

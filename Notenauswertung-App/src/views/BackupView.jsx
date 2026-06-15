@@ -100,7 +100,6 @@ function BackupRestoreBlock({
     setBusy('download');
     try {
       await downloadBackup(downloadPath, actingUsername, downloadFallback);
-      onFeedback('ok', 'Backup wurde erstellt und heruntergeladen.');
     } catch (e) {
       onFeedback('err', e?.message || 'Export fehlgeschlagen.');
     } finally {
@@ -369,7 +368,6 @@ export default function BackupView() {
                         username,
                         `phix-user-backup-${selectedAdminUser}-${stamp}Z.json`,
                       );
-                      onFeedback('ok', `Backup für „${selectedAdminUser}“ wurde heruntergeladen.`);
                     } catch (e) {
                       onFeedback('err', e?.message || 'Export fehlgeschlagen.');
                     } finally {
