@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import { normalizeCourseGradeSystem } from '../utils/calculator';
@@ -40,6 +41,7 @@ export default function SettingsView() {
   const [addingRosterId, setAddingRosterId] = useState(null);
   const [addingAllRoster, setAddingAllRoster] = useState(false);
   const [clearingCourseStudents, setClearingCourseStudents] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const classFieldForGrade = config?.className || config?.class;
   const parsedClassGrade = useMemo(() => parseGradeFromClassCell(classFieldForGrade), [classFieldForGrade]);
@@ -135,6 +137,7 @@ export default function SettingsView() {
     setClearingCourseStudents(true);
     try {
       await clearCourseStudents();
+      setDeleteModalOpen(false);
     } catch (err) {
       console.error(err);
       await showAlert(`Leeren fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
@@ -168,6 +171,25 @@ export default function SettingsView() {
       setAddingAllRoster(false);
     }
   };
+
+  const handleDeleteCourse = async () => {
+    const ok = await showConfirm(
+      `M\u00F6chtest du das Fach "${config.subject} (${config.className || config.class})" wirklich komplett l\u00F6schen?\n\nAchtung: Alle zugeh\u00F6rigen Noten und Sch\u00FCler werden endg\u00FCltig entfernt!`,
+      { title: 'Fach l\u00F6schen', danger: true },
+    );
+    if (!ok) return;
+    setDeleteModalOpen(false);
+    deleteCourse(config.id);
+  };
+
+  useEffect(() => {
+    if (!deleteModalOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDeleteModalOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleteModalOpen]);
 
   const handlePasteStudents = async () => {
     const lines = pasteText
@@ -217,8 +239,70 @@ export default function SettingsView() {
 
   return (
     <div className="view-generic-scroll" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-      <div className="flex justify-between items-center mb-4">
-        <h2>Allgemeine Einstellungen</h2>
+      {deleteModalOpen
+        ? createPortal(
+            <div
+              className="oral-formula-modal-backdrop"
+              role="presentation"
+              onClick={() => setDeleteModalOpen(false)}
+            >
+              <div
+                className="oral-formula-modal-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="settings-delete-modal-title"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 'min(32rem, calc(100vw - 2rem))' }}
+              >
+                <div className="oral-formula-modal-header">
+                  <h2 id="settings-delete-modal-title" style={{ margin: 0, fontSize: '1.05rem', color: 'var(--danger)' }}>
+                    Löschen
+                  </h2>
+                  <button type="button" className="tab secondary" onClick={() => setDeleteModalOpen(false)}>
+                    Schließen
+                  </button>
+                </div>
+                <div className="oral-formula-modal-body" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
+                  <p className="text-muted" style={{ margin: '0 0 1rem' }}>
+                    Aktionen, die Daten dieses Kurses dauerhaft entfernen oder die Teilnehmerliste leeren.
+                  </p>
+                  <p className="text-muted" style={{ margin: '0 0 0.5rem', fontSize: '0.8rem' }}>
+                    Schülerliste leeren
+                  </p>
+                  <p style={{ margin: '0 0 0.75rem' }}>
+                    Alle Schüler aus der Kursliste entfernen — das Fach bleibt bestehen.
+                  </p>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={students.length === 0 || clearingCourseStudents}
+                    onClick={handleClearCourseStudents}
+                  >
+                    {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
+                  </button>
+                  <p
+                    className="text-muted"
+                    style={{ margin: '1.25rem 0 0.5rem', fontSize: '0.8rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}
+                  >
+                    Gesamtes Fach löschen
+                  </p>
+                  <p style={{ margin: '0 0 0.75rem' }}>
+                    Das Fach inklusive aller Schüler, Noten und Schlüssel unwiderruflich entfernen.
+                  </p>
+                  <button type="button" className="danger" onClick={handleDeleteCourse}>
+                    Fach unwiderruflich löschen
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+      <div className="flex justify-between items-center mb-4 gap-3 flex-wrap">
+        <h2 style={{ margin: 0 }}>Allgemeine Einstellungen</h2>
+        <button type="button" className="danger" onClick={() => setDeleteModalOpen(true)}>
+          Löschen
+        </button>
       </div>
 
       <div
@@ -643,38 +727,6 @@ export default function SettingsView() {
             </table>
           </div>
           </section>
-
-          <div className="mt-8 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-            <h3 className="mb-2" style={{ color: 'var(--danger)' }}>Gefahrenzone</h3>
-            <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-              Aktionen, die Daten dieses Kurses dauerhaft entfernen oder die Teilnehmerliste leeren.
-            </p>
-            <div className="flex flex-wrap gap-3 mb-6">
-              <button
-                type="button"
-                className="danger"
-                disabled={students.length === 0 || clearingCourseStudents}
-                onClick={handleClearCourseStudents}
-              >
-                {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
-              </button>
-            </div>
-            <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-              Das gesamte Fach löschen (inklusive aller Schüler, Noten und Schlüssel) — unwiderruflich.
-            </p>
-            <button
-              className="danger"
-              onClick={async () => {
-                const ok = await showConfirm(
-                  `M\u00F6chtest du das Fach "${config.subject} (${config.className || config.class})" wirklich komplett l\u00F6schen?\n\nAchtung: Alle zugeh\u00F6rigen Noten und Sch\u00FCler werden endg\u00FCltig entfernt!`,
-                  { title: 'Fach l\u00F6schen', danger: true },
-                );
-                if (ok) deleteCourse(config.id);
-              }}
-            >
-              Fach unwiderruflich l\u00F6schen
-            </button>
-          </div>
     </div>
   );
 }
