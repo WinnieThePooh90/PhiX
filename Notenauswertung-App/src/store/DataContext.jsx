@@ -839,11 +839,10 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  /** Wochenpunkte (-2 … +2) für `weekIndex` (0-basiert), in `grades[studentId].weekPoints` */
+  /** Wochenpunkte (ganze Zahl) für `weekIndex` (0-basiert), in `grades[studentId].weekPoints` */
   const updateOralWeekPoints = (oralId, studentId, weekIndex, rawValue) => {
     let n = parseInt(String(rawValue), 10);
     if (Number.isNaN(n)) n = 0;
-    n = Math.min(2, Math.max(-2, n));
     setOrals(prev => {
       const o = prev[oralId];
       if (!o) return prev;

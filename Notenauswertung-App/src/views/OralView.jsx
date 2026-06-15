@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
@@ -117,6 +117,18 @@ export default function OralView({ studentIdFilterSet = null }) {
     },
     [displayStudents.length, focusOralManualNoteAt],
   );
+
+  useLayoutEffect(() => {
+    if (!oralWeekEditingKey) return;
+    const sep = oralWeekEditingKey.lastIndexOf(':');
+    if (sep < 0) return;
+    const studentId = oralWeekEditingKey.slice(0, sep);
+    const weekIndex = oralWeekEditingKey.slice(sep + 1);
+    const el = document.querySelector(
+      `[data-oral-week-input="${oralWeekInputDataAttr(activeOral, studentId, weekIndex)}"]`,
+    );
+    el?.select();
+  }, [oralWeekEditingKey, activeOral]);
 
   const record = orals[activeOral];
 
@@ -859,8 +871,8 @@ export default function OralView({ studentIdFilterSet = null }) {
                               }}
                               style={{
                                 textAlign: 'center',
-                                width: '3.25rem',
-                                minWidth: '3.25rem',
+                                width: '4rem',
+                                minWidth: '4rem',
                                 maxWidth: '100%',
                                 padding: '0.35rem 0.25rem',
                                 borderRadius: '4px',
@@ -1131,7 +1143,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                     </p>
                     <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
                       <li style={{ marginBottom: '0.5rem' }}>
-                        <strong>I</strong> = Summe der Wochenpunkte des Schülers (je Woche −2 bis +2).
+                        <strong>I</strong> = Summe der Wochenpunkte des Schülers (je Woche beliebige ganze Zahl).
                       </li>
                       <li style={{ marginBottom: '0.5rem' }}>
                         <strong>F</strong> = größte Summe <strong>I</strong> in der Klasse (mindestens 1).
@@ -1159,7 +1171,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                     </p>
                     <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
                       <li style={{ marginBottom: '0.5rem' }}>
-                        <strong>I</strong> = Summe der Wochenpunkte (−2 … +2 pro Woche).
+                        <strong>I</strong> = Summe der Wochenpunkte (beliebige ganze Zahl pro Woche).
                       </li>
                       <li style={{ marginBottom: '0.5rem' }}>
                         <strong>P<sub>min</sub></strong> / <strong>P<sub>max</sub></strong> = kleinste bzw. größte Summe <strong>I</strong> in der Klasse.
@@ -1189,7 +1201,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                     </p>
                     <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
                       <li style={{ marginBottom: '0.5rem' }}>
-                        <strong>I</strong> = Summe der Wochenpunkte (−2 … +2 pro Woche).
+                        <strong>I</strong> = Summe der Wochenpunkte (beliebige ganze Zahl pro Woche).
                       </li>
                       <li style={{ marginBottom: '0.5rem' }}>
                         Über alle Schüler: <strong>P<sub>min</sub></strong> = kleinste Summe <strong>I</strong>,{' '}

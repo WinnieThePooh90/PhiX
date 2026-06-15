@@ -5,7 +5,9 @@ export function oralWeekInputDataAttr(oralId, studentId, weekIndex) {
 export function focusOralWeekInput(oralId, studentId, weekIndex) {
   const attr = oralWeekInputDataAttr(oralId, studentId, weekIndex);
   requestAnimationFrame(() => {
-    document.querySelector(`[data-oral-week-input="${attr}"]`)?.focus();
+    const el = document.querySelector(`[data-oral-week-input="${attr}"]`);
+    el?.focus();
+    el?.select();
   });
 }
 

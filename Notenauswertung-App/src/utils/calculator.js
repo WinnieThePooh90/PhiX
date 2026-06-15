@@ -231,17 +231,14 @@ export const getNormalizedOralGrade = (gradeData) => {
   return { value: gradeData, counted: true };
 };
 
-const ORAL_WEEK_PT_MIN = -2;
-const ORAL_WEEK_PT_MAX = 2;
-
-const clampOralWeekPt = (raw) => {
+const parseOralWeekPt = (raw) => {
   const n = parseInt(String(raw), 10);
   if (Number.isNaN(n)) return 0;
-  return Math.min(ORAL_WEEK_PT_MAX, Math.max(ORAL_WEEK_PT_MIN, n));
+  return n;
 };
 
 /**
- * Normalisierte Wochenpunkte (-2 … +2) als Array der Länge `weekCount` (mit 0 aufgefüllt).
+ * Normalisierte Wochenpunkte als Array der Länge `weekCount` (mit 0 aufgefüllt).
  * Unterstützt `weekPoints: number[]` sowie ältere Einträge mit nur `week1`.
  */
 export const getNormalizedOralWeekPointsArray = (gradeData, weekCount) => {
@@ -249,9 +246,9 @@ export const getNormalizedOralWeekPointsArray = (gradeData, weekCount) => {
   let arr = [];
   if (gradeData && typeof gradeData === 'object') {
     if (Array.isArray(gradeData.weekPoints) && gradeData.weekPoints.length > 0) {
-      arr = gradeData.weekPoints.map((v) => clampOralWeekPt(v));
+      arr = gradeData.weekPoints.map((v) => parseOralWeekPt(v));
     } else if (gradeData.week1 !== undefined && gradeData.week1 !== null && gradeData.week1 !== '') {
-      arr = [clampOralWeekPt(gradeData.week1)];
+      arr = [parseOralWeekPt(gradeData.week1)];
     }
   }
   while (arr.length < n) arr.push(0);
@@ -285,7 +282,7 @@ export function defaultOralWeekColumnLabel(date = new Date()) {
   return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
-/** Anzeige eines Wochenpunkts (−2 … +2) */
+/** Anzeige eines Wochenpunkts (ganze Zahl, positives Vorzeichen mit +) */
 export function formatOralWeekPointDisplay(n) {
   const v = Number(n);
   if (!Number.isFinite(v)) return '0';
