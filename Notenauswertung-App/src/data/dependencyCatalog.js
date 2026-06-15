@@ -5,17 +5,22 @@ import backendPkg from './backend-package.snapshot.json';
 /** Kurzbeschreibung je Paket (Deutsch). */
 const PURPOSE = {
   // Frontend Laufzeit
+  jspdf: 'PDF-Erzeugung im Browser (Export von Tabellen und Kursübersichten).',
+  'jspdf-autotable': 'Tabellen-Plugin für jsPDF (formatierte PDF-Tabellen beim Export).',
   'lucide-react': 'SVG-Icon-Bibliothek für Schaltflächen, Suche, Einstellungen u. a.',
   react: 'UI-Bibliothek: Komponenten, Hooks, Rendering-Logik der Anwendung.',
   'react-dom': 'Anbindung von React an den Browser-DOM (Mount, Events, Updates).',
   'react-router-dom': 'Client-seitiges Routing (z. B. Route für „Neues Fach“).',
   xlsx: 'Einlesen von Excel-Dateien (.xlsx) für Schullisten-Import (SheetJS 0.20.3).',
+  'xlsx-js-style': 'Excel-Export mit Zellformatierung (Spaltenbreiten, Ausrichtung, Stile).',
   // Backend Laufzeit
-  '@prisma/client': 'Typisierter Datenbankzugriff (PostgreSQL) aus dem Node-Server.',
+  '@prisma/client': 'Typisierter Datenbankzugriff (PostgreSQL/SQLite) aus dem Node-Server.',
+  argon2: 'Argon2id-KDF zum Schutz des Datenverschlüsselungsschlüssels (DEK-Hülle).',
   bcryptjs: 'Sicheres Hashen und Prüfen von Benutzerpasswörtern (bcrypt-Algorithmus).',
   cors: 'Cross-Origin Resource Sharing: erlaubt Anfragen der Web-App an den API-Server.',
   dotenv: 'Lädt Umgebungsvariablen (z. B. DATABASE_URL) aus einer .env-Datei.',
   express: 'HTTP-Server und REST-API-Routen für Kurse, Schüler, Benutzer usw.',
+  prisma: 'ORM, Schema und Client-Generierung für PostgreSQL und SQLite.',
   // Frontend Entwicklung
   '@eslint/js': 'Standard-Regeln für ESLint (JavaScript).',
   '@types/react': 'TypeScript-Typdefinitionen für React (Editor/Prüfung).',
@@ -28,21 +33,25 @@ const PURPOSE = {
   vite: 'Dev-Server und Bundler für die React-Anwendung.',
   // Backend Entwicklung
   nodemon: 'Startet den Server bei Dateiänderungen neu (nur Entwicklung).',
-  prisma: 'CLI für Datenbankschema, Migrationen und Prisma Client Generierung.',
 };
 
 /** SPDX-ähnliche Kurzbezeichnung; bei Abweichung im Paket siehe Registry. */
 const LICENSE = {
+  jspdf: 'MIT',
+  'jspdf-autotable': 'MIT',
   'lucide-react': 'ISC',
   react: 'MIT',
   'react-dom': 'MIT',
   'react-router-dom': 'MIT',
   xlsx: 'Apache-2.0',
+  'xlsx-js-style': 'MIT',
   '@prisma/client': 'Apache-2.0',
+  argon2: 'MIT',
   bcryptjs: 'MIT',
   cors: 'MIT',
   dotenv: 'BSD-2-Clause',
   express: 'MIT',
+  prisma: 'Apache-2.0',
   '@eslint/js': 'MIT',
   '@types/react': 'MIT',
   '@types/react-dom': 'MIT',
@@ -53,7 +62,6 @@ const LICENSE = {
   globals: 'MIT',
   vite: 'MIT',
   nodemon: 'MIT',
-  prisma: 'Apache-2.0',
 };
 
 function depRows(deps, scope, purposeMap, licenseMap) {

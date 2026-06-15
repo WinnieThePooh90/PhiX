@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getDependencySections, LICENSE_EXPLANATIONS } from '../data/dependencyCatalog';
+import { getLicenseFullText } from '../data/dependencyLicenseTexts';
 
 function sectionSlug(title) {
   return String(title)
@@ -8,7 +10,63 @@ function sectionSlug(title) {
     .toLowerCase() || 'section';
 }
 
-function DependencyTable({ title, rows }) {
+function LicenseTextModal({ modal, onClose }) {
+  useEffect(() => {
+    if (!modal) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modal, onClose]);
+
+  if (!modal) return null;
+
+  return createPortal(
+    <div
+      className="dependency-license-modal-backdrop"
+      role="presentation"
+      onMouseDown={(ev) => {
+        if (ev.target === ev.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="dependency-license-modal-dialog glass-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dependency-license-modal-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="dependency-license-modal-header">
+          <h2 id="dependency-license-modal-title" style={{ margin: 0, fontSize: '1.05rem' }}>
+            {modal.title}
+          </h2>
+          <button type="button" className="tab secondary" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+        <pre className="dependency-license-modal-body">{modal.text}</pre>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function buildLicenseModalContent(row) {
+  const full = getLicenseFullText(row.license);
+  if (full) {
+    return {
+      title: `Lizenz — ${row.name} (${row.license})`,
+      text: full,
+    };
+  }
+  return {
+    title: `Lizenz — ${row.name}`,
+    text: `Für „${row.name}“ ist in dieser Übersicht keine Standard-Lizenz hinterlegt (${row.license}).\n\nBitte den vollständigen Lizenztext im npm-Paket oder unter node_modules/${row.name}/LICENSE nachlesen.`,
+  };
+}
+
+function DependencyTable({ title, rows, onShowLicense }) {
   if (!rows?.length) return null;
   const sid = `app-deps-${sectionSlug(title)}`;
   return (
@@ -24,6 +82,7 @@ function DependencyTable({ title, rows }) {
               <th scope="col">Version</th>
               <th scope="col">Nutzen</th>
               <th scope="col">Lizenz</th>
+              <th scope="col">Lizenztext</th>
             </tr>
           </thead>
           <tbody>
@@ -39,6 +98,15 @@ function DependencyTable({ title, rows }) {
                 <td>
                   <code className="app-info-code">{r.license}</code>
                 </td>
+                <td className="app-info-table__actions-col">
+                  <button
+                    type="button"
+                    className="tab secondary dependency-license-btn"
+                    onClick={() => onShowLicense(buildLicenseModalContent(r))}
+                  >
+                    Lizenztext
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -50,6 +118,8 @@ function DependencyTable({ title, rows }) {
 
 export default function DependenciesView() {
   const sections = useMemo(() => getDependencySections(), []);
+  const [licenseModal, setLicenseModal] = useState(null);
+
   const usedLicenses = useMemo(() => {
     const all = [
       ...sections.frontendRuntime,
@@ -71,25 +141,58 @@ export default function DependenciesView() {
         für den Build, z. B. Docker — bei Backend-Änderungen bitte mitpflegen).
       </p>
 
+      <LicenseTextModal modal={licenseModal} onClose={() => setLicenseModal(null)} />
+
       <div className="program-view-stack">
-        <DependencyTable title="Frontend — Laufzeit" rows={sections.frontendRuntime} />
-        <DependencyTable title="Backend — Laufzeit" rows={sections.backendRuntime} />
-        <DependencyTable title="Frontend — Entwicklung" rows={sections.frontendDev} />
-        <DependencyTable title="Backend — Entwicklung" rows={sections.backendDev} />
+        <DependencyTable
+          title="Frontend — Laufzeit"
+          rows={sections.frontendRuntime}
+          onShowLicense={setLicenseModal}
+        />
+        <DependencyTable
+          title="Backend — Laufzeit"
+          rows={sections.backendRuntime}
+          onShowLicense={setLicenseModal}
+        />
+        <DependencyTable
+          title="Frontend — Entwicklung"
+          rows={sections.frontendDev}
+          onShowLicense={setLicenseModal}
+        />
+        <DependencyTable
+          title="Backend — Entwicklung"
+          rows={sections.backendDev}
+          onShowLicense={setLicenseModal}
+        />
 
         <section className="app-info-section glass-panel" aria-labelledby="app-deps-licenses-heading">
           <h4 id="app-deps-licenses-heading" className="program-view-panel-heading">
             Erläuterung der Lizenzen
           </h4>
           <p className="program-view-panel-text text-muted">
-            Kurz erklärt: keine Rechtsberatung. Bei Veröffentlichung oder Weitergabe Ihrer Anwendung die vollständigen
-            Lizenztexte der Pakete beachten.
+            Kurz erklärt. Bei Veröffentlichung oder Weitergabe Ihrer Anwendung die vollständigen Lizenztexte der Pakete
+            beachten.
           </p>
           <div className="app-info-license-list">
             {usedLicenses.map((block) => (
               <article key={block.id} className="app-info-license-block">
                 <h5 className="app-info-license-title">{block.title}</h5>
                 <p className="app-info-license-text">{block.text}</p>
+                {getLicenseFullText(block.id) ? (
+                  <button
+                    type="button"
+                    className="tab secondary dependency-license-btn"
+                    style={{ marginTop: '0.5rem' }}
+                    onClick={() =>
+                      setLicenseModal({
+                        title: `Lizenztext — ${block.title}`,
+                        text: getLicenseFullText(block.id),
+                      })
+                    }
+                  >
+                    Lizenztext
+                  </button>
+                ) : null}
               </article>
             ))}
           </div>
