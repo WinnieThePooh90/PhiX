@@ -1,16 +1,21 @@
 import React from 'react';
 import AppLogo from './AppLogo';
 
-function formatWeighting(weighting) {
+function formatWeighting(weighting, testsWritten = true) {
   if (weighting == null) return null;
-  return `Gewichtung: ${weighting.written ?? '—'}:${weighting.oral ?? '—'}:${weighting.tests ?? '—'}`;
+  const w = weighting.written ?? '—';
+  const m = weighting.oral ?? '—';
+  if (testsWritten === false) {
+    return `Gewichtung: ${w}:${m}`;
+  }
+  return `Gewichtung: ${w}:${m}:${weighting.tests ?? '—'}`;
 }
 
 export default function CourseHeaderTitle({ config, className = '' }) {
   if (!config) return null;
 
   const classLabel = config.className || config.class;
-  const weightingText = formatWeighting(config.weighting);
+  const weightingText = formatWeighting(config.weighting, config.testsWritten !== false);
 
   return (
     <header className={['course-header-title', className].filter(Boolean).join(' ')}>
