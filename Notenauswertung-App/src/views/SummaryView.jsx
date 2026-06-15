@@ -813,29 +813,33 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     onClick={() => toggleRow(s.id)}
                     title="Klicken für Details"
                   >
-                    <td>
-                      <div
+                    <td style={{ position: 'relative', verticalAlign: 'middle' }}>
+                      {hasSummaryNotes(s) && (
+                        <span
+                          role="img"
+                          aria-label="Notiz vorhanden"
+                          title="Notiz vorhanden"
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            zIndex: 5,
+                            lineHeight: 0,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <SummaryNotesBookmark />
+                        </span>
+                      )}
+                      <span
                         style={{
-                          position: 'relative',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: hasSummaryNotes(s) ? 34 : undefined,
-                          paddingTop: hasSummaryNotes(s) ? 2 : 0,
+                          display: 'block',
+                          textAlign: 'center',
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
-                        {hasSummaryNotes(s) && (
-                          <span
-                            className="exam-index-flag"
-                            role="img"
-                            aria-label="Notiz vorhanden"
-                            title="Notiz vorhanden"
-                          >
-                            <SummaryNotesBookmark />
-                          </span>
-                        )}
-                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{s.studentNumber ?? idx + 1}</span>
-                      </div>
+                        {s.studentNumber ?? idx + 1}
+                      </span>
                     </td>
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>

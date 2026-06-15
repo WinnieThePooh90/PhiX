@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, notenpunkteToGrade } from '../utils/calculator';
+import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, notenpunkteToGrade, storedGradeStringToClassic } from '../utils/calculator';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -20,6 +20,16 @@ function distributionBucket(finalGrade, gradeSys) {
     return gradeToNotenpunkte(finalGrade);
   }
   return Math.min(6, Math.max(1, Math.round(Number(finalGrade))));
+}
+
+/** Analyse: manuelle Endnote, sonst Note HJ1, sonst berechnete Gesamtnote (Verteilung + Klassendurchschnitt). */
+function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
+  const manualEnd = storedGradeStringToClassic(student.summaryEndNote, gradeSys);
+  if (manualEnd !== null) return manualEnd;
+  const manualHj1 = storedGradeStringToClassic(student.summaryHJ1Note, gradeSys);
+  if (manualHj1 !== null) return manualHj1;
+  if (calculatedFinalGrade === null || Number.isNaN(Number(calculatedFinalGrade))) return null;
+  return Number(calculatedFinalGrade);
 }
 
 /** 1 = sehr gut, 6 = ungenügend — höhere Zahl = schlechter (Filter auf berechneter Gesamtnote, klassische Skala) */
@@ -223,9 +233,10 @@ export default function AnalysisView() {
         config.testsWritten !== false,
         projects,
       );
-      if (finalGrade === null || Number.isNaN(finalGrade)) return;
-      rawGrades.push(finalGrade);
-      const b = distributionBucket(finalGrade, gradeSys);
+      const analysisGrade = resolveAnalysisGrade(s, finalGrade, gradeSys);
+      if (analysisGrade === null || Number.isNaN(analysisGrade)) return;
+      rawGrades.push(analysisGrade);
+      const b = distributionBucket(analysisGrade, gradeSys);
       if (b === null) return;
       buckets[b].push(s);
       if (isPoints) counts[b] += 1;
@@ -440,7 +451,7 @@ export default function AnalysisView() {
       <div className="glass-panel analysis-grade-panel" style={{ borderTop: '4px solid var(--primary)', minWidth: 0, width: '100%' }}>
         <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem' }}>Klassendurchschnitt</h3>
         <p className="text-muted" style={{ margin: '0 0 1rem', fontSize: '0.875rem' }}>
-          Gewichteter Mittelwert aller Schüler mit auswertbarer Gesamtnote ({studentsWithGrade} von {students.length}).
+          Arithmetischer Mittelwert je Schüler: manuelle Endnote aus der Übersicht, sonst Note HJ1, sonst berechnete Gesamtnote ({studentsWithGrade} von {students.length} Schülern mit auswertbarer Note).
         </p>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div
@@ -474,11 +485,11 @@ export default function AnalysisView() {
         <h3 style={{ margin: '1.5rem 0 0.75rem', fontSize: '1.05rem' }}>Notenverteilung</h3>
         {gradeSys === 'points' ? (
           <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-            Je Schüler: Notenpunkte (0–15) aus der berechneten Gesamtnote. Klick auf einen Balken zeigt die zugehörigen Schüler.
+            Je Schüler: manuelle Endnote bzw. Note HJ1 aus der Übersicht, sonst berechnete Gesamtnote (als Notenpunkte 0–15). Klick auf einen Balken zeigt die zugehörigen Schüler.
           </p>
         ) : (
           <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-            Klick auf einen Balken zeigt die Schüler mit dieser Gesamtnote.
+            Je Schüler: manuelle Endnote bzw. Note HJ1 aus der Übersicht, sonst berechnete Gesamtnote. Klick auf einen Balken zeigt die Schüler mit dieser Note.
           </p>
         )}
 
