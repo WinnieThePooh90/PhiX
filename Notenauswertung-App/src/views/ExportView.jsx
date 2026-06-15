@@ -191,13 +191,13 @@ export default function ExportView() {
         setErr('Inaktive Klausuren werden nicht exportiert.');
         return null;
       }
-      const { aoa, layout } = buildExamTableExport({ exam, examId, students, config });
+      const { aoa, layout, gradingKey } = buildExamTableExport({ exam, examId, students, config });
       const sheetName = examExportSheetName(examId);
       const filename = examExportFilename(config, examId, format);
       if (format === 'pdf') {
-        downloadAoaPdf(aoa, sheetName, filename);
+        downloadAoaPdf(aoa, sheetName, filename, { gradingKey });
       } else {
-        downloadAoaXlsx(aoa, sheetName, filename, layout);
+        downloadAoaXlsx(aoa, sheetName, filename, layout, gradingKey);
       }
       return filename;
     });

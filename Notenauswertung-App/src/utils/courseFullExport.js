@@ -5,7 +5,7 @@ import { buildOralStandardTableExportData, oralExportSheetName } from './oralTab
 import { buildGfsTableExportData, gfsExportSheetName } from './gfsTableExport';
 
 /**
- * @typedef {{ name: string, aoa: (string|number)[][], layout?: { colWidths?: number[], centerColumnIndexes?: number[], nameColumnIndex?: number } }} ExportSheet
+ * @typedef {{ name: string, aoa: (string|number)[][], layout?: { colWidths?: number[], centerColumnIndexes?: number[], nameColumnIndex?: number }, gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} ExportSheet
  */
 
 /**

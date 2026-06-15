@@ -57,12 +57,42 @@ function renderAoaTable(doc, aoa, sectionTitle, opts = {}) {
   return doc;
 }
 
+function renderGradingKeyBlock(doc, gradingKey, startY) {
+  if (!gradingKey?.aoa?.length) return doc;
+
+  let y = startY;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Notenschlüssel: ${gradingKey.title || 'Aktueller Schlüssel'}`, 14, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  if (gradingKey.desc) {
+    const descLines = doc.splitTextToSize(String(gradingKey.desc), 186);
+    doc.text(descLines, 14, y);
+    y += descLines.length * 4 + 2;
+  }
+
+  autoTable(doc, {
+    head: [gradingKey.aoa[0].map(cellStr)],
+    body: gradingKey.aoa.slice(1).map((row) => row.map(cellStr)),
+    startY: y,
+    styles: { fontSize: 8, cellPadding: 1.2, halign: 'center' },
+    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'bold', halign: 'center' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+    tableWidth: 'wrap',
+  });
+  return doc;
+}
+
 /**
  * @param {(string|number)[][]} aoa
  * @param {string} sectionTitle
  * @param {string} filename
+ * @param {{ gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} [opts]
  */
-export function downloadAoaPdf(aoa, sectionTitle, filename) {
+export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
   const colCount = aoa?.[0]?.length ?? 1;
   const doc = new jsPDF({
     orientation: pickOrientation(colCount),
@@ -70,6 +100,10 @@ export function downloadAoaPdf(aoa, sectionTitle, filename) {
     format: 'a4',
   });
   renderAoaTable(doc, aoa, sectionTitle);
+  if (opts.gradingKey?.aoa?.length) {
+    const startY = (doc.lastAutoTable?.finalY ?? 14) + 8;
+    renderGradingKeyBlock(doc, opts.gradingKey, startY);
+  }
   doc.save(ensurePdfFilename(filename));
 }
 
@@ -84,7 +118,7 @@ export function downloadSheetDataPdf(sheetData, sectionTitle, filename) {
 }
 
 /**
- * @param {{ name: string, aoa: (string|number)[][] }[]} sections
+ * @param {{ name: string, aoa: (string|number)[][], gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }[]} sections
  * @param {string} filename
  * @param {string} [documentTitle]
  */
@@ -117,6 +151,10 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
       startY = 22;
     }
     renderAoaTable(doc, section.aoa, section.name, { startY });
+    if (section.gradingKey?.aoa?.length) {
+      const keyStartY = (doc.lastAutoTable?.finalY ?? startY) + 8;
+      renderGradingKeyBlock(doc, section.gradingKey, keyStartY);
+    }
   });
 
   doc.save(ensurePdfFilename(filename));

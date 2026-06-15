@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx-js-style';
+import { mergeAoaWithGradingKey } from './gradingKeyExport';
 
 /** Excel-Tabellenname: max. 31 Zeichen, keine Duplikate. */
 export function uniqueSheetName(base, usedNames) {
@@ -72,14 +73,16 @@ function applyWorksheetLayout(ws, aoa, layout) {
 }
 
 /**
- * @param {{ name: string, aoa: (string|number)[][], layout?: XlsxSheetLayout }[]} sheets
+ * @param {{ name: string, aoa: (string|number)[][], layout?: XlsxSheetLayout, gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }}[]} sheets
  * @param {string} filename
  */
 export function downloadMultiSheetXlsx(sheets, filename) {
   const wb = XLSX.utils.book_new();
   const used = new Set();
   for (const sheet of sheets ?? []) {
-    const aoa = sheet.aoa ?? [];
+    const aoa = sheet.gradingKey
+      ? mergeAoaWithGradingKey(sheet.aoa ?? [], sheet.gradingKey)
+      : (sheet.aoa ?? []);
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     applyWorksheetLayout(ws, aoa, sheet.layout);
     XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(sheet.name, used));
@@ -93,10 +96,14 @@ export function downloadMultiSheetXlsx(sheets, filename) {
  * @param {string} sheetName
  * @param {string} filename
  * @param {XlsxSheetLayout} [layout]
+ * @param {{ title?: string, desc?: string, aoa?: (string|number)[][] }} [gradingKey]
  */
-export function downloadAoaXlsx(aoa, sheetName, filename, layout) {
-  downloadMultiSheetXlsx([{ name: sheetName, aoa, layout }], filename);
+export function downloadAoaXlsx(aoa, sheetName, filename, layout, gradingKey) {
+  const sheetAoa = gradingKey ? mergeAoaWithGradingKey(aoa, gradingKey) : aoa;
+  downloadMultiSheetXlsx([{ name: sheetName, aoa: sheetAoa, layout }], filename);
 }
+
+export { mergeAoaWithGradingKey } from './gradingKeyExport';
 
 /**
  * @param {{ headers: string[], rows: (string|number)[][] }} sheetData

@@ -10,6 +10,7 @@ import {
   normalizeCourseGradeSystem,
 } from './calculator';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
+import { resolveExamGradingKeyForExport } from './gradingKeyExport';
 
 function studentNameCell(s) {
   return `${s.lastName ?? ''}, ${s.firstName ?? ''}`.replace(/^,\s*|,\s*$/g, '').trim() || '—';
@@ -34,7 +35,7 @@ export function buildExamTableExportLayout(displayFieldCount) {
 
 /**
  * Klausur-Tabelle (Standardansicht) als AOA — zwei Kopfzeilen wie in ExamsView.
- * @returns {{ aoa: (string|number)[][], layout: ReturnType<typeof buildExamTableExportLayout> }}
+ * @returns {{ aoa: (string|number)[][], layout: ReturnType<typeof buildExamTableExportLayout>, gradingKey: ReturnType<typeof resolveExamGradingKeyForExport> }}
  */
 export function buildExamTableExport({ exam, examId, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
@@ -90,9 +91,13 @@ export function buildExamTableExport({ exam, examId, students, config }) {
     { textColumnIndex: 1 },
   );
 
+  const examAoa = [header1, maxRow, ...dataRows];
+  const gradingKey = resolveExamGradingKeyForExport(exam, config);
+
   return {
-    aoa: [header1, maxRow, ...dataRows],
+    aoa: examAoa,
     layout: buildExamTableExportLayout(displayFieldCount),
+    gradingKey,
   };
 }
 
