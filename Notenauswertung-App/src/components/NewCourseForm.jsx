@@ -4,6 +4,7 @@ import { useData } from '../store/DataContext';
 import { useDialog } from './PhixDialog';
 import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
+import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
   const y = new Date().getFullYear();
@@ -76,19 +77,19 @@ export default function NewCourseForm() {
         <div className="grid-2 mb-0">
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Schuljahr</label>
-            <input name="year" value={newCourse.year} onChange={handleNewCourseChange} className="w-full" />
+            <input name="year" value={newCourse.year} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} className="w-full" />
           </div>
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-            <input name="className" value={newCourse.className} onChange={handleNewCourseChange} placeholder="z.B. 10a" className="w-full" />
+            <input name="className" value={newCourse.className} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} placeholder="z.B. 10a" className="w-full" />
           </div>
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Fach</label>
-            <input name="subject" value={newCourse.subject} onChange={handleNewCourseChange} placeholder="z.B. NWT" className="w-full" />
+            <input name="subject" value={newCourse.subject} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} placeholder="z.B. NWT" className="w-full" />
           </div>
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Wochenstunden</label>
-            <input type="number" name="hours" value={newCourse.hours} onChange={handleNewCourseChange} className="w-full" />
+            <input type="number" name="hours" value={newCourse.hours} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} className="w-full" />
           </div>
         </div>
       </section>
@@ -107,15 +108,15 @@ export default function NewCourseForm() {
             <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
             <span className="weighting-ratio-grid__sep-slot" aria-hidden />
             <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="tests" value={newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <input type="number" name="tests" value={newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
           </div>
         ) : (
           <div
@@ -125,11 +126,11 @@ export default function NewCourseForm() {
             <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
             <span className="weighting-ratio-grid__sep-slot" aria-hidden />
             <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} className="w-full" />
+            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
           </div>
         )}
       </section>

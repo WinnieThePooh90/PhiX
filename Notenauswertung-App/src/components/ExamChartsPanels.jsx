@@ -44,6 +44,16 @@ function barColorForNpBucket(np) {
   return 'var(--success)';
 }
 
+/** Bestehensquote: klassisch ≤ 3,0; Punktesystem NP ≥ 5. */
+function isPassingForBestehensquote(grade, gradeSystem) {
+  if (grade === null || grade === undefined) return false;
+  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
+    const np = gradeToNotenpunkte(grade);
+    return np !== null && np >= 5;
+  }
+  return grade <= 3.0;
+}
+
 /**
  * Klausur-Diagramme: Notenverteilung, Bestehensquote, Aufgabenanalyse.
  * `examRowStats(studentId)` liefert effN, fields, counted, total, maxPts, grade.
@@ -140,18 +150,18 @@ export default function ExamChartsPanels({
     () =>
       students.filter((s) => {
         const { counted, grade: g } = examRowStats(s.id);
-        return counted && g !== null && g <= 3.0;
+        return counted && g !== null && isPassingForBestehensquote(g, gs);
       }),
-    [students, examRowStats],
+    [students, examRowStats, gs],
   );
 
   const studentsBad = useMemo(
     () =>
       students.filter((s) => {
         const { counted, grade: g } = examRowStats(s.id);
-        return counted && g !== null && g > 3.0;
+        return counted && g !== null && !isPassingForBestehensquote(g, gs);
       }),
-    [students, examRowStats],
+    [students, examRowStats, gs],
   );
 
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -240,10 +250,10 @@ export default function ExamChartsPanels({
     setPieTooltip(null);
   };
 
-  const goodLabelShort = gs === 'points' ? 'NP ≥ 6' : '≤ 3.0';
-  const badLabelShort = gs === 'points' ? 'NP < 6' : '> 3.0';
-  const goodTooltipTitle = gs === 'points' ? 'Note besser/gleich 3,0 (NP mindestens 6)' : 'Besser/Gleich 3.0';
-  const badTooltipTitle = gs === 'points' ? 'Note schlechter als 3,0 (NP unter 6)' : 'Schlechter als 3.0';
+  const goodLabelShort = gs === 'points' ? 'NP ≥ 5' : '≤ 3.0';
+  const badLabelShort = gs === 'points' ? 'NP < 5' : '> 3.0';
+  const goodTooltipTitle = gs === 'points' ? 'Notenpunkte mindestens 5' : 'Besser/Gleich 3.0';
+  const badTooltipTitle = gs === 'points' ? 'Notenpunkte unter 5' : 'Schlechter als 3.0';
 
   const showBarPortal =
     tooltipGrade !== null && tooltipGrade !== undefined && barPopoverStudents.length > 0 && barPopoverGeom;
@@ -540,7 +550,7 @@ export default function ExamChartsPanels({
               students.forEach((s) => {
                 const { counted, grade: g } = examRowStats(s.id);
                 if (counted && g !== null) {
-                  if (g <= 3.0) goodCount++;
+                  if (isPassingForBestehensquote(g, gs)) goodCount++;
                   else badCount++;
                 }
               });

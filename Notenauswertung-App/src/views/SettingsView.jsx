@@ -6,6 +6,7 @@ import { normalizeCourseGradeSystem } from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
+import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -322,21 +323,21 @@ export default function SettingsView() {
               <div className="flex gap-4">
                 <div className="w-full">
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Schuljahr</label>
-                  <input name="year" value={config.year} onChange={handleConfigChange} className="w-full" />
+                  <input name="year" value={config.year} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
                 <div className="w-full">
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-                  <input name="className" value={config.className || config.class} onChange={handleConfigChange} className="w-full" />
+                  <input name="className" value={config.className || config.class} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
               </div>
               <div className="flex gap-4 mt-4">
                 <div className="w-full">
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Fach</label>
-                  <input name="subject" value={config.subject} onChange={handleConfigChange} className="w-full" />
+                  <input name="subject" value={config.subject} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
                 <div className="w-full">
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Wochenstunden</label>
-                  <input type="number" name="hours" value={config.hours} onChange={handleConfigChange} className="w-full" />
+                  <input type="number" name="hours" value={config.hours} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
               </div>
             </section>
@@ -355,15 +356,15 @@ export default function SettingsView() {
                   <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
                   <span className="weighting-ratio-grid__sep-slot" aria-hidden />
                   <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} className="w-full" />
+                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} className="w-full" />
+                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="tests" value={config.weighting.tests} onChange={handleWeightingChange} className="w-full" />
+                  <input type="number" name="tests" value={config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
               ) : (
                 <div
@@ -373,11 +374,11 @@ export default function SettingsView() {
                   <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
                   <span className="weighting-ratio-grid__sep-slot" aria-hidden />
                   <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} className="w-full" />
+                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} className="w-full" />
+                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
               )}
             </section>
@@ -441,9 +442,19 @@ export default function SettingsView() {
               borderTop: '1px solid var(--border)',
             }}
           >
-          <h2 id="settings-student-list-heading" className="mb-4">
-            Schülerliste ({students.length})
-          </h2>
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h2 id="settings-student-list-heading" style={{ margin: 0 }}>
+              Schülerliste ({students.length})
+            </h2>
+            <button
+              type="button"
+              className="danger"
+              disabled={students.length === 0 || clearingCourseStudents}
+              onClick={handleClearCourseStudents}
+            >
+              {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
+            </button>
+          </div>
 
           {!addStudentsPanelOpen ? (
             <div className="mb-6" style={{ width: '100%' }}>
