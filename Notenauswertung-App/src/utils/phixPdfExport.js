@@ -2,8 +2,11 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const PAGE_MARGIN = 10;
-const KEY_PANEL_W = 38;
 const KEY_GAP = 2;
+/** Anteil der Seitenbreite für den Notenschlüssel (schmaler Rand rechts). */
+const KEY_WIDTH_RATIO = 0.13;
+const KEY_WIDTH_MIN = 26;
+const KEY_WIDTH_MAX = 36;
 
 function ensurePdfFilename(filename) {
   const name = String(filename || 'Export.pdf');
@@ -34,6 +37,11 @@ function pageWidth(doc) {
   return doc.internal.pageSize.getWidth();
 }
 
+function keyPanelWidth(doc) {
+  const w = pageWidth(doc);
+  return Math.min(KEY_WIDTH_MAX, Math.max(KEY_WIDTH_MIN, w * KEY_WIDTH_RATIO));
+}
+
 /**
  * @param {import('jspdf').jsPDF} doc
  * @param {{ title?: string, desc?: string, aoa?: (string|number)[][] }} gradingKey
@@ -45,34 +53,33 @@ function renderGradingKeyBeside(doc, gradingKey, startX, startY, panelWidth) {
   if (!gradingKey?.aoa?.length) return;
 
   let y = startY;
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  const titleLines = doc.splitTextToSize(
-    `Notenschlüssel: ${gradingKey.title || 'Aktueller Schlüssel'}`,
-    panelWidth,
-  );
+  doc.text('Notenschlüssel', startX, y);
+  y += 3.2;
+  const titleLines = doc.splitTextToSize(gradingKey.title || 'Aktueller Schlüssel', panelWidth);
   doc.text(titleLines, startX, y);
-  y += titleLines.length * 3.2 + 1;
+  y += titleLines.length * 2.8 + 1;
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.5);
+  doc.setFontSize(6);
   if (gradingKey.desc) {
     const descLines = doc.splitTextToSize(String(gradingKey.desc), panelWidth);
     doc.text(descLines, startX, y);
-    y += descLines.length * 2.8 + 1;
+    y += descLines.length * 2.6 + 1;
   }
 
   autoTable(doc, {
     head: [gradingKey.aoa[0].map(cellStr)],
     body: gradingKey.aoa.slice(1).map((row) => row.map(cellStr)),
     startY: y,
-    styles: { fontSize: 6.5, cellPadding: 0.8, halign: 'center', overflow: 'linebreak' },
+    styles: { fontSize: 6, cellPadding: 0.6, halign: 'center', overflow: 'linebreak' },
     headStyles: {
       fillColor: [71, 85, 105],
       textColor: 255,
       fontStyle: 'bold',
       halign: 'center',
-      fontSize: 6.5,
+      fontSize: 6,
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     margin: { left: startX, right: pageWidth(doc) - startX - panelWidth },
@@ -92,7 +99,7 @@ function renderAoaTable(doc, aoa, sectionTitle, gradingKey, opts = {}) {
   const colCount = head[0]?.length ?? 1;
   let startY = opts.startY ?? 14;
   const hasKey = !!gradingKey?.aoa?.length;
-  const keyReserved = hasKey ? KEY_PANEL_W + KEY_GAP + PAGE_MARGIN : PAGE_MARGIN;
+  const pw = pageWidth(doc);
 
   if (sectionTitle) {
     doc.setFontSize(11);
@@ -103,6 +110,16 @@ function renderAoaTable(doc, aoa, sectionTitle, gradingKey, opts = {}) {
   }
 
   const tableStartY = startY;
+  const sectionStartPage = doc.internal.getCurrentPageInfo().pageNumber;
+
+  let marginRight = PAGE_MARGIN;
+  let tableWidth = pw - PAGE_MARGIN * 2;
+
+  if (hasKey) {
+    const kw = keyPanelWidth(doc);
+    marginRight = PAGE_MARGIN + kw + KEY_GAP;
+    tableWidth = pw - PAGE_MARGIN - marginRight;
+  }
 
   autoTable(doc, {
     head,
@@ -111,19 +128,26 @@ function renderAoaTable(doc, aoa, sectionTitle, gradingKey, opts = {}) {
     styles: { fontSize: colCount > 10 ? 6 : 8, cellPadding: 1.2, overflow: 'linebreak' },
     headStyles: { fillColor: [55, 65, 81], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    margin: { left: PAGE_MARGIN, right: keyReserved },
-    tableWidth: 'wrap',
+    margin: { left: PAGE_MARGIN, right: marginRight },
+    tableWidth,
   });
 
   if (hasKey) {
-    const pageAtEnd = doc.internal.getCurrentPageInfo().pageNumber;
-    doc.setPage(1);
-    const keyX = pageWidth(doc) - PAGE_MARGIN - KEY_PANEL_W;
-    renderGradingKeyBeside(doc, gradingKey, keyX, tableStartY, KEY_PANEL_W);
-    doc.setPage(pageAtEnd);
+    const tableEndPage = doc.internal.getCurrentPageInfo().pageNumber;
+    const kw = keyPanelWidth(doc);
+    const keyX = pw - PAGE_MARGIN - kw;
+    doc.setPage(sectionStartPage);
+    renderGradingKeyBeside(doc, gradingKey, keyX, tableStartY, kw);
+    doc.setPage(tableEndPage);
   }
 
   return doc;
+}
+
+function sectionOrientation(section) {
+  const cols = section.aoa?.[0]?.length ?? 1;
+  if (section.gradingKey?.aoa?.length) return 'landscape';
+  return pickOrientation(cols);
 }
 
 /**
@@ -136,7 +160,7 @@ export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
   const colCount = aoa?.[0]?.length ?? 1;
   const hasKey = !!opts.gradingKey?.aoa?.length;
   const doc = new jsPDF({
-    orientation: hasKey || colCount > 7 ? 'landscape' : pickOrientation(colCount),
+    orientation: hasKey ? 'landscape' : pickOrientation(colCount),
     unit: 'mm',
     format: 'a4',
   });
@@ -168,22 +192,17 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
     return;
   }
 
-  const maxCols = Math.max(...list.map((s) => s.aoa?.[0]?.length ?? 1));
-  const hasAnyKey = list.some((s) => s.gradingKey?.aoa?.length);
   const doc = new jsPDF({
-    orientation: hasAnyKey || maxCols > 7 ? 'landscape' : pickOrientation(maxCols),
+    orientation: sectionOrientation(list[0]),
     unit: 'mm',
     format: 'a4',
   });
 
   list.forEach((section, index) => {
     if (index > 0) {
-      const colCount = section.aoa?.[0]?.length ?? 1;
-      doc.addPage(
-        'a4',
-        section.gradingKey?.aoa?.length || colCount > 7 ? 'landscape' : pickOrientation(colCount),
-      );
+      doc.addPage('a4', sectionOrientation(section));
     }
+
     let startY = 14;
     if (index === 0 && documentTitle) {
       doc.setFontSize(14);
@@ -192,6 +211,7 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
       doc.setFont('helvetica', 'normal');
       startY = 22;
     }
+
     renderAoaTable(doc, section.aoa, section.name, section.gradingKey, { startY });
   });
 
