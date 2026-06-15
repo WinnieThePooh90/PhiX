@@ -209,9 +209,6 @@ export default function ProgramUserManagement() {
   return (
     <div className="program-user-mgmt">
       <h3 className="program-user-mgmt-page-title">Benutzerverwaltung</h3>
-      <p className="text-muted program-user-mgmt-intro">
-        Benutzerkonten für die Anmeldung. Passwörter werden auf dem Server nur als sicherer Hash gespeichert.
-      </p>
 
       <section className="program-user-mgmt-section" aria-labelledby="program-user-mgmt-list-heading">
         <h4 id="program-user-mgmt-list-heading" className="program-user-mgmt-section-title">

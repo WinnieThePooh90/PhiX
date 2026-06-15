@@ -1,10 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { ChevronDown, Download, Upload } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from '../components/PhixDialog';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
-import PhixRadioOption from '../components/PhixRadioOption';
 
 const RESTORE_CONFIRM = 'WIEDERHERSTELLEN';
 
@@ -77,8 +76,48 @@ async function restoreBackup(path, username, parsed) {
   }
 }
 
+function BackupSection({ sectionId, title, expanded, onToggle, children }) {
+  const headingId = `backup-${sectionId}-heading`;
+  const contentId = `backup-${sectionId}-content`;
+
+  return (
+    <section
+      className={`program-view-panel glass-panel export-section${expanded ? ' export-section--open' : ''}`}
+      aria-labelledby={headingId}
+    >
+      <button
+        type="button"
+        className="export-section__toggle"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        id={headingId}
+      >
+        <h4 className="program-view-panel-heading export-section__title">{title}</h4>
+        <ChevronDown size={18} strokeWidth={2.25} className="export-section__chevron" aria-hidden />
+      </button>
+      {expanded ? (
+        <div id={contentId} className="export-section__body" role="region" aria-labelledby={headingId}>
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function BackupSubsection({ title, children }) {
+  return (
+    <div className="backup-subsection">
+      <h5 className="backup-subsection__title">{title}</h5>
+      {children}
+    </div>
+  );
+}
+
 function BackupRestoreBlock({
+  sectionId,
   title,
+  description,
   warning,
   downloadLabel,
   downloadPath,
@@ -89,7 +128,9 @@ function BackupRestoreBlock({
   busy,
   setBusy,
   onFeedback,
-  exportModeControl,
+  showConfirm,
+  expanded,
+  onToggle,
 }) {
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -148,71 +189,70 @@ function BackupRestoreBlock({
   const isBusy = busy != null;
 
   return (
-    <section className="program-view-panel glass-panel" aria-labelledby={title.id}>
-      <h4 id={title.id} className="program-view-panel-heading">
-        {title.text}
-      </h4>
-      <p className="program-view-panel-text text-muted">{title.description}</p>
+    <BackupSection sectionId={sectionId} title={title} expanded={expanded} onToggle={onToggle}>
+      <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+        {description}
+      </p>
 
-      {exportModeControl}
-
-      <button
-        type="button"
-        className="tab primary program-view-panel-cta backup-action-btn"
-        disabled={isBusy}
-        onClick={onDownload}
-      >
-        <Download size={18} strokeWidth={2} aria-hidden />
-        {busy === 'download' ? 'Backup wird erstellt …' : downloadLabel}
-      </button>
-
-      <hr className="header-settings-dropdown-divider backup-section-divider" aria-hidden />
-
-      <p className="program-view-panel-text text-muted backup-restore-warning">{warning}</p>
-
-      <label className="backup-file-label">
-        <span className="backup-file-label-text">Backup-Datei (.json)</span>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="backup-file-input"
-          onChange={onPickFile}
+      <BackupSubsection title="Backup erstellen">
+        <button
+          type="button"
+          className="tab primary program-view-panel-cta backup-action-btn"
           disabled={isBusy}
-        />
-      </label>
-      {selectedFile ? (
-        <p className="program-view-panel-text text-muted backup-selected-file">
-          Ausgewählt: {selectedFile.name}
-        </p>
-      ) : null}
+          onClick={onDownload}
+        >
+          <Download size={18} strokeWidth={2} aria-hidden />
+          {busy === 'download' ? 'Backup wird erstellt …' : downloadLabel}
+        </button>
+      </BackupSubsection>
 
-      <label className="backup-confirm-label">
-        <span className="backup-confirm-label-text">
-          Zur Bestätigung „{RESTORE_CONFIRM}“ eingeben
-        </span>
-        <input
-          type="text"
-          className="backup-confirm-input"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-          disabled={isBusy}
-          placeholder={RESTORE_CONFIRM}
-        />
-      </label>
+      <BackupSubsection title="Backup wiederherstellen">
+        <p className="program-view-panel-text text-muted backup-restore-warning">{warning}</p>
 
-      <button
-        type="button"
-        className="tab secondary program-view-panel-cta backup-action-btn backup-action-btn--danger"
-        disabled={isBusy || !selectedFile || confirmText.trim() !== RESTORE_CONFIRM}
-        onClick={onRestore}
-      >
-        <Upload size={18} strokeWidth={2} aria-hidden />
-        {busy === 'restore' ? 'Wird aufgespielt …' : 'Backup aufspielen'}
-      </button>
-    </section>
+        <label className="backup-file-label">
+          <span className="backup-file-label-text">Backup-Datei (.json)</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="backup-file-input"
+            onChange={onPickFile}
+            disabled={isBusy}
+          />
+        </label>
+        {selectedFile ? (
+          <p className="program-view-panel-text text-muted backup-selected-file">
+            Ausgewählt: {selectedFile.name}
+          </p>
+        ) : null}
+
+        <label className="backup-confirm-label">
+          <span className="backup-confirm-label-text">
+            Zur Bestätigung „{RESTORE_CONFIRM}“ eingeben
+          </span>
+          <input
+            type="text"
+            className="backup-confirm-input"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={isBusy}
+            placeholder={RESTORE_CONFIRM}
+          />
+        </label>
+
+        <button
+          type="button"
+          className="tab secondary program-view-panel-cta backup-action-btn backup-action-btn--danger"
+          disabled={isBusy || !selectedFile || confirmText.trim() !== RESTORE_CONFIRM}
+          onClick={onRestore}
+        >
+          <Upload size={18} strokeWidth={2} aria-hidden />
+          {busy === 'restore' ? 'Wird aufgespielt …' : 'Backup aufspielen'}
+        </button>
+      </BackupSubsection>
+    </BackupSection>
   );
 }
 
@@ -222,7 +262,7 @@ export default function BackupView() {
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const username = currentUser?.username;
 
-  const [meExportMode, setMeExportMode] = useState('decrypted');
+  const [expandedSections, setExpandedSections] = useState(() => new Set());
   const [meBusy, setMeBusy] = useState(null);
   const [fullBusy, setFullBusy] = useState(null);
   const [userBusy, setUserBusy] = useState(null);
@@ -234,6 +274,17 @@ export default function BackupView() {
     () => [...usersList].sort((a, b) => a.username.localeCompare(b.username, 'de', { sensitivity: 'base' })),
     [usersList],
   );
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const isSectionOpen = (sectionId) => expandedSections.has(sectionId);
 
   const onFeedback = (type, msg) => setFeedback({ type, msg });
 
@@ -249,37 +300,9 @@ export default function BackupView() {
 
       <div className="program-view-stack">
         <BackupRestoreBlock
-          title={{
-            id: 'backup-me-heading',
-            text: 'Mein Backup',
-            description:
-              'Enthält alle Ihre Kurse, Schüler, Noten, Klassenlehrer-Listen und Ihre Schülerverwaltung. Keine anderen Benutzer, keine Passwörter.',
-          }}
-          exportModeControl={
-            <fieldset className="backup-mode-fieldset" style={{ marginBottom: '1rem', border: 0 }}>
-              <legend className="backup-file-label-text">Export-Format</legend>
-              <label style={{ display: 'block', marginTop: '0.35rem' }}>
-                <input
-                  type="radio"
-                  name="me-export-mode"
-                  value="decrypted"
-                  checked={meExportMode === 'decrypted'}
-                  onChange={() => setMeExportMode('decrypted')}
-                />{' '}
-                Lesbares Backup (Klartext, für Archiv)
-              </label>
-              <label style={{ display: 'block', marginTop: '0.35rem' }}>
-                <input
-                  type="radio"
-                  name="me-export-mode"
-                  value="raw"
-                  checked={meExportMode === 'raw'}
-                  onChange={() => setMeExportMode('raw')}
-                />{' '}
-                Verschlüsseltes Roh-Backup (wie in der Datenbank)
-              </label>
-            </fieldset>
-          }
+          sectionId="me"
+          title="Mein Backup"
+          description="Verschlüsseltes Backup mit allen Ihren Kursen, Schülern, Noten, Klassenlehrer-Listen und Ihrer Schülerverwaltung. Keine anderen Benutzer, keine Passwörter."
           warning={
             <>
               <strong>Achtung:</strong> Beim Aufspielen werden <strong>alle Ihre Kurse</strong> gelöscht und
@@ -287,8 +310,8 @@ export default function BackupView() {
               ersetzt.
             </>
           }
-          downloadLabel="Mein Backup erstellen und herunterladen"
-          downloadPath={`/api/backup/me/download?mode=${encodeURIComponent(meExportMode)}`}
+          downloadLabel="Verschlüsseltes Backup erstellen und herunterladen"
+          downloadPath="/api/backup/me/download?mode=raw"
           restorePath="/api/backup/me/restore"
           actingUsername={username}
           downloadFallback={`phix-user-backup-${username || 'benutzer'}-${stamp}Z.json`}
@@ -296,17 +319,17 @@ export default function BackupView() {
           busy={meBusy}
           setBusy={setMeBusy}
           onFeedback={onFeedback}
+          showConfirm={showConfirm}
+          expanded={isSectionOpen('me')}
+          onToggle={() => toggleSection('me')}
         />
 
         {isAdminUser ? (
           <>
             <BackupRestoreBlock
-              title={{
-                id: 'backup-full-heading',
-                text: 'Vollständiges Datenbank-Backup',
-                description:
-                  'Gesamte Installation als Rohdaten (verschlüsselte Felder wie in der DB). Enthält UserCrypto-Hüllen; Klartext fremder Nutzer ist ohne deren Passwort/Recovery nicht lesbar.',
-              }}
+              sectionId="full"
+              title="Vollständiges Datenbank-Backup"
+              description="Gesamte Installation als verschlüsseltes Backup (wie in der Datenbank). Enthält UserCrypto-Hüllen; Klartext fremder Nutzer ist ohne deren Passwort/Recovery nicht lesbar."
               warning={
                 <>
                   <strong>Achtung:</strong> Ersetzt die <strong>komplette Datenbank</strong> aller Benutzer.
@@ -322,13 +345,18 @@ export default function BackupView() {
               busy={fullBusy}
               setBusy={setFullBusy}
               onFeedback={onFeedback}
+              showConfirm={showConfirm}
+              expanded={isSectionOpen('full')}
+              onToggle={() => toggleSection('full')}
             />
 
-            <section className="program-view-panel glass-panel" aria-labelledby="backup-admin-user-heading">
-              <h4 id="backup-admin-user-heading" className="program-view-panel-heading">
-                Backup eines Benutzers (Administrator)
-              </h4>
-              <p className="program-view-panel-text text-muted">
+            <BackupSection
+              sectionId="admin-user"
+              title="Backup eines Benutzers (Administrator)"
+              expanded={isSectionOpen('admin-user')}
+              onToggle={() => toggleSection('admin-user')}
+            >
+              <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
                 Sicherung oder Wiederherstellung der Kurse und Noten eines bestimmten Benutzers — ohne andere
                 Konten zu verändern (außer beim Aufspielen: nur die Kurse dieses Benutzers werden ersetzt).
               </p>
@@ -353,7 +381,7 @@ export default function BackupView() {
                 </select>
               </label>
 
-              <div className="backup-admin-user-actions">
+              <BackupSubsection title="Backup erstellen">
                 <button
                   type="button"
                   className="tab secondary backup-action-btn"
@@ -376,23 +404,26 @@ export default function BackupView() {
                   }}
                 >
                   <Download size={18} strokeWidth={2} aria-hidden />
-                  {userBusy === 'download' ? 'Export …' : 'Backup erstellen'}
+                  {userBusy === 'download' ? 'Export …' : 'Verschlüsseltes Backup erstellen'}
                 </button>
-              </div>
+              </BackupSubsection>
 
-              <p className="program-view-panel-text text-muted backup-restore-warning" style={{ marginTop: '1rem' }}>
-                <strong>Aufspielen für gewählten Benutzer:</strong> JSON-Datei muss ein Benutzer-Backup
-                (<code>scope: &quot;user&quot;</code>) für genau diesen Benutzernamen sein.
-              </p>
+              <BackupSubsection title="Backup wiederherstellen">
+                <p className="program-view-panel-text text-muted backup-restore-warning">
+                  <strong>Achtung:</strong> JSON-Datei muss ein Benutzer-Backup (
+                  <code>scope: &quot;user&quot;</code>) für genau den gewählten Benutzernamen sein.
+                </p>
 
-              <AdminUserRestorePanel
-                selectedAdminUser={selectedAdminUser}
-                actingUsername={username}
-                busy={userBusy}
-                setBusy={setUserBusy}
-                onFeedback={onFeedback}
-              />
-            </section>
+                <AdminUserRestorePanel
+                  selectedAdminUser={selectedAdminUser}
+                  actingUsername={username}
+                  busy={userBusy}
+                  setBusy={setUserBusy}
+                  onFeedback={onFeedback}
+                  showConfirm={showConfirm}
+                />
+              </BackupSubsection>
+            </BackupSection>
           </>
         ) : null}
 
@@ -409,7 +440,7 @@ export default function BackupView() {
   );
 }
 
-function AdminUserRestorePanel({ selectedAdminUser, actingUsername, busy, setBusy, onFeedback }) {
+function AdminUserRestorePanel({ selectedAdminUser, actingUsername, busy, setBusy, onFeedback, showConfirm }) {
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [confirmText, setConfirmText] = useState('');

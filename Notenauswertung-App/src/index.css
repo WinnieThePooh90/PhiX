@@ -714,6 +714,29 @@ p {
   white-space: nowrap;
 }
 
+.backup-subsection {
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.backup-subsection:first-of-type {
+  margin-top: 0.85rem;
+}
+
+.export-section__body > .backup-subsection:first-of-type {
+  margin-top: 0.85rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.backup-subsection__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 .backup-section-divider {
   margin: 1.25rem 0;
 }
@@ -1002,11 +1025,6 @@ p {
   font-size: 1.05rem;
 }
 
-.program-user-mgmt-intro {
-  margin: 0 0 0.25rem;
-  font-size: 0.875rem;
-}
-
 .program-user-mgmt-section {
   width: 100%;
   min-width: 0;
@@ -1107,6 +1125,10 @@ p {
 .program-user-mgmt-input:focus {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.12);
+}
+
+.program-user-mgmt-form .program-user-mgmt-submit {
+  align-self: flex-end;
 }
 
 .program-user-mgmt-submit {
