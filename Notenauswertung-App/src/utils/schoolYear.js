@@ -11,8 +11,8 @@ export function schoolYearStartForSort(yearRaw) {
 }
 
 export function sortSchoolYears(years) {
-  return [...(years || [])].sort(
-    (a, b) => schoolYearStartForSort(b.label) - schoolYearStartForSort(a.label),
+  return [...(years || [])].sort((a, b) =>
+    String(a.label ?? '').localeCompare(String(b.label ?? ''), 'de', { sensitivity: 'base' }),
   );
 }
 

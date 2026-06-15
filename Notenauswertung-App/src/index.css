@@ -3315,6 +3315,54 @@ button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
   display: none;
 }
 
+/* Schülerverwaltung: Schuljahre-Kopfzeile und Toolbar */
+.school-roster-years-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.school-roster-years-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.school-roster-years-toolbar__new-year {
+  margin-left: auto;
+}
+
+/* Schülerverwaltung: eigener Scroll — Kopfzeile ohne Durchscheinen der Namen */
+.school-roster-table-scroll {
+  max-height: min(70vh, 42rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  isolation: isolate;
+}
+
+.school-roster-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: hsl(var(--muted));
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.school-roster-table-scroll tbody td {
+  position: relative;
+  z-index: 0;
+  background: var(--surface);
+}
+
+.school-roster-table-scroll tbody tr:hover td {
+  background: hsl(var(--accent) / 0.5);
+}
+
 /* Schülerverwaltung: Buttons auf Höhe der Eingabefelder (nicht der Label-Zeile) */
 .school-roster-inline-actions {
   display: flex;

@@ -356,12 +356,24 @@ export default function SchoolRosterView() {
       </div>
 
       <div className="glass-panel mb-6" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1.05rem' }}>Schuljahre</h3>
+        <div className="school-roster-years-header">
+          <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Schuljahre</h3>
+          {hasSchoolYears && activeYear ? (
+            <button
+              type="button"
+              className="danger school-roster-control-btn"
+              disabled={busy || deletingYear}
+              onClick={handleDeleteYear}
+            >
+              {deletingYear ? '…' : 'Schuljahr löschen'}
+            </button>
+          ) : null}
+        </div>
         <p className="text-muted" style={{ fontSize: '0.875rem', margin: '0 0 1rem' }}>
           Schüler werden je Schuljahr geführt. Wähle ein Jahr, um Schüler anzulegen oder zu importieren.
         </p>
-        {hasSchoolYears ? (
-          <div className="flex flex-wrap gap-3 mb-4 school-roster-years-row">
+        <div className="school-roster-years-toolbar">
+          {hasSchoolYears ? (
             <div>
               <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
                 Schuljahr
@@ -385,30 +397,20 @@ export default function SchoolRosterView() {
                 ))}
               </select>
             </div>
-            {activeYear ? (
-              <div className="school-roster-inline-actions">
-                <span className="school-roster-inline-actions__label-spacer" aria-hidden="true">
-                  &nbsp;
-                </span>
-                <button
-                  type="button"
-                  className="danger school-roster-control-btn"
-                  disabled={busy || deletingYear}
-                  onClick={handleDeleteYear}
-                >
-                  {deletingYear ? '…' : 'Schuljahr löschen'}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <p className="text-muted" style={{ margin: '0 0 1rem', fontSize: '0.875rem' }}>
-            Noch kein Schuljahr vorhanden. Lege das erste Schuljahr an, um Schüler zu verwalten.
-          </p>
-        )}
-        <button type="button" className="tab secondary" disabled={busy} onClick={openNewYearModal}>
-          + Neues Schuljahr anlegen
-        </button>
+          ) : (
+            <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+              Noch kein Schuljahr vorhanden. Lege das erste Schuljahr an, um Schüler zu verwalten.
+            </p>
+          )}
+          <button
+            type="button"
+            className="tab secondary school-roster-control-btn school-roster-years-toolbar__new-year"
+            disabled={busy}
+            onClick={openNewYearModal}
+          >
+            + Neues Schuljahr anlegen
+          </button>
+        </div>
       </div>
 
       {hasSchoolYears ? (
@@ -530,7 +532,7 @@ export default function SchoolRosterView() {
                 Keine Treffer für „{rosterSearch.trim()}“. Filter anpassen oder zurücksetzen.
               </p>
             ) : (
-          <div className="table-container table-container--opaque-thead" style={{ margin: 0 }}>
+          <div className="table-container table-container--opaque-thead school-roster-table-scroll" style={{ margin: 0 }}>
             <table>
               <thead>
                 <tr>
