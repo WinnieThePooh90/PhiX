@@ -9,6 +9,7 @@ import {
   getStudentExamMaxPointsForGrade,
   normalizeCourseGradeSystem,
 } from './calculator';
+import { expandRowsWithStudentNotes } from './studentNotesExport';
 
 function studentNameCell(s) {
   return `${s.lastName ?? ''}, ${s.firstName ?? ''}`.replace(/^,\s*|,\s*$/g, '').trim() || '—';
@@ -62,27 +63,32 @@ export function buildExamTableExport({ exam, examId, students, config }) {
     noteMaxCell,
   ];
 
-  const dataRows = (students ?? []).map((s, idx) => {
-    const rawSc = exam.scores?.[s.id];
-    const effN = getStudentEffectiveExamFieldCount(exam, s.id);
-    const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
-    const maxPts = getStudentExamMaxPointsForGrade(exam, s.id);
-    const grade = counted ? getExamGradeForStudent(exam, s.id, customGradingKeys) : null;
+  const dataRows = expandRowsWithStudentNotes(
+    students,
+    (s, idx) => {
+      const rawSc = exam.scores?.[s.id];
+      const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+      const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
+      const maxPts = getStudentExamMaxPointsForGrade(exam, s.id);
+      const grade = counted ? getExamGradeForStudent(exam, s.id, customGradingKeys) : null;
 
-    const taskCells = Array.from({ length: displayFieldCount }, (_, fieldIndex) => {
-      if (fieldIndex >= effN) return '—';
-      const val = fields[fieldIndex];
-      return val !== undefined && val !== null && val !== '' ? val : '';
-    });
+      const taskCells = Array.from({ length: displayFieldCount }, (_, fieldIndex) => {
+        if (fieldIndex >= effN) return '—';
+        const val = fields[fieldIndex];
+        return val !== undefined && val !== null && val !== '' ? val : '';
+      });
 
-    const gesamt = counted ? `${total} / ${maxPts}` : '—';
-    let note = '-';
-    if (counted && grade !== null) {
-      note = formatGrade(grade, gradeSys);
-    }
+      const gesamt = counted ? `${total} / ${maxPts}` : '—';
+      let note = '-';
+      if (counted && grade !== null) {
+        note = formatGrade(grade, gradeSys);
+      }
 
-    return [s.studentNumber ?? idx + 1, studentNameCell(s), ...taskCells, gesamt, note];
-  });
+      return [s.studentNumber ?? idx + 1, studentNameCell(s), ...taskCells, gesamt, note];
+    },
+    header1.length,
+    { textColumnIndex: 1 },
+  );
 
   return {
     aoa: [header1, maxRow, ...dataRows],

@@ -5,6 +5,7 @@ import {
   getTestGradeForStudent,
   normalizeCourseGradeSystem,
 } from './calculator';
+import { expandRowsWithStudentNotes } from './studentNotesExport';
 
 function studentNameCell(s) {
   return `${s.lastName ?? ''}, ${s.firstName ?? ''}`.replace(/^,\s*|,\s*$/g, '').trim() || '—';
@@ -25,26 +26,31 @@ export function buildTestTableExportAoa({ test, testId, students, config }) {
   const header1 = ['#', 'NAME', 'PUNKTE', 'GESAMT', 'NOTE'];
   const maxRow = ['Max', 'Maximalpunkte', '', maxPtsDisplay, ''];
 
-  const dataRows = (students ?? []).map((s, idx) => {
-    const scoreMap = test.scores ?? test.errors;
-    const rawSc = scoreMap?.[s.id];
-    const { value: pointsStr, counted } = getNormalizedTestScore(rawSc);
-    const grade = counted ? getTestGradeForStudent(test, s.id, customGradingKeys, gradeSys) : null;
-    const effectiveMax = getEffectiveTestMaxPoints(test, rawSc);
-    const ptsNum = parseFloat(String(pointsStr).replace(',', '.'));
+  const dataRows = expandRowsWithStudentNotes(
+    students,
+    (s, idx) => {
+      const scoreMap = test.scores ?? test.errors;
+      const rawSc = scoreMap?.[s.id];
+      const { value: pointsStr, counted } = getNormalizedTestScore(rawSc);
+      const grade = counted ? getTestGradeForStudent(test, s.id, customGradingKeys, gradeSys) : null;
+      const effectiveMax = getEffectiveTestMaxPoints(test, rawSc);
+      const ptsNum = parseFloat(String(pointsStr).replace(',', '.'));
 
-    const punkte =
-      pointsStr !== '' && pointsStr !== undefined && pointsStr !== null ? String(pointsStr) : '';
-    const gesamt =
-      pointsStr !== '' && Number.isFinite(ptsNum) ? `${ptsNum} / ${effectiveMax}` : '—';
+      const punkte =
+        pointsStr !== '' && pointsStr !== undefined && pointsStr !== null ? String(pointsStr) : '';
+      const gesamt =
+        pointsStr !== '' && Number.isFinite(ptsNum) ? `${ptsNum} / ${effectiveMax}` : '—';
 
-    let note = '-';
-    if (counted && grade !== null) {
-      note = formatGrade(grade, gradeSys);
-    }
+      let note = '-';
+      if (counted && grade !== null) {
+        note = formatGrade(grade, gradeSys);
+      }
 
-    return [s.studentNumber ?? idx + 1, studentNameCell(s), punkte, gesamt, note];
-  });
+      return [s.studentNumber ?? idx + 1, studentNameCell(s), punkte, gesamt, note];
+    },
+    header1.length,
+    { textColumnIndex: 1 },
+  );
 
   return [header1, maxRow, ...dataRows];
 }
