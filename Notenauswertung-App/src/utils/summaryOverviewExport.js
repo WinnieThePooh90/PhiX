@@ -32,6 +32,7 @@ export function buildSummaryOverviewExportData({
     `Mündlich${npSuffix}`,
     ...(showTests ? [`Tests${npSuffix}`] : []),
     `Endnote (Exakt)${npSuffix}`,
+    `Note HJ1${npSuffix}`,
     `Endnote${npSuffix}`,
   ];
 
@@ -53,6 +54,8 @@ export function buildSummaryOverviewExportData({
     );
     const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
     const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';
+    const hj1Num = storedGradeStringToClassic(s.summaryHJ1Note, gradeSys);
+    const hj1Display = hj1Num !== null ? formatGrade(hj1Num, gradeSys) : '';
 
     return [
       s.studentNumber ?? idx + 1,
@@ -62,6 +65,7 @@ export function buildSummaryOverviewExportData({
       fmt(oralAvg),
       ...(showTests ? [fmt(testAvg)] : []),
       fmt(finalGrade),
+      hj1Display,
       manualDisplay,
     ];
   });

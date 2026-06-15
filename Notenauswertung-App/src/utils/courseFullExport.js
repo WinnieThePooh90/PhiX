@@ -41,7 +41,7 @@ export function buildCourseFullExportSheets({
   const examIds = Object.keys(exams ?? {}).sort((a, b) => Number(a) - Number(b));
   for (const id of examIds) {
     const exam = exams[id];
-    if (!exam) continue;
+    if (!exam || exam.active === false) continue;
     sheets.push({
       name: examExportSheetName(id),
       ...buildExamTableExport({ exam, examId: id, students, config }),
@@ -51,7 +51,7 @@ export function buildCourseFullExportSheets({
   const testIds = Object.keys(tests ?? {}).sort((a, b) => Number(a) - Number(b));
   for (const id of testIds) {
     const test = tests[id];
-    if (!test) continue;
+    if (!test || test.active === false) continue;
     sheets.push({
       name: testExportSheetName(id, test.name),
       aoa: buildTestTableExportAoa({ test, testId: id, students, config }),
@@ -61,7 +61,7 @@ export function buildCourseFullExportSheets({
   const oralIds = Object.keys(orals ?? {}).sort((a, b) => Number(a) - Number(b));
   for (const id of oralIds) {
     const oral = orals[id];
-    if (!oral || oral.extended) continue;
+    if (!oral || oral.extended || oral.active === false) continue;
     const oralData = buildOralStandardTableExportData({ oral, students, config });
     if (!oralData) continue;
     sheets.push({

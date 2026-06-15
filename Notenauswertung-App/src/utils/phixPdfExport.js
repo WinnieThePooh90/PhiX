@@ -104,13 +104,6 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
     format: 'a4',
   });
 
-  if (documentTitle) {
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(documentTitle, 14, 14);
-    doc.setFont('helvetica', 'normal');
-  }
-
   list.forEach((section, index) => {
     if (index > 0) {
       doc.addPage('a4', pickOrientation(section.aoa?.[0]?.length ?? 1));
@@ -119,9 +112,9 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
     if (index === 0 && documentTitle) {
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(documentTitle, 14, 12);
+      doc.text(documentTitle, 14, 14);
       doc.setFont('helvetica', 'normal');
-      startY = 20;
+      startY = 22;
     }
     renderAoaTable(doc, section.aoa, section.name, { startY });
   });

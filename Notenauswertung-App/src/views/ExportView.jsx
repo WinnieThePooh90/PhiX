@@ -186,6 +186,10 @@ export default function ExportView() {
     runExport(`exam-${examId}-${format}`, async () => {
       const exam = exams[examId];
       if (!exam) throw new Error('missing exam');
+      if (exam.active === false) {
+        setErr('Inaktive Klausuren werden nicht exportiert.');
+        return null;
+      }
       const { aoa, layout } = buildExamTableExport({ exam, examId, students, config });
       const sheetName = examExportSheetName(examId);
       const filename = examExportFilename(config, examId, format);
@@ -201,6 +205,10 @@ export default function ExportView() {
     runExport(`test-${testId}-${format}`, async () => {
       const test = tests[testId];
       if (!test) throw new Error('missing test');
+      if (test.active === false) {
+        setErr('Inaktive Tests werden nicht exportiert.');
+        return null;
+      }
       const aoa = buildTestTableExportAoa({ test, testId, students, config });
       const sheetName = testExportSheetName(testId, test.name);
       const filename = testExportFilename(config, testId, test.name, format);
@@ -215,6 +223,10 @@ export default function ExportView() {
   const exportOral = (oralId, format) =>
     runExport(`oral-${oralId}-${format}`, async () => {
       const oral = orals[oralId];
+      if (oral?.active === false) {
+        setErr('Inaktive mündliche Bereiche werden nicht exportiert.');
+        return null;
+      }
       const sheetData = buildOralStandardTableExportData({ oral, students, config });
       if (!sheetData) {
         setErr('Erweiterte mündliche Bereiche können nicht im Standardformat exportiert werden.');
@@ -329,7 +341,7 @@ export default function ExportView() {
                             .filter(Boolean)
                             .join(' · ') || undefined
                     }
-                    disabled={anyBusy || !config}
+                    disabled={anyBusy || !config || inactive}
                     busyKey={busyKey}
                     exportKey={`exam-${id}`}
                     onExcel={() => exportExam(id, 'xlsx')}
@@ -369,7 +381,7 @@ export default function ExportView() {
                         : [test?.halbjahr ? `HJ ${test.halbjahr}` : null].filter(Boolean).join(' · ') ||
                           undefined
                     }
-                    disabled={anyBusy || !config}
+                    disabled={anyBusy || !config || inactive}
                     busyKey={busyKey}
                     exportKey={`test-${id}`}
                     onExcel={() => exportTest(id, 'xlsx')}
@@ -414,7 +426,7 @@ export default function ExportView() {
                               .filter(Boolean)
                               .join(' · ') || undefined
                     }
-                    disabled={anyBusy || !config || extended}
+                    disabled={anyBusy || !config || extended || inactive}
                     busyKey={busyKey}
                     exportKey={`oral-${id}`}
                     onExcel={() => exportOral(id, 'xlsx')}
