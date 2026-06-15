@@ -454,18 +454,6 @@ export const DataProvider = ({ children }) => {
     }
 
     const migrateExamLikeKeyType = async (collection, apiPrefix, setter) => {
-      if (toGs === 'points') {
-        for (const id of Object.keys(collection)) {
-          const item = collection[id];
-          if (!item) continue;
-          const kt = item.keyType || '1';
-          if (kt === '1') {
-            const next = { ...item, keyType: 'abi' };
-            await apiCall(`${apiPrefix}/${id}`, 'PUT', { ...next, courseId: activeCourseId });
-            setter((prev) => ({ ...prev, [id]: { ...prev[id], keyType: 'abi' } }));
-          }
-        }
-      }
       if (toGs === 'classic') {
         for (const id of Object.keys(collection)) {
           const item = collection[id];
@@ -565,21 +553,20 @@ export const DataProvider = ({ children }) => {
   const addExam = async () => {
     const examNumbers = Object.keys(exams).map(Number);
     const nextNumber = examNumbers.length > 0 ? Math.max(...examNumbers) + 1 : 1;
-    const gs = normalizeCourseGradeSystem(config?.gradeSystem);
-    const defaultKeyType = gs === 'points' ? 'abi' : '1';
+    const defaultKeyType = '1';
 
-    const newExamData = { 
-      examNumber: nextNumber, 
-      active: true, 
-      maxPoints: 50, 
-      numFields: 1, 
-      fieldMaxPoints: {}, 
-      keyType: defaultKeyType, 
-      date: '', 
+    const newExamData = {
+      examNumber: nextNumber,
+      active: true,
+      maxPoints: 50,
+      numFields: 1,
+      fieldMaxPoints: {},
+      keyType: defaultKeyType,
+      date: '',
       halbjahr: '1',
-      name: `Klausur ${nextNumber}`, 
-      scores: {}, 
-      courseId: activeCourseId 
+      name: `Klausur ${nextNumber}`,
+      scores: {},
+      courseId: activeCourseId,
     };
     
     setExams(prev => ({ ...prev, [nextNumber]: newExamData }));
@@ -1146,8 +1133,7 @@ export const DataProvider = ({ children }) => {
     if (config?.projectsAccepted !== true) return null;
     const projectNumbers = Object.keys(projects).map(Number);
     const nextNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
-    const gs = normalizeCourseGradeSystem(config?.gradeSystem);
-    const defaultKeyType = gs === 'points' ? 'abi' : '1';
+    const defaultKeyType = '1';
     const mode = ['written', 'oral', 'percent'].includes(weightingMode) ? weightingMode : 'written';
     const pct = mode === 'percent' ? Math.max(0, Number(weightPercent) || 0) : 0;
     const gMode = gradeMode === 'manual' ? 'manual' : 'key';

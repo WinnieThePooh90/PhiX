@@ -518,7 +518,7 @@ app.post('/api/courses', async (req, res) => {
   });
   const hours = Number(course.hours) || 0;
   const manyWeeklyHours = hours > 2;
-  const defaultExamKeyType = course.gradeSystem === 'points' ? 'abi' : '1';
+  const defaultExamKeyType = '1';
 
   const examBase = (examNumber, halbjahr) => ({
     examNumber,

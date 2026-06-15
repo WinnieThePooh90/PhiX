@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
+import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId, LEGACY_BUILTIN_ABI_KEY_TYPE } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import { buildVorlage1Bands, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
 import {
@@ -306,7 +306,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   <option value="4">Linear 1</option>
                   <option value="5">Linear 2</option>
                   <option value="6">Linear 3</option>
-                  <option value="abi">ABI BaWü 2026 120 BE</option>
+                  {test.keyType === LEGACY_BUILTIN_ABI_KEY_TYPE ? (
+                    <option value={LEGACY_BUILTIN_ABI_KEY_TYPE}>ABI BaWü 2026 120 BE</option>
+                  ) : null}
                   {customKeysList.map((k) => (
                     <option key={k.id} value={`custom:${k.id}`}>
                       {k.name}

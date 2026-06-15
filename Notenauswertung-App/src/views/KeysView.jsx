@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import GradingKeyTable from '../components/GradingKeyTable';
 import CustomGradingKeyModal from '../components/CustomGradingKeyModal';
-import WarningMarkWithTooltip from '../components/WarningMarkWithTooltip';
 import { useData } from '../store/DataContext';
 import {
   ABI_BAWUE_2026_120_BE_KEY,
@@ -15,9 +14,7 @@ import {
   isAbiBaWue2026Mathematik100BeFamilyId,
 } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import {
-  VORLAGE_1_KEY,
   buildVorlage1Bands,
-  nextVorlage1TemplateCloneIdentity,
   isVorlage1KeyFamilyId,
 } from '../data/vorlage1GradingKey';
 import {
@@ -64,7 +61,7 @@ export default function KeysView() {
 
   const handleDeleteKey = async (id) => {
     const ok = await showConfirm(
-      'Diesen Notenschl\u00FCssel wirklich l\u00F6schen? Klausuren mit diesem Schl\u00FCssel werden auf Schl\u00FCssel 1 umgestellt.',
+      'Diesen Notenschl\u00FCssel wirklich l\u00F6schen? Klausuren mit diesem Schl\u00FCssel werden auf Plateau 1 umgestellt.',
       { title: 'Notenschl\u00FCssel l\u00F6schen', danger: true },
     );
     if (!ok) return;
@@ -110,20 +107,6 @@ export default function KeysView() {
     });
   };
 
-  const handleAddVorlage1 = () => {
-    setConfig((c) => {
-      const list = Array.isArray(c.customGradingKeys) ? [...c.customGradingKeys] : [];
-      const { id, name } = nextVorlage1TemplateCloneIdentity(list);
-      const def = {
-        ...VORLAGE_1_KEY,
-        id,
-        name,
-      };
-      list.push(def);
-      return { ...c, customGradingKeys: list };
-    });
-  };
-
   const keys = useMemo(
     () => [
       { title: 'Plateau 1', type: '1', desc: getPlateauKeyShortDesc('1', maxPoints), titleHelpText: getFormulaKeyHelpText('1') },
@@ -132,13 +115,9 @@ export default function KeysView() {
       { title: 'Linear 1', type: '4', desc: getBuiltinGradingKeyShortDesc('4', maxPoints) },
       { title: 'Linear 2', type: '5', desc: getBuiltinGradingKeyShortDesc('5', maxPoints) },
       { title: 'Linear 3', type: '6', desc: getBuiltinGradingKeyShortDesc('6', maxPoints) },
-      { title: 'ABI BaWü 2026 120 BE', type: 'abi' },
     ],
     [maxPoints],
   );
-
-  const standardKeyRows = keys.filter((k) => k.type !== 'abi');
-  const abiKeyRows = keys.filter((k) => k.type === 'abi');
 
   return (
     <div className="view-generic-scroll">
@@ -221,63 +200,11 @@ export default function KeysView() {
             >
               Vorlage: ABI BaWü 2026 100 BE Mathematik
             </button>
-            <button
-              type="button"
-              className="tab secondary"
-              onClick={handleAddVorlage1}
-              style={{
-                width: '100%',
-                marginTop: '0.5rem',
-                padding: '0.55rem 1rem',
-                fontWeight: 600,
-                whiteSpace: 'normal',
-                textAlign: 'center',
-              }}
-              title="Punktgrenzen: RUNDEN(2·(−0,15·Note+1,05)·Max)/2; rechte Grenze = Max bzw. vorige linke − 0,5"
-            >
-              Vorlage: Vorlage 1
-            </button>
           </div>
         </div>
-
-        {customKeys.length > 0 && (
-          <div className="glass-panel mb-8" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.05rem', color: 'var(--primary)' }}>Eigene Schlüssel in diesem Kurs</h3>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {customKeys.map((k) => {
-                const refMismatchTip = abiTemplateSimulatedMaxMismatchTooltip(k.id, maxPoints);
-                return (
-                <li
-                  key={k.id}
-                  className="flex flex-wrap gap-2 items-center"
-                  style={{ padding: '0.35rem 0', borderBottom: '1px solid var(--border)' }}
-                >
-                  <strong style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.25rem', flexWrap: 'wrap' }}>
-                    <span>{k.name}</span>
-                    {refMismatchTip ? <WarningMarkWithTooltip text={refMismatchTip} /> : null}
-                  </strong>
-                  <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                    {isVorlage1KeyFamilyId(k.id) ? '21 Stufen (Formel)' : `(${(k.bands || []).length} Stufen)`}
-                  </span>
-                  {!isVorlage1KeyFamilyId(k.id) ? (
-                    <button type="button" className="tab secondary" style={{ marginLeft: 'auto' }} onClick={() => openEdit(k)}>
-                      Bearbeiten
-                    </button>
-                  ) : (
-                    <span style={{ marginLeft: 'auto' }} />
-                  )}
-                  <button type="button" className="tab secondary" onClick={() => handleDeleteKey(k.id)}>
-                    Löschen
-                  </button>
-                </li>
-              );
-              })}
-            </ul>
-          </div>
-        )}
       </div>
 
-      {customKeysWithBands.map((k, i) => (
+      {customKeysWithBands.map((k) => (
         <div key={k.id} className="mb-8">
           <GradingKeyTable
             type="1"
@@ -292,12 +219,14 @@ export default function KeysView() {
             customBands={isVorlage1KeyFamilyId(k.id) ? buildVorlage1Bands(maxPoints) : k.bands}
             pktIntegerDisplay={!!k.pktIntegerDisplay || isAbiBaWue2026KeyFamilyId(k.id) || isAbiBaWue2026Mathematik100BeFamilyId(k.id)}
             titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(k.id, maxPoints)}
+            onEdit={isVorlage1KeyFamilyId(k.id) ? undefined : () => openEdit(k)}
+            onDelete={() => handleDeleteKey(k.id)}
           />
         </div>
       ))}
 
       <div className="grid-3 mb-8" style={{ alignItems: 'start' }}>
-        {standardKeyRows.map((keyObj, i) => (
+        {keys.map((keyObj) => (
             <GradingKeyTable
               key={keyObj.type}
               type={keyObj.type}
@@ -305,18 +234,6 @@ export default function KeysView() {
               title={keyObj.title}
               desc={keyObj.desc}
               titleHelpText={keyObj.titleHelpText}
-            />
-          ))}
-      </div>
-
-      <div className="mb-8">
-        {abiKeyRows.map((keyObj, i) => (
-            <GradingKeyTable
-              key={keyObj.type}
-              type={keyObj.type}
-              maxPoints={maxPoints}
-              title={keyObj.title}
-              desc={keyObj.desc}
             />
           ))}
       </div>

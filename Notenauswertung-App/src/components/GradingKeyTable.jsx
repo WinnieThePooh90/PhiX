@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Trash2, Wrench } from 'lucide-react';
 import GradingKeyChart from './GradingKeyChart';
 import WarningMarkWithTooltip from './WarningMarkWithTooltip';
 import GradingKeyHelpButton from './GradingKeyHelpButton';
@@ -28,6 +29,8 @@ export default function GradingKeyTable({
   pktIntegerDisplay = false,
   titleWarningTooltip = null,
   titleHelpText = null,
+  onEdit = null,
+  onDelete = null,
 }) {
   const t = useMemo(() => resolveGradingThresholds(type, thresholdsOverride), [type, thresholdsOverride]);
   const max = parseFloat(maxPoints) || 0;
@@ -193,7 +196,58 @@ export default function GradingKeyTable({
             <span>{title}</span>
             {titleWarningTooltip ? <WarningMarkWithTooltip text={titleWarningTooltip} /> : null}
           </h3>
-          {titleHelpText ? <GradingKeyHelpButton text={titleHelpText} /> : null}
+          {titleHelpText || onEdit || onDelete ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                flexShrink: 0,
+              }}
+            >
+              {titleHelpText ? <GradingKeyHelpButton text={titleHelpText} /> : null}
+              {onEdit ? (
+                <button
+                  type="button"
+                  className="tab secondary"
+                  onClick={onEdit}
+                  title="Notenschlüssel bearbeiten"
+                  aria-label={`Notenschlüssel bearbeiten: ${title}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '1.65rem',
+                    height: '1.65rem',
+                    minWidth: '1.65rem',
+                    padding: 0,
+                  }}
+                >
+                  <Wrench size={16} strokeWidth={2.25} aria-hidden />
+                </button>
+              ) : null}
+              {onDelete ? (
+                <button
+                  type="button"
+                  className="danger secondary"
+                  onClick={onDelete}
+                  title="Notenschlüssel löschen"
+                  aria-label={`Notenschlüssel löschen: ${title}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '1.65rem',
+                    height: '1.65rem',
+                    minWidth: '1.65rem',
+                    padding: 0,
+                  }}
+                >
+                  <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {desc && <p className="text-muted" style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', fontWeight: 'normal' }}>{desc}</p>}
       </div>

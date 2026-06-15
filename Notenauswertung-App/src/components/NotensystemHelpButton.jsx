@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 
 const NOTENSYSTEM_HELP_TEXT =
-  'Beim Wechsel werden gespeicherte manuelle Noten (Endnote, mündliche Note, GFS) automatisch umgerechnet und in der Datenbank im jeweiligen Format abgelegt (klassisch: Viertelnoten als Text, Punktesystem: ganze Zahlen 0–15). Beim Wechsel auf Punktesystem erhalten Klausuren mit Plateau 1 den Standard „ABI BaWü 2026 120 BE“; beim Wechsel zurück auf klassisch werden Klausuren mit diesem Standard wieder auf Plateau 1 gesetzt. Andere Schlüssel bleiben unverändert. Neu angelegte Klausuren nutzen standardmäßig Plateau 1 (klassisch) bzw. ABI BaWü 2026 120 BE (Punktesystem).';
+  'Beim Wechsel werden gespeicherte manuelle Noten (Endnote, mündliche Note, GFS) automatisch umgerechnet und in der Datenbank im jeweiligen Format abgelegt (klassisch: Viertelnoten als Text, Punktesystem: ganze Zahlen 0–15). Beim Wechsel zurück auf klassisch werden Klausuren mit dem früheren eingebauten Schlüssel „ABI BaWü 2026 120 BE“ auf Plateau 1 gesetzt. Neu angelegte Klausuren und Projekte nutzen standardmäßig Plateau 1. ABI-Schlüssel können als Vorlage unter Notenschlüssel hinzugefügt werden.';
 
 /** Fragezeichen neben der Notensystem-Auswahl: Hilfetext als Tooltip-Popover */
 export default function NotensystemHelpButton() {

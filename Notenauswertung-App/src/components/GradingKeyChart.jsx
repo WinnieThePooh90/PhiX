@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { calculateGradeFromThresholds, gradeFromPercentBands } from '../utils/calculator';
+import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
 
 const VB_W = 320;
 const VB_H = 200;
@@ -20,19 +21,28 @@ export default function GradingKeyChart({
 }) {
   const max = Number(maxPoints);
   const valid = Number.isFinite(max) && max > 0;
+  const formulaIntercept = getFormulaKeyIntercept(type);
 
   const chart = useMemo(() => {
     if (!valid) return null;
+
+    const gradeAtPoints = (p) => {
+      if (formulaIntercept != null) {
+        return gradeFromFormulaPoints(p, max, formulaIntercept);
+      }
+      if (customBands?.length) {
+        return gradeFromPercentBands((p / max) * 100, customBands);
+      }
+      return calculateGradeFromThresholds(p, max, type, thresholdsOverride);
+    };
+
     const samples = Math.min(400, Math.max(80, Math.ceil(max * 4)));
     const pts = [];
     let gLo = Infinity;
     let gHi = -Infinity;
     for (let i = 0; i <= samples; i += 1) {
-      const p = (max * i) / samples;
-      const pct = (p / max) * 100;
-      const g = customBands?.length
-        ? gradeFromPercentBands(pct, customBands)
-        : calculateGradeFromThresholds(p, max, type, thresholdsOverride);
+      const p = Math.round(((max * i) / samples) * 2) / 2;
+      const g = gradeAtPoints(p);
       if (g === null || !Number.isFinite(g)) continue;
       gLo = Math.min(gLo, g);
       gHi = Math.max(gHi, g);
@@ -44,11 +54,8 @@ export default function GradingKeyChart({
     const span = yMax - yMin || 1;
 
     for (let i = 0; i <= samples; i += 1) {
-      const p = (max * i) / samples;
-      const pct = (p / max) * 100;
-      const g = customBands?.length
-        ? gradeFromPercentBands(pct, customBands)
-        : calculateGradeFromThresholds(p, max, type, thresholdsOverride);
+      const p = Math.round(((max * i) / samples) * 2) / 2;
+      const g = gradeAtPoints(p);
       if (g === null || !Number.isFinite(g)) continue;
       const x = PAD_L + (p / max) * PLOT_W;
       const y = PAD_T + ((yMax - g) / span) * PLOT_H;
@@ -57,7 +64,7 @@ export default function GradingKeyChart({
 
     const yTicks = NOTE_TICK_CANDIDATES.filter((g) => g >= yMin - 0.001 && g <= yMax + 0.001);
     return { polylinePoints: pts.join(' '), yMin, yMax, yTicks, span };
-  }, [type, max, valid, thresholdsOverride, customBands]);
+  }, [type, max, valid, thresholdsOverride, customBands, formulaIntercept]);
 
   if (!valid) {
     return (

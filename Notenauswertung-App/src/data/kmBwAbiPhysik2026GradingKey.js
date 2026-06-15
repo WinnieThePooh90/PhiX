@@ -64,7 +64,10 @@ export const ABI_BAWUE_2026_120_BE_KEY = {
   bands: buildBandsFromBeRows(),
 };
 
-/** Gleiche Bänder wie {@link ABI_BAWUE_2026_120_BE_KEY} — für eingebauten Schlüsseltyp `abi` (Punktesystem-Standard). */
+/** Früher eingebauter Schlüsseltyp — nur noch für Bestandsdaten; Auswahl nur noch als Kurs-Vorlage. */
+export const LEGACY_BUILTIN_ABI_KEY_TYPE = 'abi';
+
+/** Gleiche Bänder wie {@link ABI_BAWUE_2026_120_BE_KEY} — für eingebauten Schlüsseltyp `abi` (Bestand). */
 export const ABI_BAWUE_2026_120_BE_BANDS = ABI_BAWUE_2026_120_BE_KEY.bands;
 
 /** @deprecated gleiche Definition wie {@link ABI_BAWUE_2026_120_BE_KEY} */
