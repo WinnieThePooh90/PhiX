@@ -59,21 +59,22 @@ export default function LoginView({ onRecovery }) {
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden'}
           </button>
-          {onRecovery ? (
-            <button
-              type="button"
-              className="app-login-submit"
-              style={{ marginTop: '0.5rem', background: 'transparent', color: 'inherit' }}
-              onClick={onRecovery}
-            >
-              Passwort mit Recovery-Key zurücksetzen
-            </button>
-          ) : null}
         </form>
       </div>
-      <p className="app-login-build-info">
-        {APP_NAME} - Build {APP_VERSION}
-      </p>
+      <div className="app-login-footer">
+        <p className="app-login-build-info">
+          {APP_NAME} - Build {APP_VERSION} … by Karsten Paulokat
+        </p>
+        {onRecovery ? (
+          <button
+            type="button"
+            className="tab secondary backup-action-btn app-login-recovery-btn"
+            onClick={onRecovery}
+          >
+            Passwort mit Recovery-Key zurücksetzen
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

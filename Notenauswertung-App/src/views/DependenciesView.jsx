@@ -135,16 +135,6 @@ export default function DependenciesView() {
     return LICENSE_EXPLANATIONS.filter((ex) => set.has(ex.id));
   }, [allRows]);
 
-  const examplePackageForLicense = useMemo(() => {
-    const map = new Map();
-    for (const row of allRows) {
-      if (!map.has(row.license) && getPackageLicenseText(row.name)) {
-        map.set(row.license, row.name);
-      }
-    }
-    return map;
-  }, [allRows]);
-
   return (
     <div className="view-generic-scroll program-view">
       <h3 className="program-view-title">Dependencies</h3>
@@ -192,24 +182,6 @@ export default function DependenciesView() {
               <article key={block.id} className="app-info-license-block">
                 <h5 className="app-info-license-title">{block.title}</h5>
                 <p className="app-info-license-text">{block.text}</p>
-                {getPackageLicenseText(examplePackageForLicense.get(block.id)) ? (
-                  <button
-                    type="button"
-                    className="tab secondary dependency-license-btn"
-                    style={{ marginTop: '0.5rem' }}
-                    onClick={() => {
-                      const pkg = examplePackageForLicense.get(block.id);
-                      const text = getPackageLicenseText(pkg);
-                      if (!text) return;
-                      setLicenseModal({
-                        title: `Lizenztext — ${block.title} (Beispiel: ${pkg})`,
-                        text,
-                      });
-                    }}
-                  >
-                    Lizenztext (Beispiel)
-                  </button>
-                ) : null}
               </article>
             ))}
           </div>

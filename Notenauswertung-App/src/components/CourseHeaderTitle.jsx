@@ -1,14 +1,18 @@
 import React from 'react';
 import AppLogo from './AppLogo';
 
+export function formatCourseWeightingRatio(weighting, testsWritten = true) {
+  if (weighting == null) return '';
+  const w = weighting.written ?? '';
+  const m = weighting.oral ?? '';
+  if (testsWritten === false) return `${w}:${m}`;
+  return `${w}:${m}:${weighting.tests ?? ''}`;
+}
+
 function formatWeighting(weighting, testsWritten = true) {
-  if (weighting == null) return null;
-  const w = weighting.written ?? '—';
-  const m = weighting.oral ?? '—';
-  if (testsWritten === false) {
-    return `Gewichtung: ${w}:${m}`;
-  }
-  return `Gewichtung: ${w}:${m}:${weighting.tests ?? '—'}`;
+  const ratio = formatCourseWeightingRatio(weighting, testsWritten);
+  if (!ratio) return null;
+  return `Gewichtung: ${ratio}`;
 }
 
 export default function CourseHeaderTitle({ config, className = '' }) {

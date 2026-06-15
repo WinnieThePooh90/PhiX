@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import MobileAppHeader from './components/MobileAppHeader';
-import CourseHeaderTitle from './components/CourseHeaderTitle';
+import CourseHeaderTitle, { formatCourseWeightingRatio } from './components/CourseHeaderTitle';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
@@ -648,7 +648,10 @@ function App() {
                           {course.subject} {course.className}
                         </div>
                         <div className="course-item-meta">
-                          {course.year}, {course.weighting?.written ?? ''}:{course.weighting?.oral ?? ''}:{course.weighting?.tests ?? ''}
+                          {course.year}
+                          {course.weighting
+                            ? `, ${formatCourseWeightingRatio(course.weighting, course.testsWritten !== false)}`
+                            : ''}
                         </div>
                       </div>
                       <button
