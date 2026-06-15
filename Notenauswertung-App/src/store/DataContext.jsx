@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import {
   EXAM_ABS_MAX_FIELDS,
   getNormalizedOralWeekPointsArray,
+  defaultOralWeekColumnLabel,
   migrateStoredGradeString,
   migrateOralGradeEntry,
   normalizeCourseGradeSystem,
@@ -874,8 +875,7 @@ export const DataProvider = ({ children }) => {
         arr.push(0);
         grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
       }
-      const today = new Date().toISOString().slice(0, 10);
-      const weekDates = [...(o.weekDates || []), today];
+      const weekDates = [...(o.weekDates || []), defaultOralWeekColumnLabel()];
       const newOral = { ...o, weekCount: nextCount, weekDates, grades };
       apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
       return { ...prev, [oralId]: newOral };
@@ -897,6 +897,21 @@ export const DataProvider = ({ children }) => {
       }
       const weekDates = (o.weekDates || []).slice(0, nextCount);
       const newOral = { ...o, weekCount: nextCount, weekDates, grades };
+      apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
+      return { ...prev, [oralId]: newOral };
+    });
+  };
+
+  const updateOralWeekLabel = (oralId, weekIndex, label) => {
+    setOrals((prev) => {
+      const o = prev[oralId];
+      if (!o) return prev;
+      const weekCount = o.weekCount || 0;
+      if (weekIndex < 0 || weekIndex >= weekCount) return prev;
+      const weekDates = [...(o.weekDates || [])];
+      while (weekDates.length < weekCount) weekDates.push('');
+      weekDates[weekIndex] = label;
+      const newOral = { ...o, weekDates };
       apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
       return { ...prev, [oralId]: newOral };
     });
@@ -1785,7 +1800,7 @@ export const DataProvider = ({ children }) => {
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,
       updateExamStudentNachschreiber, updateExamStudentNachschreiberFields,
       updateExamStudentManualGrade, updateExamStudentManualGradeValue,
-      orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn,
+      orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,

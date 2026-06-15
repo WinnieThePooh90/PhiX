@@ -4,6 +4,7 @@ import {
   getNormalizedOralGrade,
   getNormalizedOralWeekPointsArray,
   getOralTotalWeekPoints,
+  getOralWeekColumnLabel,
   normalizeCourseGradeSystem,
   normalizeOralSpreadBeta,
   storedGradeStringToClassic,
@@ -15,15 +16,7 @@ function studentNameCell(s) {
 }
 
 function oralWeekColumnLabel(oral, weekIndex) {
-  const dateStr = (oral?.weekDates || [])[weekIndex];
-  if (dateStr) {
-    return new Date(`${dateStr}T00:00:00`).toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
-  }
-  return `Woche ${weekIndex + 1}`;
+  return getOralWeekColumnLabel(oral?.weekDates, weekIndex);
 }
 
 function formatOralWeekPointExport(wp) {

@@ -263,6 +263,35 @@ export const getNormalizedOralWeekPointsArray = (gradeData, weekCount) => {
 export const getOralTotalWeekPoints = (gradeData, weekCount) =>
   getNormalizedOralWeekPointsArray(gradeData, weekCount).reduce((a, b) => a + b, 0);
 
+const ORAL_WEEK_DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Anzeigename einer Wochenspalte (ISO-Datum wird formatiert, sonst gespeicherter Text). */
+export function getOralWeekColumnLabel(weekDates, weekIndex) {
+  const raw = (weekDates || [])[weekIndex];
+  if (raw == null || raw === '') return `Woche ${weekIndex + 1}`;
+  const s = String(raw);
+  if (ORAL_WEEK_DATE_ISO.test(s)) {
+    return new Date(`${s}T00:00:00`).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    });
+  }
+  return s;
+}
+
+/** Standard-Bezeichnung beim Anlegen einer neuen Wochenspalte */
+export function defaultOralWeekColumnLabel(date = new Date()) {
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+/** Anzeige eines Wochenpunkts (−2 … +2) */
+export function formatOralWeekPointDisplay(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '0';
+  return v > 0 ? `+${v}` : String(v);
+}
+
 /** Faktor BY aus «Beste Note α» (Vorlage PA, Zelle BY1 bei Notenpunkte „Nein“) */
 const ORAL_BY_FROM_ALPHA = {
   1: 1,

@@ -9,6 +9,8 @@ import {
   getNormalizedOralGrade,
   getNormalizedOralWeekPointsArray,
   getOralTotalWeekPoints,
+  getOralWeekColumnLabel,
+  formatOralWeekPointDisplay,
   formatGrade,
   storedGradeStringToClassic,
   classicGradeToStoredString,
@@ -26,6 +28,10 @@ import {
   computeOralExtendedCalculatedGrade,
   roundOralNoteToQuarter,
 } from '../utils/calculator';
+import {
+  createOralWeekTabHandler,
+  oralWeekInputDataAttr,
+} from '../utils/oralWeekTabNavigation';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 
 const ORAL_WEEK_COL_CAP = 24;
@@ -67,7 +73,7 @@ function formatOralDeDecimal(v, fractionDigits) {
 }
 
 export default function OralView({ studentIdFilterSet = null }) {
-  const { orals, updateOral, removeOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, addOralWeekColumn, removeOralWeekColumn, students, addOral, config } = useData();
+  const { orals, updateOral, removeOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn, students, addOral, config } = useData();
   const { showConfirm } = useDialog();
 
   const displayStudents = useMemo(() => {
@@ -84,6 +90,10 @@ export default function OralView({ studentIdFilterSet = null }) {
   const [oralFormulaModalOpen, setOralFormulaModalOpen] = useState(false);
   const [tableMaximized, setTableMaximized] = useState(false);
   const [oralIndexTooltip, setOralIndexTooltip] = useState(null);
+  const [oralWeekLabelEditing, setOralWeekLabelEditing] = useState(null);
+  const [oralWeekLabelDraft, setOralWeekLabelDraft] = useState('');
+  const [oralWeekEditingKey, setOralWeekEditingKey] = useState(null);
+  const [oralWeekDraft, setOralWeekDraft] = useState('');
 
   /** Refs für manuelle „Note“-Felder — Tab springt direkt zur nächsten/vorherigen Zeile */
   const oralManualNoteRefs = useRef({});
@@ -116,6 +126,10 @@ export default function OralView({ studentIdFilterSet = null }) {
     setOralNoteDraft('');
     setTableMaximized(false);
     setOralIndexTooltip(null);
+    setOralWeekLabelEditing(null);
+    setOralWeekLabelDraft('');
+    setOralWeekEditingKey(null);
+    setOralWeekDraft('');
   }, [activeOral]);
 
   useEffect(() => {
@@ -558,13 +572,41 @@ export default function OralView({ studentIdFilterSet = null }) {
               {isExtendedMode && (
                 <>
                   {Array.from({ length: weekCount }, (_, wi) => {
-                    const dateStr = (record.weekDates || [])[wi];
-                    const label = dateStr
-                      ? new Date(dateStr + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
-                      : `Woche ${wi + 1}`;
+                    const label = getOralWeekColumnLabel(record.weekDates, wi);
                     return (
-                      <th key={wi} className="text-center" style={{ minWidth: '100px' }}>
-                        {label}
+                      <th key={wi} className="text-center" style={{ minWidth: '100px', verticalAlign: 'bottom' }}>
+                        <input
+                          type="text"
+                          className="oral-week-label-input"
+                          aria-label={`Bezeichnung Woche ${wi + 1}`}
+                          value={oralWeekLabelEditing === wi ? oralWeekLabelDraft : label}
+                          onFocus={() => {
+                            setOralWeekLabelEditing(wi);
+                            setOralWeekLabelDraft(label);
+                          }}
+                          onChange={(e) => {
+                            if (oralWeekLabelEditing !== wi) return;
+                            setOralWeekLabelDraft(e.target.value);
+                          }}
+                          onBlur={() => {
+                            if (oralWeekLabelEditing !== wi) return;
+                            updateOralWeekLabel(activeOral, wi, oralWeekLabelDraft.trim());
+                            setOralWeekLabelEditing(null);
+                            setOralWeekLabelDraft('');
+                          }}
+                          style={{
+                            width: '100%',
+                            minWidth: '4.5rem',
+                            maxWidth: '7.5rem',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            fontSize: 'inherit',
+                            padding: '0.2rem 0.35rem',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px',
+                            background: 'var(--surface)',
+                          }}
+                        />
                       </th>
                     );
                   })}
@@ -775,22 +817,60 @@ export default function OralView({ studentIdFilterSet = null }) {
                     </td>
                     {isExtendedMode && (
                       <>
-                        {weekPointsArr.map((wp, wi) => (
+                        {weekPointsArr.map((wp, wi) => {
+                          const weekEditKey = `${s.id}:${wi}`;
+                          const isWeekEditing = oralWeekEditingKey === weekEditKey;
+                          return (
                           <td key={wi} className="text-center" style={{ verticalAlign: 'middle' }}>
-                            <select
-                              value={wp}
-                              onChange={e => updateOralWeekPoints(activeOral, s.id, wi, e.target.value)}
-                              aria-label={`Woche ${wi + 1} Punkte`}
-                              style={{ padding: '0.35rem', borderRadius: '4px', border: '1px solid var(--border)', minWidth: '4.5rem' }}
-                            >
-                              {[2, 1, 0, -1, -2].map((v) => (
-                                <option key={v} value={v}>
-                                  {v > 0 ? `+${v}` : String(v)}
-                                </option>
-                              ))}
-                            </select>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              data-oral-week-input={oralWeekInputDataAttr(activeOral, s.id, wi)}
+                              aria-label={`${getOralWeekColumnLabel(record.weekDates, wi)}, ${s.lastName}, ${s.firstName}`}
+                              value={isWeekEditing ? oralWeekDraft : formatOralWeekPointDisplay(wp)}
+                              onFocus={() => {
+                                setOralWeekEditingKey(weekEditKey);
+                                setOralWeekDraft(String(wp));
+                              }}
+                              onChange={(e) => {
+                                if (!isWeekEditing) return;
+                                setOralWeekDraft(e.target.value);
+                              }}
+                              onKeyDown={createOralWeekTabHandler({
+                                oralId: activeOral,
+                                rowIndex: idx,
+                                weekIndex: wi,
+                                displayStudents,
+                              })}
+                              onBlur={() => {
+                                if (!isWeekEditing) return;
+                                const t = oralWeekDraft.trim().replace(/^\+/, '');
+                                if (t === '') {
+                                  updateOralWeekPoints(activeOral, s.id, wi, '0');
+                                } else {
+                                  const n = parseInt(t, 10);
+                                  if (Number.isFinite(n)) {
+                                    updateOralWeekPoints(activeOral, s.id, wi, String(n));
+                                  }
+                                }
+                                setOralWeekEditingKey(null);
+                                setOralWeekDraft('');
+                              }}
+                              style={{
+                                textAlign: 'center',
+                                width: '3.25rem',
+                                minWidth: '3.25rem',
+                                maxWidth: '100%',
+                                padding: '0.35rem 0.25rem',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border)',
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            />
                           </td>
-                        ))}
+                          );
+                        })}
                         <td
                           className="text-center oral-gesamt-col"
                           style={{
