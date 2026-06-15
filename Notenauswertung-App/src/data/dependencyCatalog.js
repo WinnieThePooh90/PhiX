@@ -44,10 +44,10 @@ const LICENSE = {
   'react-dom': 'MIT',
   'react-router-dom': 'MIT',
   xlsx: 'Apache-2.0',
-  'xlsx-js-style': 'MIT',
+  'xlsx-js-style': 'Apache-2.0',
   '@prisma/client': 'Apache-2.0',
   argon2: 'MIT',
-  bcryptjs: 'MIT',
+  bcryptjs: 'BSD-3-Clause',
   cors: 'MIT',
   dotenv: 'BSD-2-Clause',
   express: 'MIT',
@@ -111,5 +111,11 @@ export const LICENSE_EXPLANATIONS = [
     title: 'BSD 2-Clause „Simplified“',
     text:
       'Permissive Lizenz mit zwei zentralen Klauseln: Namensnennung der Urheber und Haftungs-/Gewährleistungsausschluss. Nutzung in Open-Source und kommerziellen Projekten ist üblich.',
+  },
+  {
+    id: 'BSD-3-Clause',
+    title: 'BSD 3-Clause',
+    text:
+      'Permissive Lizenz mit drei zentralen Klauseln: Namensnennung der Urheber, Verbot der Namensnennung zur Werbung ohne Erlaubnis, sowie Haftungs-/Gewährleistungsausschluss. Nutzung in Open-Source und kommerziellen Projekten ist üblich.',
   },
 ];

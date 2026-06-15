@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getDependencySections, LICENSE_EXPLANATIONS } from '../data/dependencyCatalog';
-import { getLicenseFullText } from '../data/dependencyLicenseTexts';
+import { getPackageLicenseText } from '../data/dependencyPackageLicenses';
 
 function sectionSlug(title) {
   return String(title)
@@ -53,16 +53,16 @@ function LicenseTextModal({ modal, onClose }) {
 }
 
 function buildLicenseModalContent(row) {
-  const full = getLicenseFullText(row.license);
-  if (full) {
+  const text = getPackageLicenseText(row.name);
+  if (text) {
     return {
       title: `Lizenz — ${row.name} (${row.license})`,
-      text: full,
+      text,
     };
   }
   return {
     title: `Lizenz — ${row.name}`,
-    text: `Für „${row.name}“ ist in dieser Übersicht keine Standard-Lizenz hinterlegt (${row.license}).\n\nBitte den vollständigen Lizenztext im npm-Paket oder unter node_modules/${row.name}/LICENSE nachlesen.`,
+    text: `Für „${row.name}“ ist kein Lizenztext hinterlegt (${row.license}).\n\nBitte den vollständigen Lizenztext im npm-Paket oder unter node_modules/${row.name}/LICENSE nachlesen.`,
   };
 }
 
@@ -120,16 +120,30 @@ export default function DependenciesView() {
   const sections = useMemo(() => getDependencySections(), []);
   const [licenseModal, setLicenseModal] = useState(null);
 
-  const usedLicenses = useMemo(() => {
-    const all = [
+  const allRows = useMemo(
+    () => [
       ...sections.frontendRuntime,
       ...sections.frontendDev,
       ...sections.backendRuntime,
       ...sections.backendDev,
-    ];
-    const set = new Set(all.map((r) => r.license.trim()));
+    ],
+    [sections],
+  );
+
+  const usedLicenses = useMemo(() => {
+    const set = new Set(allRows.map((r) => r.license.trim()));
     return LICENSE_EXPLANATIONS.filter((ex) => set.has(ex.id));
-  }, [sections]);
+  }, [allRows]);
+
+  const examplePackageForLicense = useMemo(() => {
+    const map = new Map();
+    for (const row of allRows) {
+      if (!map.has(row.license) && getPackageLicenseText(row.name)) {
+        map.set(row.license, row.name);
+      }
+    }
+    return map;
+  }, [allRows]);
 
   return (
     <div className="view-generic-scroll program-view">
@@ -178,19 +192,22 @@ export default function DependenciesView() {
               <article key={block.id} className="app-info-license-block">
                 <h5 className="app-info-license-title">{block.title}</h5>
                 <p className="app-info-license-text">{block.text}</p>
-                {getLicenseFullText(block.id) ? (
+                {getPackageLicenseText(examplePackageForLicense.get(block.id)) ? (
                   <button
                     type="button"
                     className="tab secondary dependency-license-btn"
                     style={{ marginTop: '0.5rem' }}
-                    onClick={() =>
+                    onClick={() => {
+                      const pkg = examplePackageForLicense.get(block.id);
+                      const text = getPackageLicenseText(pkg);
+                      if (!text) return;
                       setLicenseModal({
-                        title: `Lizenztext — ${block.title}`,
-                        text: getLicenseFullText(block.id),
-                      })
-                    }
+                        title: `Lizenztext — ${block.title} (Beispiel: ${pkg})`,
+                        text,
+                      });
+                    }}
                   >
-                    Lizenztext
+                    Lizenztext (Beispiel)
                   </button>
                 ) : null}
               </article>

@@ -1,10 +1,11 @@
 {
   "name": "phix-app",
   "private": true,
-  "version": "193.0.0",
+  "version": "194.0.0",
   "type": "module",
   "scripts": {
     "sync-version": "node scripts/sync-app-version.mjs",
+    "extract-dependency-licenses": "node scripts/extract-dependency-licenses.mjs",
     "prebuild": "npm run sync-version",
     "dev": "vite",
     "build": "vite build",
