@@ -1,4 +1,6 @@
 import {
+  computeExamClassAverage,
+  formatExamClassAverageDisplay,
   formatGrade,
   getExamDisplayFieldCount,
   getExamGradeForStudent,
@@ -13,13 +15,33 @@ function studentNameCell(s) {
 }
 
 /**
- * Klausur-Tabelle (Standardansicht) als AOA — zwei Kopfzeilen wie in ExamsView.
- * @returns {(string|number)[][]}
+ * Excel-Layout: breite NAME-Spalte, Zahlen zentriert.
+ * @param {number} displayFieldCount
  */
-export function buildExamTableExportAoa({ exam, examId, students, config }) {
+export function buildExamTableExportLayout(displayFieldCount) {
+  const colCount = 4 + displayFieldCount;
+  const centerColumnIndexes = [0];
+  for (let i = 2; i < colCount; i += 1) centerColumnIndexes.push(i);
+  const colWidths = Array.from({ length: colCount }, () => 10);
+  colWidths[0] = 6;
+  colWidths[1] = 32;
+  if (colCount >= 2) colWidths[colCount - 2] = 14;
+  if (colCount >= 1) colWidths[colCount - 1] = 12;
+  for (let i = 2; i < colCount - 2; i += 1) colWidths[i] = 8;
+  return { colWidths, centerColumnIndexes, nameColumnIndex: 1 };
+}
+
+/**
+ * Klausur-Tabelle (Standardansicht) als AOA — zwei Kopfzeilen wie in ExamsView.
+ * @returns {{ aoa: (string|number)[][], layout: ReturnType<typeof buildExamTableExportLayout> }}
+ */
+export function buildExamTableExport({ exam, examId, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const displayFieldCount = getExamDisplayFieldCount(exam, students);
+  const classAverage = computeExamClassAverage(exam, students, customGradingKeys);
+  const avgDisplay = formatExamClassAverageDisplay(classAverage, gradeSys);
+  const noteMaxCell = avgDisplay ? `Ø\n${avgDisplay}` : 'Ø';
 
   const header1 = [
     '#',
@@ -37,7 +59,7 @@ export function buildExamTableExportAoa({ exam, examId, students, config }) {
       return v !== undefined && v !== null && v !== '' ? v : '';
     }),
     exam?.maxPoints ?? '',
-    '',
+    noteMaxCell,
   ];
 
   const dataRows = (students ?? []).map((s, idx) => {
@@ -62,7 +84,15 @@ export function buildExamTableExportAoa({ exam, examId, students, config }) {
     return [s.studentNumber ?? idx + 1, studentNameCell(s), ...taskCells, gesamt, note];
   });
 
-  return [header1, maxRow, ...dataRows];
+  return {
+    aoa: [header1, maxRow, ...dataRows],
+    layout: buildExamTableExportLayout(displayFieldCount),
+  };
+}
+
+/** @deprecated Nutze buildExamTableExport — liefert nur AOA für Abwärtskompatibilität. */
+export function buildExamTableExportAoa(params) {
+  return buildExamTableExport(params).aoa;
 }
 
 export function examExportSheetName(examId) {

@@ -36,6 +36,18 @@ function getCryptoSession(token) {
   return row;
 }
 
+/** Prüft Gültigkeit ohne TTL zu verlängern (Heartbeat / Status-Endpoint). */
+function peekCryptoSession(token) {
+  if (!token) return null;
+  const row = sessions.get(String(token));
+  if (!row) return null;
+  if (Date.now() > row.expiresAt) {
+    sessions.delete(String(token));
+    return null;
+  }
+  return row;
+}
+
 function updateSessionTtl(token, ttlMs) {
   if (!token) return;
   const row = sessions.get(String(token));
@@ -59,6 +71,7 @@ module.exports = {
   DEFAULT_TTL_MS,
   createCryptoSession,
   getCryptoSession,
+  peekCryptoSession,
   updateSessionTtl,
   destroyCryptoSession,
   destroySessionsForUser,

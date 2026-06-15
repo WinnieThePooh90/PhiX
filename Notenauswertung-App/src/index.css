@@ -606,6 +606,50 @@ p {
   margin-top: 0.75rem;
 }
 
+.export-section__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.export-section__title {
+  margin: 0;
+}
+
+.export-section__chevron {
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: transform 0.2s ease;
+}
+
+.export-section--open .export-section__chevron {
+  transform: rotate(180deg);
+}
+
+.export-section__body {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.export-section__body .export-item-list {
+  margin-top: 0.75rem;
+}
+
+.export-section__body > .export-item-row:first-of-type,
+.export-section__body > .export-format-btn:first-child {
+  margin-top: 0.75rem;
+}
+
 .export-item-btn {
   display: inline-flex;
   align-items: flex-start;

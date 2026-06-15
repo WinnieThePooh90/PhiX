@@ -1,5 +1,5 @@
 import { buildSummaryOverviewExportData } from './summaryOverviewExport';
-import { buildExamTableExportAoa, examExportSheetName } from './examTableExport';
+import { buildExamTableExport, examExportSheetName } from './examTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from './testTableExport';
 import { buildOralStandardTableExportData, oralExportSheetName } from './oralTableExport';
 import { buildGfsTableExportData, gfsExportSheetName } from './gfsTableExport';
@@ -44,7 +44,7 @@ export function buildCourseFullExportSheets({
     if (!exam) continue;
     sheets.push({
       name: examExportSheetName(id),
-      aoa: buildExamTableExportAoa({ exam, examId: id, students, config }),
+      ...buildExamTableExport({ exam, examId: id, students, config }),
     });
   }
 

@@ -7,7 +7,7 @@ import {
   clearCryptoSessionToken,
   applyCryptoHeader,
 } from '../utils/cryptoSession';
-import { INACTIVITY_LOGOUT_MS } from '../config/session';
+import { INACTIVITY_LOGOUT_MS, SESSION_HEARTBEAT_MS } from '../config/session';
 import { applyUserSettings, getUserSettingsFromStorage, clearUserSettings } from '../utils/userSettings';
 import {
   readPendingRecoverySetup,
@@ -320,6 +320,57 @@ export const AuthProvider = ({ children }) => {
       window.removeEventListener('phix-settings-changed', onSettingsChanged);
     };
   }, [currentUser?.username, pendingCryptoSetup, pendingRecoveryConfirm, logout]);
+
+  /** Regelmäßige Sitzungsprüfung – erkennt abgelaufene Krypto-Session ohne Browser-Reload. */
+  useEffect(() => {
+    if (!currentUser?.username || pendingCryptoSetup || pendingRecoveryConfirm) return undefined;
+
+    let cancelled = false;
+
+    const verifySession = async () => {
+      const username = currentUser.username;
+      try {
+        const sessionRes = await apiFetch('/api/auth/session', { headers: authHeaders(username) });
+        if (cancelled) return;
+        if (!sessionRes.ok) {
+          void logout();
+          return;
+        }
+        const statusRes = await apiFetch('/api/auth/crypto/status', {
+          headers: authHeaders(username),
+        });
+        if (cancelled) return;
+        const statusBody = await statusRes.json().catch(() => ({}));
+        if (!cancelled) {
+          applyCryptoGateFromStatus(username, statusRes, statusBody);
+        }
+      } catch {
+        /* Netzwerkfehler: keine erzwungene Abmeldung */
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void verifySession();
+      }
+    };
+
+    void verifySession();
+    const intervalId = setInterval(() => void verifySession(), SESSION_HEARTBEAT_MS);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [
+    currentUser?.username,
+    pendingCryptoSetup,
+    pendingRecoveryConfirm,
+    applyCryptoGateFromStatus,
+    logout,
+  ]);
 
   const completeCryptoSetup = useCallback(() => {
     const pending = readPendingRecoverySetup();

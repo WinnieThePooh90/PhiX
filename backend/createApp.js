@@ -16,7 +16,7 @@ const {
   backupFilenameFromPayload,
   resolveStoredUsername,
 } = require('./lib/phix-backup');
-const { createCryptoSession, destroyCryptoSession, getCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
+const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
 const { getDekFromContext } = require('./lib/crypto-context');
@@ -247,7 +247,7 @@ app.get('/api/auth/crypto/status', async (req, res) => {
   }
 
   const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
-  const session = getCryptoSession(token);
+  const session = peekCryptoSession(token);
   if (!session || session.userId !== user.id) {
     return res.status(423).json({
       ok: false,

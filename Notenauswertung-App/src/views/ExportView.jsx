@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FileSpreadsheet, FileText } from 'lucide-react';
+import { ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { buildSummaryOverviewExportData } from '../utils/summaryOverviewExport';
 import {
@@ -10,7 +10,7 @@ import {
   testExportFilename,
 } from '../utils/exportFilenames';
 import { buildCourseFullExportSheets } from '../utils/courseFullExport';
-import { buildExamTableExportAoa, examExportSheetName } from '../utils/examTableExport';
+import { buildExamTableExport, examExportSheetName } from '../utils/examTableExport';
 import { buildOralStandardTableExportData, oralExportSheetName } from '../utils/oralTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
@@ -19,6 +19,35 @@ import { downloadAoaPdf, downloadMultiSectionPdf, downloadSheetDataPdf } from '.
 function courseLabel(course) {
   if (!course) return '';
   return [course.subject, course.className, course.year].filter(Boolean).join(' · ');
+}
+
+function ExportSection({ sectionId, title, expanded, onToggle, className = '', children }) {
+  const headingId = `export-${sectionId}-heading`;
+  const contentId = `export-${sectionId}-content`;
+
+  return (
+    <section
+      className={`program-view-panel glass-panel export-section${expanded ? ' export-section--open' : ''}${className ? ` ${className}` : ''}`}
+      aria-labelledby={headingId}
+    >
+      <button
+        type="button"
+        className="export-section__toggle"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        id={headingId}
+      >
+        <h4 className="program-view-panel-heading export-section__title">{title}</h4>
+        <ChevronDown size={18} strokeWidth={2.25} className="export-section__chevron" aria-hidden />
+      </button>
+      {expanded ? (
+        <div id={contentId} className="export-section__body" role="region" aria-labelledby={headingId}>
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, onExcel, onPdf }) {
@@ -63,6 +92,18 @@ export default function ExportView() {
   const [busyKey, setBusyKey] = useState(null);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
+  const [expandedSections, setExpandedSections] = useState(() => new Set());
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const isSectionOpen = (sectionId) => expandedSections.has(sectionId);
 
   const courseTitle = useMemo(() => courseLabel(config), [config]);
 
@@ -145,13 +186,13 @@ export default function ExportView() {
     runExport(`exam-${examId}-${format}`, async () => {
       const exam = exams[examId];
       if (!exam) throw new Error('missing exam');
-      const aoa = buildExamTableExportAoa({ exam, examId, students, config });
+      const { aoa, layout } = buildExamTableExport({ exam, examId, students, config });
       const sheetName = examExportSheetName(examId);
       const filename = examExportFilename(config, examId, format);
       if (format === 'pdf') {
         downloadAoaPdf(aoa, sheetName, filename);
       } else {
-        downloadAoaXlsx(aoa, sheetName, filename);
+        downloadAoaXlsx(aoa, sheetName, filename, layout);
       }
       return filename;
     });
@@ -205,14 +246,14 @@ export default function ExportView() {
       </p>
 
       <div className="program-view-stack">
-        <section
-          className="program-view-panel glass-panel export-course-full-panel"
-          aria-labelledby="export-course-full-heading"
+        <ExportSection
+          sectionId="course-full"
+          title="Gesamter Kurs"
+          expanded={isSectionOpen('course-full')}
+          onToggle={() => toggleSection('course-full')}
+          className="export-course-full-panel"
         >
-          <h4 id="export-course-full-heading" className="program-view-panel-heading">
-            Gesamter Kurs
-          </h4>
-          <p className="program-view-panel-text text-muted">
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Alle Tabellen des aktuellen Kurses: <strong>Übersicht</strong>, alle <strong>Klausuren</strong>{' '}
             und <strong>Tests</strong>, mündliche Bereiche im <strong>Standardmodus</strong> (ohne Erweitert)
             sowie <strong>GFS</strong>. Excel: ein Tabellenblatt pro Bereich; PDF: je Bereich eine Seite.
@@ -237,13 +278,15 @@ export default function ExportView() {
               {busyKey === 'course-full-pdf' ? 'Export …' : 'Gesamten Kurs als PDF'}
             </button>
           </div>
-        </section>
+        </ExportSection>
 
-        <section className="program-view-panel glass-panel" aria-labelledby="export-summary-heading">
-          <h4 id="export-summary-heading" className="program-view-panel-heading">
-            Übersicht (Gesamtübersicht)
-          </h4>
-          <p className="program-view-panel-text text-muted">
+        <ExportSection
+          sectionId="summary"
+          title="Übersicht (Gesamtübersicht)"
+          expanded={isSectionOpen('summary')}
+          onToggle={() => toggleSection('summary')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Tabelle aus dem Reiter <strong>Übersicht</strong> (Schriftlich, Mündlich, Tests, Endnoten).
           </p>
           <ExportFormatButtons
@@ -254,18 +297,22 @@ export default function ExportView() {
             onExcel={() => exportSummary('xlsx')}
             onPdf={() => exportSummary('pdf')}
           />
-        </section>
+        </ExportSection>
 
-        <section className="program-view-panel glass-panel" aria-labelledby="export-exams-heading">
-          <h4 id="export-exams-heading" className="program-view-panel-heading">
-            Klausuren
-          </h4>
-          <p className="program-view-panel-text text-muted">
+        <ExportSection
+          sectionId="exams"
+          title="Klausuren"
+          expanded={isSectionOpen('exams')}
+          onToggle={() => toggleSection('exams')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Je Klausur eine Datei mit der Standardtabelle (#, Name, Aufgaben, Gesamt, Note) inkl.
             Maximalpunkte-Zeile.
           </p>
           {examNumbers.length === 0 ? (
-            <p className="program-view-panel-text text-muted">Keine Klausuren angelegt.</p>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
+              Keine Klausuren angelegt.
+            </p>
           ) : (
             <div className="export-item-list">
               {examNumbers.map((id) => {
@@ -292,17 +339,21 @@ export default function ExportView() {
               })}
             </div>
           )}
-        </section>
+        </ExportSection>
 
-        <section className="program-view-panel glass-panel" aria-labelledby="export-tests-heading">
-          <h4 id="export-tests-heading" className="program-view-panel-heading">
-            Tests
-          </h4>
-          <p className="program-view-panel-text text-muted">
+        <ExportSection
+          sectionId="tests"
+          title="Tests"
+          expanded={isSectionOpen('tests')}
+          onToggle={() => toggleSection('tests')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Je Test eine Datei (#, Name, Punkte, Gesamt, Note) inkl. Maximalpunkte-Zeile.
           </p>
           {testNumbers.length === 0 ? (
-            <p className="program-view-panel-text text-muted">Keine Tests angelegt.</p>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
+              Keine Tests angelegt.
+            </p>
           ) : (
             <div className="export-item-list">
               {testNumbers.map((id) => {
@@ -328,18 +379,22 @@ export default function ExportView() {
               })}
             </div>
           )}
-        </section>
+        </ExportSection>
 
-        <section className="program-view-panel glass-panel" aria-labelledby="export-oral-heading">
-          <h4 id="export-oral-heading" className="program-view-panel-heading">
-            Mündliche Noten
-          </h4>
-          <p className="program-view-panel-text text-muted">
+        <ExportSection
+          sectionId="oral"
+          title="Mündliche Noten"
+          expanded={isSectionOpen('oral')}
+          onToggle={() => toggleSection('oral')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Nur die <strong>Standardtabelle</strong> (#, Name, Note) — Bereiche im Modus „Erweitert“
             sind hier nicht enthalten.
           </p>
           {oralNumbers.length === 0 ? (
-            <p className="program-view-panel-text text-muted">Keine mündlichen Bereiche angelegt.</p>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
+              Keine mündlichen Bereiche angelegt.
+            </p>
           ) : (
             <div className="export-item-list">
               {oralNumbers.map((id) => {
@@ -369,7 +424,7 @@ export default function ExportView() {
               })}
             </div>
           )}
-        </section>
+        </ExportSection>
 
         {err ? (
           <p className="backup-feedback backup-feedback--error" role="alert">

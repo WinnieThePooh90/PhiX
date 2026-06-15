@@ -26,5 +26,10 @@ export function apiUrl(path) {
  * @param {RequestInit} [init]
  */
 export function apiFetch(path, init) {
-  return fetch(apiUrl(path), init);
+  return fetch(apiUrl(path), init).then((res) => {
+    if (res.status === 423) {
+      void import('./apiAuth.js').then(({ checkCryptoApiResponse }) => checkCryptoApiResponse(res));
+    }
+    return res;
+  });
 }

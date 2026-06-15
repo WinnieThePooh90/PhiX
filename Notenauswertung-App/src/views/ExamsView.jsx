@@ -21,6 +21,8 @@ import {
   getStudentExamMaxPointsForGrade,
   getExamGradeForStudent,
   getExamDisplayFieldCount,
+  computeExamClassAverage,
+  formatExamClassAverageDisplay,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
@@ -231,22 +233,10 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
 
-  const examClassAverage = useMemo(() => {
-    let sum = 0;
-    let count = 0;
-    displayStudents.forEach((s) => {
-      const rawSc = exam.scores?.[s.id];
-      const effN = getStudentEffectiveExamFieldCount(exam, s.id);
-      const { counted } = getNormalizedExamScore(rawSc, effN);
-      if (!counted) return;
-      const grade = getExamGradeForStudent(exam, s.id, customKeysList);
-      if (grade !== null && Number.isFinite(grade)) {
-        sum += grade;
-        count += 1;
-      }
-    });
-    return count > 0 ? Math.round((sum / count) * 100) / 100 : null;
-  }, [displayStudents, exam, customKeysList]);
+  const examClassAverage = useMemo(
+    () => computeExamClassAverage(exam, displayStudents, customKeysList),
+    [displayStudents, exam, customKeysList],
+  );
 
   const handleScoreChange = (studentId, fieldIndex, value) => {
     updateExamScore(activeKlausur, studentId, fieldIndex, value);
@@ -486,9 +476,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                             color: isGradeWorseThan4(examClassAverage) ? 'var(--danger)' : 'var(--foreground)',
                           }}
                         >
-                          {gradeSys === 'points'
-                            ? formatGrade(examClassAverage, gradeSys)
-                            : examClassAverage.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatExamClassAverageDisplay(examClassAverage, gradeSys)}
                         </div>
                       )}
                     </th>

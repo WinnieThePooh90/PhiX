@@ -197,6 +197,32 @@ export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
+/** Klassenschnitt einer Klausur (nur zählende Schüler mit gültiger Note). */
+export const computeExamClassAverage = (exam, students, customGradingKeys = null) => {
+  let sum = 0;
+  let count = 0;
+  for (const s of students ?? []) {
+    const rawSc = exam?.scores?.[s.id];
+    const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+    const { counted } = getNormalizedExamScore(rawSc, effN);
+    if (!counted) continue;
+    const grade = getExamGradeForStudent(exam, s.id, customGradingKeys);
+    if (grade !== null && Number.isFinite(grade)) {
+      sum += grade;
+      count += 1;
+    }
+  }
+  return count > 0 ? Math.round((sum / count) * 100) / 100 : null;
+};
+
+/** Anzeige des Klausur-Klassenschnitts (wie in ExamsView unter NOTE). */
+export const formatExamClassAverageDisplay = (average, gradeSystem = 'classic') => {
+  if (average === null || average === undefined) return '';
+  const gradeSys = normalizeCourseGradeSystem(gradeSystem);
+  if (gradeSys === 'points') return formatGrade(average, gradeSys);
+  return average.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export const getNormalizedOralGrade = (gradeData) => {
   if (gradeData === undefined || gradeData === null || gradeData === '') return { value: '', counted: true };
   if (typeof gradeData === 'object') {
