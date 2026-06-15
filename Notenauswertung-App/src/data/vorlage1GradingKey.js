@@ -1,72 +1,35 @@
 /**
- * Notenschlüssel „Vorlage 1“:
- * Linke Punktgrenze je Note g (1,0 … 6,0 in 0,25er-Schritten):
- *   RUNDEN(2 · (−0,15·g + 1,05) · MAX) / 2  (RUNDEN = auf 0,5er-Punkte)
- * Rechte Grenze: bei 1,0 = MAX; sonst linke Grenze der vorigen Note − 0,5.
+ * Notenschlüssel-Vorlage „Vorlage 1“ (= eingebauter Schlüssel 1, K = 1,05).
  */
 
-export const VORLAGE_1_GRADES = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
+import {
+  FORMULA_QUARTER_GRADES,
+  buildFormulaBands,
+  buildFormulaPointIntervals,
+  formatFormulaInterceptDe,
+  formulaLeftBoundary,
+  getFormulaKeyDesc,
+  gradeFromFormulaPoints,
+  roundPointsHalfStep,
+} from './formulaGradingKey';
 
-/** RUNDEN auf 0,5er-Punkte für erreichte Punktzahl: ROUND(2·x)/2 */
-export function roundPointsHalfStep(x) {
-  const n = Number(x);
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 2) / 2;
-}
+const VORLAGE_1_INTERCEPT = 1.05;
 
-/**
- * Linke Punktgrenze für Note g.
- * Formel: RUNDEN(2·(−0,15·g+1,05)·max) / 2 — RUNDEN = auf ganze Zahl, Ergebnis in 0,5er-Schritten.
- */
+export const VORLAGE_1_GRADES = FORMULA_QUARTER_GRADES;
+
+export { roundPointsHalfStep };
+
 export function vorlage1LeftBoundary(grade, maxPoints) {
-  const g = Number(grade);
-  const max = Number(maxPoints);
-  if (!Number.isFinite(g) || !Number.isFinite(max) || max <= 0) return null;
-  const inner = 2 * (-0.15 * g + 1.05) * max;
-  return Math.round(inner) / 2;
+  return formulaLeftBoundary(grade, maxPoints, VORLAGE_1_INTERCEPT);
 }
 
-/**
- * Punktintervalle je Note (pktLo … pktHi, inkl.).
- * @returns {{ g: number, pktLo: number, pktHi: number }[]}
- */
-export function buildVorlage1PointIntervals(maxPoints) {
-  const max = Number(maxPoints);
-  if (!Number.isFinite(max) || max <= 0) return [];
+export const buildVorlage1PointIntervals = (maxPoints) =>
+  buildFormulaPointIntervals(maxPoints, VORLAGE_1_INTERCEPT);
 
-  return VORLAGE_1_GRADES.map((g, index) => {
-    const pktLo = vorlage1LeftBoundary(g, max);
-    const pktHi = index === 0 ? max : vorlage1LeftBoundary(VORLAGE_1_GRADES[index - 1], max) - 0.5;
-    return {
-      g,
-      pktLo: Math.min(pktLo, pktHi),
-      pktHi: Math.max(pktLo, pktHi),
-    };
-  });
-}
+export const buildVorlage1Bands = (maxPoints) => buildFormulaBands(maxPoints, VORLAGE_1_INTERCEPT);
 
-/** Prozent-Bänder für gradeFromPercentBands / Diagramme. */
-export function buildVorlage1Bands(maxPoints) {
-  return buildVorlage1PointIntervals(maxPoints).map(({ g, pktLo, pktHi }) => ({
-    g,
-    lo: (pktLo / maxPoints) * 100,
-    hi: (pktHi / maxPoints) * 100,
-  }));
-}
-
-/** Note aus erreichten Punkten (Raster 0,5). */
-export function gradeFromVorlage1Points(points, maxPoints) {
-  const p = Number(points);
-  const max = Number(maxPoints);
-  if (!Number.isFinite(p)) return null;
-  if (max <= 0) return Number.isFinite(p) ? 6.0 : null;
-  const pts = roundPointsHalfStep(Math.min(max, Math.max(0, p)));
-  const intervals = buildVorlage1PointIntervals(max);
-  for (const { g, pktLo, pktHi } of intervals) {
-    if (pts >= pktLo - 1e-9 && pts <= pktHi + 1e-9) return g;
-  }
-  return 6.0;
-}
+export const gradeFromVorlage1Points = (points, maxPoints) =>
+  gradeFromFormulaPoints(points, maxPoints, VORLAGE_1_INTERCEPT);
 
 export const VORLAGE_1_KEY = {
   id: 'vorlage-1',
@@ -76,14 +39,12 @@ export const VORLAGE_1_KEY = {
   bands: [],
 };
 
-export const VORLAGE_1_DESC =
-  'Formel: linke Grenze = RUNDEN(2·(−0,15·Note+1,05)·Max)/2 (0,5er-Punkte); rechte Grenze bei 1,0 = Max, sonst vorige linke Grenze − 0,5.';
+export const VORLAGE_1_DESC = getFormulaKeyDesc('1');
 
 export function isVorlage1KeyFamilyId(id) {
   return typeof id === 'string' && (id === VORLAGE_1_KEY.id || id.startsWith(`${VORLAGE_1_KEY.id}~`));
 }
 
-/** Nächste freie id/name für eine weitere Vorlage „Vorlage 1“ im Kurs. */
 export function nextVorlage1TemplateCloneIdentity(existingKeys) {
   const baseId = VORLAGE_1_KEY.id;
   const baseName = VORLAGE_1_KEY.name;
@@ -109,3 +70,5 @@ export function nextVorlage1TemplateCloneIdentity(existingKeys) {
     n += 1;
   }
 }
+
+export { formatFormulaInterceptDe };

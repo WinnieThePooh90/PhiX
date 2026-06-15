@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
+import { buildVorlage1Bands, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
+import { getFormulaKeyDesc, isFormulaGradingKeyType } from '../data/formulaGradingKey';
 import {
   formatGrade,
   isGradeWorseThan4,
@@ -295,9 +297,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   <option value="1">Schlüssel 1</option>
                   <option value="2">Schlüssel 2</option>
                   <option value="3">Schlüssel 3</option>
-                  <option value="4">Schlüssel 4 (Plateaus)</option>
-                  <option value="5">Schlüssel 5 (Plateaus)</option>
-                  <option value="6">Schlüssel 6 (Plateaus)</option>
+                  <option value="4">Schlüssel 4</option>
+                  <option value="5">Schlüssel 5</option>
+                  <option value="6">Schlüssel 6</option>
                   <option value="abi">ABI BaWü 2026 120 BE</option>
                   {customKeysList.map((k) => (
                     <option key={k.id} value={`custom:${k.id}`}>
@@ -796,15 +798,21 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 title="Aktueller Schlüssel"
                 desc={
                   sidebarCustomDef
-                    ? sidebarCustomDef.name
+                    ? (isVorlage1KeyFamilyId(sidebarCustomDef.id)
+                        ? getFormulaKeyDesc('1')
+                        : sidebarCustomDef.name)
                     : test.keyType === 'abi'
                       ? 'ABI BaWü 2026 120 BE'
-                      : ['4', '5', '6'].includes(test.keyType || '')
-                        ? `Schlüssel ${test.keyType || '1'} (Plateaus)`
+                      : isFormulaGradingKeyType(test.keyType)
+                        ? getFormulaKeyDesc(test.keyType)
                         : `Schlüssel ${test.keyType || '1'}`
                 }
                 customBands={
-                  sidebarCustomDef?.bands ?? (test.keyType === 'abi' ? ABI_BAWUE_2026_120_BE_KEY.bands : undefined)
+                  sidebarCustomDef
+                    ? (isVorlage1KeyFamilyId(sidebarCustomDef.id)
+                        ? buildVorlage1Bands(maxPtsDisplay)
+                        : sidebarCustomDef.bands)
+                    : (test.keyType === 'abi' ? ABI_BAWUE_2026_120_BE_KEY.bands : undefined)
                 }
                 pktIntegerDisplay={
                   !!sidebarCustomDef?.pktIntegerDisplay ||

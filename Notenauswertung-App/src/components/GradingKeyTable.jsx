@@ -8,6 +8,7 @@ import {
   displayPointIntervalsHalfSteps,
   normalizeQuarterGrade,
 } from '../utils/calculator';
+import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradingKey';
 
 function formatPointsHalfStepDisplay(n) {
   const x = Number(n);
@@ -29,11 +30,14 @@ export default function GradingKeyTable({
   const t = useMemo(() => resolveGradingThresholds(type, thresholdsOverride), [type, thresholdsOverride]);
   const max = parseFloat(maxPoints) || 0;
 
+  const formulaIntercept = getFormulaKeyIntercept(type);
+
   const effectiveBands = useMemo(() => {
     if (customBands?.length) return customBands;
+    if (formulaIntercept != null && max > 0) return buildFormulaBands(max, formulaIntercept);
     if (type === 'abi') return ABI_BAWUE_2026_120_BE_KEY.bands;
     return null;
-  }, [customBands, type]);
+  }, [customBands, type, formulaIntercept, max]);
 
   const pktInt = pktIntegerDisplay || type === 'abi';
 

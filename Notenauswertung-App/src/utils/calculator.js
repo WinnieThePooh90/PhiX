@@ -4,6 +4,7 @@
  */
 
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
+import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
 import { gradeFromVorlage1Points, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
 
 const EXAM_SCORE_META_KEYS = new Set([
@@ -483,36 +484,12 @@ export const getNormalizedTestScore = (scoreData) => {
   return { value: scoreData, counted: true };
 };
 
-// Notenschlüssel Parameter: Note 1, 2 und 4 Grenzen in Prozent
+// Notenschlüssel Parameter: Schlüssel 1–3 = Formel; 4–6 = frühere lineare Schlüssel 1–3
 export const getThresholds = (type) => {
   switch (type) {
-    case '1': return { percent1: 95, percent2: 75, percent4: 45 };
-    case '2': return { percent1: 95, percent2: 77, percent4: 47 };
-    case '3': return { percent1: 95, percent2: 80, percent4: 50 };
-    case '4':
-      return {
-        goodPlateauMin: 90,
-        badPlateauMax: 14,
-        percent1: 90,
-        percent2: 74,
-        percent4: 42,
-      };
-    case '5':
-      return {
-        goodPlateauMin: 88,
-        badPlateauMax: 18,
-        percent1: 88,
-        percent2: 76,
-        percent4: 44,
-      };
-    case '6':
-      return {
-        goodPlateauMin: 85,
-        badPlateauMax: 22,
-        percent1: 85,
-        percent2: 78,
-        percent4: 46,
-      };
+    case '4': return { percent1: 95, percent2: 75, percent4: 45 };
+    case '5': return { percent1: 95, percent2: 77, percent4: 47 };
+    case '6': return { percent1: 95, percent2: 80, percent4: 50 };
     case 'abi':
       return { percent1: 95, percent2: 75, percent4: 45 };
     default: return { percent1: 95, percent2: 75, percent4: 45 };
@@ -718,6 +695,11 @@ export const calculateGradeFromThresholds = (points, maxPoints, type, overrideTh
 
   if (customKey && isVorlage1KeyFamilyId(customKey.id)) {
     return gradeFromVorlage1Points(p, max);
+  }
+
+  const formulaIntercept = getFormulaKeyIntercept(type);
+  if (formulaIntercept != null && !customKey?.bands?.length) {
+    return gradeFromFormulaPoints(p, max, formulaIntercept);
   }
 
   if (typeof type === 'string' && type.startsWith(CUSTOM_KEY_PREFIX) && (!customKey || !customKey.bands?.length)) {

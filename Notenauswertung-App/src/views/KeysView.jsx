@@ -21,6 +21,7 @@ import {
   nextVorlage1TemplateCloneIdentity,
   isVorlage1KeyFamilyId,
 } from '../data/vorlage1GradingKey';
+import { getFormulaKeyDesc } from '../data/formulaGradingKey';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { useDialog } from '../components/PhixDialog';
 
@@ -121,12 +122,12 @@ export default function KeysView() {
   };
 
   const keys = [
-    { title: 'Notenschlüssel 1', type: '1', desc: 'Note 2 ab 75% | Note 4 ab 45%' },
-    { title: 'Notenschlüssel 2', type: '2', desc: 'Note 2 ab 77% | Note 4 ab 47%' },
-    { title: 'Notenschlüssel 3', type: '3', desc: 'Note 2 ab 80% | Note 4 ab 50%' },
-    { title: 'Notenschlüssel 4', type: '4', desc: 'Note 1,0 von 90–100 %; Note 6,0 von 0–14 %; dazwischen gleiche Stufenlogik wie 1–3' },
-    { title: 'Notenschlüssel 5', type: '5', desc: 'Weitere Plateaus (88% / 18%); Mittelbereich etwas milder' },
-    { title: 'Notenschlüssel 6', type: '6', desc: 'Breiteste Plateaus (85% / 22%); Mittelbereich nochmals angepasst' },
+    { title: 'Notenschlüssel 1', type: '1', desc: getFormulaKeyDesc('1') },
+    { title: 'Notenschlüssel 2', type: '2', desc: getFormulaKeyDesc('2') },
+    { title: 'Notenschlüssel 3', type: '3', desc: getFormulaKeyDesc('3') },
+    { title: 'Notenschlüssel 4', type: '4', desc: 'Note 2 ab 75% | Note 4 ab 45%' },
+    { title: 'Notenschlüssel 5', type: '5', desc: 'Note 2 ab 77% | Note 4 ab 47%' },
+    { title: 'Notenschlüssel 6', type: '6', desc: 'Note 2 ab 80% | Note 4 ab 50%' },
     { title: 'ABI BaWü 2026 120 BE', type: 'abi' },
   ];
 
