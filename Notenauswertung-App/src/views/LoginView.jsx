@@ -63,7 +63,7 @@ export default function LoginView({ onRecovery }) {
       </div>
       <div className="app-login-footer">
         <p className="app-login-build-info">
-          {APP_NAME} - Build {APP_VERSION} … by Karsten Paulokat
+          {APP_NAME} - Build {APP_VERSION} by Karsten Paulokat
         </p>
         {onRecovery ? (
           <button

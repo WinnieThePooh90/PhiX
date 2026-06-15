@@ -109,8 +109,11 @@ export default function OralView({ studentIdFilterSet = null }) {
 
   const handleOralManualNoteTab = useCallback(
     (e, rowIndex) => {
-      if (e.key !== 'Tab') return;
-      const next = e.shiftKey ? rowIndex - 1 : rowIndex + 1;
+      const isTab = e.key === 'Tab';
+      const isEnterNav = e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey;
+      if (!isTab && !isEnterNav) return;
+      const reverse = isTab && e.shiftKey;
+      const next = reverse ? rowIndex - 1 : rowIndex + 1;
       if (next < 0 || next >= displayStudents.length) return;
       e.preventDefault();
       requestAnimationFrame(() => focusOralManualNoteAt(next));

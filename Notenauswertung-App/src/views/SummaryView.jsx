@@ -15,6 +15,7 @@ import {
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
+import { isEnterAsTabKey, focusAdjacentTableField } from '../utils/tableEnterAsTab';
 
 function hasSummaryNotes(student) {
   return String(student?.summaryNotes ?? '').trim() !== '';
@@ -617,7 +618,11 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur();
+        if (!isEnterAsTabKey(e)) return;
+        e.preventDefault();
+        const el = e.currentTarget;
+        el.blur();
+        requestAnimationFrame(() => focusAdjacentTableField(el, false));
       }}
       style={{
         width: '5.25rem',

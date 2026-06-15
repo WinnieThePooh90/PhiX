@@ -42,6 +42,7 @@ function AuthenticatedApp() {
     if (showRecovery) {
       return (
         <RecoveryUnlockView
+          onCancel={() => setShowRecovery(false)}
           onUnlocked={(body) => {
             setShowRecovery(false);
             try {

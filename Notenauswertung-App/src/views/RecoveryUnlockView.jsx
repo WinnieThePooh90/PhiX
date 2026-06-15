@@ -4,7 +4,7 @@ import AppLogo from '../components/AppLogo';
 import { apiFetch } from '../utils/apiBase';
 import { writeCryptoSessionToken } from '../utils/cryptoSession';
 
-export default function RecoveryUnlockView({ onUnlocked }) {
+export default function RecoveryUnlockView({ onUnlocked, onCancel }) {
   const [username, setUsername] = useState('');
   const [recoveryKey, setRecoveryKey] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -81,6 +81,16 @@ export default function RecoveryUnlockView({ onUnlocked }) {
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Speichern…' : 'Neues Passwort setzen'}
           </button>
+          {onCancel ? (
+            <button
+              type="button"
+              className="tab secondary app-login-cancel-btn"
+              onClick={onCancel}
+              disabled={submitting}
+            >
+              Abbrechen
+            </button>
+          ) : null}
         </form>
       </div>
     </div>

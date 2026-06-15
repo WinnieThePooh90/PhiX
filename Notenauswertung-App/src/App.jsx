@@ -41,6 +41,7 @@ import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
+import { installTableEnterAsTab } from './utils/tableEnterAsTab';
 import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
 
@@ -125,6 +126,7 @@ function App() {
 
   useEffect(() => {
     installTableRowFocusHighlight();
+    installTableEnterAsTab();
   }, []);
 
   useEffect(() => {

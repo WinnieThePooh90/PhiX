@@ -2200,6 +2200,13 @@ tfoot td {
   cursor: not-allowed;
 }
 
+.app-login-cancel-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .app-login-card--relogin .app-login-subtitle {
   text-align: center;
 }
