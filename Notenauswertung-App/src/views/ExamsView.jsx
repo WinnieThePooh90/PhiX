@@ -41,6 +41,7 @@ import {
   focusScoreTaskInput,
   scoreTaskInputDataAttr,
 } from '../utils/scoreTaskTabNavigation';
+import { handleTableEnterAsTab } from '../utils/tableEnterAsTab';
 
 // Hilfsfunktion: Berechnet die Summe aller Felder, falls die Scores ein Objekt sind.
 const getSum = (scoreData) => {
@@ -457,6 +458,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                           type="number" 
                           value={exam.fieldMaxPoints?.[i] ?? ''}
                           onChange={e => handleMaxPointsChange(i, e.target.value)}
+                          onKeyDown={handleTableEnterAsTab}
                           placeholder="0"
                           style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
                         />
@@ -473,7 +475,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                             fontSize: '0.85rem',
                             marginTop: '0.15rem',
                             fontVariantNumeric: 'tabular-nums',
-                            color: isGradeWorseThan4(examClassAverage) ? 'var(--danger)' : 'var(--foreground)',
+                            color: isGradeWorseThan4(examClassAverage, gradeSys) ? 'var(--danger)' : 'var(--foreground)',
                           }}
                         >
                           {formatExamClassAverageDisplay(examClassAverage, gradeSys)}
@@ -603,6 +605,8 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                     value={val}
                                     onChange={e => handleScoreChange(s.id, fieldIndex, e.target.value)}
                                     onKeyDown={createScoreTaskTabHandler({
+                                      scopeKey: scoreInputScope,
+                                      rowKey: s.id,
                                       fieldIndex,
                                       effectiveFieldCount: effN,
                                       onTabForwardFromLastField: () => {
@@ -652,9 +656,9 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                               right: 0,
                               zIndex: 1,
                               background: counted && grade !== null
-                                ? (getGradeCellBackground(grade) ?? 'var(--surface)')
+                                ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)')
                                 : 'var(--surface)',
-                              color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
+                              color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
                               borderLeft: '1px solid var(--border)',
                             }}
                           >
@@ -667,6 +671,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                 onChange={(e) =>
                                   updateExamStudentManualGradeValue(activeKlausur, s.id, e.target.value)
                                 }
+                                onKeyDown={handleTableEnterAsTab}
                                 placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
                                 title="Manuelle Note (Berechnung wird ignoriert)"
                                 aria-label={`Manuelle Note für ${s.lastName}, ${s.firstName}`}
@@ -679,7 +684,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                 }}
                               />
                             ) : counted && grade !== null ? (
-                              <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)' }}>
+                              <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>
                                 {formatGrade(grade, gradeSys)}
                               </span>
                             ) : (

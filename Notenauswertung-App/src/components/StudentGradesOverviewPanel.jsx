@@ -49,7 +49,7 @@ function renderProjectListItems(projectEntries, studentId, customGradingKeys, gr
     return (
       <li key={`proj-${id}`} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: listFontSize }}>
         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{label}:</span>
-        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>
+        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
           {counted && gr !== null ? gfmt(gr) : '-'}
         </strong>
       </li>
@@ -132,13 +132,13 @@ export default function StudentGradesOverviewPanel({
             <div style={{ marginBottom: compact ? '1rem' : '1.25rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>
               <h3 style={{ fontSize: titleSize, margin: 0 }}>{cat.label}</h3>
               <div style={{ fontSize: finalSize, fontWeight: 'bold', marginTop: '0.25rem' }}>
-                <span style={{ color: isGradeWorseThan4(finalGrade) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(finalGrade)}</span>
+                <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(finalGrade)}</span>
                 {' '}
                 <span
                   style={{
                     fontSize: compact ? '0.82rem' : '0.9rem',
                     fontWeight: 'normal',
-                    color: rounded !== null && isGradeWorseThan4(rounded) ? 'var(--danger)' : 'var(--text-muted)',
+                    color: rounded !== null && isGradeWorseThan4(rounded, gradeSys) ? 'var(--danger)' : 'var(--text-muted)',
                   }}
                 >
                   ({rounded !== null ? gfmt(rounded) : '-'})
@@ -160,7 +160,7 @@ export default function StudentGradesOverviewPanel({
                     return (
                       <li key={id} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>KA {id}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>
+                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                           {counted && gr !== null ? gfmt(gr) : '-'}
                         </strong>
                       </li>
@@ -175,7 +175,7 @@ export default function StudentGradesOverviewPanel({
                     return (
                       <li key={`gfs-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>GFS {label}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum) ? 'var(--danger)' : 'var(--foreground)') }}>
+                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                           {counted ? gfmt(gNum) : '-'}
                         </strong>
                       </li>
@@ -196,7 +196,7 @@ export default function StudentGradesOverviewPanel({
                     return (
                       <li key={id} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{o.name}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (oralG !== null && isGradeWorseThan4(oralG) ? 'var(--danger)' : 'var(--foreground)') }}>
+                        <strong style={{ color: !counted ? 'var(--text-muted)' : (oralG !== null && isGradeWorseThan4(oralG, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                           {counted && oralG !== null ? gfmt(oralG) : '-'}
                         </strong>
                       </li>
@@ -219,7 +219,7 @@ export default function StudentGradesOverviewPanel({
                       return (
                         <li key={id} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                           <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{t.name}:</span>
-                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr) ? 'var(--danger)' : 'var(--foreground)') }}>
+                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                             {counted && gr !== null ? gfmt(gr) : '-'}
                           </strong>
                         </li>

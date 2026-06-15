@@ -586,6 +586,8 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   value={pointsStr === undefined ? '' : pointsStr}
                                   onChange={(e) => handlePointsChange(s.id, e.target.value)}
                                   onKeyDown={createScoreTaskTabHandler({
+                                    scopeKey: scoreInputScope,
+                                    rowKey: s.id,
                                     fieldIndex: 0,
                                     effectiveFieldCount: 1,
                                     onTabForwardFromLastField: () => {
@@ -640,9 +642,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   zIndex: 1,
                                   background:
                                     counted && grade !== null
-                                      ? (getGradeCellBackground(grade) ?? 'var(--surface)')
+                                      ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)')
                                       : 'var(--surface)',
-                                  color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
+                                  color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
                                   borderLeft: '1px solid var(--border)',
                                   verticalAlign: 'middle',
                                 }}
@@ -671,7 +673,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   <span
                                     style={{
                                       fontWeight: 'bold',
-                                      color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)',
+                                      color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)',
                                     }}
                                   >
                                     {formatGrade(grade, gradeSys)}

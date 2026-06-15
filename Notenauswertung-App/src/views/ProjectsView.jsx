@@ -41,6 +41,7 @@ import {
   focusScoreTaskInput,
   scoreTaskInputDataAttr,
 } from '../utils/scoreTaskTabNavigation';
+import { handleTableEnterAsTab } from '../utils/tableEnterAsTab';
 
 const PROJECT_INDEX_COL_PX = 52;
 
@@ -1012,6 +1013,7 @@ function ProjectScoresTable({
                   type="number"
                   value={project.fieldMaxPoints?.[i] ?? ''}
                   onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, e.target.value)}
+                  onKeyDown={handleTableEnterAsTab}
                   placeholder="0"
                   style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
                 />
@@ -1106,6 +1108,8 @@ function ProjectScoresTable({
                             value={val}
                             onChange={(e) => updateProjectScore(activeProject, scoreKey, fieldIndex, e.target.value)}
                             onKeyDown={createScoreTaskTabHandler({
+                              scopeKey: scoreInputScope,
+                              rowKey: scoreKey,
                               fieldIndex,
                               effectiveFieldCount: effN,
                               onTabForwardFromLastField: () => {
@@ -1147,8 +1151,8 @@ function ProjectScoresTable({
                       position: 'sticky',
                       right: 0,
                       zIndex: 1,
-                      background: counted && grade !== null ? (getGradeCellBackground(grade) ?? 'var(--surface)') : 'var(--surface)',
-                      color: counted && grade !== null ? getGradeTextColor(grade) : undefined,
+                      background: counted && grade !== null ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)') : 'var(--surface)',
+                      color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
                       borderLeft: '1px solid var(--border)',
                     }}
                   >
@@ -1163,7 +1167,7 @@ function ProjectScoresTable({
                         style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
                       />
                     ) : counted && grade !== null ? (
-                      <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade) ? 'var(--danger)' : 'var(--foreground)' }}>
+                      <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>
                         {formatGrade(grade, gradeSys)}
                       </span>
                     ) : (

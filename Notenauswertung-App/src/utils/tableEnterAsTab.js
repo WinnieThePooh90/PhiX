@@ -1,10 +1,10 @@
 const FOCUSABLE_SEL =
-  'tbody input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), tbody select:not([disabled])';
+  'input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), select:not([disabled])';
 
 let installed = false;
 
 export function isEnterAsTabKey(e) {
-  return e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey;
+  return (e.key === 'Enter' || e.code === 'NumpadEnter') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey;
 }
 
 function isVisibleFocusable(el) {
@@ -42,6 +42,13 @@ export function focusAdjacentTableField(current, reverse = false) {
 }
 
 /** Enter in Tabellen-Eingabefeldern verhält sich wie Tab (nächstes Feld). */
+export function handleTableEnterAsTab(e) {
+  if (!isEnterAsTabKey(e)) return;
+  e.preventDefault();
+  focusAdjacentTableField(e.currentTarget, false);
+}
+
+/** Enter in Tabellen-Eingabefeldern verhält sich wie Tab (nächstes Feld). */
 export function installTableEnterAsTab() {
   if (installed) return;
   installed = true;
@@ -51,7 +58,7 @@ export function installTableEnterAsTab() {
 
     const el = e.target;
     if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) return;
-    if (!el.closest('table tbody')) return;
+    if (!el.closest('table')) return;
 
     if (el instanceof HTMLInputElement) {
       const type = (el.type || 'text').toLowerCase();

@@ -737,7 +737,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                       gradeSystem: gradeSys,
                     })
                   : null;
-              const oralValueRed = gradeClassicForCell !== null && isGradeWorseThan4(gradeClassicForCell);
+              const oralValueRed = gradeClassicForCell !== null && isGradeWorseThan4(gradeClassicForCell, gradeSys);
               const calcClassicForColor =
                 calculatedGrade !== null && gradeSys === 'points' && !useAbiNotenpunkte
                   ? notenpunkteToGrade(Math.round(calculatedGrade))
@@ -746,7 +746,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                 calculatedGrade !== null &&
                 (useAbiNotenpunkte
                   ? calculatedGrade < 5
-                  : calcClassicForColor !== null && isGradeWorseThan4(calcClassicForColor));
+                  : calcClassicForColor !== null && isGradeWorseThan4(calcClassicForColor, gradeSys));
               const isExpanded = expandedStudentId === s.id;
               const showNotCountedFlag = !counted;
 
@@ -919,12 +919,12 @@ export default function OralView({ studentIdFilterSet = null }) {
                             fontVariantNumeric: 'tabular-nums',
                             background:
                               calculatedGrade !== null && !useAbiNotenpunkte
-                                ? (getGradeCellBackground(calcClassicForColor) ?? 'var(--surface)')
+                                ? (getGradeCellBackground(calcClassicForColor, gradeSys) ?? 'var(--surface)')
                                 : 'var(--surface)',
                             borderLeft: '1px solid var(--border)',
                             borderRight: '1px solid var(--border)',
                             boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
-                            color: calcRed ? 'var(--danger)' : (getGradeTextColor(calcClassicForColor) || 'var(--foreground)'),
+                            color: calcRed ? 'var(--danger)' : (getGradeTextColor(calcClassicForColor, gradeSys) || 'var(--foreground)'),
                           }}
                           title={
                             useAbiNotenpunkte
@@ -998,9 +998,9 @@ export default function OralView({ studentIdFilterSet = null }) {
                         verticalAlign: 'middle',
                         background:
                           counted && gradeClassicForCell !== null
-                            ? (getGradeCellBackground(gradeClassicForCell) ?? 'var(--surface)')
+                            ? (getGradeCellBackground(gradeClassicForCell, gradeSys) ?? 'var(--surface)')
                             : 'var(--surface)',
-                        color: counted && gradeClassicForCell !== null ? getGradeTextColor(gradeClassicForCell) : undefined,
+                        color: counted && gradeClassicForCell !== null ? getGradeTextColor(gradeClassicForCell, gradeSys) : undefined,
                         borderLeft: '1px solid var(--border)',
                         boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
                       }}

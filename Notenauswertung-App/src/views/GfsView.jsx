@@ -234,7 +234,7 @@ export default function GfsView({ studentIdFilterSet = null }) {
                 const gehalten = row.gehalten === true;
                 const noteNum = storedGradeStringToClassic(row.note, gradeSys);
                 const hasParsedNote = noteNum !== null;
-                const noteBad = hasParsedNote && isGradeWorseThan4(noteNum);
+                const noteBad = hasParsedNote && isGradeWorseThan4(noteNum, gradeSys);
                 return (
                   <tr key={row.id}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -296,8 +296,8 @@ export default function GfsView({ studentIdFilterSet = null }) {
                     <td
                       style={{
                         verticalAlign: 'middle',
-                        background: hasParsedNote ? (getGradeCellBackground(noteNum) ?? undefined) : undefined,
-                        color: hasParsedNote ? getGradeTextColor(noteNum) : undefined,
+                        background: hasParsedNote ? (getGradeCellBackground(noteNum, gradeSys) ?? undefined) : undefined,
+                        color: hasParsedNote ? getGradeTextColor(noteNum, gradeSys) : undefined,
                       }}
                     >
                       <input

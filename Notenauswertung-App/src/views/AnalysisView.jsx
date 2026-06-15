@@ -1,17 +1,12 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, notenpunkteToGrade, storedGradeStringToClassic } from '../utils/calculator';
+import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, barColorForNotenpunkte, storedGradeStringToClassic } from '../utils/calculator';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
 function barColorForNpBucket(np) {
-  const g = notenpunkteToGrade(np);
-  if (g === null) return 'hsl(var(--muted))';
-  if (g > 4) return 'var(--danger)';
-  if (g >= 3.25 && g <= 4) return '#f59e0b';
-  if (g > 3 && g < 3.25) return '#fde68a';
-  return 'hsl(var(--success-hsl))';
+  return barColorForNotenpunkte(np);
 }
 
 function distributionBucket(finalGrade, gradeSys) {

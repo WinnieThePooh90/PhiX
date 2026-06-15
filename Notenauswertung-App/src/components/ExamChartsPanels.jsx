@@ -5,7 +5,7 @@ import {
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   gradeToNotenpunkte,
-  notenpunkteToGrade,
+  barColorForNotenpunkte,
   normalizeCourseGradeSystem,
   normalizeQuarterGrade,
   parseScorePointsValue,
@@ -34,14 +34,9 @@ function pieSegmentLabelPos(startPercent, sweepPercent) {
 
 const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
 
-/** Farbe für NP-Säule anhand der zugeordneten Schulnote dieser NP-Stufe */
+/** Farbe für NP-Säule (0–4 rot, 5–7 orange, 8–15 grün) */
 function barColorForNpBucket(np) {
-  const g = notenpunkteToGrade(np);
-  if (g === null) return 'hsl(var(--muted))';
-  if (g > 4) return 'var(--danger)';
-  if (g >= 3.25 && g <= 4) return '#f59e0b';
-  if (g > 3 && g < 3.25) return '#fde68a';
-  return 'var(--success)';
+  return barColorForNotenpunkte(np);
 }
 
 /** Bestehensquote: klassisch ≤ 3,0; Punktesystem NP ≥ 5. */

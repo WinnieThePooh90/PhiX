@@ -551,7 +551,7 @@ function SummaryStudentCalculationModal({
             <h3 className="calc-modal-section-title">Ergebnis</h3>
             <p className="calc-modal-result">
               Endnote (Exakt):{' '}
-              <span style={{ color: isGradeWorseThan4(breakdown.finalGrade) ? 'var(--danger)' : 'var(--primary)' }}>
+              <span style={{ color: isGradeWorseThan4(breakdown.finalGrade, gradeSys) ? 'var(--danger)' : 'var(--primary)' }}>
                 {gfmt(breakdown.finalGrade)}
               </span>
             </p>
@@ -631,7 +631,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
         borderRadius: '6px',
         border: '1px solid var(--border)',
         background: 'var(--background)',
-        color: manualNum !== null && isGradeWorseThan4(manualNum) ? 'var(--danger)' : 'var(--foreground)',
+        color: manualNum !== null && isGradeWorseThan4(manualNum, gradeSystem) ? 'var(--danger)' : 'var(--foreground)',
         fontWeight: 600,
       }}
     />
@@ -848,25 +848,25 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     </td>
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
-                    <td className="text-center" style={{ background: getGradeCellBackground(examAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(examAvg) ? 'var(--danger)' : (getGradeTextColor(examAvg) || 'var(--foreground)') }}>{gfmt(examAvg)}</span>
+                    <td className="text-center" style={{ background: getGradeCellBackground(examAvg, gradeSys) }}>
+                      <span style={{ color: isGradeWorseThan4(examAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(examAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(examAvg)}</span>
                     </td>
-                    <td className="text-center" style={{ background: getGradeCellBackground(oralAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(oralAvg) ? 'var(--danger)' : (getGradeTextColor(oralAvg) || 'var(--foreground)') }}>{gfmt(oralAvg)}</span>
+                    <td className="text-center" style={{ background: getGradeCellBackground(oralAvg, gradeSys) }}>
+                      <span style={{ color: isGradeWorseThan4(oralAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(oralAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(oralAvg)}</span>
                     </td>
                     {showTests && (
-                      <td className="text-center" style={{ background: getGradeCellBackground(testAvg) }}>
-                        <span style={{ color: isGradeWorseThan4(testAvg) ? 'var(--danger)' : (getGradeTextColor(testAvg) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
+                      <td className="text-center" style={{ background: getGradeCellBackground(testAvg, gradeSys) }}>
+                        <span style={{ color: isGradeWorseThan4(testAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(testAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
                       </td>
                     )}
                     <td
                       className="text-center"
                       style={{
-                        background: getGradeCellBackground(finalGrade) ?? (document.documentElement.getAttribute('data-theme') === 'dark' ? 'var(--surface)' : '#f8fafc'),
+                        background: getGradeCellBackground(finalGrade, gradeSys) ?? (document.documentElement.getAttribute('data-theme') === 'dark' ? 'var(--surface)' : '#f8fafc'),
                         fontWeight: 'bold',
                       }}
                     >
-                       <span style={{ color: isGradeWorseThan4(finalGrade) ? 'var(--danger)' : (getGradeTextColor(finalGrade) || 'var(--foreground)') }}>
+                       <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys) ? 'var(--danger)' : (getGradeTextColor(finalGrade, gradeSys) || 'var(--foreground)') }}>
                          {gfmt(finalGrade)}
                        </span>
                     </td>
@@ -876,8 +876,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                         <td
                           className="text-center"
                           style={{
-                            background: hj1Num !== null ? getGradeCellBackground(hj1Num) : undefined,
-                            color: hj1Num !== null ? getGradeTextColor(hj1Num) : undefined,
+                            background: hj1Num !== null ? getGradeCellBackground(hj1Num, gradeSys) : undefined,
+                            color: hj1Num !== null ? getGradeTextColor(hj1Num, gradeSys) : undefined,
                             verticalAlign: 'middle',
                           }}
                           onClick={(e) => e.stopPropagation()}
@@ -889,8 +889,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     <td
                       className="text-center"
                       style={{
-                        background: manualEndNum !== null ? getGradeCellBackground(manualEndNum) : undefined,
-                        color: manualEndNum !== null ? getGradeTextColor(manualEndNum) : undefined,
+                        background: manualEndNum !== null ? getGradeCellBackground(manualEndNum, gradeSys) : undefined,
+                        color: manualEndNum !== null ? getGradeTextColor(manualEndNum, gradeSys) : undefined,
                         verticalAlign: 'middle',
                       }}
                       onClick={(e) => e.stopPropagation()}

@@ -1,35 +1,32 @@
 import { isEnterAsTabKey } from './tableEnterAsTab';
 
 export function scoreTaskInputDataAttr(scopeKey, rowKey, fieldIndex) {
-  return `${scopeKey}__${rowKey}__${fieldIndex}`;
+  return `${scopeKey}__${String(rowKey)}__${fieldIndex}`;
 }
 
 export function focusScoreTaskInput(scopeKey, rowKey, fieldIndex) {
   const attr = scoreTaskInputDataAttr(scopeKey, rowKey, fieldIndex);
-  requestAnimationFrame(() => {
-    const el = document.querySelector(`[data-score-task-input="${attr}"]`);
-    el?.focus();
-    el?.select?.();
-  });
-}
-
-function parseScoreTaskInputEl(el) {
-  const attr = el.getAttribute('data-score-task-input');
-  if (!attr) return null;
-  const lastSep = attr.lastIndexOf('__');
-  if (lastSep < 0) return null;
-  const fieldIndex = Number(attr.slice(lastSep + 1));
-  const rest = attr.slice(0, lastSep);
-  const rowSep = rest.lastIndexOf('__');
-  if (rowSep < 0) return null;
-  return {
-    scopeKey: rest.slice(0, rowSep),
-    rowKey: rest.slice(rowSep + 1),
-    fieldIndex,
+  const focusEl = () => {
+    const el = document.querySelector(`[data-score-task-input="${CSS.escape(attr)}"]`);
+    if (!el) return false;
+    el.focus();
+    if (typeof el.select === 'function') {
+      try {
+        el.select();
+      } catch {
+        /* ignore */
+      }
+    }
+    return true;
   };
+  if (!focusEl()) {
+    requestAnimationFrame(focusEl);
+  }
 }
 
 export function createScoreTaskTabHandler({
+  scopeKey,
+  rowKey,
   fieldIndex,
   effectiveFieldCount,
   onTabForwardFromLastField,
@@ -43,12 +40,9 @@ export function createScoreTaskTabHandler({
     if (isEnterNav) {
       e.preventDefault();
       if (fieldIndex < effectiveFieldCount - 1) {
-        const parsed = parseScoreTaskInputEl(e.currentTarget);
-        if (parsed) {
-          focusScoreTaskInput(parsed.scopeKey, parsed.rowKey, fieldIndex + 1);
-        }
-      } else if (onTabForwardFromLastField) {
-        onTabForwardFromLastField();
+        focusScoreTaskInput(scopeKey, rowKey, fieldIndex + 1);
+      } else {
+        onTabForwardFromLastField?.();
       }
       return;
     }
