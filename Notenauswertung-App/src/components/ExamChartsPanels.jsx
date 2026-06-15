@@ -373,7 +373,7 @@ export default function ExamChartsPanels({
                 >
                   {pieList.map((s) => (
                     <li key={s.id} style={{ padding: '0.1rem 0' }}>
-                      {s.lastName}
+                      {s.lastName}, {s.firstName}
                     </li>
                   ))}
                 </ul>

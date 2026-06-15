@@ -138,6 +138,8 @@ model Student {
   summaryEndNote String @default("")
   /** Manuelle Note Halbjahr 1 (leer = nicht gesetzt); Dezimalzahl als Text */
   summaryHJ1Note String @default("")
+  /** Freitext-Notiz in der Gesamtübersicht (aufgeklappter Schüler) */
+  summaryNotes String @default("")
   courseId  Int?
   course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, notenpunkteToGrade } from '../utils/calculator';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
@@ -25,6 +26,27 @@ function distributionBucket(finalGrade, gradeSys) {
 const STARK_GEFAEHRDET_MIN = 4.5;
 const GEFAEHRDET_MIN = 4.0;
 const GEFAEHRDET_MAX_EXCLUSIVE = 4.5;
+
+function barColorForClassicGrade(grade) {
+  if (grade === 4) return '#f59e0b';
+  if (grade >= 5) return 'var(--danger)';
+  return 'hsl(var(--success-hsl))';
+}
+
+function sortStudentsByName(a, b) {
+  return (
+    String(a.lastName ?? '').localeCompare(String(b.lastName ?? ''), 'de') ||
+    String(a.firstName ?? '').localeCompare(String(b.firstName ?? ''), 'de')
+  );
+}
+
+function classAverageBorderColor(avg) {
+  if (avg === null || Number.isNaN(Number(avg))) return 'var(--border)';
+  const g = Number(avg);
+  if (g <= 3.0) return 'hsl(var(--success-hsl))';
+  if (g <= 3.5) return '#f59e0b';
+  return 'var(--danger)';
+}
 
 function RiskStudentsTable({
   rows,
@@ -106,6 +128,8 @@ export default function AnalysisView() {
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const testsWritten = config?.testsWritten !== false;
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
+  const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
+  const [barPopoverGeom, setBarPopoverGeom] = useState(null);
 
   const toggleRiskStudent = (id) => {
     setExpandedRiskStudentId((prev) => (prev === id ? null : id));
@@ -161,9 +185,17 @@ export default function AnalysisView() {
     return { starkGefaehrdet: stark, gefaehrdet: gef };
   }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
 
-  const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys } = useMemo(() => {
+  const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
     const isPoints = gradeSys === 'points';
     const emptyCounts = () => (isPoints ? Array(16).fill(0) : [0, 0, 0, 0, 0, 0]);
+    const emptyBuckets = () => {
+      const map = {};
+      const keys = isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6];
+      keys.forEach((k) => {
+        map[k] = [];
+      });
+      return map;
+    };
     if (!config?.weighting) {
       return {
         gradeCounts: emptyCounts(),
@@ -171,9 +203,11 @@ export default function AnalysisView() {
         classAverage: null,
         studentsWithGrade: 0,
         distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
+        studentsByBucket: emptyBuckets(),
       };
     }
     const counts = emptyCounts();
+    const buckets = emptyBuckets();
     const rawGrades = [];
     students.forEach((s) => {
       const { finalGrade } = calculateStudentGrades(
@@ -193,6 +227,7 @@ export default function AnalysisView() {
       rawGrades.push(finalGrade);
       const b = distributionBucket(finalGrade, gradeSys);
       if (b === null) return;
+      buckets[b].push(s);
       if (isPoints) counts[b] += 1;
       else counts[b - 1] += 1;
     });
@@ -205,11 +240,154 @@ export default function AnalysisView() {
       classAverage: classAvg,
       studentsWithGrade: rawGrades.length,
       distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
+      studentsByBucket: buckets,
     };
   }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
 
+  const barPopoverStudents = useMemo(() => {
+    if (distributionTooltipBucket === null || distributionTooltipBucket === undefined) return [];
+    const list = studentsByBucket[distributionTooltipBucket] ?? [];
+    return [...list].sort(sortStudentsByName);
+  }, [distributionTooltipBucket, studentsByBucket]);
+
+  useLayoutEffect(() => {
+    if (distributionTooltipBucket === null || distributionTooltipBucket === undefined || barPopoverStudents.length === 0) {
+      setBarPopoverGeom(null);
+      return;
+    }
+    const update = () => {
+      const el = document.querySelector(`[data-analysis-distribution-anchor="${distributionTooltipBucket}"]`);
+      if (!el) {
+        setBarPopoverGeom(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const panelW = Math.min(260, window.innerWidth - 16);
+      const cx = r.left + r.width / 2;
+      const approxH = Math.min(320, 140 + barPopoverStudents.length * 22);
+      const margin = 12;
+      let top = r.bottom + 8;
+      if (top + approxH > window.innerHeight - margin) {
+        top = Math.max(margin, r.top - approxH - 8);
+      }
+      setBarPopoverGeom({ cx, top, width: panelW });
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [distributionTooltipBucket, barPopoverStudents.length]);
+
+  useEffect(() => {
+    if (distributionTooltipBucket === null || distributionTooltipBucket === undefined) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDistributionTooltipBucket(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [distributionTooltipBucket]);
+
+  const showBarPortal =
+    distributionTooltipBucket !== null &&
+    distributionTooltipBucket !== undefined &&
+    barPopoverStudents.length > 0 &&
+    barPopoverGeom;
+
+  const barPortalBorder = showBarPortal
+    ? gradeSys === 'points'
+      ? barColorForNpBucket(distributionTooltipBucket)
+      : barColorForClassicGrade(distributionTooltipBucket)
+    : '';
+  const barPortalTitle = showBarPortal
+    ? gradeSys === 'points'
+      ? `NP ${distributionTooltipBucket}`
+      : `Note ${distributionTooltipBucket}`
+    : '';
+  const barListMaxH = barPopoverGeom
+    ? Math.max(120, Math.min(360, window.innerHeight - barPopoverGeom.top - 110))
+    : 200;
+
+  const distributionPopoverPortal = showBarPortal
+    ? createPortal(
+        <>
+          <div
+            className="exam-charts-popover-backdrop"
+            aria-hidden
+            onClick={() => setDistributionTooltipBucket(null)}
+          />
+          <div
+            className="exam-charts-popover-panel"
+            role="dialog"
+            aria-label={barPortalTitle}
+            style={{
+              left: barPopoverGeom.cx,
+              top: barPopoverGeom.top,
+              transform: 'translateX(-50%)',
+              width: barPopoverGeom.width,
+              borderColor: barPortalBorder,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                fontWeight: 'bold',
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                color: barPortalBorder,
+                marginBottom: '0.5rem',
+                borderBottom: '1px solid var(--border)',
+                paddingBottom: '0.25rem',
+              }}
+            >
+              {barPortalTitle}
+            </div>
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                fontSize: '0.85rem',
+                maxHeight: barListMaxH,
+                overflowY: 'auto',
+              }}
+            >
+              {barPopoverStudents.map((s) => (
+                <li key={s.id} style={{ padding: '0.1rem 0' }}>
+                  {s.lastName}, {s.firstName}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setDistributionTooltipBucket(null)}
+              style={{
+                marginTop: '0.5rem',
+                width: '100%',
+                fontSize: '0.7rem',
+                padding: '0.35rem',
+                background: 'hsl(var(--muted))',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Schließen
+            </button>
+          </div>
+        </>,
+        document.body,
+      )
+    : null;
+
   return (
     <div className="view-generic-scroll" style={{ padding: '0 0 2rem' }}>
+      {distributionPopoverPortal}
       <h2 style={{ marginBottom: '1.5rem' }}>Analyse</h2>
 
       <div
@@ -230,14 +408,20 @@ export default function AnalysisView() {
           <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
         ) : (
           <>
-            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
+            <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
+            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+              Schüler mit berechneter Gesamtnote ≥ 4,5 (sehr schlecht bis ungenügend).
+            </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : starkGefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={starkGefaehrdet} gradeColor="var(--danger)" gradeSystem={gradeSys} {...riskTableProps} />
             ) : (
               <p className="text-muted" style={{ margin: '0 0 1.25rem', fontSize: '0.875rem' }}>Keine Schüler in dieser Kategorie.</p>
             )}
 
-            <h4 style={{ margin: '1.25rem 0 0.75rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
+            <h4 style={{ margin: '1.25rem 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
+            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+              Schüler mit berechneter Gesamtnote ≥ 4,0 und &lt; 4,5 (mangelhaft bis ausreichend).
+            </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : gefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={gefaehrdet} gradeColor="hsl(28 78% 32%)" gradeSystem={gradeSys} {...riskTableProps} />
             ) : (
@@ -258,26 +442,45 @@ export default function AnalysisView() {
         <p className="text-muted" style={{ margin: '0 0 1rem', fontSize: '0.875rem' }}>
           Gewichteter Mittelwert aller Schüler mit auswertbarer Gesamtnote ({studentsWithGrade} von {students.length}).
         </p>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '2rem',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em',
-            color: 'var(--foreground)',
-          }}
-          aria-live="polite"
-        >
-          {classAverage === null ? '—' : formatGrade(classAverage, gradeSys)}
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '7rem',
+              padding: '0.85rem 1.5rem',
+              border: `2px solid ${classAverageBorderColor(classAverage)}`,
+              borderRadius: '10px',
+              background: 'hsl(var(--background) / 0.6)',
+            }}
+            aria-live="polite"
+          >
+            <span
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-0.02em',
+                color: 'var(--foreground)',
+                lineHeight: 1.1,
+              }}
+            >
+              {classAverage === null ? '—' : formatGrade(classAverage, gradeSys)}
+            </span>
+          </div>
+        </div>
 
         <h3 style={{ margin: '1.5rem 0 0.75rem', fontSize: '1.05rem' }}>Notenverteilung</h3>
         {gradeSys === 'points' ? (
           <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-            Je Schüler: Notenpunkte (0–15) aus der berechneten Gesamtnote.
+            Je Schüler: Notenpunkte (0–15) aus der berechneten Gesamtnote. Klick auf einen Balken zeigt die zugehörigen Schüler.
           </p>
-        ) : null}
+        ) : (
+          <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+            Klick auf einen Balken zeigt die Schüler mit dieser Gesamtnote.
+          </p>
+        )}
 
         {studentsWithGrade === 0 ? (
           <p className="text-muted" style={{ margin: 0 }}>Noch keine auswertbaren Gesamtnoten — Noten für Klausuren, Mündlich und Tests erfassen.</p>
@@ -307,16 +510,12 @@ export default function AnalysisView() {
                   gradeSys === 'points' ? gradeCounts[bucketKey] : gradeCounts[bucketKey - 1];
                 const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
                 const barColor =
-                  gradeSys === 'points'
-                    ? barColorForNpBucket(bucketKey)
-                    : bucketKey === 4
-                      ? '#f59e0b'
-                      : bucketKey >= 5
-                        ? 'var(--danger)'
-                        : 'hsl(var(--success-hsl))';
+                  gradeSys === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicGrade(bucketKey);
+                const isTooltipActive = distributionTooltipBucket === bucketKey;
                 return (
                   <div
                     key={bucketKey}
+                    data-analysis-distribution-anchor={String(bucketKey)}
                     style={{
                       flex: gradeSys === 'points' ? '0 0 auto' : 1,
                       minWidth: gradeSys === 'points' ? '1rem' : 0,
@@ -324,6 +523,7 @@ export default function AnalysisView() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       height: '100%',
+                      position: 'relative',
                     }}
                   >
                     <div
@@ -339,14 +539,27 @@ export default function AnalysisView() {
                       }}
                     >
                       <div
+                        onClick={() =>
+                          counts > 0 &&
+                          setDistributionTooltipBucket(isTooltipActive ? null : bucketKey)
+                        }
                         style={{
                           width: gradeSys === 'points' ? '72%' : '78%',
                           height: counts > 0 ? `${heightPercent}%` : '4px',
                           minHeight: counts > 0 ? '6px' : undefined,
                           background: counts > 0 ? barColor : 'hsl(var(--muted))',
                           borderRadius: '4px 4px 0 0',
-                          transition: 'height 0.25s ease',
+                          transition: 'height 0.25s ease, opacity 0.2s',
                           position: 'relative',
+                          cursor: counts > 0 ? 'pointer' : 'default',
+                          opacity:
+                            distributionTooltipBucket !== null &&
+                            distributionTooltipBucket !== undefined &&
+                            !isTooltipActive
+                              ? 0.3
+                              : 1,
+                          boxShadow: isTooltipActive ? `0 0 0 3px white, 0 0 0 5px ${barColor}` : 'none',
+                          zIndex: isTooltipActive ? 10 : 1,
                         }}
                       >
                         {counts > 0 && (

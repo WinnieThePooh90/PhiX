@@ -125,6 +125,7 @@ model Student {
   studentNumber Int
   summaryEndNote String @default("")
   summaryHJ1Note String @default("")
+  summaryNotes String @default("")
   courseId  Int?
   course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

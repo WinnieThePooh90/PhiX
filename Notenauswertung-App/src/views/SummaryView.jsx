@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
   calculateStudentGrades,
@@ -13,6 +14,35 @@ import {
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
+import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
+
+function hasSummaryNotes(student) {
+  return String(student?.summaryNotes ?? '').trim() !== '';
+}
+
+/** Blaues Fähnchen — Notiz in der Gesamtübersicht (analog zu Klausur-Fähnchen) */
+function SummaryNotesBookmark() {
+  return (
+    <svg
+      width="9"
+      height="12"
+      viewBox="0 0 10 14"
+      aria-hidden
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 1px 1px rgba(37, 99, 235, 0.35))',
+      }}
+    >
+      <path
+        d="M1.25 1C1.25 0.72 1.47 0.5 1.75 0.5H8.25C8.53 0.5 8.75 0.72 8.75 1V9.35L5 12.15L1.25 9.35V1Z"
+        fill="#dbeafe"
+        stroke="#2563eb"
+        strokeWidth="0.65"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 /** Anzeige im Eingabefeld: gespeicherten Wert mit Komma */
 function summaryEndNoteInputDisplay(raw) {
@@ -614,6 +644,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
   const [calculationStudent, setCalculationStudent] = useState(null);
+  const [notesModalStudent, setNotesModalStudent] = useState(null);
   const [overviewMaximized, setOverviewMaximized] = useState(false);
   const showHJ1 = config?.summaryShowHJ1 !== false;
   const showTests = config?.testsWritten !== false;
@@ -782,7 +813,30 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     onClick={() => toggleRow(s.id)}
                     title="Klicken für Details"
                   >
-                    <td>{s.studentNumber ?? (idx + 1)}</td>
+                    <td>
+                      <div
+                        style={{
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: hasSummaryNotes(s) ? 34 : undefined,
+                          paddingTop: hasSummaryNotes(s) ? 2 : 0,
+                        }}
+                      >
+                        {hasSummaryNotes(s) && (
+                          <span
+                            className="exam-index-flag"
+                            role="img"
+                            aria-label="Notiz vorhanden"
+                            title="Notiz vorhanden"
+                          >
+                            <SummaryNotesBookmark />
+                          </span>
+                        )}
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{s.studentNumber ?? idx + 1}</span>
+                      </div>
+                    </td>
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
                     <td className="text-center" style={{ background: getGradeCellBackground(examAvg) }}>
@@ -851,7 +905,106 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           gradeSys={gradeSys}
                           testsWritten={config.testsWritten !== false}
                         />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                        {hasSummaryNotes(s) && (
+                          <div
+                            style={{
+                              marginTop: '1rem',
+                              padding: '0.75rem 1rem',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              background: 'hsl(var(--muted) / 0.15)',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.5rem',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  textTransform: 'uppercase',
+                                  color: 'var(--text-muted)',
+                                }}
+                              >
+                                Notiz
+                              </span>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <button
+                                  type="button"
+                                  className="tab secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setNotesModalStudent(s);
+                                  }}
+                                  title="Notiz bearbeiten"
+                                  aria-label={`Notiz bearbeiten: ${s.lastName}, ${s.firstName}`}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '1.65rem',
+                                    height: '1.65rem',
+                                    minWidth: '1.65rem',
+                                    padding: 0,
+                                  }}
+                                >
+                                  <Wrench size={16} strokeWidth={2.25} aria-hidden />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="danger secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStudentConfig(s.id, 'summaryNotes', '');
+                                  }}
+                                  title="Notiz löschen"
+                                  aria-label={`Notiz löschen: ${s.lastName}, ${s.firstName}`}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '1.65rem',
+                                    height: '1.65rem',
+                                    minWidth: '1.65rem',
+                                    padding: 0,
+                                  }}
+                                >
+                                  <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+                                </button>
+                              </div>
+                            </div>
+                            <p
+                              style={{
+                                margin: '0.5rem 0 0',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.5,
+                                whiteSpace: 'pre-wrap',
+                                color: 'var(--foreground)',
+                              }}
+                            >
+                              {String(s.summaryNotes ?? '').trim()}
+                            </p>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                          {!hasSummaryNotes(s) && (
+                            <button
+                              type="button"
+                              className="tab secondary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNotesModalStudent(s);
+                              }}
+                              title="Notiz für diesen Schüler erfassen"
+                            >
+                              Notizen hinzufügen
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="tab secondary"
@@ -894,6 +1047,16 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
         gfsEntries={gfsEntries}
         customGradingKeys={customGradingKeys}
         gradeSys={gradeSys}
+      />
+      <StudentSummaryNotesModal
+        open={notesModalStudent !== null}
+        onClose={() => setNotesModalStudent(null)}
+        student={notesModalStudent}
+        initialText={notesModalStudent?.summaryNotes ?? ''}
+        onSave={(text) => {
+          if (!notesModalStudent) return;
+          updateStudentConfig(notesModalStudent.id, 'summaryNotes', text);
+        }}
       />
     </div>
   );
