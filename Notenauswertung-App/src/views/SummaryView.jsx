@@ -739,7 +739,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
           Die Gewichtung ist unvollständig oder ungültig. Es werden Fallback-Werte verwendet (Schriftlich 2 : Mündlich 1 : Tests 1), bis die Werte in den Einstellungen korrigiert sind.
         </div>
       )}
-      <div className="table-container">
+      <div className="table-container table-container--opaque-thead">
         <table>
           <thead>
             <tr>

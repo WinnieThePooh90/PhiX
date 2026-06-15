@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
@@ -17,15 +17,45 @@ function gfsNotePointsDisplay(note) {
   return String(note).trim();
 }
 
+const GFS_PICKER_MIN_WIDTH = 220;
+
+/** `left` = Liste klappt nach rechts auf; `right` = Liste klappt nach links auf */
+function computeGfsPickerAnchor(anchorEl) {
+  if (!anchorEl) return 'left';
+  const rect = anchorEl.getBoundingClientRect();
+  const margin = 12;
+  const fitsExpandRight = rect.left + GFS_PICKER_MIN_WIDTH <= window.innerWidth - margin;
+  const fitsExpandLeft = rect.right - GFS_PICKER_MIN_WIDTH >= margin;
+  if (fitsExpandRight && !fitsExpandLeft) return 'left';
+  if (!fitsExpandRight && fitsExpandLeft) return 'right';
+  return rect.left + rect.width / 2 > window.innerWidth / 2 ? 'right' : 'left';
+}
+
 export default function GfsView({ studentIdFilterSet = null }) {
   const { students, gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry, config } = useData();
   const { showConfirm } = useDialog();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerAnchor, setPickerAnchor] = useState('left');
   const [gfsNoteEditingId, setGfsNoteEditingId] = useState(null);
   const [gfsNoteDraft, setGfsNoteDraft] = useState('');
   const [tableMaximized, setTableMaximized] = useState(false);
   const wrapRef = useRef(null);
+
+  const updatePickerAnchor = useCallback(() => {
+    setPickerAnchor(computeGfsPickerAnchor(wrapRef.current));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!pickerOpen) return undefined;
+    updatePickerAnchor();
+    window.addEventListener('resize', updatePickerAnchor);
+    window.addEventListener('scroll', updatePickerAnchor, true);
+    return () => {
+      window.removeEventListener('resize', updatePickerAnchor);
+      window.removeEventListener('scroll', updatePickerAnchor, true);
+    };
+  }, [pickerOpen, updatePickerAnchor]);
 
   const usedStudentIds = new Set(gfsEntries.map((e) => e.studentId));
   const availableStudents = students.filter((s) => !usedStudentIds.has(s.id));
@@ -75,7 +105,12 @@ export default function GfsView({ studentIdFilterSet = null }) {
           <button
             type="button"
             className="tab secondary"
-            onClick={() => setPickerOpen((o) => !o)}
+            onClick={() => {
+              setPickerOpen((open) => {
+                if (!open) updatePickerAnchor();
+                return !open;
+              });
+            }}
             title="Schüler hinzufügen"
             aria-label="Schüler hinzufügen"
             style={{
@@ -99,9 +134,9 @@ export default function GfsView({ studentIdFilterSet = null }) {
               aria-label="Schüler auswählen"
               style={{
                 position: 'absolute',
-                left: 0,
+                ...(pickerAnchor === 'right' ? { right: 0, left: 'auto' } : { left: 0, right: 'auto' }),
                 top: 'calc(100% + 6px)',
-                minWidth: '220px',
+                minWidth: `${GFS_PICKER_MIN_WIDTH}px`,
                 maxHeight: '280px',
                 overflowY: 'auto',
                 background: 'var(--surface)',

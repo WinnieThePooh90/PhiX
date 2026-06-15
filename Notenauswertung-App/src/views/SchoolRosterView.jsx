@@ -530,7 +530,7 @@ export default function SchoolRosterView() {
                 Keine Treffer für „{rosterSearch.trim()}“. Filter anpassen oder zurücksetzen.
               </p>
             ) : (
-          <div className="table-container" style={{ margin: 0 }}>
+          <div className="table-container table-container--opaque-thead" style={{ margin: 0 }}>
             <table>
               <thead>
                 <tr>

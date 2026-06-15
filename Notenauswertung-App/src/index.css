@@ -2805,16 +2805,15 @@ a.support-phix-paypal-btn:active {
   overscroll-behavior: contain;
 }
 
-/* Gesamtübersicht: undurchsichtiger Tabellenkopf (globale th nutzen sonst halbtransparentes Muted) */
-.summary-overview .table-container thead {
+/* Scroll-Tabellen: undurchsichtiger Tabellenkopf (globale th nutzen sonst halbtransparentes Muted) */
+.table-container--opaque-thead thead {
   position: static;
 }
 
-.summary-overview .table-container thead th {
+.table-container--opaque-thead thead th {
   position: sticky;
   top: 0;
   z-index: 25;
-  /* vollständiges `background` überschreibt globales th (sonst halbtransparentes Muted) */
   background: hsl(var(--muted));
   box-shadow: 0 1px 0 var(--border);
 }

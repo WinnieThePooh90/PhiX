@@ -570,7 +570,7 @@ export default function SettingsView() {
                       : `Keine Schüler der Stufe ${rosterGradeFilter} in der Verwaltung, die noch nicht im Kurs sind.`}
               </p>
             ) : (
-              <div className="table-container" style={{ margin: 0, maxHeight: 'min(22rem, 50vh)', overflow: 'auto' }}>
+              <div className="table-container table-container--opaque-thead" style={{ margin: 0, maxHeight: 'min(22rem, 50vh)', overflow: 'auto' }}>
                 <table>
                   <thead>
                     <tr>
@@ -612,7 +612,7 @@ export default function SettingsView() {
           )}
 
           <div
-            className="table-container"
+            className="table-container table-container--opaque-thead"
             style={{
               marginTop: '1.75rem',
               paddingTop: '1.25rem',

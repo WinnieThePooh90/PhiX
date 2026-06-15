@@ -421,7 +421,7 @@ export default function AnalysisView() {
           <>
             <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              Schüler mit berechneter Gesamtnote ≥ 4,5 (sehr schlecht bis ungenügend).
+              Schüler mit berechneter Gesamtnote ≥ 4,5.
             </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : starkGefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={starkGefaehrdet} gradeColor="var(--danger)" gradeSystem={gradeSys} {...riskTableProps} />
@@ -431,7 +431,7 @@ export default function AnalysisView() {
 
             <h4 style={{ margin: '1.25rem 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              Schüler mit berechneter Gesamtnote ≥ 4,0 und &lt; 4,5 (mangelhaft bis ausreichend).
+              Schüler mit berechneter Gesamtnote ≥ 4,0 und &lt; 4,5.
             </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : gefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={gefaehrdet} gradeColor="hsl(28 78% 32%)" gradeSystem={gradeSys} {...riskTableProps} />
