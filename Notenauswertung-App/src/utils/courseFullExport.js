@@ -5,7 +5,7 @@ import { buildOralStandardTableExportData, oralExportSheetName } from './oralTab
 import { buildGfsTableExportData, gfsExportSheetName } from './gfsTableExport';
 
 /**
- * @typedef {{ name: string, aoa: (string|number)[][] }} ExportSheet
+ * @typedef {{ name: string, aoa: (string|number)[][], layout?: { colWidths?: number[], centerColumnIndexes?: number[], nameColumnIndex?: number } }} ExportSheet
  */
 
 /**
@@ -36,6 +36,7 @@ export function buildCourseFullExportSheets({
   sheets.push({
     name: 'Übersicht',
     aoa: [summary.headers, ...summary.rows],
+    layout: summary.layout,
   });
 
   const examIds = Object.keys(exams ?? {}).sort((a, b) => Number(a) - Number(b));
@@ -67,6 +68,7 @@ export function buildCourseFullExportSheets({
     sheets.push({
       name: oralExportSheetName(id, oral.name),
       aoa: [oralData.headers, ...oralData.rows],
+      layout: oralData.layout,
     });
   }
 

@@ -6,9 +6,21 @@ import {
 } from './calculator';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
 
+/** Excel-Layout: # und Notenspalten zentriert, Name/Vorname links. */
+export function buildSummaryOverviewExportLayout(showTests) {
+  const colCount = showTests ? 9 : 8;
+  const centerColumnIndexes = [0];
+  for (let c = 3; c < colCount; c += 1) centerColumnIndexes.push(c);
+  const colWidths = Array.from({ length: colCount }, () => 12);
+  colWidths[0] = 6;
+  colWidths[1] = 18;
+  colWidths[2] = 14;
+  return { colWidths, centerColumnIndexes, nameColumnIndex: 1 };
+}
+
 /**
  * Tabellendaten der Gesamtübersicht (Übersicht) für Export — gleiche Spalten wie in SummaryView.
- * @returns {{ headers: string[], rows: (string|number)[][] }}
+ * @returns {{ headers: string[], rows: (string|number)[][], layout: ReturnType<typeof buildSummaryOverviewExportLayout> }}
  */
 export function buildSummaryOverviewExportData({
   students,
@@ -76,7 +88,7 @@ export function buildSummaryOverviewExportData({
     { textColumnIndex: 1 },
   );
 
-  return { headers, rows };
+  return { headers, rows, layout: buildSummaryOverviewExportLayout(showTests) };
 }
 
 export { summaryOverviewExportFilename } from './exportFilenames';

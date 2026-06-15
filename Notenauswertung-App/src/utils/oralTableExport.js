@@ -10,9 +10,18 @@ function studentNameCell(s) {
   return `${s.lastName ?? ''}, ${s.firstName ?? ''}`.replace(/^,\s*|,\s*$/g, '').trim() || '—';
 }
 
+/** Excel-Layout: # und Note zentriert, Name links. */
+export function buildOralStandardExportLayout() {
+  return {
+    colWidths: [6, 32, 12],
+    centerColumnIndexes: [0, 2],
+    nameColumnIndex: 1,
+  };
+}
+
 /**
  * Mündliche Noten — nur Standardtabelle (#, Name, Note), ohne Erweitert-Modus.
- * @returns {{ headers: string[], rows: (string|number)[][] } | null}
+ * @returns {{ headers: string[], rows: (string|number)[][], layout: ReturnType<typeof buildOralStandardExportLayout> } | null}
  */
 export function buildOralStandardTableExportData({ oral, students, config }) {
   if (!oral || oral.extended) return null;
@@ -39,7 +48,7 @@ export function buildOralStandardTableExportData({ oral, students, config }) {
     { textColumnIndex: 1 },
   );
 
-  return { headers, rows };
+  return { headers, rows, layout: buildOralStandardExportLayout() };
 }
 
 export function oralExportSheetName(oralId, oralName) {

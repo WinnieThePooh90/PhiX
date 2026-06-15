@@ -164,7 +164,7 @@ export default function ExportView() {
 
   const exportSummary = (format) =>
     runExport(`summary-${format}`, async () => {
-      const sheetData = buildSummaryOverviewExportData({
+      const { headers, rows, layout } = buildSummaryOverviewExportData({
         students,
         exams,
         orals,
@@ -173,11 +173,12 @@ export default function ExportView() {
         gfsEntries,
         config,
       });
+      const sheetData = { headers, rows };
       const filename = summaryOverviewExportFilename(config, format);
       if (format === 'pdf') {
         downloadSheetDataPdf(sheetData, 'Übersicht', filename);
       } else {
-        downloadSheetDataXlsx(sheetData, 'Übersicht', filename);
+        downloadSheetDataXlsx(sheetData, 'Übersicht', filename, layout);
       }
       return filename;
     });
@@ -232,12 +233,13 @@ export default function ExportView() {
         setErr('Erweiterte mündliche Bereiche können nicht im Standardformat exportiert werden.');
         return null;
       }
+      const { headers, rows, layout } = sheetData;
       const sheetName = oralExportSheetName(oralId, oral?.name);
       const filename = oralExportFilename(config, oralId, oral?.name, format);
       if (format === 'pdf') {
-        downloadSheetDataPdf(sheetData, sheetName, filename);
+        downloadSheetDataPdf({ headers, rows }, sheetName, filename);
       } else {
-        downloadSheetDataXlsx(sheetData, sheetName, filename);
+        downloadSheetDataXlsx({ headers, rows }, sheetName, filename, layout);
       }
       return filename;
     });
