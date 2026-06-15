@@ -3396,9 +3396,36 @@ button.school-roster-control-btn.danger {
   color: var(--foreground);
 }
 
-/* Klausur-Analyse: keine gleich hohen Karten — vermeidet unnötiges Scrollen in Spalten */
+/* Klausur-Analyse: alle Diagramm-Karten gleich hoch (Höhe des höchsten Panels) */
 .exam-charts-grid {
-  align-items: start;
+  align-items: stretch;
+}
+
+.exam-charts-grid > .exam-charts-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.exam-charts-panel__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.exam-charts-panel__body--centered {
+  justify-content: center;
+}
+
+.exam-charts-panel__chart {
+  flex-shrink: 0;
+}
+
+.exam-charts-panel__footnote {
+  flex-shrink: 0;
 }
 
 /* Klick-Popover über dem Modal (Portal), nicht von .exam-charts-modal-dialog overflow abgeschnitten */

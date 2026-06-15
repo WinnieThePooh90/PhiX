@@ -648,7 +648,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
   );
 }
 
-export default function SummaryView({ studentIdFilterSet = null }) {
+export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis }) {
   const { students, exams, orals, tests, projects, gfsEntries, config, setConfig, updateStudentConfig } = useData();
 
   const displayStudents = useMemo(() => {
@@ -708,6 +708,14 @@ export default function SummaryView({ studentIdFilterSet = null }) {
           </div>
         </div>
         <div className="view-toolbar-actions">
+          <button
+            type="button"
+            className="tab secondary course-meta-inline-btn"
+            onClick={() => onOpenAnalysis?.()}
+            title="Klassenanalyse (Notenverteilung, Klassendurchschnitt, Gefährdete Schüler)"
+          >
+            Analyse
+          </button>
           <button
             type="button"
             className="tab secondary course-meta-inline-btn"

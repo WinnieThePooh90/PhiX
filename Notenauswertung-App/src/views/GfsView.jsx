@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
@@ -9,6 +9,7 @@ import {
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
+import { useDialog } from '../components/PhixDialog';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
 function gfsNotePointsDisplay(note) {
@@ -16,8 +17,9 @@ function gfsNotePointsDisplay(note) {
   return String(note).trim();
 }
 
-export default function GfsView() {
+export default function GfsView({ studentIdFilterSet = null }) {
   const { students, gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry, config } = useData();
+  const { showConfirm } = useDialog();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [gfsNoteEditingId, setGfsNoteEditingId] = useState(null);
@@ -27,6 +29,11 @@ export default function GfsView() {
 
   const usedStudentIds = new Set(gfsEntries.map((e) => e.studentId));
   const availableStudents = students.filter((s) => !usedStudentIds.has(s.id));
+
+  const displayEntries = useMemo(() => {
+    if (studentIdFilterSet == null) return gfsEntries;
+    return gfsEntries.filter((e) => studentIdFilterSet.has(e.studentId));
+  }, [gfsEntries, studentIdFilterSet]);
 
   useEffect(() => {
     if (!pickerOpen) return undefined;
@@ -43,6 +50,12 @@ export default function GfsView() {
   const handlePickStudent = async (studentId) => {
     await addGfsEntry(studentId);
     setPickerOpen(false);
+  };
+
+  const handleRemoveEntry = async (entryId) => {
+    const ok = await showConfirm('Eintrag löschen?', { title: 'Eintrag löschen', danger: true });
+    if (!ok) return;
+    await removeGfsEntry(entryId);
   };
 
   /** Anzeige und Speicherung: Dezimaltrenner immer Punkt (Komma wird ersetzt). */
@@ -173,7 +186,14 @@ export default function GfsView() {
                   </td>
                 </tr>
               )}
-              {gfsEntries.map((row, idx) => {
+              {gfsEntries.length > 0 && displayEntries.length === 0 && (
+                <tr>
+                  <td colSpan="9" className="text-center text-muted" style={{ padding: '2rem' }}>
+                    Kein Schüler entspricht der Suche.
+                  </td>
+                </tr>
+              )}
+              {displayEntries.map((row, idx) => {
                 const st = students.find((s) => s.id === row.studentId);
                 const name = st ? `${st.lastName}, ${st.firstName}` : `Schüler #${row.studentId}`;
                 const gehalten = row.gehalten === true;
@@ -293,7 +313,7 @@ export default function GfsView() {
                       <button
                         type="button"
                         className="danger secondary"
-                        onClick={() => removeGfsEntry(row.id)}
+                        onClick={() => handleRemoveEntry(row.id)}
                         title="Eintrag entfernen"
                         aria-label={`GFS-Eintrag entfernen (${name})`}
                         style={{

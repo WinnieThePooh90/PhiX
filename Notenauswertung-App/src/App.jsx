@@ -364,9 +364,14 @@ function App() {
       case 'projects':
         return <ProjectsView studentIdFilterSet={studentIdFilterSet} />;
       case 'gfs':
-        return <GfsView />;
+        return <GfsView studentIdFilterSet={studentIdFilterSet} />;
       case 'summary':
-        return <SummaryView studentIdFilterSet={studentIdFilterSet} />;
+        return (
+          <SummaryView
+            studentIdFilterSet={studentIdFilterSet}
+            onOpenAnalysis={() => openMainTab('analysis')}
+          />
+        );
       case 'keys':
         return <KeysView />;
       case 'schoolRoster':
@@ -818,7 +823,7 @@ function App() {
                       placeholder="Schüler suchen (Name, Nr.)…"
                       value={headerSearch}
                       onChange={(e) => setHeaderSearch(e.target.value)}
-                      aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
+                      aria-label="Schüler in Übersicht, Klausuren, Mündlich, Tests, Projekte und GFS nach Vorname, Nachname oder Nummer filtern"
                     />
                   </div>
                 </div>
@@ -840,7 +845,7 @@ function App() {
                           placeholder="Schüler suchen (Name, Nr.)…"
                           value={headerSearch}
                           onChange={(e) => setHeaderSearch(e.target.value)}
-                          aria-label="Schüler in Übersicht, Klausuren, Mündlich und Tests nach Vorname, Nachname oder Nummer filtern"
+                          aria-label="Schüler in Übersicht, Klausuren, Mündlich, Tests, Projekte und GFS nach Vorname, Nachname oder Nummer filtern"
                         />
                       </div>
                     </div>

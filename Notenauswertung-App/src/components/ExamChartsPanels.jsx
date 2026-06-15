@@ -91,9 +91,8 @@ export default function ExamChartsPanels({
 
   const maxCount = Math.max(...distributionKeys.map((k) => countForBucket(k)), 1);
 
-  /** Genug Höhe für Y-Skala; Zähler oberhalb der Balken bleiben im sichtbaren Bereich */
-  const distributionChartHeight = 'min(300px, min(42dvh, 360px))';
-  const taskChartHeight = 'min(280px, min(38dvh, 340px))';
+  /** Einheitliche Diagrammhöhe in allen Analyse-Karten */
+  const chartAreaHeight = 'min(300px, min(42dvh, 360px))';
 
   const barPopoverStudents = useMemo(() => {
     if (tooltipGrade === null || tooltipGrade === undefined) return [];
@@ -380,14 +379,16 @@ export default function ExamChartsPanels({
         </span>
       </div>
       <div className={`${showTaskAnalysis ? 'grid-3' : 'grid-2'} gap-8 exam-charts-grid`}>
-        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
+        <div className="glass-panel exam-charts-panel" style={{ borderTop: '4px solid var(--primary)' }}>
           <h3 className="mb-6">Notenverteilung</h3>
+          <div className="exam-charts-panel__body">
           <div
+            className="exam-charts-panel__chart"
             style={{
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'space-between',
-              height: distributionChartHeight,
+              height: chartAreaHeight,
               gap: gs === 'points' ? '0.15rem' : '0.12rem',
               padding: '0.35rem 0.25rem 0',
               marginTop: '0.25rem',
@@ -481,14 +482,16 @@ export default function ExamChartsPanels({
             })}
           </div>
           {gs === 'points' && (
-            <p className="text-muted" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
+            <p className="text-muted exam-charts-panel__footnote" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
               Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.
             </p>
           )}
+          </div>
         </div>
 
-        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)', paddingBottom: '2rem' }}>
+        <div className="glass-panel exam-charts-panel" style={{ borderTop: '4px solid var(--primary)' }}>
           <h3 className="mb-6">Bestehensquote</h3>
+          <div className="exam-charts-panel__body exam-charts-panel__body--centered">
           <div
             style={{
               display: 'flex',
@@ -496,6 +499,7 @@ export default function ExamChartsPanels({
               justifyContent: 'center',
               gap: '1rem',
               flexWrap: 'wrap',
+              width: '100%',
             }}
           >
             {(() => {
@@ -618,17 +622,20 @@ export default function ExamChartsPanels({
               );
             })()}
           </div>
+          </div>
         </div>
 
         {showTaskAnalysis ? (
-        <div className="glass-panel" style={{ borderTop: '4px solid var(--primary)' }}>
+        <div className="glass-panel exam-charts-panel" style={{ borderTop: '4px solid var(--primary)' }}>
           <h3 className="mb-6">Aufgabenanalyse</h3>
+          <div className="exam-charts-panel__body">
           <div
+            className="exam-charts-panel__chart"
             style={{
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'space-between',
-              height: taskChartHeight,
+              height: chartAreaHeight,
               gap: '0.3rem',
               padding: '0.35rem 0.3rem 0',
               overflowY: 'visible',
@@ -684,8 +691,8 @@ export default function ExamChartsPanels({
                   </div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(successPercent)}%</div>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    {countedStudents > 0
-                      ? totalAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })
+                    {maxForTask > 0
+                      ? `max. ${maxForTask.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
                       : '—'}
                   </div>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
@@ -696,6 +703,7 @@ export default function ExamChartsPanels({
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
         ) : null}

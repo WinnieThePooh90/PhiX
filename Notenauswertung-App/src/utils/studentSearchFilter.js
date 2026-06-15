@@ -1,5 +1,5 @@
 /**
- * Schülerfilter für Tabellen (Übersicht, Klausuren, Mündlich, Tests).
+ * Schülerfilter für Tabellen (Übersicht, Klausuren, Mündlich, Tests, Projekte, GFS).
  * - Leere Suche → `null` (alle Schüler).
  * - Nicht leere Suche → `Set` der passenden IDs (auch leeres Set, wenn niemand passt).
  */

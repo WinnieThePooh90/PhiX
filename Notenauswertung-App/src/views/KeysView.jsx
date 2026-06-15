@@ -14,6 +14,13 @@ import {
   nextAbiBaWue2026Mathematik100BeTemplateCloneIdentity,
   isAbiBaWue2026Mathematik100BeFamilyId,
 } from '../data/abiBaWu2026Mathematik100BeGradingKey';
+import {
+  VORLAGE_1_KEY,
+  VORLAGE_1_DESC,
+  buildVorlage1Bands,
+  nextVorlage1TemplateCloneIdentity,
+  isVorlage1KeyFamilyId,
+} from '../data/vorlage1GradingKey';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { useDialog } from '../components/PhixDialog';
 
@@ -25,7 +32,7 @@ export default function KeysView() {
   const [editKey, setEditKey] = useState(null);
 
   const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
-  const customKeysWithBands = customKeys.filter((k) => k.bands?.length);
+  const customKeysWithBands = customKeys.filter((k) => k.bands?.length || isVorlage1KeyFamilyId(k.id));
 
   useEffect(() => {
     if (!modalOpen) setEditKey(null);
@@ -93,6 +100,20 @@ export default function KeysView() {
         id,
         name,
         bands: ABI_BAWUE_2026_100_BE_MATHEMATIK_KEY.bands.map((b) => ({ ...b })),
+      };
+      list.push(def);
+      return { ...c, customGradingKeys: list };
+    });
+  };
+
+  const handleAddVorlage1 = () => {
+    setConfig((c) => {
+      const list = Array.isArray(c.customGradingKeys) ? [...c.customGradingKeys] : [];
+      const { id, name } = nextVorlage1TemplateCloneIdentity(list);
+      const def = {
+        ...VORLAGE_1_KEY,
+        id,
+        name,
       };
       list.push(def);
       return { ...c, customGradingKeys: list };
@@ -193,6 +214,22 @@ export default function KeysView() {
             >
               Vorlage: ABI BaWü 2026 100 BE Mathematik
             </button>
+            <button
+              type="button"
+              className="tab secondary"
+              onClick={handleAddVorlage1}
+              style={{
+                width: '100%',
+                marginTop: '0.5rem',
+                padding: '0.55rem 1rem',
+                fontWeight: 600,
+                whiteSpace: 'normal',
+                textAlign: 'center',
+              }}
+              title="Punktgrenzen: RUNDEN(2·(−0,15·Note+1,05)·Max)/2; rechte Grenze = Max bzw. vorige linke − 0,5"
+            >
+              Vorlage: Vorlage 1
+            </button>
           </div>
         </div>
 
@@ -213,11 +250,15 @@ export default function KeysView() {
                     {refMismatchTip ? <WarningMarkWithTooltip text={refMismatchTip} /> : null}
                   </strong>
                   <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                    ({(k.bands || []).length} Stufen)
+                    {isVorlage1KeyFamilyId(k.id) ? '21 Stufen (Formel)' : `(${(k.bands || []).length} Stufen)`}
                   </span>
-                  <button type="button" className="tab secondary" style={{ marginLeft: 'auto' }} onClick={() => openEdit(k)}>
-                    Bearbeiten
-                  </button>
+                  {!isVorlage1KeyFamilyId(k.id) ? (
+                    <button type="button" className="tab secondary" style={{ marginLeft: 'auto' }} onClick={() => openEdit(k)}>
+                      Bearbeiten
+                    </button>
+                  ) : (
+                    <span style={{ marginLeft: 'auto' }} />
+                  )}
                   <button type="button" className="tab secondary" onClick={() => handleDeleteKey(k.id)}>
                     Löschen
                   </button>
@@ -235,8 +276,12 @@ export default function KeysView() {
             type="1"
             maxPoints={maxPoints}
             title={k.name}
-            desc="Benutzerdefinierter Schlüssel (Intervalle in % der Klausur-Maximalpunkte)"
-            customBands={k.bands}
+            desc={
+              isVorlage1KeyFamilyId(k.id)
+                ? VORLAGE_1_DESC
+                : 'Benutzerdefinierter Schlüssel (Intervalle in % der Klausur-Maximalpunkte)'
+            }
+            customBands={isVorlage1KeyFamilyId(k.id) ? buildVorlage1Bands(maxPoints) : k.bands}
             pktIntegerDisplay={!!k.pktIntegerDisplay || isAbiBaWue2026KeyFamilyId(k.id) || isAbiBaWue2026Mathematik100BeFamilyId(k.id)}
             titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(k.id, maxPoints)}
           />

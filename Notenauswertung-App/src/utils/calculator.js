@@ -4,6 +4,7 @@
  */
 
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
+import { gradeFromVorlage1Points, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
 
 const EXAM_SCORE_META_KEYS = new Set([
   '_counted',
@@ -714,6 +715,10 @@ export const calculateGradeFromThresholds = (points, maxPoints, type, overrideTh
     return Number.isFinite(p) ? 6.0 : null;
   }
   const percent = (p / max) * 100;
+
+  if (customKey && isVorlage1KeyFamilyId(customKey.id)) {
+    return gradeFromVorlage1Points(p, max);
+  }
 
   if (typeof type === 'string' && type.startsWith(CUSTOM_KEY_PREFIX) && (!customKey || !customKey.bands?.length)) {
     return calculateGradeFromThresholds(points, maxPoints, '1', null, null);
