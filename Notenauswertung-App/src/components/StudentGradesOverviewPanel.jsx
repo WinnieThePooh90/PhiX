@@ -2,6 +2,8 @@ import React from 'react';
 import {
   calculateStudentGrades,
   formatGrade,
+  formatCalculatedGradeValue,
+  calculatedGradeDisplayOpts,
   isGradeWorseThan4,
   getExamGradeForStudent,
   getTestGradeForStudent,
@@ -106,7 +108,7 @@ export default function StudentGradesOverviewPanel({
       }}
     >
       {GRADE_OVERVIEW_CATEGORIES.map((cat, catIdx) => {
-        const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+        const { examAvg, oralAvg, testAvg, finalGrade, valuesAreNotenpunkte } = calculateStudentGrades(
           student.id,
           exams,
           orals,
@@ -119,6 +121,8 @@ export default function StudentGradesOverviewPanel({
           testsWritten,
           projects,
         );
+        const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
+        const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
         const rounded = finalGrade !== null ? Math.round(finalGrade) : null;
         const writtenProjects = filterProjectsForSummary(projects, 'written', cat.filter);
         const oralProjects = filterProjectsForSummary(projects, 'oral', cat.filter);
@@ -132,22 +136,22 @@ export default function StudentGradesOverviewPanel({
             <div style={{ marginBottom: compact ? '1rem' : '1.25rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>
               <h3 style={{ fontSize: titleSize, margin: 0 }}>{cat.label}</h3>
               <div style={{ fontSize: finalSize, fontWeight: 'bold', marginTop: '0.25rem' }}>
-                <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmt(finalGrade)}</span>
+                <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmtCalc(finalGrade)}</span>
                 {' '}
                 <span
                   style={{
                     fontSize: compact ? '0.82rem' : '0.9rem',
                     fontWeight: 'normal',
-                    color: rounded !== null && isGradeWorseThan4(rounded, gradeSys) ? 'var(--danger)' : 'var(--text-muted)',
+                    color: rounded !== null && isGradeWorseThan4(rounded, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--text-muted)',
                   }}
                 >
-                  ({rounded !== null ? gfmt(rounded) : '-'})
+                  ({rounded !== null ? gfmtCalc(rounded) : '-'})
                 </span>
               </div>
             </div>
 
             <div className="mb-4">
-              <h4 style={sectionTitleStyle()}>Schriftlich ({gfmt(examAvg)})</h4>
+              <h4 style={sectionTitleStyle()}>Schriftlich ({gfmtCalc(examAvg)})</h4>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {Object.entries(exams)
                   .filter(([_, e]) => e.active && (!cat.filter || e.halbjahr === cat.filter))
@@ -186,7 +190,7 @@ export default function StudentGradesOverviewPanel({
             </div>
 
             <div className="mb-4">
-              <h4 style={sectionTitleStyle()}>Mündlich ({gfmt(oralAvg)})</h4>
+              <h4 style={sectionTitleStyle()}>Mündlich ({gfmtCalc(oralAvg)})</h4>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {Object.entries(orals)
                   .filter(([_, o]) => o.active !== false && (!cat.filter || o.halbjahr === cat.filter))
@@ -208,7 +212,7 @@ export default function StudentGradesOverviewPanel({
 
             {testsWritten && (
               <div>
-                <h4 style={sectionTitleStyle()}>Tests ({gfmt(testAvg)})</h4>
+                <h4 style={sectionTitleStyle()}>Tests ({gfmtCalc(testAvg)})</h4>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {Object.entries(tests)
                     .filter(([_, t]) => t.active && (!cat.filter || t.halbjahr === cat.filter))

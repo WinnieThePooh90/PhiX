@@ -6,6 +6,8 @@ import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
   formatGrade,
+  formatCalculatedGradeValue,
+  calculatedGradeDisplayOpts,
   isGradeWorseThan4,
   getGradeCellBackground,
   getGradeTextColor,
@@ -488,6 +490,8 @@ function SummaryStudentCalculationModal({
     config?.testsWritten !== false,
     projects,
   );
+  const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, breakdown.valuesAreNotenpunkte);
+  const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
   const gfmt = (g) => formatGrade(g, gradeSys);
 
   return createPortal(
@@ -551,8 +555,8 @@ function SummaryStudentCalculationModal({
             <h3 className="calc-modal-section-title">Ergebnis</h3>
             <p className="calc-modal-result">
               Endnote (Exakt):{' '}
-              <span style={{ color: isGradeWorseThan4(breakdown.finalGrade, gradeSys) ? 'var(--danger)' : 'var(--primary)' }}>
-                {gfmt(breakdown.finalGrade)}
+              <span style={{ color: isGradeWorseThan4(breakdown.finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--primary)' }}>
+                {gfmtCalc(breakdown.finalGrade)}
               </span>
             </p>
           </section>
@@ -661,6 +665,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
     Number.isFinite(Number(weighting?.tests));
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const gfmt = (g) => formatGrade(g, gradeSys);
+  const gfmtCalc = (g, valuesAreNotenpunkte) =>
+    formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
 
   const toggleRow = (id) => {
@@ -795,7 +801,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
               </tr>
             )}
             {displayStudents.map((s, idx) => {
-              const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+              const { examAvg, oralAvg, testAvg, finalGrade, valuesAreNotenpunkte } = calculateStudentGrades(
                 s.id,
                 exams,
                 orals,
@@ -808,6 +814,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 config.testsWritten !== false,
                 projects,
               );
+              const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
               const isExpanded = expandedStudentId === s.id;
               
@@ -848,26 +855,26 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     </td>
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
-                    <td className="text-center" style={{ background: getGradeCellBackground(examAvg, gradeSys) }}>
-                      <span style={{ color: isGradeWorseThan4(examAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(examAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(examAvg)}</span>
+                    <td className="text-center" style={{ background: getGradeCellBackground(examAvg, gradeSys, calcOpts) }}>
+                      <span style={{ color: isGradeWorseThan4(examAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(examAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtCalc(examAvg, valuesAreNotenpunkte)}</span>
                     </td>
-                    <td className="text-center" style={{ background: getGradeCellBackground(oralAvg, gradeSys) }}>
-                      <span style={{ color: isGradeWorseThan4(oralAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(oralAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(oralAvg)}</span>
+                    <td className="text-center" style={{ background: getGradeCellBackground(oralAvg, gradeSys, calcOpts) }}>
+                      <span style={{ color: isGradeWorseThan4(oralAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(oralAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtCalc(oralAvg, valuesAreNotenpunkte)}</span>
                     </td>
                     {showTests && (
-                      <td className="text-center" style={{ background: getGradeCellBackground(testAvg, gradeSys) }}>
-                        <span style={{ color: isGradeWorseThan4(testAvg, gradeSys) ? 'var(--danger)' : (getGradeTextColor(testAvg, gradeSys) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
+                      <td className="text-center" style={{ background: getGradeCellBackground(testAvg, gradeSys, calcOpts) }}>
+                        <span style={{ color: isGradeWorseThan4(testAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(testAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtCalc(testAvg, valuesAreNotenpunkte)}</span>
                       </td>
                     )}
                     <td
                       className="text-center"
                       style={{
-                        background: getGradeCellBackground(finalGrade, gradeSys) ?? (document.documentElement.getAttribute('data-theme') === 'dark' ? 'var(--surface)' : '#f8fafc'),
+                        background: getGradeCellBackground(finalGrade, gradeSys, calcOpts) ?? (document.documentElement.getAttribute('data-theme') === 'dark' ? 'var(--surface)' : '#f8fafc'),
                         fontWeight: 'bold',
                       }}
                     >
-                       <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys) ? 'var(--danger)' : (getGradeTextColor(finalGrade, gradeSys) || 'var(--foreground)') }}>
-                         {gfmt(finalGrade)}
+                       <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(finalGrade, gradeSys, calcOpts) || 'var(--foreground)') }}>
+                         {gfmtCalc(finalGrade, valuesAreNotenpunkte)}
                        </span>
                     </td>
                     {showHJ1 && (() => {

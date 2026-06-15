@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, barColorForNotenpunkte, storedGradeStringToClassic } from '../utils/calculator';
+import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -12,13 +12,21 @@ function barColorForNpBucket(np) {
 function distributionBucket(finalGrade, gradeSys) {
   if (finalGrade === null || Number.isNaN(Number(finalGrade))) return null;
   if (gradeSys === 'points') {
-    return gradeToNotenpunkte(finalGrade);
+    return Math.round(Math.min(15, Math.max(0, Number(finalGrade))));
   }
   return Math.min(6, Math.max(1, Math.round(Number(finalGrade))));
 }
 
 /** Analyse: manuelle Endnote, sonst Note HJ1, sonst berechnete Gesamtnote (Verteilung + Klassendurchschnitt). */
 function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
+  if (gradeSys === 'points') {
+    const manualEnd = storedGradeStringToNotenpunkte(student.summaryEndNote, gradeSys);
+    if (manualEnd !== null) return manualEnd;
+    const manualHj1 = storedGradeStringToNotenpunkte(student.summaryHJ1Note, gradeSys);
+    if (manualHj1 !== null) return manualHj1;
+    if (calculatedFinalGrade === null || Number.isNaN(Number(calculatedFinalGrade))) return null;
+    return Math.round(Number(calculatedFinalGrade));
+  }
   const manualEnd = storedGradeStringToClassic(student.summaryEndNote, gradeSys);
   if (manualEnd !== null) return manualEnd;
   const manualHj1 = storedGradeStringToClassic(student.summaryHJ1Note, gradeSys);
@@ -27,7 +35,11 @@ function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
   return Number(calculatedFinalGrade);
 }
 
-/** 1 = sehr gut, 6 = ungenügend — höhere Zahl = schlechter (Filter auf berechneter Gesamtnote, klassische Skala) */
+/** Klassisch: ≥ 4,5 stark gefährdet; Punktesystem: NP ≤ 4 */
+const STARK_GEFAEHRDET_NP_MAX = 4;
+/** Klassisch: 4,0–4,5 gefährdet; Punktesystem: NP 5–7 */
+const GEFAEHRDET_NP_MIN = 5;
+const GEFAEHRDET_NP_MAX = 7;
 const STARK_GEFAEHRDET_MIN = 4.5;
 const GEFAEHRDET_MIN = 4.0;
 const GEFAEHRDET_MAX_EXCLUSIVE = 4.5;
@@ -96,7 +108,7 @@ function RiskStudentsTable({
                   <td>{s.lastName}</td>
                   <td>{s.firstName}</td>
                   <td className="text-right" style={{ fontWeight: 600, color: gradeColor }}>
-                    {formatGrade(finalGrade, gradeSystem)}
+                    {formatCalculatedGradeValue(finalGrade, gradeSystem, gradeSystem === 'points')}
                   </td>
                 </tr>
                 {isExpanded && (
@@ -174,15 +186,21 @@ export default function AnalysisView() {
       })
       .filter(({ finalGrade }) => finalGrade !== null && !Number.isNaN(Number(finalGrade)));
 
-    const sortWorstFirst = (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0);
+    const sortWorstFirst = gradeSys === 'points'
+      ? (a, b) => (a.finalGrade ?? 16) - (b.finalGrade ?? 16)
+      : (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0);
 
     const stark = withGrade
-      .filter(({ finalGrade }) => Number(finalGrade) >= STARK_GEFAEHRDET_MIN)
+      .filter(({ finalGrade }) => {
+        const g = Number(finalGrade);
+        return gradeSys === 'points' ? g <= STARK_GEFAEHRDET_NP_MAX : g >= STARK_GEFAEHRDET_MIN;
+      })
       .sort(sortWorstFirst);
 
     const gef = withGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
+        if (gradeSys === 'points') return g >= GEFAEHRDET_NP_MIN && g <= GEFAEHRDET_NP_MAX;
         return g >= GEFAEHRDET_MIN && g < GEFAEHRDET_MAX_EXCLUSIVE;
       })
       .sort(sortWorstFirst);
@@ -472,7 +490,7 @@ export default function AnalysisView() {
                 lineHeight: 1.1,
               }}
             >
-              {classAverage === null ? '—' : formatGrade(classAverage, gradeSys)}
+              {classAverage === null ? '—' : formatCalculatedGradeValue(classAverage, gradeSys, gradeSys === 'points')}
             </span>
           </div>
         </div>

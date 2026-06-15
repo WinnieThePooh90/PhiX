@@ -1,6 +1,7 @@
 import {
   calculateStudentGrades,
   formatGrade,
+  formatCalculatedGradeValue,
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
@@ -49,12 +50,13 @@ export function buildSummaryOverviewExportData({
     `Endnote${npSuffix}`,
   ];
 
-  const fmt = (g) => (g === null || g === undefined ? '' : formatGrade(g, gradeSys));
+  const fmt = (g, valuesAreNotenpunkte = false) =>
+    g === null || g === undefined ? '' : formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
 
   const rows = expandRowsWithStudentNotes(
     students,
     (s, idx) => {
-      const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
+      const { examAvg, oralAvg, testAvg, finalGrade, valuesAreNotenpunkte } = calculateStudentGrades(
         s.id,
         exams,
         orals,
@@ -76,10 +78,10 @@ export function buildSummaryOverviewExportData({
         s.studentNumber ?? idx + 1,
         s.lastName ?? '',
         s.firstName ?? '',
-        fmt(examAvg),
-        fmt(oralAvg),
-        ...(showTests ? [fmt(testAvg)] : []),
-        fmt(finalGrade),
+        fmt(examAvg, valuesAreNotenpunkte),
+        fmt(oralAvg, valuesAreNotenpunkte),
+        ...(showTests ? [fmt(testAvg, valuesAreNotenpunkte)] : []),
+        fmt(finalGrade, valuesAreNotenpunkte),
         hj1Display,
         manualDisplay,
       ];
