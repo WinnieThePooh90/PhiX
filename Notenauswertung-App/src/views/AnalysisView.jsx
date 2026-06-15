@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, normalizeCourseGradeSystem, gradeToNotenpunkte, notenpunkteToGrade } from '../utils/calculator';
+import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
 function barColorForNpBucket(np) {
@@ -21,11 +22,25 @@ function distributionBucket(finalGrade, gradeSys) {
 }
 
 /** 1 = sehr gut, 6 = ungenügend — höhere Zahl = schlechter (Filter auf berechneter Gesamtnote, klassische Skala) */
-const STARK_GEFAEHRDET_MIN = 3.5;
-const GEFAEHRDET_GT = 3.0;
-const GEFAEHRDET_LT = 3.5;
+const STARK_GEFAEHRDET_MIN = 4.5;
+const GEFAEHRDET_MIN = 4.0;
+const GEFAEHRDET_MAX_EXCLUSIVE = 4.5;
 
-function RiskStudentsTable({ rows, gradeColor, gradeSystem }) {
+function RiskStudentsTable({
+  rows,
+  gradeColor,
+  gradeSystem,
+  expandedStudentId,
+  onToggleStudent,
+  exams,
+  orals,
+  tests,
+  projects,
+  gfsEntries,
+  weighting,
+  customGradingKeys,
+  testsWritten,
+}) {
   const npMode = gradeSystem === 'points';
   return (
     <div className="table-container" style={{ margin: 0 }}>
@@ -38,15 +53,47 @@ function RiskStudentsTable({ rows, gradeColor, gradeSystem }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ student: s, finalGrade }) => (
-            <tr key={s.id}>
-              <td>{s.lastName}</td>
-              <td>{s.firstName}</td>
-              <td className="text-right" style={{ fontWeight: 600, color: gradeColor }}>
-                {formatGrade(finalGrade, gradeSystem)}
-              </td>
-            </tr>
-          ))}
+          {rows.map(({ student: s, finalGrade }) => {
+            const isExpanded = expandedStudentId === s.id;
+            return (
+              <React.Fragment key={s.id}>
+                <tr
+                  onClick={() => onToggleStudent(s.id)}
+                  title="Klicken für Notenübersicht"
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    background: isExpanded ? 'rgba(79, 70, 229, 0.05)' : undefined,
+                  }}
+                >
+                  <td>{s.lastName}</td>
+                  <td>{s.firstName}</td>
+                  <td className="text-right" style={{ fontWeight: 600, color: gradeColor }}>
+                    {formatGrade(finalGrade, gradeSystem)}
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
+                    <td colSpan={3} style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+                      <StudentGradesOverviewPanel
+                        student={s}
+                        exams={exams}
+                        orals={orals}
+                        tests={tests}
+                        projects={projects}
+                        gfsEntries={gfsEntries}
+                        weighting={weighting}
+                        customGradingKeys={customGradingKeys}
+                        gradeSys={gradeSystem}
+                        testsWritten={testsWritten}
+                        compact
+                      />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -56,6 +103,26 @@ function RiskStudentsTable({ rows, gradeColor, gradeSystem }) {
 export default function AnalysisView() {
   const { students, exams, orals, tests, projects, gfsEntries, config } = useData();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
+  const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const testsWritten = config?.testsWritten !== false;
+  const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
+
+  const toggleRiskStudent = (id) => {
+    setExpandedRiskStudentId((prev) => (prev === id ? null : id));
+  };
+
+  const riskTableProps = {
+    expandedStudentId: expandedRiskStudentId,
+    onToggleStudent: toggleRiskStudent,
+    exams,
+    orals,
+    tests,
+    projects,
+    gfsEntries,
+    weighting: config?.weighting,
+    customGradingKeys,
+    testsWritten,
+  };
 
   const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
     if (!config?.weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
@@ -87,7 +154,7 @@ export default function AnalysisView() {
     const gef = withGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        return g > GEFAEHRDET_GT && g < GEFAEHRDET_LT;
+        return g >= GEFAEHRDET_MIN && g < GEFAEHRDET_MAX_EXCLUSIVE;
       })
       .sort(sortWorstFirst);
 
@@ -143,10 +210,7 @@ export default function AnalysisView() {
 
   return (
     <div className="view-generic-scroll" style={{ padding: '0 0 2rem' }}>
-      <h2 style={{ marginBottom: '0.35rem' }}>Analyse</h2>
-      <p className="text-muted" style={{ margin: '0 0 1.5rem', maxWidth: '100%' }}>
-        Auswertung der Klasse auf Basis der erfassten Klausuren, mündlichen Noten und Tests (gewichtet wie in den Einstellungen).
-      </p>
+      <h2 style={{ marginBottom: '1.5rem' }}>Analyse</h2>
 
       <div
         className="analysis-page-stack"
@@ -160,51 +224,22 @@ export default function AnalysisView() {
         }}
       >
       <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--danger-hsl))', minWidth: 0, width: '100%' }}>
-        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem' }}>Gefährdete Schüler</h3>
-        <p className="text-muted" style={{ margin: '0 0 1.25rem', fontSize: '0.875rem' }}>
-          {gradeSys === 'points' ? (
-            <>
-              Gewichteter Gesamtdurchschnitt je Schüler (Anzeige als Notenpunkte). Einstufung intern weiter über die Schulnote:{' '}
-              <strong>Stark gefährdet</strong> (Note ≥ 3,5, entspricht NP ≤ 4) und <strong>Gefährdet</strong> (Note zwischen 3,0 und 3,5, entspricht etwa NP 5).
-            </>
-          ) : (
-            <>
-              Gewichteter Gesamtdurchschnitt je Schüler. Zwei Stufen: <strong>Stark gefährdet</strong> (Ø schlechter oder gleich 3,5) und{' '}
-              <strong>Gefährdet</strong> (Ø schlechter als 3,0, aber besser als 3,5).
-            </>
-          )}
-        </p>
+        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Gefährdete Schüler</h3>
 
         {students.length === 0 ? (
           <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
         ) : (
           <>
-            <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
-            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem' }}>
-              {gradeSys === 'points' ? (
-                <>Berechnete Gesamtnote mindestens <strong>3,5</strong> (Schulnotenskala) — in der Tabelle als NP angezeigt.</>
-              ) : (
-                <>Durchschnitt <strong>≥ 3,5</strong> (numerisch schlechter oder gleich 3,5).</>
-              )}
-            </p>
+            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : starkGefaehrdet.length > 0 ? (
-              <RiskStudentsTable rows={starkGefaehrdet} gradeColor="var(--danger)" gradeSystem={gradeSys} />
+              <RiskStudentsTable rows={starkGefaehrdet} gradeColor="var(--danger)" gradeSystem={gradeSys} {...riskTableProps} />
             ) : (
               <p className="text-muted" style={{ margin: '0 0 1.25rem', fontSize: '0.875rem' }}>Keine Schüler in dieser Kategorie.</p>
             )}
 
-            <h4 style={{ margin: '1.25rem 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
-            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem' }}>
-              {gradeSys === 'points' ? (
-                <>Note <strong>&gt; 3,0</strong> und <strong>&lt; 3,5</strong> — Anzeige der Gesamtleistung als NP.</>
-              ) : (
-                <>
-                  Durchschnitt <strong>&gt; 3,0</strong> und <strong>&lt; 3,5</strong>.
-                </>
-              )}
-            </p>
+            <h4 style={{ margin: '1.25rem 0 0.75rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : gefaehrdet.length > 0 ? (
-              <RiskStudentsTable rows={gefaehrdet} gradeColor="hsl(28 78% 32%)" gradeSystem={gradeSys} />
+              <RiskStudentsTable rows={gefaehrdet} gradeColor="hsl(28 78% 32%)" gradeSystem={gradeSys} {...riskTableProps} />
             ) : (
               <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>Keine Schüler in dieser Kategorie.</p>
             )}
@@ -237,14 +272,12 @@ export default function AnalysisView() {
           {classAverage === null ? '—' : formatGrade(classAverage, gradeSys)}
         </p>
 
-        <h3 style={{ margin: '1.5rem 0 0.35rem', fontSize: '1.05rem' }}>Notenverteilung</h3>
-        <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-          {gradeSys === 'points' ? (
-            <>Je Schüler: Notenpunkte (0–15) aus der berechneten Gesamtnote; horizontale Achse = NP, vertikale Achse = Anzahl.</>
-          ) : (
-            <>Gerundete Gesamtnote pro Schüler (Noten 1–6 auf der horizontalen Achse, Anzahl auf der vertikalen Achse).</>
-          )}
-        </p>
+        <h3 style={{ margin: '1.5rem 0 0.75rem', fontSize: '1.05rem' }}>Notenverteilung</h3>
+        {gradeSys === 'points' ? (
+          <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+            Je Schüler: Notenpunkte (0–15) aus der berechneten Gesamtnote.
+          </p>
+        ) : null}
 
         {studentsWithGrade === 0 ? (
           <p className="text-muted" style={{ margin: 0 }}>Noch keine auswertbaren Gesamtnoten — Noten für Klausuren, Mündlich und Tests erfassen.</p>
@@ -276,9 +309,11 @@ export default function AnalysisView() {
                 const barColor =
                   gradeSys === 'points'
                     ? barColorForNpBucket(bucketKey)
-                    : bucketKey >= 4
-                      ? 'var(--danger)'
-                      : 'hsl(var(--success-hsl))';
+                    : bucketKey === 4
+                      ? '#f59e0b'
+                      : bucketKey >= 5
+                        ? 'var(--danger)'
+                        : 'hsl(var(--success-hsl))';
                 return (
                   <div
                     key={bucketKey}
@@ -349,20 +384,6 @@ export default function AnalysisView() {
                   </div>
                 );
               })}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginTop: '0.35rem',
-                paddingLeft: '0.15rem',
-                paddingRight: '0.15rem',
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <span>{gradeSys === 'points' ? 'Notenpunkte (0–15)' : 'Note (1–6)'}</span>
-              <span>Anzahl Schüler (max. {maxCount})</span>
             </div>
           </div>
         )}

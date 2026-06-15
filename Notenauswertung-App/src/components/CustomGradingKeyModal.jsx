@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import {
   buildBandsFromAnchorThresholds,
   normalizeGradeKeyThresholds,
@@ -9,6 +10,48 @@ import {
 import GradingKeyChart from './GradingKeyChart';
 import { isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
+
+function parseLocalizedNumber(raw) {
+  const n = parseFloat(String(raw).replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+function pointsToPercentWhole(ref, points) {
+  if (!(ref > 0)) return null;
+  const p = Number(points);
+  if (!Number.isFinite(p)) return null;
+  return Math.round(Math.min(100, Math.max(0, (p / ref) * 100)));
+}
+
+function getDisplayPktBounds(row, part, ref, pktIntegerDisplay) {
+  const loN = Number(row.lo);
+  const hiN = Number(row.hi);
+  if (!(ref > 0) || !Number.isFinite(loN) || !Number.isFinite(hiN)) {
+    return { minPkt: '', maxPkt: '' };
+  }
+  if (pktIntegerDisplay) {
+    return {
+      minPkt: String(Math.max(0, Math.min(ref, Math.ceil((ref * loN) / 100 - 1e-9)))),
+      maxPkt: String(Math.max(0, Math.min(ref, Math.floor((ref * hiN) / 100 + 1e-9)))),
+    };
+  }
+  if (part) {
+    return {
+      minPkt: formatPointsHalfStepDisplay(part.pktLo),
+      maxPkt: formatPointsHalfStepDisplay(part.pktHi),
+    };
+  }
+  const loPkt = Math.round(((ref * loN) / 100) * 2) / 2;
+  const hiPkt = Math.round(((ref * hiN) / 100) * 2) / 2;
+  return {
+    minPkt: formatPointsHalfStepDisplay(loPkt),
+    maxPkt: formatPointsHalfStepDisplay(hiPkt),
+  };
+}
+
+function cellDraftKey(gradeVal, field) {
+  return `${gradeVal}:${field}`;
+}
 
 function formatPointsHalfStepDisplay(n) {
   const x = Number(n);
@@ -63,6 +106,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
   const [anchorBad, setAnchorBad] = useState('');
   const [error, setError] = useState(null);
   const [pktIntegerDisplay, setPktIntegerDisplay] = useState(false);
+  const [cellDraft, setCellDraft] = useState({});
 
   useEffect(() => {
     if (!open) return undefined;
@@ -76,6 +120,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setCellDraft({});
     if (initialKey?.bands?.length) {
       setName(initialKey.name || '');
       setRefMax(Number(initialKey.referenceMaxPoints) > 0 ? Number(initialKey.referenceMaxPoints) : 50);
@@ -147,6 +192,31 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
     );
   };
 
+  const commitBandPoints = (gradeVal, bound, raw) => {
+    let pkt = parseLocalizedNumber(raw);
+    if (pkt === null) return;
+    const refVal = Math.max(1, Number(refMax) || 50);
+    if (pktIntegerDisplay) {
+      pkt = Math.round(pkt);
+    } else {
+      pkt = Math.round(pkt * 2) / 2;
+    }
+    pkt = Math.min(refVal, Math.max(0, pkt));
+    const pct = pointsToPercentWhole(refVal, pkt);
+    if (pct === null) return;
+    commitBandNumber(gradeVal, bound, pct);
+  };
+
+  const clearCellDraft = (gradeVal, field) => {
+    const key = cellDraftKey(gradeVal, field);
+    setCellDraft((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = name.trim();
@@ -216,9 +286,32 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
         }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h2 id="custom-key-modal-title" style={{ marginTop: 0 }}>
-          {initialKey ? 'Notenschlüssel bearbeiten' : 'Neuen Notenschlüssel erstellen'}
-        </h2>
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+          <h2 id="custom-key-modal-title" style={{ marginTop: 0, marginBottom: 0, paddingRight: '2.75rem' }}>
+            {initialKey ? 'Notenschlüssel bearbeiten' : 'Neuen Notenschlüssel erstellen'}
+          </h2>
+          <button
+            type="button"
+            className="tab secondary"
+            onClick={onClose}
+            aria-label="Schließen ohne Speichern"
+            title="Schließen"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '2rem',
+              height: '2rem',
+              minWidth: '2rem',
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={18} strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -251,7 +344,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
 
           <fieldset className="mb-4" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
             <legend className="text-muted" style={{ fontSize: '0.85rem' }}>
-              Schnellfüllung aus Ankern (wie Schlüssel 1–6)
+              Schnellerzeugen aus Ankern
             </legend>
             <div className="flex flex-wrap gap-3 mb-2" style={{ alignItems: 'flex-end' }}>
               <div>
@@ -280,10 +373,6 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
             </div>
           </fieldset>
 
-          <p className="text-muted mb-2" style={{ fontSize: '0.82rem', margin: 0 }}>
-            Prozent- und Punktgrenzen je Note (Referenz-Maximalpunkte). Spalten: Min/Max Pkt, Note, Min/Max %. Prozent: 0–100 % lückenlos. Min/Max Pkt: lückenloses 0,5-Punkte-Raster gemäß Notenzuordnung (keine doppelte Grenze zwischen zwei Noten).
-          </p>
-
           <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
             <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
               <thead>
@@ -300,28 +389,44 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
                   const row = bands.find((x) => Number(x.g) === Number(b.g)) || b;
                   const part = pktByGrade.get(normalizeQuarterGrade(b.g));
                   const gLabel = Number.isInteger(b.g) ? `${b.g},0` : String(b.g).replace('.', ',');
-                  const loN = Number(row.lo);
-                  const hiN = Number(row.hi);
-                  let minPkt = '–';
-                  let maxPkt = '–';
-                  if (ref > 0 && Number.isFinite(loN) && Number.isFinite(hiN)) {
-                    if (pktIntegerDisplay) {
-                      const a = Math.max(0, Math.min(ref, Math.ceil((ref * loN) / 100 - 1e-9)));
-                      const c = Math.max(0, Math.min(ref, Math.floor((ref * hiN) / 100 + 1e-9)));
-                      minPkt = String(a);
-                      maxPkt = String(c);
-                    } else if (part) {
-                      minPkt = formatPointsHalfStepDisplay(part.pktLo);
-                      maxPkt = formatPointsHalfStepDisplay(part.pktHi);
-                    }
-                  }
+                  const { minPkt, maxPkt } = getDisplayPktBounds(row, part, ref, pktIntegerDisplay);
+                  const minPktDraftKey = cellDraftKey(b.g, 'pktLo');
+                  const maxPktDraftKey = cellDraftKey(b.g, 'pktHi');
+                  const minPktValue = cellDraft[minPktDraftKey] ?? minPkt;
+                  const maxPktValue = cellDraft[maxPktDraftKey] ?? maxPkt;
                   return (
                     <tr key={`g-${b.g}`} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td className="text-muted" style={{ padding: '0.35rem' }}>
-                        {minPkt}
+                      <td style={{ padding: '0.35rem' }}>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={minPktValue}
+                          onChange={(e) =>
+                            setCellDraft((prev) => ({ ...prev, [minPktDraftKey]: e.target.value }))
+                          }
+                          onBlur={(e) => {
+                            commitBandPoints(b.g, 'lo', e.target.value);
+                            clearCellDraft(b.g, 'pktLo');
+                          }}
+                          style={{ width: '4.5rem', padding: '0.25rem', textAlign: 'center' }}
+                          aria-label={`Minimale Punkte für Note ${gLabel}`}
+                        />
                       </td>
-                      <td className="text-muted" style={{ padding: '0.35rem' }}>
-                        {maxPkt}
+                      <td style={{ padding: '0.35rem' }}>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={maxPktValue}
+                          onChange={(e) =>
+                            setCellDraft((prev) => ({ ...prev, [maxPktDraftKey]: e.target.value }))
+                          }
+                          onBlur={(e) => {
+                            commitBandPoints(b.g, 'hi', e.target.value);
+                            clearCellDraft(b.g, 'pktHi');
+                          }}
+                          style={{ width: '4.5rem', padding: '0.25rem', textAlign: 'center' }}
+                          aria-label={`Maximale Punkte für Note ${gLabel}`}
+                        />
                       </td>
                       <td style={{ padding: '0.35rem' }}>{gLabel}</td>
                       <td style={{ padding: '0.35rem' }}>
