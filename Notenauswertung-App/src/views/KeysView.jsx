@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import GradingKeyTable from '../components/GradingKeyTable';
 import CustomGradingKeyModal from '../components/CustomGradingKeyModal';
@@ -16,12 +16,15 @@ import {
 } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import {
   VORLAGE_1_KEY,
-  VORLAGE_1_DESC,
   buildVorlage1Bands,
   nextVorlage1TemplateCloneIdentity,
   isVorlage1KeyFamilyId,
 } from '../data/vorlage1GradingKey';
-import { getFormulaKeyDesc } from '../data/formulaGradingKey';
+import {
+  getBuiltinGradingKeyShortDesc,
+  getFormulaKeyHelpText,
+  getPlateauKeyShortDesc,
+} from '../data/gradingKeyDisplay';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { useDialog } from '../components/PhixDialog';
 
@@ -121,15 +124,18 @@ export default function KeysView() {
     });
   };
 
-  const keys = [
-    { title: 'Notenschlüssel 1', type: '1', desc: getFormulaKeyDesc('1') },
-    { title: 'Notenschlüssel 2', type: '2', desc: getFormulaKeyDesc('2') },
-    { title: 'Notenschlüssel 3', type: '3', desc: getFormulaKeyDesc('3') },
-    { title: 'Notenschlüssel 4', type: '4', desc: 'Note 2 ab 75% | Note 4 ab 45%' },
-    { title: 'Notenschlüssel 5', type: '5', desc: 'Note 2 ab 77% | Note 4 ab 47%' },
-    { title: 'Notenschlüssel 6', type: '6', desc: 'Note 2 ab 80% | Note 4 ab 50%' },
-    { title: 'ABI BaWü 2026 120 BE', type: 'abi' },
-  ];
+  const keys = useMemo(
+    () => [
+      { title: 'Plateau 1', type: '1', desc: getPlateauKeyShortDesc('1', maxPoints), titleHelpText: getFormulaKeyHelpText('1') },
+      { title: 'Plateau 2', type: '2', desc: getPlateauKeyShortDesc('2', maxPoints), titleHelpText: getFormulaKeyHelpText('2') },
+      { title: 'Plateau 3', type: '3', desc: getPlateauKeyShortDesc('3', maxPoints), titleHelpText: getFormulaKeyHelpText('3') },
+      { title: 'Linear 1', type: '4', desc: getBuiltinGradingKeyShortDesc('4', maxPoints) },
+      { title: 'Linear 2', type: '5', desc: getBuiltinGradingKeyShortDesc('5', maxPoints) },
+      { title: 'Linear 3', type: '6', desc: getBuiltinGradingKeyShortDesc('6', maxPoints) },
+      { title: 'ABI BaWü 2026 120 BE', type: 'abi' },
+    ],
+    [maxPoints],
+  );
 
   const standardKeyRows = keys.filter((k) => k.type !== 'abi');
   const abiKeyRows = keys.filter((k) => k.type === 'abi');
@@ -279,9 +285,10 @@ export default function KeysView() {
             title={k.name}
             desc={
               isVorlage1KeyFamilyId(k.id)
-                ? VORLAGE_1_DESC
+                ? getPlateauKeyShortDesc('1', maxPoints)
                 : 'Benutzerdefinierter Schlüssel (Intervalle in % der Klausur-Maximalpunkte)'
             }
+            titleHelpText={isVorlage1KeyFamilyId(k.id) ? getFormulaKeyHelpText('1') : null}
             customBands={isVorlage1KeyFamilyId(k.id) ? buildVorlage1Bands(maxPoints) : k.bands}
             pktIntegerDisplay={!!k.pktIntegerDisplay || isAbiBaWue2026KeyFamilyId(k.id) || isAbiBaWue2026Mathematik100BeFamilyId(k.id)}
             titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(k.id, maxPoints)}
@@ -297,6 +304,7 @@ export default function KeysView() {
               maxPoints={maxPoints}
               title={keyObj.title}
               desc={keyObj.desc}
+              titleHelpText={keyObj.titleHelpText}
             />
           ))}
       </div>

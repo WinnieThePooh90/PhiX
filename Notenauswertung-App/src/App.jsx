@@ -40,6 +40,7 @@ import UserSettingsView from './views/UserSettingsView';
 import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
+import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
 import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
 
@@ -121,6 +122,10 @@ function App() {
       return next;
     }, { replace });
   }, [setSearchParams, userTabKey]);
+
+  useEffect(() => {
+    installTableRowFocusHighlight();
+  }, []);
 
   useEffect(() => {
     const urlTab = searchParams.get('tab');

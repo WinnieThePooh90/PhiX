@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 
-const NOTENSYSTEM_HELP_TEXT =
-  'Beim Wechsel werden gespeicherte manuelle Noten (Endnote, mündliche Note, GFS) automatisch umgerechnet und in der Datenbank im jeweiligen Format abgelegt (klassisch: Viertelnoten als Text, Punktesystem: ganze Zahlen 0–15). Beim Wechsel auf Punktesystem erhalten Klausuren mit Plateau 1 den Standard „ABI BaWü 2026 120 BE“; beim Wechsel zurück auf klassisch werden Klausuren mit diesem Standard wieder auf Plateau 1 gesetzt. Andere Schlüssel bleiben unverändert. Neu angelegte Klausuren nutzen standardmäßig Plateau 1 (klassisch) bzw. ABI BaWü 2026 120 BE (Punktesystem).';
-
-/** Fragezeichen neben der Notensystem-Auswahl: Hilfetext als Tooltip-Popover */
-export default function NotensystemHelpButton() {
+/** Kleines „?“ rechts in der Notenschlüssel-Überschrift: Klick öffnet Erklärung als Popover. */
+export default function GradingKeyHelpButton({ text, ariaLabel = 'Berechnung des Notenschlüssels' }) {
   const uid = useId();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -25,38 +22,40 @@ export default function NotensystemHelpButton() {
     };
   }, [open]);
 
+  if (!text) return null;
+
   return (
-    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}>
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
       <button
         type="button"
         className="tab secondary"
-        aria-label="Hilfe zum Notensystem"
+        aria-label={ariaLabel}
         aria-expanded={open}
-        aria-controls={`${uid}-notensystem-help-tooltip`}
-        id={`${uid}-notensystem-help-trigger`}
+        aria-controls={`${uid}-grading-key-help`}
+        id={`${uid}-grading-key-help-trigger`}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
         }}
         style={{
-          width: '2rem',
-          height: '2rem',
-          minWidth: '2rem',
+          width: '1.65rem',
+          height: '1.65rem',
+          minWidth: '1.65rem',
           padding: 0,
           justifyContent: 'center',
           alignItems: 'center',
           borderRadius: '999px',
           fontWeight: 700,
-          fontSize: '0.95rem',
+          fontSize: '0.82rem',
           lineHeight: 1,
         }}
-        title="Hilfe anzeigen"
+        title="Berechnung anzeigen"
       >
         ?
       </button>
       {open ? (
         <div
-          id={`${uid}-notensystem-help-tooltip`}
+          id={`${uid}-grading-key-help`}
           role="tooltip"
           style={{
             position: 'absolute',
@@ -65,8 +64,8 @@ export default function NotensystemHelpButton() {
             left: 'auto',
             marginTop: '0.35rem',
             zIndex: 10050,
-            minWidth: '14rem',
-            maxWidth: 'min(32rem, calc(100vw - 2rem))',
+            minWidth: '12rem',
+            maxWidth: 'min(28rem, calc(100vw - 2rem))',
             padding: '0.65rem 0.75rem',
             fontSize: '0.82rem',
             fontWeight: 500,
@@ -79,7 +78,7 @@ export default function NotensystemHelpButton() {
             textAlign: 'left',
           }}
         >
-          {NOTENSYSTEM_HELP_TEXT}
+          {text}
         </div>
       ) : null}
     </span>

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import GradingKeyChart from './GradingKeyChart';
 import WarningMarkWithTooltip from './WarningMarkWithTooltip';
+import GradingKeyHelpButton from './GradingKeyHelpButton';
 import { ABI_BAWUE_2026_120_BE_KEY } from '../data/kmBwAbiPhysik2026GradingKey';
 import {
   resolveGradingThresholds,
@@ -26,6 +27,7 @@ export default function GradingKeyTable({
   customBands,
   pktIntegerDisplay = false,
   titleWarningTooltip = null,
+  titleHelpText = null,
 }) {
   const t = useMemo(() => resolveGradingThresholds(type, thresholdsOverride), [type, thresholdsOverride]);
   const max = parseFloat(maxPoints) || 0;
@@ -167,20 +169,32 @@ export default function GradingKeyTable({
       }}
     >
       <div className="grading-key-table__header" style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
-        <h3
+        <div
           style={{
-            margin: 0,
-            fontSize: '1.1rem',
-            color: 'var(--primary)',
             display: 'flex',
-            alignItems: 'baseline',
-            gap: '0.35rem',
-            flexWrap: 'wrap',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
           }}
         >
-          <span>{title}</span>
-          {titleWarningTooltip ? <WarningMarkWithTooltip text={titleWarningTooltip} /> : null}
-        </h3>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: '1.1rem',
+              color: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '0.35rem',
+              flexWrap: 'wrap',
+              flex: '1 1 auto',
+              minWidth: 0,
+            }}
+          >
+            <span>{title}</span>
+            {titleWarningTooltip ? <WarningMarkWithTooltip text={titleWarningTooltip} /> : null}
+          </h3>
+          {titleHelpText ? <GradingKeyHelpButton text={titleHelpText} /> : null}
+        </div>
         {desc && <p className="text-muted" style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', fontWeight: 'normal' }}>{desc}</p>}
       </div>
       <table style={{ margin: 0, fontSize: '0.85rem', width: '100%', borderCollapse: 'collapse' }}>

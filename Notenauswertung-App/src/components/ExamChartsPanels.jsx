@@ -94,6 +94,38 @@ export default function ExamChartsPanels({
   /** Einheitliche Diagrammhöhe in allen Analyse-Karten */
   const chartAreaHeight = 'min(300px, min(42dvh, 360px))';
 
+  const taskAnalysisData = useMemo(() => {
+    if (!showTaskAnalysis || displayFieldCount <= 0) return [];
+    return [...Array(displayFieldCount)].map((_, i) => {
+      const maxForTask = parseScorePointsValue(exam.fieldMaxPoints[i]);
+      const totalAchieved = students.reduce((acc, s) => {
+        const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+        if (i >= effN) return acc;
+        const { counted, fields } = getNormalizedExamScore(exam.scores?.[s.id], effN);
+        if (counted) return acc + parseScorePointsValue(fields[i]);
+        return acc;
+      }, 0);
+
+      const countedStudents = students.filter((s) => {
+        const effN = getStudentEffectiveExamFieldCount(exam, s.id);
+        if (i >= effN) return false;
+        return getNormalizedExamScore(exam.scores?.[s.id], effN).counted;
+      }).length;
+      const maxPossible = maxForTask * countedStudents;
+      const successPercent = maxPossible > 0 ? (totalAchieved / maxPossible) * 100 : 0;
+      const avgAchieved = countedStudents > 0 ? totalAchieved / countedStudents : null;
+      const barColor = successPercent >= 75 ? 'var(--success)' : successPercent >= 50 ? '#f59e0b' : 'var(--danger)';
+
+      return {
+        index: i,
+        maxForTask,
+        successPercent,
+        avgAchieved,
+        barColor,
+      };
+    });
+  }, [showTaskAnalysis, displayFieldCount, exam, students]);
+
   const barPopoverStudents = useMemo(() => {
     if (tooltipGrade === null || tooltipGrade === undefined) return [];
     return students.filter((s) => {
@@ -629,80 +661,42 @@ export default function ExamChartsPanels({
         <div className="glass-panel exam-charts-panel" style={{ borderTop: '4px solid var(--primary)' }}>
           <h3 className="mb-6">Aufgabenanalyse</h3>
           <div className="exam-charts-panel__body">
-          <div
-            className="exam-charts-panel__chart"
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              height: chartAreaHeight,
-              gap: '0.3rem',
-              padding: '0.35rem 0.3rem 0',
-              overflowY: 'visible',
-            }}
-          >
-            {[...Array(displayFieldCount)].map((_, i) => {
-              const maxForTask = parseScorePointsValue(exam.fieldMaxPoints[i]);
-              const totalAchieved = students.reduce((acc, s) => {
-                const effN = getStudentEffectiveExamFieldCount(exam, s.id);
-                if (i >= effN) return acc;
-                const { counted, fields } = getNormalizedExamScore(exam.scores?.[s.id], effN);
-                if (counted) return acc + parseScorePointsValue(fields[i]);
-                return acc;
-              }, 0);
-
-              const countedStudents = students.filter((s) => {
-                const effN = getStudentEffectiveExamFieldCount(exam, s.id);
-                if (i >= effN) return false;
-                return getNormalizedExamScore(exam.scores?.[s.id], effN).counted;
-              }).length;
-              const maxPossible = maxForTask * countedStudents;
-              const successPercent = maxPossible > 0 ? (totalAchieved / maxPossible) * 100 : 0;
-              const avgAchieved = countedStudents > 0 ? totalAchieved / countedStudents : null;
-
-              const barColor = successPercent >= 75 ? 'var(--success)' : successPercent >= 50 ? '#f59e0b' : 'var(--danger)';
-
-              return (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                  <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <div
-                      title={`Durchschnittlicher Erfolg: ${successPercent.toFixed(1)}%`}
-                      style={{
-                        width: '80%',
-                        height: `${Math.max(successPercent, 2)}%`,
-                        background: barColor,
-                        borderRadius: '2px 2px 0 0',
-                        transition: 'height 0.3s ease',
-                      }}
-                    />
-                  </div>
+          <div className="exam-task-analysis">
+            <div
+              className="exam-task-analysis__bars exam-charts-panel__chart"
+              style={{ height: chartAreaHeight }}
+            >
+              {taskAnalysisData.map(({ index, successPercent, barColor }) => (
+                <div key={index} className="exam-task-analysis__bar-col">
                   <div
+                    className="exam-task-analysis__bar"
+                    title={`Durchschnittlicher Erfolg: ${successPercent.toFixed(1)}%`}
                     style={{
-                      marginTop: '0.75rem',
-                      fontWeight: 'bold',
-                      borderTop: '2px solid #eee',
-                      width: '100%',
-                      textAlign: 'center',
-                      paddingTop: '0.5rem',
-                      fontSize: '0.75rem',
+                      height: `${Math.max(successPercent, 2)}%`,
+                      background: barColor,
                     }}
-                  >
-                    A{i + 1}
-                  </div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(successPercent)}%</div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="exam-task-analysis__labels">
+              {taskAnalysisData.map(({ index, successPercent, maxForTask, avgAchieved }) => (
+                <div key={index} className="exam-task-analysis__label-col">
+                  <div className="exam-task-analysis__label-title">A{index + 1}</div>
+                  <div className="exam-task-analysis__label-line">{Math.round(successPercent)}%</div>
+                  <div className="exam-task-analysis__label-line">
                     {maxForTask > 0
                       ? `max. ${maxForTask.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
                       : '—'}
                   </div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  <div className="exam-task-analysis__label-line">
                     {avgAchieved !== null
                       ? `Ø ${avgAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
                       : '—'}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
           </div>
         </div>

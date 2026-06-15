@@ -4,7 +4,13 @@ import { useData } from '../store/DataContext';
 import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import { buildVorlage1Bands, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
-import { getFormulaKeyDesc, isFormulaGradingKeyType } from '../data/formulaGradingKey';
+import {
+  getBuiltinGradingKeyTitle,
+  getBuiltinGradingKeyShortDesc,
+  getFormulaKeyHelpText,
+  getPlateauKeyShortDesc,
+  isPlateauGradingKeyType,
+} from '../data/gradingKeyDisplay';
 import {
   formatGrade,
   isGradeWorseThan4,
@@ -294,12 +300,12 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   value={test.keyType || '1'}
                   onChange={(e) => updateTest(activeTest, 'keyType', e.target.value)}
                 >
-                  <option value="1">Schlüssel 1</option>
-                  <option value="2">Schlüssel 2</option>
-                  <option value="3">Schlüssel 3</option>
-                  <option value="4">Schlüssel 4</option>
-                  <option value="5">Schlüssel 5</option>
-                  <option value="6">Schlüssel 6</option>
+                  <option value="1">Plateau 1</option>
+                  <option value="2">Plateau 2</option>
+                  <option value="3">Plateau 3</option>
+                  <option value="4">Linear 1</option>
+                  <option value="5">Linear 2</option>
+                  <option value="6">Linear 3</option>
                   <option value="abi">ABI BaWü 2026 120 BE</option>
                   {customKeysList.map((k) => (
                     <option key={k.id} value={`custom:${k.id}`}>
@@ -795,17 +801,24 @@ export default function TestsView({ studentIdFilterSet = null }) {
               <GradingKeyTable
                 type={sidebarCustomDef ? '1' : test.keyType || '1'}
                 maxPoints={maxPtsDisplay}
-                title="Aktueller Schlüssel"
+                title={
+                  sidebarCustomDef
+                    ? sidebarCustomDef.name
+                    : getBuiltinGradingKeyTitle(test.keyType) || 'Aktueller Schlüssel'
+                }
                 desc={
                   sidebarCustomDef
                     ? (isVorlage1KeyFamilyId(sidebarCustomDef.id)
-                        ? getFormulaKeyDesc('1')
+                        ? getPlateauKeyShortDesc('1', maxPtsDisplay)
                         : sidebarCustomDef.name)
                     : test.keyType === 'abi'
                       ? 'ABI BaWü 2026 120 BE'
-                      : isFormulaGradingKeyType(test.keyType)
-                        ? getFormulaKeyDesc(test.keyType)
-                        : `Schlüssel ${test.keyType || '1'}`
+                      : getBuiltinGradingKeyShortDesc(test.keyType, maxPtsDisplay) || `Schlüssel ${test.keyType || '1'}`
+                }
+                titleHelpText={
+                  sidebarCustomDef
+                    ? (isVorlage1KeyFamilyId(sidebarCustomDef.id) ? getFormulaKeyHelpText('1') : null)
+                    : (isPlateauGradingKeyType(test.keyType) ? getFormulaKeyHelpText(test.keyType) : null)
                 }
                 customBands={
                   sidebarCustomDef
