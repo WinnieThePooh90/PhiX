@@ -20,6 +20,7 @@ export function buildSummaryOverviewExportData({
 }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
+  const showTests = config?.testsWritten !== false;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const weighting = config?.weighting;
 
@@ -29,7 +30,7 @@ export function buildSummaryOverviewExportData({
     'Vorname',
     `Schriftlich${npSuffix}`,
     `Mündlich${npSuffix}`,
-    `Tests${npSuffix}`,
+    ...(showTests ? [`Tests${npSuffix}`] : []),
     `Endnote (Exakt)${npSuffix}`,
     `Endnote${npSuffix}`,
   ];
@@ -59,7 +60,7 @@ export function buildSummaryOverviewExportData({
       s.firstName ?? '',
       fmt(examAvg),
       fmt(oralAvg),
-      fmt(testAvg),
+      ...(showTests ? [fmt(testAvg)] : []),
       fmt(finalGrade),
       manualDisplay,
     ];

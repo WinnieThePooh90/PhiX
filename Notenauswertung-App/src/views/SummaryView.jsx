@@ -661,6 +661,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
   const [calculationStudent, setCalculationStudent] = useState(null);
   const [overviewMaximized, setOverviewMaximized] = useState(false);
   const showHJ1 = config?.summaryShowHJ1 !== false;
+  const showTests = config?.testsWritten !== false;
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
@@ -685,7 +686,7 @@ export default function SummaryView({ studentIdFilterSet = null }) {
     );
   }
 
-  const colCount = 7 + (showHJ1 ? 1 : 0) + 1;
+  const colCount = 6 + (showTests ? 1 : 0) + (showHJ1 ? 1 : 0) + 1;
 
   return (
     <div className="view-generic-scroll summary-overview">
@@ -761,9 +762,11 @@ export default function SummaryView({ studentIdFilterSet = null }) {
               <th className="text-center" style={{ width: '120px' }} title={`Nur mündliche Bereiche (Gewicht „Mündlich“)${gradeSys === 'points' ? ' — Anzeige Notenpunkte 0–15' : ''}`}>
                 Mündlich{npSuffix}
               </th>
-              <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Anzeige Notenpunkte 0–15' : undefined}>
-                Tests{npSuffix}
-              </th>
+              {showTests && (
+                <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Anzeige Notenpunkte 0–15' : undefined}>
+                  Tests{npSuffix}
+                </th>
+              )}
               <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Gewichteter Mittelwert — Anzeige Notenpunkte 0–15' : undefined}>
                 Endnote (Exakt){npSuffix}
               </th>
@@ -825,9 +828,11 @@ export default function SummaryView({ studentIdFilterSet = null }) {
                     <td className="text-center" style={{ background: getGradeCellBackground(oralAvg) }}>
                       <span style={{ color: isGradeWorseThan4(oralAvg) ? 'var(--danger)' : (getGradeTextColor(oralAvg) || 'var(--foreground)') }}>{gfmt(oralAvg)}</span>
                     </td>
-                    <td className="text-center" style={{ background: getGradeCellBackground(testAvg) }}>
-                      <span style={{ color: isGradeWorseThan4(testAvg) ? 'var(--danger)' : (getGradeTextColor(testAvg) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
-                    </td>
+                    {showTests && (
+                      <td className="text-center" style={{ background: getGradeCellBackground(testAvg) }}>
+                        <span style={{ color: isGradeWorseThan4(testAvg) ? 'var(--danger)' : (getGradeTextColor(testAvg) || 'var(--foreground)') }}>{gfmt(testAvg)}</span>
+                      </td>
+                    )}
                     <td
                       className="text-center"
                       style={{
