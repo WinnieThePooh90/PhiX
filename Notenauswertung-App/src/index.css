@@ -223,6 +223,19 @@ p {
   margin: 0 0 1.25rem;
 }
 
+.backup-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.backup-page-header .program-view-title {
+  margin-bottom: 0;
+}
+
 .program-view-stack {
   display: flex;
   flex-direction: column;

@@ -258,7 +258,7 @@ function BackupRestoreBlock({
 
 export default function BackupView() {
   const { currentUser, usersList } = useAuth();
-  const { showConfirm } = useDialog();
+  const { showConfirm, showAlert } = useDialog();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
   const username = currentUser?.username;
 
@@ -290,9 +290,21 @@ export default function BackupView() {
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
+  const showBackupLimitations = () => {
+    showAlert(
+      'Die Backups sind zwischen Standalone-Versionen und Serverversionen nicht zwingend kompatibel. Beachte also: Wenn du ein Backup auf einem Server erstellst (PostgreSQL), dann ist es mit einer weiteren Serverversion uneingeschränkt kompatibel, aber ein Aufspielen auf eine Standalone-Version (SQLite) ist nicht empfohlen. Das selbe gilt auch andersherum.',
+      { title: 'Einschränkungen' },
+    );
+  };
+
   return (
     <div className="view-generic-scroll program-view">
-      <h3 className="program-view-title">Backup</h3>
+      <div className="backup-page-header">
+        <h3 className="program-view-title">Backup</h3>
+        <button type="button" className="tab secondary" onClick={showBackupLimitations}>
+          Einschränkungen
+        </button>
+      </div>
       <p className="program-view-intro">
         Sichern und Wiederherstellen von Notendaten. Normale Benutzer verwalten nur die eigenen Kurse; der
         Administrator kann zusätzlich die gesamte Datenbank oder einzelne Benutzer sichern.
