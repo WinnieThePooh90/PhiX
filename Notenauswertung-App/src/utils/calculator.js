@@ -1181,9 +1181,9 @@ function calculateStudentGradesInNotenpunkte(
   if (wSum > 0) {
     const standardNp = (npAcc / wSum) * remainingFactor;
     const avgNp = standardNp + percentNpAcc;
-    finalGrade = Math.round(Math.min(15, Math.max(0, avgNp)));
+    finalGrade = Math.min(15, Math.max(0, avgNp));
   } else if (percentNpAcc > 0) {
-    finalGrade = Math.round(Math.min(15, Math.max(0, percentNpAcc)));
+    finalGrade = Math.min(15, Math.max(0, percentNpAcc));
   }
 
   return {
@@ -1770,7 +1770,7 @@ export function getStudentGradeCalculationBreakdown(
       if (finalGrade !== null) {
         steps.push({
           type: 'text',
-          text: `Endnote (Exakt) = NP ${fmtCalcNum(finalGrade, 0)}`,
+          text: `Endnote (Exakt) = NP ${fmtCalcNum(finalGrade, 2)}`,
         });
       }
     } else if (percentNpAcc > 0) {
@@ -1792,7 +1792,7 @@ export function getStudentGradeCalculationBreakdown(
       if (finalGrade !== null) {
         steps.push({
           type: 'text',
-          text: `Endnote (Exakt) = NP ${fmtCalcNum(finalGrade, 0)}`,
+          text: `Endnote (Exakt) = NP ${fmtCalcNum(finalGrade, 2)}`,
         });
       }
     } else {
