@@ -7,6 +7,7 @@ import {
   getStudentGradeCalculationBreakdown,
   formatGrade,
   formatCalculatedGradeValue,
+  formatOverviewCalculatedGrade,
   calculatedGradeDisplayOpts,
   isGradeWorseThan4,
   getGradeCellBackground,
@@ -490,7 +491,7 @@ function SummaryStudentCalculationModal({
     config?.testsWritten !== false,
     projects,
   );
-  const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, breakdown.valuesAreNotenpunkte);
+  const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, breakdown.valuesAreNotenpunkte);
   const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
   const gfmt = (g) => formatGrade(g, gradeSys);
 
@@ -556,7 +557,7 @@ function SummaryStudentCalculationModal({
             <p className="calc-modal-result">
               Endnote (Exakt):{' '}
               <span style={{ color: isGradeWorseThan4(breakdown.finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--primary)' }}>
-                {gfmtCalc(breakdown.finalGrade)}
+                {gfmtOverview(breakdown.finalGrade)}
               </span>
             </p>
           </section>
@@ -667,6 +668,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const gfmt = (g) => formatGrade(g, gradeSys);
   const gfmtCalc = (g, valuesAreNotenpunkte) =>
     formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
+  const gfmtOverview = (g, valuesAreNotenpunkte) =>
+    formatOverviewCalculatedGrade(g, gradeSys, valuesAreNotenpunkte);
 
   const toggleRow = (id) => {
     setExpandedStudentId(prev => prev === id ? null : id);
@@ -855,10 +858,10 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
                     <td className="text-center" style={{ background: getGradeCellBackground(examAvg, gradeSys, calcOpts) }}>
-                      <span style={{ color: isGradeWorseThan4(examAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(examAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtCalc(examAvg, valuesAreNotenpunkte)}</span>
+                      <span style={{ color: isGradeWorseThan4(examAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(examAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtOverview(examAvg, valuesAreNotenpunkte)}</span>
                     </td>
                     <td className="text-center" style={{ background: getGradeCellBackground(oralAvg, gradeSys, calcOpts) }}>
-                      <span style={{ color: isGradeWorseThan4(oralAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(oralAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtCalc(oralAvg, valuesAreNotenpunkte)}</span>
+                      <span style={{ color: isGradeWorseThan4(oralAvg, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(oralAvg, gradeSys, calcOpts) || 'var(--foreground)') }}>{gfmtOverview(oralAvg, valuesAreNotenpunkte)}</span>
                     </td>
                     {showTests && (
                       <td className="text-center" style={{ background: getGradeCellBackground(testAvg, gradeSys, calcOpts) }}>
@@ -873,7 +876,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                       }}
                     >
                        <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : (getGradeTextColor(finalGrade, gradeSys, calcOpts) || 'var(--foreground)') }}>
-                         {gfmtCalc(finalGrade, valuesAreNotenpunkte)}
+                         {gfmtOverview(finalGrade, valuesAreNotenpunkte)}
                        </span>
                     </td>
                     {showHJ1 && (() => {

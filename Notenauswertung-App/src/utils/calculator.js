@@ -2098,12 +2098,28 @@ export const formatGrade = (grade, gradeSystem = 'classic', opts) => {
 };
 
 /** Anzeige berechneter Übersichtswerte (Mittelwerte/Endnote aus `calculateStudentGrades`). */
-export const formatCalculatedGradeValue = (value, gradeSystem = 'classic', valuesAreNotenpunkte = false) => {
+export const formatCalculatedGradeValue = (value, gradeSystem = 'classic', valuesAreNotenpunkte = false, opts) => {
   if (value === null || value === undefined) return '-';
-  if (valuesAreNotenpunkte && normalizeCourseGradeSystem(gradeSystem) === 'points') {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (valuesAreNotenpunkte && gs === 'points') {
+    const dec = opts?.notenpunkteDecimals;
+    if (dec !== undefined && dec >= 0) {
+      const g = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
+      if (Number.isNaN(g)) return '-';
+      const clamped = Math.min(15, Math.max(0, g));
+      return dec === 0 ? String(Math.round(clamped)) : clamped.toFixed(dec);
+    }
     return formatGrade(value, 'points', { inputScale: 'notenpunkte' });
   }
   return formatGrade(value, gradeSystem);
+};
+
+/** Schriftlich, Mündlich, Endnote (Exakt) in der Übersicht — NP mit 2 Dezimalstellen. */
+export const formatOverviewCalculatedGrade = (value, gradeSystem = 'classic', valuesAreNotenpunkte = false) => {
+  if (valuesAreNotenpunkte && normalizeCourseGradeSystem(gradeSystem) === 'points') {
+    return formatCalculatedGradeValue(value, gradeSystem, true, { notenpunkteDecimals: 2 });
+  }
+  return formatCalculatedGradeValue(value, gradeSystem, valuesAreNotenpunkte);
 };
 
 /** Optionen für Farben/Anzeige bei Werten aus `calculateStudentGrades` im Punktesystem. */

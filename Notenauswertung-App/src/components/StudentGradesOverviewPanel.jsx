@@ -3,6 +3,7 @@ import {
   calculateStudentGrades,
   formatGrade,
   formatCalculatedGradeValue,
+  formatOverviewCalculatedGrade,
   calculatedGradeDisplayOpts,
   isGradeWorseThan4,
   getExamGradeForStudent,
@@ -123,6 +124,7 @@ export default function StudentGradesOverviewPanel({
         );
         const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
         const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
+        const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, valuesAreNotenpunkte);
         const rounded = finalGrade !== null ? Math.round(finalGrade) : null;
         const writtenProjects = filterProjectsForSummary(projects, 'written', cat.filter);
         const oralProjects = filterProjectsForSummary(projects, 'oral', cat.filter);
@@ -136,7 +138,7 @@ export default function StudentGradesOverviewPanel({
             <div style={{ marginBottom: compact ? '1rem' : '1.25rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>
               <h3 style={{ fontSize: titleSize, margin: 0 }}>{cat.label}</h3>
               <div style={{ fontSize: finalSize, fontWeight: 'bold', marginTop: '0.25rem' }}>
-                <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmtCalc(finalGrade)}</span>
+                <span style={{ color: isGradeWorseThan4(finalGrade, gradeSys, calcOpts) ? 'var(--danger)' : 'var(--foreground)' }}>{gfmtOverview(finalGrade)}</span>
                 {' '}
                 <span
                   style={{
@@ -151,7 +153,7 @@ export default function StudentGradesOverviewPanel({
             </div>
 
             <div className="mb-4">
-              <h4 style={sectionTitleStyle()}>Schriftlich ({gfmtCalc(examAvg)})</h4>
+              <h4 style={sectionTitleStyle()}>Schriftlich ({gfmtOverview(examAvg)})</h4>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {Object.entries(exams)
                   .filter(([_, e]) => e.active && (!cat.filter || e.halbjahr === cat.filter))
@@ -190,7 +192,7 @@ export default function StudentGradesOverviewPanel({
             </div>
 
             <div className="mb-4">
-              <h4 style={sectionTitleStyle()}>Mündlich ({gfmtCalc(oralAvg)})</h4>
+              <h4 style={sectionTitleStyle()}>Mündlich ({gfmtOverview(oralAvg)})</h4>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {Object.entries(orals)
                   .filter(([_, o]) => o.active !== false && (!cat.filter || o.halbjahr === cat.filter))
