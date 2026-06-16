@@ -361,20 +361,22 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                   onChange={(e) => updateExam(activeKlausur, 'date', e.target.value)}
                 />
               </div>
-              <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`exam-hj-${activeKlausur}`}>
-                  Halbjahr
-                </label>
-                <select
-                  id={`exam-hj-${activeKlausur}`}
-                  className="course-meta-control"
-                  value={exam.halbjahr || '1'}
-                  onChange={(e) => updateExam(activeKlausur, 'halbjahr', e.target.value)}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-              </div>
+              {!config?.kursstufe && (
+                <div className="course-meta-field">
+                  <label className="course-meta-field__label" htmlFor={`exam-hj-${activeKlausur}`}>
+                    Halbjahr
+                  </label>
+                  <select
+                    id={`exam-hj-${activeKlausur}`}
+                    className="course-meta-control"
+                    value={exam.halbjahr || '1'}
+                    onChange={(e) => updateExam(activeKlausur, 'halbjahr', e.target.value)}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select>
+                </div>
+              )}
               <div className="course-meta-field">
                 <label className="course-meta-field__label" htmlFor={`exam-key-${activeKlausur}`}>
                   Notenschlüssel

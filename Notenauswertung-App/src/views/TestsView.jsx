@@ -275,20 +275,22 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   onChange={(e) => updateTest(activeTest, 'date', e.target.value)}
                 />
               </div>
-              <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`test-hj-${activeTest}`}>
-                  Halbjahr
-                </label>
-                <select
-                  id={`test-hj-${activeTest}`}
-                  className="course-meta-control"
-                  value={test.halbjahr || '1'}
-                  onChange={(e) => updateTest(activeTest, 'halbjahr', e.target.value)}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-              </div>
+              {!config?.kursstufe && (
+                <div className="course-meta-field">
+                  <label className="course-meta-field__label" htmlFor={`test-hj-${activeTest}`}>
+                    Halbjahr
+                  </label>
+                  <select
+                    id={`test-hj-${activeTest}`}
+                    className="course-meta-control"
+                    value={test.halbjahr || '1'}
+                    onChange={(e) => updateTest(activeTest, 'halbjahr', e.target.value)}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select>
+                </div>
+              )}
               <div className="course-meta-field">
                 <label className="course-meta-field__label" htmlFor={`test-max-${activeTest}`}>
                   Maximalpunktzahl

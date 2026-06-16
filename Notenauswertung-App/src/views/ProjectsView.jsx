@@ -549,20 +549,22 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   />
                 </div>
               )}
-              <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
-                  Halbjahr
-                </label>
-                <select
-                  id={`project-hj-${activeProject}`}
-                  className="course-meta-control"
-                  value={project.halbjahr || '1'}
-                  onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-              </div>
+              {!config?.kursstufe && (
+                <div className="course-meta-field">
+                  <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
+                    Halbjahr
+                  </label>
+                  <select
+                    id={`project-hj-${activeProject}`}
+                    className="course-meta-control"
+                    value={project.halbjahr || '1'}
+                    onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select>
+                </div>
+              )}
               <div className="course-meta-field">
                 <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
                   Datum

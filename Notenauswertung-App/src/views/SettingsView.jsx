@@ -24,6 +24,16 @@ export default function SettingsView() {
     clearCourseStudents,
     deleteCourse,
     migrateGradingSystem,
+    exams,
+    updateExam,
+    orals,
+    updateOral,
+    tests,
+    updateTest,
+    projects,
+    updateProject,
+    gfsEntries,
+    updateGfsEntry,
     schoolRosterYears,
     activeSchoolRosterYearId,
     setActiveSchoolRosterYearId,
@@ -108,6 +118,29 @@ export default function SettingsView() {
     const prev = normalizeCourseGradeSystem(config?.gradeSystem);
     if (checked && prev !== 'points') {
       await migrateGradingSystem(prev, 'points');
+    }
+    if (checked) {
+      // Kursstufe = nur ein Schul-/Halbjahr: Alle bestehenden Einträge auf HJ1 setzen
+      // (damit die Übersicht auch bei älteren Kursdaten konsistent bleibt).
+      for (const id of Object.keys(exams || {})) {
+        const e = exams?.[id];
+        if (e?.halbjahr !== '1') updateExam(id, 'halbjahr', '1');
+      }
+      for (const id of Object.keys(orals || {})) {
+        const o = orals?.[id];
+        if (o?.halbjahr !== '1') updateOral(id, 'halbjahr', '1');
+      }
+      for (const id of Object.keys(tests || {})) {
+        const t = tests?.[id];
+        if (t?.halbjahr !== '1') updateTest(id, 'halbjahr', '1');
+      }
+      for (const id of Object.keys(projects || {})) {
+        const p = projects?.[id];
+        if (p?.halbjahr !== '1') updateProject(id, 'halbjahr', '1');
+      }
+      for (const row of Array.isArray(gfsEntries) ? gfsEntries : []) {
+        if (row?.halbjahr !== '1') updateGfsEntry(row.id, 'halbjahr', '1');
+      }
     }
     setConfig((c) => ({
       ...c,

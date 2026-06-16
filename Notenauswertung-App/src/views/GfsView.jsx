@@ -32,6 +32,7 @@ function computeGfsPickerAnchor(anchorEl) {
 export default function GfsView({ studentIdFilterSet = null }) {
   const { students, gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry, config } = useData();
   const { showConfirm } = useDialog();
+  const isKursstufe = config?.kursstufe === true;
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState('left');
@@ -204,7 +205,7 @@ export default function GfsView({ studentIdFilterSet = null }) {
                 <th style={{ width: '88px' }} className="text-center" title="Nur wenn angehakt und Note gesetzt zählt die Leistung in der Übersicht">
                   Gehalten
                 </th>
-                <th style={{ width: '100px' }}>Halbjahr</th>
+                {!isKursstufe && <th style={{ width: '100px' }}>Halbjahr</th>}
                 <th style={{ width: '120px' }}>Note</th>
                 <th style={{ width: '88px' }} className="text-right">
                   Aktion
@@ -214,14 +215,14 @@ export default function GfsView({ studentIdFilterSet = null }) {
             <tbody>
               {gfsEntries.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="text-center text-muted" style={{ padding: '2rem' }}>
+                  <td colSpan={isKursstufe ? 8 : 9} className="text-center text-muted" style={{ padding: '2rem' }}>
                     Noch keine Einträge. Klicke auf den Plus-Button, um einen Schüler auszuwählen.
                   </td>
                 </tr>
               )}
               {gfsEntries.length > 0 && displayEntries.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="text-center text-muted" style={{ padding: '2rem' }}>
+                  <td colSpan={isKursstufe ? 8 : 9} className="text-center text-muted" style={{ padding: '2rem' }}>
                     Kein Schüler entspricht der Suche.
                   </td>
                 </tr>
@@ -279,17 +280,19 @@ export default function GfsView({ studentIdFilterSet = null }) {
                         />
                       </label>
                     </td>
-                    <td>
-                      <select
-                        value={row.halbjahr === '2' ? '2' : '1'}
-                        onChange={(e) => updateGfsEntry(row.id, 'halbjahr', e.target.value)}
-                        aria-label={`Halbjahr für ${name}`}
-                        style={{ width: '100%', padding: '0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-                      >
-                        <option value="1">HJ 1</option>
-                        <option value="2">HJ 2</option>
-                      </select>
-                    </td>
+                    {!isKursstufe && (
+                      <td>
+                        <select
+                          value={row.halbjahr === '2' ? '2' : '1'}
+                          onChange={(e) => updateGfsEntry(row.id, 'halbjahr', e.target.value)}
+                          aria-label={`Halbjahr für ${name}`}
+                          style={{ width: '100%', padding: '0.35rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                        >
+                          <option value="1">HJ 1</option>
+                          <option value="2">HJ 2</option>
+                        </select>
+                      </td>
+                    )}
                     <td
                       className="text-center"
                       style={{

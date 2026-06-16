@@ -334,20 +334,22 @@ export default function OralView({ studentIdFilterSet = null }) {
               onChange={(e) => updateOral(activeOral, 'date', e.target.value)}
             />
           </div>
-          <div className="course-meta-field">
-            <label className="course-meta-field__label" htmlFor={`oral-hj-${activeOral}`}>
-              Halbjahr
-            </label>
-            <select
-              id={`oral-hj-${activeOral}`}
-              className="course-meta-control"
-              value={record.halbjahr || '1'}
-              onChange={(e) => updateOral(activeOral, 'halbjahr', e.target.value)}
-            >
-              <option value="1">1</option>
-              <option value="2">2</option>
-            </select>
-          </div>
+          {!config?.kursstufe && (
+            <div className="course-meta-field">
+              <label className="course-meta-field__label" htmlFor={`oral-hj-${activeOral}`}>
+                Halbjahr
+              </label>
+              <select
+                id={`oral-hj-${activeOral}`}
+                className="course-meta-control"
+                value={record.halbjahr || '1'}
+                onChange={(e) => updateOral(activeOral, 'halbjahr', e.target.value)}
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          )}
         </div>
         <div
           className="oral-extended-controls-rail"

@@ -37,13 +37,17 @@ function buildDefaultExamAndOralRecords(course) {
     courseId: course.id,
   });
 
-  const exams = hours >= 4
-    ? [examBase(1, '1'), examBase(2, '2')]
-    : [examBase(1, '1')];
+  const exams = kursstufe
+    ? hours >= 4
+      ? [examBase(1, '1'), examBase(2, '1')]
+      : [examBase(1, '1')]
+    : hours >= 4
+      ? [examBase(1, '1'), examBase(2, '2')]
+      : [examBase(1, '1')];
 
   let orals;
   if (kursstufe) {
-    orals = [oralBase(1, '1'), oralBase(2, '2')];
+    orals = [oralBase(1, '1'), oralBase(2, '1')];
   } else if (hours > 2) {
     orals = [oralBase(1, '1'), oralBase(2, '1'), oralBase(3, '2'), oralBase(4, '2')];
   } else {
