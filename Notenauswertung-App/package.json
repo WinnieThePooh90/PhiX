@@ -1,12 +1,15 @@
 {
   "name": "phix-app",
   "private": true,
-  "version": "214.0.0",
+  "version": "216.0.0",
   "type": "module",
+  "license": "Apache-2.0",
+  "author": "Karsten Paulokat",
   "scripts": {
     "sync-version": "node scripts/sync-app-version.mjs",
+    "sync-license": "node scripts/sync-phix-license.mjs",
     "extract-dependency-licenses": "node scripts/extract-dependency-licenses.mjs",
-    "prebuild": "npm run sync-version",
+    "prebuild": "npm run sync-version && npm run sync-license",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

@@ -265,6 +265,18 @@ p {
   font-size: 0.875rem;
 }
 
+.phix-license-summary-list {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--foreground);
+}
+
+.phix-license-summary-list li + li {
+  margin-top: 0.45rem;
+}
+
 .help-contact-mail-wrap {
   text-align: center;
   margin-bottom: 0;

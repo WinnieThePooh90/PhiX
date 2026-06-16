@@ -1,0 +1,17 @@
+PhiX
+Copyright 2026 Karsten Paulokat
+
+This product includes software developed by third parties under open-source
+licenses. The following components are included in distributions of PhiX
+(among others):
+
+  React — MIT License
+  Express — MIT License
+  Prisma — Apache License 2.0
+  SheetJS Community Edition (xlsx 0.20.3) — Apache License 2.0
+  jsPDF — MIT License
+  Electron (Desktop builds) — MIT License; includes Chromium (see Electron third-party notices)
+  Lucide Icons — ISC License
+
+See the Dependencies section in the application (admin) or the repository
+NOTICE/LICENSE files for full attribution and license texts.

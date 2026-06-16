@@ -1,9 +1,10 @@
 {
   "name": "phix-desktop",
   "private": true,
-  "version": "214.0.0",
+  "version": "216.0.0",
   "description": "PhiX Desktop-Hülle (Electron) – startet das Node-Backend und zeigt die Web-UI.",
-  "author": "PhiX",
+  "author": "Karsten Paulokat",
+  "license": "Apache-2.0",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -33,7 +34,7 @@
     "appId": "de.equiphi.phix.desktop",
     "productName": "PhiX",
     "icon": "build/icon.png",
-    "copyright": "Copyright © PhiX",
+    "copyright": "Copyright © 2026 Karsten Paulokat — Licensed under Apache-2.0",
     "directories": {
       "output": "dist-pack"
     },

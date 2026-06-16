@@ -1,16 +1,15 @@
-# React + Vite
+# PhiX — Web-App (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend der Notenauswertung PhiX.
 
-Currently, two official plugins are available:
+## Lizenz
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Apache License 2.0 — siehe [LICENSE](../LICENSE) im Repository-Root.
 
-## React Compiler
+## Skripte
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `npm run dev` — Entwicklungsserver
+- `npm run build` — Produktions-Build
+- `npm run sync-version` — Build-Nummer aus `docs/APP_VERSION.md`
+- `npm run sync-license` — Lizenztext in die App einbinden
+- `npm run extract-dependency-licenses` — Drittanbieter-Lizenztexte aus `node_modules`

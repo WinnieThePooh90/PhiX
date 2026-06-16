@@ -72,6 +72,9 @@ export default function SettingsNavMenu({
           Dependencies
         </button>
       ) : null}
+      <button type="button" role="menuitem" onClick={() => pick('license')}>
+        Lizenz
+      </button>
       <hr className="header-settings-dropdown-divider" aria-hidden />
       <button
         type="button"

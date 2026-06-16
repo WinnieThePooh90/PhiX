@@ -6,9 +6,10 @@ import { formatAppBuildAt } from '../utils/formatAppBuild';
 import { usePhiXRegistration } from '../utils/phixRegistration';
 import { useAuth } from '../store/AuthContext';
 import { DSGVO_SECTIONS } from '../config/dsgvo';
+import { PHIX_COPYRIGHT, PHIX_LICENSE_SPDX, PHIX_LICENSE_TITLE } from '../config/phixLicense';
 import LegalContentSections from '../components/LegalContentSections';
 
-export default function AppInfoView({ onOpenSupport }) {
+export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
   const { registered, unregister } = usePhiXRegistration();
   const { currentUser } = useAuth();
 
@@ -76,6 +77,24 @@ export default function AppInfoView({ onOpenSupport }) {
             </p>
           </div>
         </div>
+      </section>
+
+      <h3 className="program-view-section-heading">Open Source</h3>
+      <section className="app-info-section glass-panel" aria-labelledby="app-info-license-heading">
+        <h4 id="app-info-license-heading" className="program-view-panel-heading">
+          Lizenz
+        </h4>
+        <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+          {APP_NAME} steht unter der <strong>{PHIX_LICENSE_TITLE}</strong> (
+          <code className="app-info-code">{PHIX_LICENSE_SPDX}</code>). {PHIX_COPYRIGHT}.
+        </p>
+        {onOpenLicense ? (
+          <p className="program-view-panel-text" style={{ marginBottom: 0 }}>
+            <button type="button" className="tab secondary" onClick={onOpenLicense}>
+              Lizenzdetails anzeigen
+            </button>
+          </p>
+        ) : null}
       </section>
 
       <h3 className="program-view-section-heading">Angaben nach DSGVO</h3>

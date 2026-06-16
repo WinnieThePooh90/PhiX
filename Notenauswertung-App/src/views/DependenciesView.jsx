@@ -1,5 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useMemo, useState } from 'react';
+import { APP_NAME } from '../config/app';
+import LicenseTextModal from '../components/LicenseTextModal';
+import {
+  PHIX_COPYRIGHT,
+  PHIX_LICENSE_SPDX,
+  PHIX_LICENSE_TITLE,
+} from '../config/phixLicense';
+import { PHIX_APACHE_LICENSE_TEXT } from '../data/phixLicenseText';
 import { getDependencySections, LICENSE_EXPLANATIONS } from '../data/dependencyCatalog';
 import { getPackageLicenseText } from '../data/dependencyPackageLicenses';
 
@@ -8,48 +15,6 @@ function sectionSlug(title) {
     .replace(/[^a-z0-9]+/gi, '-')
     .replace(/^-|-$/g, '')
     .toLowerCase() || 'section';
-}
-
-function LicenseTextModal({ modal, onClose }) {
-  useEffect(() => {
-    if (!modal) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [modal, onClose]);
-
-  if (!modal) return null;
-
-  return createPortal(
-    <div
-      className="dependency-license-modal-backdrop"
-      role="presentation"
-      onMouseDown={(ev) => {
-        if (ev.target === ev.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="dependency-license-modal-dialog glass-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dependency-license-modal-title"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="dependency-license-modal-header">
-          <h2 id="dependency-license-modal-title" style={{ margin: 0, fontSize: '1.05rem' }}>
-            {modal.title}
-          </h2>
-          <button type="button" className="tab secondary" onClick={onClose}>
-            Schließen
-          </button>
-        </div>
-        <pre className="dependency-license-modal-body">{modal.text}</pre>
-      </div>
-    </div>,
-    document.body,
-  );
 }
 
 function buildLicenseModalContent(row) {
@@ -116,7 +81,7 @@ function DependencyTable({ title, rows, onShowLicense }) {
   );
 }
 
-export default function DependenciesView() {
+export default function DependenciesView({ onOpenLicense }) {
   const sections = useMemo(() => getDependencySections(), []);
   const [licenseModal, setLicenseModal] = useState(null);
 
@@ -135,12 +100,20 @@ export default function DependenciesView() {
     return LICENSE_EXPLANATIONS.filter((ex) => set.has(ex.id));
   }, [allRows]);
 
+  const openPhixLicense = () => {
+    setLicenseModal({
+      title: `${APP_NAME} — ${PHIX_LICENSE_TITLE}`,
+      text: PHIX_APACHE_LICENSE_TEXT,
+    });
+  };
+
   return (
     <div className="view-generic-scroll program-view">
       <h3 className="program-view-title">Dependencies</h3>
       <p className="text-muted program-view-intro">
-        Übersicht der eingebundenen npm-Pakete (Laufzeit und Entwicklung). Frontend-Versionen stammen aus der{' '}
-        <code className="app-info-code">package.json</code> der Web-App; Backend-Versionen aus{' '}
+        Übersicht der eingebundenen npm-Pakete (Laufzeit und Entwicklung). {APP_NAME} selbst steht unter der{' '}
+        <strong>Apache License 2.0</strong> ({PHIX_LICENSE_SPDX}, {PHIX_COPYRIGHT}). Frontend-Versionen stammen aus
+        der <code className="app-info-code">package.json</code> der Web-App; Backend-Versionen aus{' '}
         <code className="app-info-code">src/data/backend-package.snapshot.json</code> (Kopie der Backend-Abhängigkeiten
         für den Build, z. B. Docker — bei Backend-Änderungen bitte mitpflegen).
       </p>
@@ -148,6 +121,27 @@ export default function DependenciesView() {
       <LicenseTextModal modal={licenseModal} onClose={() => setLicenseModal(null)} />
 
       <div className="program-view-stack">
+        <section className="app-info-section glass-panel" aria-labelledby="app-deps-phix-license-heading">
+          <h4 id="app-deps-phix-license-heading" className="program-view-panel-heading">
+            {APP_NAME}-Programmlizenz
+          </h4>
+          <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+            Der Quellcode von {APP_NAME} ist Open Source unter{' '}
+            <code className="app-info-code">{PHIX_LICENSE_SPDX}</code>. Die nachfolgenden Tabellen betreffen nur
+            eingebundene Bibliotheken Dritter.
+          </p>
+          <p className="program-view-panel-text" style={{ marginBottom: 0, display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <button type="button" className="tab primary dependency-license-btn" onClick={openPhixLicense}>
+              PhiX-Lizenztext
+            </button>
+            {onOpenLicense ? (
+              <button type="button" className="tab secondary" onClick={onOpenLicense}>
+                Lizenz-Übersicht
+              </button>
+            ) : null}
+          </p>
+        </section>
+
         <DependencyTable
           title="Frontend — Laufzeit"
           rows={sections.frontendRuntime}
@@ -171,11 +165,11 @@ export default function DependenciesView() {
 
         <section className="app-info-section glass-panel" aria-labelledby="app-deps-licenses-heading">
           <h4 id="app-deps-licenses-heading" className="program-view-panel-heading">
-            Erläuterung der Lizenzen
+            Erläuterung der Lizenzen (Drittanbieter)
           </h4>
           <p className="program-view-panel-text text-muted">
-            Kurz erklärt. Bei Veröffentlichung oder Weitergabe Ihrer Anwendung die vollständigen Lizenztexte der Pakete
-            beachten.
+            Kurz erklärt. Bei Weitergabe oder Veröffentlichung der Anwendung die vollständigen Lizenztexte der Pakete
+            sowie die PhiX-Apache-2.0-Lizenz beachten.
           </p>
           <div className="app-info-license-list">
             {usedLicenses.map((block) => (

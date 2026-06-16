@@ -21,6 +21,7 @@ import SchoolRosterView from './views/SchoolRosterView';
 import UserManagementView from './views/UserManagementView';
 import AppInfoView from './views/AppInfoView';
 import DependenciesView from './views/DependenciesView';
+import LicenseView from './views/LicenseView';
 import BackupView from './views/BackupView';
 import ExportView from './views/ExportView';
 import ImpressumView from './views/ImpressumView';
@@ -56,6 +57,7 @@ const TABS_WITHOUT_COURSE = new Set([
   'appInfo',
   'impressum',
   'help',
+  'license',
   'dependencies',
   'support',
   'supportOverview',
@@ -394,13 +396,7 @@ function App() {
       case 'export':
         return <ExportView />;
       case 'appInfo':
-        return <AppInfoView onOpenSupport={() => openMainTab('support')} />;
-      case 'dependencies':
-        return isAdminUser ? (
-          <DependenciesView />
-        ) : (
-          <SummaryView studentIdFilterSet={studentIdFilterSet} />
-        );
+        return <AppInfoView onOpenSupport={() => openMainTab('support')} onOpenLicense={() => openMainTab('license')} />;
       case 'support':
         return <SupportPhiXView onRegistrationSuccess={() => openMainTab('appInfo')} />;
       case 'supportOverview':
@@ -411,6 +407,18 @@ function App() {
         return <ImpressumView />;
       case 'help':
         return <HelpView />;
+      case 'license':
+        return (
+          <LicenseView
+            onOpenDependencies={isAdminUser ? () => openMainTab('dependencies') : undefined}
+          />
+        );
+      case 'dependencies':
+        return isAdminUser ? (
+          <DependenciesView onOpenLicense={() => openMainTab('license')} />
+        ) : (
+          <SummaryView studentIdFilterSet={studentIdFilterSet} />
+        );
       default:
         return <SummaryView studentIdFilterSet={studentIdFilterSet} />;
     }
@@ -453,6 +461,7 @@ function App() {
     activeTab === 'appInfo' ||
     activeTab === 'impressum' ||
     activeTab === 'help' ||
+    activeTab === 'license' ||
     activeTab === 'supportOverview' ||
     (isAdminUser && activeTab === 'dependencies');
 
