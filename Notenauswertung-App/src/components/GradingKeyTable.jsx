@@ -9,7 +9,7 @@ import {
   pointsFromPercentHalfStep,
   displayPointIntervalsHalfSteps,
   normalizeQuarterGrade,
-  gradeToNotenpunkte,
+  classicGradeToGradingKeyNotenpunkte,
 } from '../utils/calculator';
 import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradingKey';
 
@@ -26,7 +26,7 @@ function formatClassicGradeDisplay(grade) {
 
 function formatGradeColumnDisplay(grade, showNotenpunkte) {
   if (!showNotenpunkte) return formatClassicGradeDisplay(grade);
-  const np = gradeToNotenpunkte(parseFloat(String(grade)));
+  const np = classicGradeToGradingKeyNotenpunkte(parseFloat(String(grade)));
   return np !== null ? String(np) : '–';
 }
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { calculateGradeFromThresholds, gradeFromPercentBands, gradeToNotenpunkte } from '../utils/calculator';
+import { calculateGradeFromThresholds, gradeFromPercentBands, classicGradeToGradingKeyNotenpunkte } from '../utils/calculator';
 import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
 
 const VB_W = 320;
@@ -42,7 +42,7 @@ export default function GradingKeyChart({
       const g = gradeAtPoints(p);
       if (g === null || !Number.isFinite(g)) return null;
       if (!showNotenpunkte) return g;
-      const np = gradeToNotenpunkte(g);
+      const np = classicGradeToGradingKeyNotenpunkte(g);
       return np !== null ? np : null;
     };
 

@@ -1412,6 +1412,18 @@ export const gradeToNotenpunkte = (grade) => {
   return bestNp;
 };
 
+/**
+ * Klassische Viertelnote → Notenpunkte für die NP-Spalte in Notenschlüsseln.
+ * Abweichend von {@link gradeToNotenpunkte}: 1,0 (beste Note im Schlüssel) = 15 NP.
+ */
+export const classicGradeToGradingKeyNotenpunkte = (grade) => {
+  const g = typeof grade === 'number' ? grade : parseFloat(grade);
+  if (!Number.isFinite(g)) return null;
+  const gq = normalizeQuarterGrade(g);
+  if (gq <= 1.0 + 1e-9) return 15;
+  return gradeToNotenpunkte(gq);
+};
+
 function fmtCalcNum(value, maxFractionDigits = 4) {
   const n = Number(value);
   if (!Number.isFinite(n)) return '—';
