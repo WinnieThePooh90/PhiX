@@ -149,7 +149,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const examNumbers = Object.keys(exams).sort((a, b) => Number(a) - Number(b));
   
-  const [activeKlausur, setActiveKlausur] = useState(examNumbers.length > 0 ? examNumbers[0] : '1');
+  const [activeKlausur, setActiveKlausur] = useState(examNumbers.length > 0 ? examNumbers[0] : null);
   const [showKey, setShowKey] = useState(false);
   const [tooltipGrade, setTooltipGrade] = useState(null);
   const [pieTooltip, setPieTooltip] = useState(null); // 'good' or 'bad'
@@ -201,6 +201,19 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     };
   }, [examIndexTooltip]);
 
+  const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const examClassAverage = useMemo(
+    () => (exam ? computeExamClassAverage(exam, displayStudents, customKeysList, gradeSys) : null),
+    [displayStudents, exam, customKeysList, gradeSys],
+  );
+
+  useEffect(() => {
+    if (examNumbers.length === 0) return;
+    if (!exams[activeKlausur]) {
+      setActiveKlausur(examNumbers[0]);
+    }
+  }, [examNumbers, activeKlausur, exams]);
+
   if (!exam) {
     return (
       <div className="text-center mt-8 text-muted">
@@ -220,7 +233,6 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   const displayFieldCount = getExamDisplayFieldCount(exam, displayStudents);
   const scoreInputScope = `exam-${activeKlausur}`;
 
-  const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, exam.keyType || '1');
 
   const examRowStats = (studentId) => {
@@ -233,11 +245,6 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
-
-  const examClassAverage = useMemo(
-    () => computeExamClassAverage(exam, displayStudents, customKeysList),
-    [displayStudents, exam, customKeysList],
-  );
 
   const handleScoreChange = (studentId, fieldIndex, value) => {
     updateExamScore(activeKlausur, studentId, fieldIndex, value);
@@ -267,8 +274,8 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     const id = activeKlausur;
     const remaining = examNumbers.filter((n) => n !== id);
     const nextActive = remaining[0] ?? null;
-    await removeExam(id);
     if (nextActive) setActiveKlausur(nextActive);
+    await removeExam(id);
   };
 
   return (
@@ -475,7 +482,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                             fontSize: '0.85rem',
                             marginTop: '0.15rem',
                             fontVariantNumeric: 'tabular-nums',
-                            color: isGradeWorseThan4(examClassAverage, gradeSys) ? 'var(--danger)' : 'var(--foreground)',
+                            color: isGradeWorseThan4(examClassAverage, gradeSys, gradeSys === 'points' ? { inputScale: 'notenpunkte' } : undefined) ? 'var(--danger)' : 'var(--foreground)',
                           }}
                         >
                           {formatExamClassAverageDisplay(examClassAverage, gradeSys)}

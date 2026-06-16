@@ -667,7 +667,6 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const gfmt = (g) => formatGrade(g, gradeSys);
   const gfmtCalc = (g, valuesAreNotenpunkte) =>
     formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
-  const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
 
   const toggleRow = (id) => {
     setExpandedStudentId(prev => prev === id ? null : id);
@@ -762,26 +761,26 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 style={{ width: '120px' }}
                 title={`Klausur-Noten inkl. gehaltener GFS (jede GFS-Note zählt wie eine Klausur im Durchschnitt, Gewicht „Schriftlich“)${gradeSys === 'points' ? ' — Anzeige Notenpunkte 0–15' : ''}`}
               >
-                Schriftlich{npSuffix}
+                Schriftlich
               </th>
               <th className="text-center" style={{ width: '120px' }} title={`Nur mündliche Bereiche (Gewicht „Mündlich“)${gradeSys === 'points' ? ' — Anzeige Notenpunkte 0–15' : ''}`}>
-                Mündlich{npSuffix}
+                Mündlich
               </th>
               {showTests && (
                 <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Anzeige Notenpunkte 0–15' : undefined}>
-                  Tests{npSuffix}
+                  Tests
                 </th>
               )}
               <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Gewichteter Mittelwert — Anzeige Notenpunkte 0–15' : undefined}>
-                Endnote (Exakt){npSuffix}
+                Endnote (Exakt)
               </th>
               {showHJ1 && (
                 <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Note Halbjahr 1 als Notenpunkte 0–15' : 'Manuell eintragbare Note Halbjahr 1'}>
-                  Note HJ1{npSuffix}
+                  Note HJ1
                 </th>
               )}
               <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Speicherung als Notenpunkte 0–15' : 'Manuell eintragbare Endnote (z. B. 4,25)'}>
-                Endnote{npSuffix}
+                Endnote
               </th>
             </tr>
           </thead>

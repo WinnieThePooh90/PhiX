@@ -1,5 +1,7 @@
 import {
   formatGrade,
+  computeTestClassAverage,
+  formatExamClassAverageDisplay,
   getEffectiveTestMaxPoints,
   getNormalizedTestScore,
   getTestGradeForStudent,
@@ -23,8 +25,12 @@ export function buildTestTableExportAoa({ test, testId, students, config }) {
       ? parseFloat(test.maxPoints)
       : 10;
 
+  const classAverage = computeTestClassAverage(test, students, customGradingKeys, gradeSys);
+  const avgDisplay = formatExamClassAverageDisplay(classAverage, gradeSys);
+  const noteMaxCell = avgDisplay ? `Ø\n${avgDisplay}` : 'Ø';
+
   const header1 = ['#', 'NAME', 'PUNKTE', 'GESAMT', 'NOTE'];
-  const maxRow = ['Max', 'Maximalpunkte', '', maxPtsDisplay, ''];
+  const maxRow = ['Max', 'Maximalpunkte', '', maxPtsDisplay, noteMaxCell];
 
   const dataRows = expandRowsWithStudentNotes(
     students,

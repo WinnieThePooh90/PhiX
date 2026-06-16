@@ -4,8 +4,8 @@ import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import {
   isGradeWorseThan4,
-  getGradeCellBackground,
-  getGradeTextColor,
+  gradeCellColorsFromResolved,
+  resolveStoredGradeForCellColor,
   getNormalizedOralGrade,
   getNormalizedOralWeekPointsArray,
   getOralTotalWeekPoints,
@@ -83,7 +83,7 @@ export default function OralView({ studentIdFilterSet = null }) {
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const oralNumbers = Object.keys(orals).sort((a, b) => Number(a) - Number(b));
-  const [activeOral, setActiveOral] = useState(oralNumbers.length > 0 ? oralNumbers[0] : '1');
+  const [activeOral, setActiveOral] = useState(oralNumbers.length > 0 ? oralNumbers[0] : null);
   const [expandedStudentId, setExpandedStudentId] = useState(null);
   const [oralNoteEditingId, setOralNoteEditingId] = useState(null);
   const [oralNoteDraft, setOralNoteDraft] = useState('');
@@ -171,6 +171,13 @@ export default function OralView({ studentIdFilterSet = null }) {
     if (record && record.active === false) setOralFormulaModalOpen(false);
   }, [record?.active, record]);
 
+  useEffect(() => {
+    if (oralNumbers.length === 0) return;
+    if (!orals[activeOral]) {
+      setActiveOral(oralNumbers[0]);
+    }
+  }, [oralNumbers, activeOral, orals]);
+
   if (!record) {
     return (
       <div className="text-center mt-8 text-muted">
@@ -197,8 +204,8 @@ export default function OralView({ studentIdFilterSet = null }) {
     const id = activeOral;
     const remaining = oralNumbers.filter((n) => n !== id);
     const nextActive = remaining[0] ?? null;
-    await removeOral(id);
     if (nextActive) setActiveOral(nextActive);
+    await removeOral(id);
   };
 
   const toggleStudentRow = (studentId) => {
@@ -720,7 +727,6 @@ export default function OralView({ studentIdFilterSet = null }) {
               const { value: gradeInput, counted } = getNormalizedOralGrade(gradeRaw);
               const weekPointsArr = getNormalizedOralWeekPointsArray(gradeRaw, weekCount);
               const totalWeekPts = getOralTotalWeekPoints(gradeRaw, weekCount);
-              const gradeClassicForCell = storedGradeStringToClassic(String(gradeInput ?? ''), gradeSys);
               const calculatedGrade =
                 isExtendedMode
                   ? computeOralExtendedCalculatedGrade({
@@ -737,11 +743,24 @@ export default function OralView({ studentIdFilterSet = null }) {
                       gradeSystem: gradeSys,
                     })
                   : null;
-              const oralValueRed = gradeClassicForCell !== null && isGradeWorseThan4(gradeClassicForCell, gradeSys);
+              const manualNoteColorResolved =
+                counted ? resolveStoredGradeForCellColor(String(gradeInput ?? ''), gradeSys) : null;
+              const manualNoteCellColors = gradeCellColorsFromResolved(manualNoteColorResolved, gradeSys);
               const calcClassicForColor =
                 calculatedGrade !== null && gradeSys === 'points' && !useAbiNotenpunkte
                   ? notenpunkteToGrade(Math.round(calculatedGrade))
                   : calculatedGrade;
+              const calcColorResolved =
+                calculatedGrade !== null && !useAbiNotenpunkte
+                  ? gradeSys === 'points'
+                    ? { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } }
+                    : calcClassicForColor !== null
+                      ? { value: calcClassicForColor, opts: undefined }
+                      : null
+                  : calculatedGrade !== null && useAbiNotenpunkte
+                    ? { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } }
+                    : null;
+              const calcCellColors = gradeCellColorsFromResolved(calcColorResolved, gradeSys);
               const calcRed =
                 calculatedGrade !== null &&
                 (useAbiNotenpunkte
@@ -917,14 +936,11 @@ export default function OralView({ studentIdFilterSet = null }) {
                             verticalAlign: 'middle',
                             fontWeight: 'bold',
                             fontVariantNumeric: 'tabular-nums',
-                            background:
-                              calculatedGrade !== null && !useAbiNotenpunkte
-                                ? (getGradeCellBackground(calcClassicForColor, gradeSys) ?? 'var(--surface)')
-                                : 'var(--surface)',
+                            background: calcColorResolved ? (calcCellColors.background ?? 'var(--surface)') : 'var(--surface)',
                             borderLeft: '1px solid var(--border)',
                             borderRight: '1px solid var(--border)',
                             boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
-                            color: calcRed ? 'var(--danger)' : (getGradeTextColor(calcClassicForColor, gradeSys) || 'var(--foreground)'),
+                            color: useAbiNotenpunkte && calcRed ? 'var(--danger)' : calcCellColors.color,
                           }}
                           title={
                             useAbiNotenpunkte
@@ -996,11 +1012,9 @@ export default function OralView({ studentIdFilterSet = null }) {
                         width: `${ORAL_NOTE_COL_PX}px`,
                         minWidth: `${ORAL_NOTE_COL_PX}px`,
                         verticalAlign: 'middle',
-                        background:
-                          counted && gradeClassicForCell !== null
-                            ? (getGradeCellBackground(gradeClassicForCell, gradeSys) ?? 'var(--surface)')
-                            : 'var(--surface)',
-                        color: counted && gradeClassicForCell !== null ? getGradeTextColor(gradeClassicForCell, gradeSys) : undefined,
+                        background: manualNoteColorResolved
+                          ? (manualNoteCellColors.background ?? 'var(--surface)')
+                          : 'var(--surface)',
                         borderLeft: '1px solid var(--border)',
                         boxShadow: '-2px 0 6px rgba(0, 0, 0, 0.04)',
                       }}
@@ -1058,10 +1072,12 @@ export default function OralView({ studentIdFilterSet = null }) {
                           setOralNoteEditingId(null);
                           setOralNoteDraft('');
                         }}
-                        placeholder={gradeSys === 'points' ? '0–15' : '...'}
+                        placeholder={gradeSys === 'points' ? '—' : '...'}
                         style={{
                           fontWeight: 'bold',
-                          color: oralValueRed ? 'var(--danger)' : 'var(--foreground)',
+                          color: manualNoteColorResolved ? manualNoteCellColors.color : 'var(--foreground)',
+                          background: 'transparent',
+                          border: '1px solid transparent',
                           width: '5.25rem',
                           maxWidth: '100%',
                           textAlign: 'center',

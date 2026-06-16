@@ -13,6 +13,8 @@ import {
 } from '../data/gradingKeyDisplay';
 import {
   formatGrade,
+  computeTestClassAverage,
+  formatExamClassAverageDisplay,
   isGradeWorseThan4,
   getGradeCellBackground,
   getGradeTextColor,
@@ -97,7 +99,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const testNumbers = Object.keys(tests).sort((a, b) => Number(a) - Number(b));
-  const [activeTest, setActiveTest] = useState(testNumbers.length > 0 ? testNumbers[0] : '1');
+  const [activeTest, setActiveTest] = useState(testNumbers.length > 0 ? testNumbers[0] : null);
   const [showKey, setShowKey] = useState(false);
   const [chartsModalOpen, setChartsModalOpen] = useState(false);
   const [tooltipGrade, setTooltipGrade] = useState(null);
@@ -149,6 +151,35 @@ export default function TestsView({ studentIdFilterSet = null }) {
     };
   }, [testIndexTooltip]);
 
+  const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const testRowStats = useCallback(
+    (studentId) => {
+      if (!test) return { counted: false, grade: null, value: '', isManual: false, manualGradeInput: '' };
+      const map = test.scores ?? test.errors;
+      const raw = map?.[studentId];
+      const { value, counted } = getNormalizedTestScore(raw);
+      const isManual = isExamManualGradeActive(raw);
+      const grade = counted ? getTestGradeForStudent(test, studentId, customKeysList, gradeSys) : null;
+      const manualGradeInput = getExamManualGradeStoredValue(raw);
+      return { counted, grade, value, isManual, manualGradeInput };
+    },
+    [test, customKeysList, gradeSys],
+  );
+
+  const examStubForCharts = useMemo(() => ({ fieldMaxPoints: {} }), []);
+
+  const testClassAverage = useMemo(
+    () => (test ? computeTestClassAverage(test, displayStudents, customKeysList, gradeSys) : null),
+    [test, displayStudents, customKeysList, gradeSys],
+  );
+
+  useEffect(() => {
+    if (testNumbers.length === 0) return;
+    if (!tests[activeTest]) {
+      setActiveTest(testNumbers[0]);
+    }
+  }, [testNumbers, activeTest, tests]);
+
   if (!test) {
     return (
       <div className="text-center mt-8 text-muted">
@@ -168,25 +199,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
     );
   }
 
-  const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, test.keyType || '1');
   const maxPtsDisplay = Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0 ? parseFloat(test.maxPoints) : 10;
   const scoreInputScope = `test-${activeTest}`;
-
-  const testRowStats = useCallback(
-    (studentId) => {
-      const map = test.scores ?? test.errors;
-      const raw = map?.[studentId];
-      const { value, counted } = getNormalizedTestScore(raw);
-      const isManual = isExamManualGradeActive(raw);
-      const grade = counted ? getTestGradeForStudent(test, studentId, customKeysList, gradeSys) : null;
-      const manualGradeInput = getExamManualGradeStoredValue(raw);
-      return { counted, grade, value, isManual, manualGradeInput };
-    },
-    [test, customKeysList, gradeSys],
-  );
-
-  const examStubForCharts = useMemo(() => ({ fieldMaxPoints: {} }), []);
 
   const toggleStudentRow = (studentId) => {
     setExpandedStudentId((prev) => (prev === studentId ? null : studentId));
@@ -453,8 +468,25 @@ export default function TestsView({ studentIdFilterSet = null }) {
                             zIndex: 61,
                             background: 'var(--surface-muted)',
                             borderLeft: '1px solid var(--border)',
+                            textTransform: 'none',
+                            textAlign: 'center',
+                            verticalAlign: 'middle',
                           }}
-                        />
+                        >
+                          <span title="Klassenschnitt">Ø</span>
+                          {testClassAverage !== null && (
+                            <div
+                              style={{
+                                fontSize: '0.85rem',
+                                marginTop: '0.15rem',
+                                fontVariantNumeric: 'tabular-nums',
+                                color: isGradeWorseThan4(testClassAverage, gradeSys, gradeSys === 'points' ? { inputScale: 'notenpunkte' } : undefined) ? 'var(--danger)' : 'var(--foreground)',
+                              }}
+                            >
+                              {formatExamClassAverageDisplay(testClassAverage, gradeSys)}
+                            </div>
+                          )}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>

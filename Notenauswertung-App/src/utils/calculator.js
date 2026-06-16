@@ -198,7 +198,8 @@ export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null
 };
 
 /** Klassenschnitt einer Klausur (nur zählende Schüler mit gültiger Note). */
-export const computeExamClassAverage = (exam, students, customGradingKeys = null) => {
+export const computeExamClassAverage = (exam, students, customGradingKeys = null, gradeSystem = 'classic') => {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
   let sum = 0;
   let count = 0;
   for (const s of students ?? []) {
@@ -207,20 +208,59 @@ export const computeExamClassAverage = (exam, students, customGradingKeys = null
     const { counted } = getNormalizedExamScore(rawSc, effN);
     if (!counted) continue;
     const grade = getExamGradeForStudent(exam, s.id, customGradingKeys);
-    if (grade !== null && Number.isFinite(grade)) {
+    if (grade === null || !Number.isFinite(grade)) continue;
+    if (gs === 'points') {
+      const np = thresholdClassicGradeToNotenpunkte(grade);
+      if (np === null) continue;
+      sum += np;
+    } else {
       sum += grade;
-      count += 1;
     }
+    count += 1;
   }
-  return count > 0 ? Math.round((sum / count) * 100) / 100 : null;
+  if (count === 0) return null;
+  const avg = sum / count;
+  if (gs === 'points') return avg;
+  return Math.round(avg * 100) / 100;
 };
 
-/** Anzeige des Klausur-Klassenschnitts (wie in ExamsView unter NOTE). */
+/** Klassenschnitt eines Tests (nur zählende Schüler mit gültiger Note). */
+export const computeTestClassAverage = (test, students, customGradingKeys = null, gradeSystem = 'classic') => {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  let sum = 0;
+  let count = 0;
+  const scoreMap = test?.scores ?? test?.errors;
+  for (const s of students ?? []) {
+    const raw = scoreMap?.[s.id];
+    const { counted } = getNormalizedTestScore(raw);
+    if (!counted) continue;
+    const grade = getTestGradeForStudent(test, s.id, customGradingKeys, gs);
+    if (grade === null || !Number.isFinite(grade)) continue;
+    if (gs === 'points') {
+      const np = thresholdClassicGradeToNotenpunkte(grade);
+      if (np === null) continue;
+      sum += np;
+    } else {
+      sum += grade;
+    }
+    count += 1;
+  }
+  if (count === 0) return null;
+  const avg = sum / count;
+  if (gs === 'points') return avg;
+  return Math.round(avg * 100) / 100;
+};
+
+/** Anzeige des Klassenschnitts unter NOTE (Klausur/Test). */
 export const formatExamClassAverageDisplay = (average, gradeSystem = 'classic') => {
   if (average === null || average === undefined) return '';
   const gradeSys = normalizeCourseGradeSystem(gradeSystem);
-  if (gradeSys === 'points') return formatGrade(average, gradeSys);
-  return average.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const n = Number(average);
+  if (!Number.isFinite(n)) return '';
+  if (gradeSys === 'points') {
+    return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export const getNormalizedOralGrade = (gradeData) => {
@@ -2071,3 +2111,28 @@ export const calculatedGradeDisplayOpts = (valuesAreNotenpunkte, gradeSystem = '
   valuesAreNotenpunkte && normalizeCourseGradeSystem(gradeSystem) === 'points'
     ? { inputScale: 'notenpunkte' }
     : undefined;
+
+/** Gespeicherter Notenstring → Wert + opts für Zell-Färbung (Punktesystem: NP direkt). */
+export function resolveStoredGradeForCellColor(raw, gradeSystem = 'classic') {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  if (gs === 'points') {
+    const np = storedGradeStringToNotenpunkte(raw, gs);
+    return np === null ? null : { value: np, opts: { inputScale: 'notenpunkte' } };
+  }
+  const g = storedGradeStringToClassic(raw, gs);
+  return g === null ? null : { value: g, opts: undefined };
+}
+
+/** Hintergrund + Textfarbe für Notenzellen (wie Übersicht). */
+export function gradeCellColorsFromResolved(resolved, gradeSystem = 'classic') {
+  if (!resolved) return { background: undefined, color: 'var(--foreground)' };
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const { value, opts } = resolved;
+  return {
+    background: getGradeCellBackground(value, gs, opts) ?? undefined,
+    color: isGradeWorseThan4(value, gs, opts)
+      ? 'var(--danger)'
+      : (getGradeTextColor(value, gs, opts) || 'var(--foreground)'),
+  };
+}

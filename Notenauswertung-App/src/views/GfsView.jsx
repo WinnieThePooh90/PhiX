@@ -2,10 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallba
 import { Plus, Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
-  getGradeCellBackground,
-  getGradeTextColor,
-  isGradeWorseThan4,
-  storedGradeStringToClassic,
+  gradeCellColorsFromResolved,
+  resolveStoredGradeForCellColor,
   normalizeCourseGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
@@ -232,9 +230,8 @@ export default function GfsView({ studentIdFilterSet = null }) {
                 const st = students.find((s) => s.id === row.studentId);
                 const name = st ? `${st.lastName}, ${st.firstName}` : `Schüler #${row.studentId}`;
                 const gehalten = row.gehalten === true;
-                const noteNum = storedGradeStringToClassic(row.note, gradeSys);
-                const hasParsedNote = noteNum !== null;
-                const noteBad = hasParsedNote && isGradeWorseThan4(noteNum, gradeSys);
+                const noteColorResolved = resolveStoredGradeForCellColor(row.note, gradeSys);
+                const noteCellColors = gradeCellColorsFromResolved(noteColorResolved, gradeSys);
                 return (
                   <tr key={row.id}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -294,10 +291,10 @@ export default function GfsView({ studentIdFilterSet = null }) {
                       </select>
                     </td>
                     <td
+                      className="text-center"
                       style={{
                         verticalAlign: 'middle',
-                        background: hasParsedNote ? (getGradeCellBackground(noteNum, gradeSys) ?? undefined) : undefined,
-                        color: hasParsedNote ? getGradeTextColor(noteNum, gradeSys) : undefined,
+                        background: noteCellColors.background,
                       }}
                     >
                       <input
@@ -339,9 +336,15 @@ export default function GfsView({ studentIdFilterSet = null }) {
                           setGfsNoteEditingId(null);
                           setGfsNoteDraft('');
                         }}
-                        placeholder={gradeSys === 'points' ? '0–15' : 'z. B. 2.25'}
+                        placeholder={gradeSys === 'points' ? '—' : 'z. B. 2.25'}
                         aria-label={`Note GFS für ${name}`}
-                        className={noteBad ? 'gfs-note-input gfs-note-input--worse-than-4' : 'gfs-note-input'}
+                        className="gfs-note-input"
+                        style={{
+                          fontWeight: 'bold',
+                          color: noteCellColors.color,
+                          background: 'transparent',
+                          border: '1px solid transparent',
+                        }}
                       />
                     </td>
                     <td className="text-right">

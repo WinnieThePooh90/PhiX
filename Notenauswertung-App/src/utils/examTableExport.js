@@ -41,7 +41,7 @@ export function buildExamTableExport({ exam, examId, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const displayFieldCount = getExamDisplayFieldCount(exam, students);
-  const classAverage = computeExamClassAverage(exam, students, customGradingKeys);
+  const classAverage = computeExamClassAverage(exam, students, customGradingKeys, gradeSys);
   const avgDisplay = formatExamClassAverageDisplay(classAverage, gradeSys);
   const noteMaxCell = avgDisplay ? `Ø\n${avgDisplay}` : 'Ø';
 

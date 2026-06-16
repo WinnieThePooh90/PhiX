@@ -347,8 +347,8 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     const id = activeProject;
     const remaining = projectNumbers.filter((n) => n !== id);
     const nextActive = remaining[0] ?? null;
+    if (nextActive) setActiveProject(nextActive);
     await removeProject(id);
-    setActiveProject(nextActive);
   };
 
   return (
