@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { calculateGradeFromThresholds, gradeFromPercentBands } from '../utils/calculator';
+import { calculateGradeFromThresholds, gradeFromPercentBands, gradeToNotenpunkte } from '../utils/calculator';
 import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
 
 const VB_W = 320;
@@ -12,12 +12,14 @@ const PLOT_W = VB_W - PAD_L - PAD_R;
 const PLOT_H = VB_H - PAD_T - PAD_B;
 
 const NOTE_TICK_CANDIDATES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
+const NP_TICK_CANDIDATES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 export default function GradingKeyChart({
   type,
   maxPoints,
   thresholdsOverride,
   customBands,
+  showNotenpunkte = false,
 }) {
   const max = Number(maxPoints);
   const valid = Number.isFinite(max) && max > 0;
@@ -36,35 +38,44 @@ export default function GradingKeyChart({
       return calculateGradeFromThresholds(p, max, type, thresholdsOverride);
     };
 
+    const valueAtPoints = (p) => {
+      const g = gradeAtPoints(p);
+      if (g === null || !Number.isFinite(g)) return null;
+      if (!showNotenpunkte) return g;
+      const np = gradeToNotenpunkte(g);
+      return np !== null ? np : null;
+    };
+
     const samples = Math.min(400, Math.max(80, Math.ceil(max * 4)));
     const pts = [];
     let gLo = Infinity;
     let gHi = -Infinity;
     for (let i = 0; i <= samples; i += 1) {
       const p = Math.round(((max * i) / samples) * 2) / 2;
-      const g = gradeAtPoints(p);
-      if (g === null || !Number.isFinite(g)) continue;
-      gLo = Math.min(gLo, g);
-      gHi = Math.max(gHi, g);
+      const v = valueAtPoints(p);
+      if (v === null || !Number.isFinite(v)) continue;
+      gLo = Math.min(gLo, v);
+      gHi = Math.max(gHi, v);
     }
     if (!Number.isFinite(gLo) || !Number.isFinite(gHi)) return null;
     const pad = Math.max(0.1, (gHi - gLo) * 0.06);
-    const yMin = Math.min(gLo - pad, 1);
-    const yMax = Math.max(gHi + pad, 6);
+    const yMin = showNotenpunkte ? Math.max(0, Math.min(gLo - pad, 0)) : Math.min(gLo - pad, 1);
+    const yMax = showNotenpunkte ? Math.min(15, Math.max(gHi + pad, 15)) : Math.max(gHi + pad, 6);
     const span = yMax - yMin || 1;
 
     for (let i = 0; i <= samples; i += 1) {
       const p = Math.round(((max * i) / samples) * 2) / 2;
-      const g = gradeAtPoints(p);
-      if (g === null || !Number.isFinite(g)) continue;
+      const v = valueAtPoints(p);
+      if (v === null || !Number.isFinite(v)) continue;
       const x = PAD_L + (p / max) * PLOT_W;
-      const y = PAD_T + ((yMax - g) / span) * PLOT_H;
+      const y = PAD_T + ((yMax - v) / span) * PLOT_H;
       pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
     }
 
-    const yTicks = NOTE_TICK_CANDIDATES.filter((g) => g >= yMin - 0.001 && g <= yMax + 0.001);
-    return { polylinePoints: pts.join(' '), yMin, yMax, yTicks, span };
-  }, [type, max, valid, thresholdsOverride, customBands, formulaIntercept]);
+    const tickCandidates = showNotenpunkte ? NP_TICK_CANDIDATES : NOTE_TICK_CANDIDATES;
+    const yTicks = tickCandidates.filter((g) => g >= yMin - 0.001 && g <= yMax + 0.001);
+    return { polylinePoints: pts.join(' '), yMin, yMax, yTicks, span, showNotenpunkte };
+  }, [type, max, valid, thresholdsOverride, customBands, formulaIntercept, showNotenpunkte]);
 
   if (!valid) {
     return (
@@ -78,7 +89,7 @@ export default function GradingKeyChart({
     return null;
   }
 
-  const { polylinePoints, yMin, yMax, yTicks, span } = chart;
+  const { polylinePoints, yMin, yMax, yTicks, span, showNotenpunkte: npMode } = chart;
 
   return (
     <div className="grading-key-chart">
@@ -88,7 +99,7 @@ export default function GradingKeyChart({
         height="200"
         style={{ display: 'block', maxWidth: '100%' }}
         role="img"
-        aria-label={`Notenschlüssel: Note je Punktzahl bis ${max}`}
+        aria-label={npMode ? `Notenschlüssel: Notenpunkte je Punktzahl bis ${max}` : `Notenschlüssel: Note je Punktzahl bis ${max}`}
       >
         <rect
           x={PAD_L}
@@ -102,7 +113,11 @@ export default function GradingKeyChart({
         />
         {yTicks.map((g) => {
           const y = PAD_T + ((yMax - g) / span) * PLOT_H;
-          const label = Number.isInteger(g) ? String(g) : g.toFixed(2).replace('.', ',');
+          const label = npMode
+            ? String(g)
+            : Number.isInteger(g)
+              ? String(g)
+              : g.toFixed(2).replace('.', ',');
           return (
             <g key={g}>
               <line

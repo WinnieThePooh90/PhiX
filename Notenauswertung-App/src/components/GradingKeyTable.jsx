@@ -9,6 +9,7 @@ import {
   pointsFromPercentHalfStep,
   displayPointIntervalsHalfSteps,
   normalizeQuarterGrade,
+  gradeToNotenpunkte,
 } from '../utils/calculator';
 import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradingKey';
 
@@ -19,6 +20,16 @@ function formatPointsHalfStepDisplay(n) {
   return s.replace('.', ',');
 }
 
+function formatClassicGradeDisplay(grade) {
+  return parseFloat(String(grade)).toFixed(2).replace('.00', '.0');
+}
+
+function formatGradeColumnDisplay(grade, showNotenpunkte) {
+  if (!showNotenpunkte) return formatClassicGradeDisplay(grade);
+  const np = gradeToNotenpunkte(parseFloat(String(grade)));
+  return np !== null ? String(np) : '–';
+}
+
 export default function GradingKeyTable({
   type,
   maxPoints,
@@ -27,6 +38,7 @@ export default function GradingKeyTable({
   thresholdsOverride,
   customBands,
   pktIntegerDisplay = false,
+  showNotenpunkte = false,
   titleWarningTooltip = null,
   titleHelpText = null,
   onEdit = null,
@@ -94,7 +106,7 @@ export default function GradingKeyTable({
               pkLo === pkHi ? formatPointsHalfStepDisplay(pkLo) : `${formatPointsHalfStepDisplay(pkLo)}–${formatPointsHalfStepDisplay(pkHi)}`;
           }
         }
-        const gStr = parseFloat(String(s.g)).toFixed(2).replace('.00', '.0');
+        const gStr = formatGradeColumnDisplay(s.g, showNotenpunkte);
         return (
           <tr key={String(s.g)} style={anchor ? anchorRowStyle : {}}>
             <td className="text-center" style={{ padding: '0.4rem 0.5rem' }}>{pktCell}</td>
@@ -153,7 +165,7 @@ export default function GradingKeyTable({
           <td className="text-center" style={{ padding: '0.4rem 0.5rem' }}>
             {pktCell}
           </td>
-          <td style={{ padding: '0.4rem 0.5rem' }} className="text-center">{parseFloat(s.g).toFixed(2).replace('.00', '.0')}</td>
+          <td style={{ padding: '0.4rem 0.5rem' }} className="text-center">{formatGradeColumnDisplay(s.g, showNotenpunkte)}</td>
           <td className="text-center text-muted" style={{ padding: '0.4rem 0.5rem', fontSize: s.pLabel ? '0.72rem' : undefined }}>
             {pctCell}
           </td>
@@ -255,7 +267,7 @@ export default function GradingKeyTable({
         <thead className="grading-key-table__thead" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
           <tr>
             <th style={{ textAlign: 'center', padding: '0.5rem' }}>PKT</th>
-            <th style={{ textAlign: 'center', padding: '0.5rem' }}>Note</th>
+            <th style={{ textAlign: 'center', padding: '0.5rem' }}>{showNotenpunkte ? 'NP' : 'Note'}</th>
             <th style={{ textAlign: 'center', padding: '0.5rem' }}>%</th>
           </tr>
         </thead>
@@ -269,6 +281,7 @@ export default function GradingKeyTable({
           maxPoints={maxPoints}
           thresholdsOverride={thresholdsOverride}
           customBands={effectiveBands ?? undefined}
+          showNotenpunkte={showNotenpunkte}
         />
       </div>
     </div>

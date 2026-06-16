@@ -24,13 +24,20 @@ import {
 } from '../data/gradingKeyDisplay';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { useDialog } from '../components/PhixDialog';
+import PhixCheckboxOption from '../components/PhixCheckboxOption';
 
 export default function KeysView() {
   const { config, setConfig, exams, updateExam } = useData();
   const { showConfirm } = useDialog();
+  const isKursstufe = config?.kursstufe === true;
   const [maxPoints, setMaxPoints] = useState(50);
+  const [showNotenpunkte, setShowNotenpunkte] = useState(isKursstufe);
   const [modalOpen, setModalOpen] = useState(false);
   const [editKey, setEditKey] = useState(null);
+
+  useEffect(() => {
+    setShowNotenpunkte(isKursstufe);
+  }, [config?.id, isKursstufe]);
 
   const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const customKeysWithBands = customKeys.filter((k) => k.bands?.length || isVorlage1KeyFamilyId(k.id));
@@ -140,6 +147,14 @@ export default function KeysView() {
               onChange={(e) => setMaxPoints(parseFloat(e.target.value) || 0)}
               style={{ width: '100%' }}
             />
+            <div style={{ marginTop: '0.5rem' }}>
+              <PhixCheckboxOption
+                checked={showNotenpunkte}
+                onChange={(e) => setShowNotenpunkte(e.target.checked)}
+              >
+                Notenpunkte
+              </PhixCheckboxOption>
+            </div>
           </div>
           <div className="glass-panel" style={{ flex: '0 1 280px', maxWidth: '320px', minWidth: 'min(100%, 220px)', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }} className="text-muted">
@@ -209,6 +224,7 @@ export default function KeysView() {
           <GradingKeyTable
             type="1"
             maxPoints={maxPoints}
+            showNotenpunkte={showNotenpunkte}
             title={k.name}
             desc={
               isVorlage1KeyFamilyId(k.id)
@@ -231,6 +247,7 @@ export default function KeysView() {
               key={keyObj.type}
               type={keyObj.type}
               maxPoints={maxPoints}
+              showNotenpunkte={showNotenpunkte}
               title={keyObj.title}
               desc={keyObj.desc}
               titleHelpText={keyObj.titleHelpText}
