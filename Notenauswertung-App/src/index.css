@@ -277,6 +277,22 @@ p {
   margin-top: 0.45rem;
 }
 
+.course-klasse-kursstufe-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.course-klasse-kursstufe-row > input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.course-kursstufe-checkbox {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .help-contact-mail-wrap {
   text-align: center;
   margin-bottom: 0;

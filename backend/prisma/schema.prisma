@@ -82,6 +82,8 @@ model Course {
   projectsMetaBarHidden Boolean @default(false)
   /** Wenn true: Eintrag „Klassenlehrer“ im Einstellungsmenü für diesen Kurs. */
   klassenlehrerEnabled Boolean @default(false)
+  /** Oberstufe / Kursstufe — steuert u. a. Anzahl mündlicher Bereiche bei Neuanlage. */
+  kursstufe Boolean @default(false)
   /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
   ownerUsername String @default("admin")
 

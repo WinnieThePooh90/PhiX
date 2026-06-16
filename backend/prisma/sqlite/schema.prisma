@@ -76,6 +76,7 @@ model Course {
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)
   klassenlehrerEnabled Boolean @default(false)
+  kursstufe Boolean @default(false)
   ownerUsername String @default("admin")
 
   students   Student[]

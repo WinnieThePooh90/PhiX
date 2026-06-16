@@ -26,7 +26,16 @@ export default function NewCourseForm() {
     gfsAccepted: true,
     projectsAccepted: false,
     klassenlehrerEnabled: false,
+    kursstufe: false,
   });
+
+  const handleKursstufeChange = (checked) => {
+    setNewCourse((prev) => ({
+      ...prev,
+      kursstufe: checked,
+      ...(checked ? { gradeSystem: 'points' } : {}),
+    }));
+  };
 
   const handleNewCourseGradeSystemChange = (e) => {
     setNewCourse((prev) => ({ ...prev, gradeSystem: e.target.value }));
@@ -81,7 +90,23 @@ export default function NewCourseForm() {
           </div>
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-            <input name="className" value={newCourse.className} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} placeholder="z.B. 10a" className="w-full" />
+            <div className="course-klasse-kursstufe-row">
+              <input
+                name="className"
+                value={newCourse.className}
+                onChange={handleNewCourseChange}
+                onFocus={selectInputOnFocus}
+                placeholder="z.B. 10a"
+                className="w-full"
+              />
+              <PhixCheckboxOption
+                checked={newCourse.kursstufe === true}
+                onChange={(e) => handleKursstufeChange(e.target.checked)}
+                className="course-kursstufe-checkbox"
+              >
+                Kursstufe
+              </PhixCheckboxOption>
+            </div>
           </div>
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Fach</label>

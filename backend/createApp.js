@@ -28,6 +28,7 @@ const {
   unlockDekWithPassword,
 } = require('./lib/user-crypto-service');
 const { unwrapDekFromRecovery } = require('./lib/phix-crypto');
+const { buildDefaultExamAndOralRecords } = require('./lib/course-defaults');
 
 function createApp() {
 const app = express();
@@ -513,65 +514,14 @@ app.post('/api/courses', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
   const { ownerUsername: _ignoreOwner, ...rest } = req.body;
+  const kursstufe = rest.kursstufe === true || rest.kursstufe === 'true';
+  const gradeSystem = kursstufe ? 'points' : (rest.gradeSystem || 'classic');
   const course = await prisma.course.create({
-    data: { ...rest, ownerUsername: acting },
+    data: { ...rest, kursstufe, gradeSystem, ownerUsername: acting },
   });
-  const hours = Number(course.hours) || 0;
-  const manyWeeklyHours = hours > 2;
-  const defaultExamKeyType = '1';
-
-  const examBase = (examNumber, halbjahr) => ({
-    examNumber,
-    active: false,
-    maxPoints: 50,
-    numFields: 1,
-    fieldMaxPoints: {},
-    keyType: defaultExamKeyType,
-    date: '',
-    halbjahr,
-    name: `Klausur ${examNumber}`,
-    scores: {},
-    courseId: course.id,
-  });
-
-  const oralBase = (oralNumber, halbjahr) => ({
-    oralNumber,
-    active: false,
-    name: `Mündlich ${oralNumber}`,
-    date: '',
-    halbjahr,
-    extended: false,
-    weekCount: 0,
-    weekDates: [],
-    bestNote: 1,
-    worstNote: 6,
-    weekSpread: 0.5,
-    grades: {},
-    courseId: course.id,
-  });
-
-  if (manyWeeklyHours) {
-    // 4 KAs: KA1–2 Hj.1, KA3–4 Hj.2; 4 mündliche: gleiche Hj.-Aufteilung
-    await prisma.exam.createMany({
-      data: [
-        examBase(1, '1'),
-        examBase(2, '1'),
-        examBase(3, '2'),
-        examBase(4, '2'),
-      ],
-    });
-    await prisma.oral.createMany({
-      data: [oralBase(1, '1'), oralBase(2, '1'), oralBase(3, '2'), oralBase(4, '2')],
-    });
-  } else {
-    // 2 KAs: KA1 Hj.1, KA2 Hj.2; 2 mündliche (Halbjahr unverändert Standard 1)
-    await prisma.exam.createMany({
-      data: [examBase(1, '1'), examBase(2, '2')],
-    });
-    await prisma.oral.createMany({
-      data: [oralBase(1, '1'), oralBase(2, '2')],
-    });
-  }
+  const { exams, orals } = buildDefaultExamAndOralRecords(course);
+  await prisma.exam.createMany({ data: exams });
+  await prisma.oral.createMany({ data: orals });
 
   await prisma.test.create({
     data: {

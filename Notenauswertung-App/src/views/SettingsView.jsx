@@ -104,6 +104,18 @@ export default function SettingsView() {
     setConfig((c) => ({ ...c, gradeSystem: next }));
   };
 
+  const handleKursstufeChange = async (checked) => {
+    const prev = normalizeCourseGradeSystem(config?.gradeSystem);
+    if (checked && prev !== 'points') {
+      await migrateGradingSystem(prev, 'points');
+    }
+    setConfig((c) => ({
+      ...c,
+      kursstufe: checked,
+      ...(checked ? { gradeSystem: 'points' } : {}),
+    }));
+  };
+
   const handleAddStudent = (e) => {
     e.preventDefault();
     if (!newFirstName.trim() || !newLastName.trim()) return;
@@ -327,7 +339,22 @@ export default function SettingsView() {
                 </div>
                 <div className="w-full">
                   <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-                  <input name="className" value={config.className || config.class} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <div className="course-klasse-kursstufe-row">
+                    <input
+                      name="className"
+                      value={config.className || config.class}
+                      onChange={handleConfigChange}
+                      onFocus={selectInputOnFocus}
+                      className="w-full"
+                    />
+                    <PhixCheckboxOption
+                      checked={config.kursstufe === true}
+                      onChange={(e) => handleKursstufeChange(e.target.checked)}
+                      className="course-kursstufe-checkbox"
+                    >
+                      Kursstufe
+                    </PhixCheckboxOption>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-4 mt-4">
