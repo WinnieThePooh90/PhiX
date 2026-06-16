@@ -277,20 +277,55 @@ p {
   margin-top: 0.45rem;
 }
 
-.course-klasse-kursstufe-row {
+.course-meta-row {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1.25rem;
 }
 
-.course-klasse-kursstufe-row > input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.course-kursstufe-checkbox {
+.course-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   flex: 0 0 auto;
-  white-space: nowrap;
+}
+
+.course-meta-label {
+  display: block;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.course-meta-label--spacer {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.course-meta-input {
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+
+.course-meta-input--year {
+  width: 10.5ch;
+  min-width: 10.5ch;
+  max-width: 100%;
+}
+
+.course-meta-input--class {
+  width: 6.5ch;
+  min-width: 6.5ch;
+  max-width: 8ch;
+}
+
+.course-meta-field--kursstufe .course-meta-kursstufe-checkbox {
+  margin-top: 0;
+  height: 2.125rem;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .help-contact-mail-wrap {

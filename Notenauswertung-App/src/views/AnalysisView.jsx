@@ -125,6 +125,7 @@ function RiskStudentsTable({
                         customGradingKeys={customGradingKeys}
                         gradeSys={gradeSystem}
                         testsWritten={testsWritten}
+                        kursstufe={config?.kursstufe === true}
                         compact
                       />
                     </td>

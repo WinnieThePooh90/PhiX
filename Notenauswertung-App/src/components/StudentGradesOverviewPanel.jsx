@@ -88,9 +88,14 @@ export default function StudentGradesOverviewPanel({
   customGradingKeys,
   gradeSys,
   testsWritten = true,
+  kursstufe = false,
   compact = false,
 }) {
   if (!student) return null;
+
+  const categories = kursstufe
+    ? [{ label: 'Gesamt (Durchschnitt)', filter: null }]
+    : GRADE_OVERVIEW_CATEGORIES;
 
   const gfmt = (g) => formatGrade(g, gradeSys);
   const panelPadding = compact ? '1rem' : '1.5rem';
@@ -108,7 +113,7 @@ export default function StudentGradesOverviewPanel({
         border: '1px solid var(--border)',
       }}
     >
-      {GRADE_OVERVIEW_CATEGORIES.map((cat, catIdx) => {
+      {categories.map((cat, catIdx) => {
         const { examAvg, oralAvg, testAvg, finalGrade, valuesAreNotenpunkte } = calculateStudentGrades(
           student.id,
           exams,
@@ -129,11 +134,15 @@ export default function StudentGradesOverviewPanel({
         const writtenProjects = filterProjectsForSummary(projects, 'written', cat.filter);
         const oralProjects = filterProjectsForSummary(projects, 'oral', cat.filter);
         const percentProjects = filterProjectsForSummary(projects, 'percent', cat.filter);
+        const isLastCategory = catIdx === categories.length - 1;
 
         return (
           <div
             key={cat.label}
-            style={{ borderRight: catIdx < 2 ? '1px solid var(--border)' : 'none', paddingRight: catIdx < 2 ? '1.5rem' : 0 }}
+            style={{
+              borderRight: !isLastCategory ? '1px solid var(--border)' : 'none',
+              paddingRight: !isLastCategory ? '1.5rem' : 0,
+            }}
           >
             <div style={{ marginBottom: compact ? '1rem' : '1.25rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>
               <h3 style={{ fontSize: titleSize, margin: 0 }}>{cat.label}</h3>

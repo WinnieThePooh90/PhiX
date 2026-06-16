@@ -332,29 +332,44 @@ export default function SettingsView() {
               <h3 id="settings-class-data-heading" className="mb-2">
                 Klassen & Fachdaten
               </h3>
-              <div className="flex gap-4">
-                <div className="w-full">
-                  <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Schuljahr</label>
-                  <input name="year" value={config.year} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
+              <div className="course-meta-row">
+                <div className="course-meta-field">
+                  <label className="text-muted course-meta-label" htmlFor="settings-course-year">
+                    Schuljahr
+                  </label>
+                  <input
+                    id="settings-course-year"
+                    name="year"
+                    value={config.year}
+                    onChange={handleConfigChange}
+                    onFocus={selectInputOnFocus}
+                    className="course-meta-input course-meta-input--year"
+                  />
                 </div>
-                <div className="w-full">
-                  <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-                  <div className="course-klasse-kursstufe-row">
-                    <input
-                      name="className"
-                      value={config.className || config.class}
-                      onChange={handleConfigChange}
-                      onFocus={selectInputOnFocus}
-                      className="w-full"
-                    />
-                    <PhixCheckboxOption
-                      checked={config.kursstufe === true}
-                      onChange={(e) => handleKursstufeChange(e.target.checked)}
-                      className="course-kursstufe-checkbox"
-                    >
-                      Kursstufe
-                    </PhixCheckboxOption>
-                  </div>
+                <div className="course-meta-field">
+                  <label className="text-muted course-meta-label" htmlFor="settings-course-class">
+                    Klasse
+                  </label>
+                  <input
+                    id="settings-course-class"
+                    name="className"
+                    value={config.className || config.class}
+                    onChange={handleConfigChange}
+                    onFocus={selectInputOnFocus}
+                    className="course-meta-input course-meta-input--class"
+                  />
+                </div>
+                <div className="course-meta-field course-meta-field--kursstufe">
+                  <span className="text-muted course-meta-label course-meta-label--spacer" aria-hidden="true">
+                    Kursstufe
+                  </span>
+                  <PhixCheckboxOption
+                    checked={config.kursstufe === true}
+                    onChange={(e) => handleKursstufeChange(e.target.checked)}
+                    className="course-meta-kursstufe-checkbox"
+                  >
+                    Kursstufe
+                  </PhixCheckboxOption>
                 </div>
               </div>
               <div className="flex gap-4 mt-4">

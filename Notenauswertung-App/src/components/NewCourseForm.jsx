@@ -83,31 +83,48 @@ export default function NewCourseForm() {
         <h3 id="new-course-class-data-heading" className="mb-4">
           Klassen & Fachdaten
         </h3>
-        <div className="grid-2 mb-0">
-          <div>
-            <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Schuljahr</label>
-            <input name="year" value={newCourse.year} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} className="w-full" />
+        <div className="course-meta-row">
+          <div className="course-meta-field">
+            <label className="text-muted course-meta-label" htmlFor="new-course-year">
+              Schuljahr
+            </label>
+            <input
+              id="new-course-year"
+              name="year"
+              value={newCourse.year}
+              onChange={handleNewCourseChange}
+              onFocus={selectInputOnFocus}
+              className="course-meta-input course-meta-input--year"
+            />
           </div>
-          <div>
-            <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Klasse</label>
-            <div className="course-klasse-kursstufe-row">
-              <input
-                name="className"
-                value={newCourse.className}
-                onChange={handleNewCourseChange}
-                onFocus={selectInputOnFocus}
-                placeholder="z.B. 10a"
-                className="w-full"
-              />
-              <PhixCheckboxOption
-                checked={newCourse.kursstufe === true}
-                onChange={(e) => handleKursstufeChange(e.target.checked)}
-                className="course-kursstufe-checkbox"
-              >
-                Kursstufe
-              </PhixCheckboxOption>
-            </div>
+          <div className="course-meta-field">
+            <label className="text-muted course-meta-label" htmlFor="new-course-class">
+              Klasse
+            </label>
+            <input
+              id="new-course-class"
+              name="className"
+              value={newCourse.className}
+              onChange={handleNewCourseChange}
+              onFocus={selectInputOnFocus}
+              placeholder="10a"
+              className="course-meta-input course-meta-input--class"
+            />
           </div>
+          <div className="course-meta-field course-meta-field--kursstufe">
+            <span className="text-muted course-meta-label course-meta-label--spacer" aria-hidden="true">
+              Kursstufe
+            </span>
+            <PhixCheckboxOption
+              checked={newCourse.kursstufe === true}
+              onChange={(e) => handleKursstufeChange(e.target.checked)}
+              className="course-meta-kursstufe-checkbox"
+            >
+              Kursstufe
+            </PhixCheckboxOption>
+          </div>
+        </div>
+        <div className="grid-2 mt-4 mb-0">
           <div>
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Fach</label>
             <input name="subject" value={newCourse.subject} onChange={handleNewCourseChange} onFocus={selectInputOnFocus} placeholder="z.B. NWT" className="w-full" />

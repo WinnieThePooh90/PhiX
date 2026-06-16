@@ -656,7 +656,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const [calculationStudent, setCalculationStudent] = useState(null);
   const [notesModalStudent, setNotesModalStudent] = useState(null);
   const [overviewMaximized, setOverviewMaximized] = useState(false);
-  const showHJ1 = config?.summaryShowHJ1 !== false;
+  const isKursstufe = config?.kursstufe === true;
+  const showHJ1 = !isKursstufe && config?.summaryShowHJ1 !== false;
   const showTests = config?.testsWritten !== false;
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
@@ -693,19 +694,21 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
         className="flex flex-wrap gap-4 course-meta-settings-row"
         style={{ marginBottom: '0.75rem', width: '100%', justifyContent: 'space-between', alignItems: 'flex-end' }}
       >
-        <div className="course-meta-field">
-          <span className="course-meta-field__label">Halbjahresnote anzeigen</span>
-          <div className="course-meta-field__row">
-            <label className="switch" title="Spalte &#x201E;Note HJ1&#x201C; ein-/ausblenden">
-              <input
-                type="checkbox"
-                checked={showHJ1}
-                onChange={(e) => setConfig((c) => ({ ...c, summaryShowHJ1: e.target.checked }))}
-              />
-              <span className="slider" />
-            </label>
+        {!isKursstufe && (
+          <div className="course-meta-field">
+            <span className="course-meta-field__label">Halbjahresnote anzeigen</span>
+            <div className="course-meta-field__row">
+              <label className="switch" title="Spalte &#x201E;Note HJ1&#x201C; ein-/ausblenden">
+                <input
+                  type="checkbox"
+                  checked={showHJ1}
+                  onChange={(e) => setConfig((c) => ({ ...c, summaryShowHJ1: e.target.checked }))}
+                />
+                <span className="slider" />
+              </label>
+            </div>
           </div>
-        </div>
+        )}
         <div className="view-toolbar-actions">
           <button
             type="button"
@@ -922,6 +925,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
                           testsWritten={config.testsWritten !== false}
+                          kursstufe={isKursstufe}
                         />
                         {hasSummaryNotes(s) && (
                           <div
