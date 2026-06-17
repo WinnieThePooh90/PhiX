@@ -1388,6 +1388,19 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/album-photos/${photoId}`, 'DELETE');
   };
 
+  const updateAlbumPhoto = async (photoId, { title, description }) => {
+    const updated = await apiCall(`/api/album-photos/${photoId}`, 'PUT', {
+      title,
+      description: description ?? '',
+    });
+    if (updated?.id) {
+      setAlbumPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? updated : p)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
   const createMoneyList = async ({ subject, amountPerStudent, notes, dueDate, includeExternal, externalOnly }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/money-lists', 'POST', {
@@ -1829,7 +1842,7 @@ export const DataProvider = ({ children }) => {
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
-      albumPhotos, addAlbumPhoto, removeAlbumPhoto,
+      albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,
       attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,

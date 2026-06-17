@@ -1302,6 +1302,36 @@ app.post('/api/album-photos', async (req, res) => {
   res.json(photo);
 });
 
+app.put('/api/album-photos/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.albumPhoto.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.course || !canAccessCourse(existing.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const data = {};
+  if (req.body.title !== undefined) {
+    const title = String(req.body.title ?? '').trim();
+    if (!title) return res.status(400).json({ error: 'Titel erforderlich.' });
+    data.title = title;
+  }
+  if (req.body.description !== undefined) {
+    data.description = String(req.body.description ?? '');
+  }
+
+  const photo = await prisma.albumPhoto.update({
+    where: { id },
+    data,
+  });
+  res.json(photo);
+});
+
 app.delete('/api/album-photos/:id', async (req, res) => {
   const id = Number(req.params.id);
   const existing = await prisma.albumPhoto.findUnique({

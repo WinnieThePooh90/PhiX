@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 
@@ -192,6 +193,101 @@ function AlbumPhotoPreviewModal({ photo, onClose }) {
   );
 }
 
+function AlbumPhotoEditModal({ photo, open, onClose, onSave, saving }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open || !photo) return;
+    setTitle(photo.title ?? '');
+    setDescription(photo.description ?? '');
+    setError('');
+  }, [open, photo]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !saving) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose, saving]);
+
+  if (!open || !photo) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      setError('Bitte einen Titel eingeben.');
+      return;
+    }
+    try {
+      await onSave({
+        title: title.trim(),
+        description: description.trim(),
+      });
+      onClose();
+    } catch (err) {
+      setError(err?.message || 'Speichern fehlgeschlagen.');
+    }
+  };
+
+  return createPortal(
+    <div className="oral-formula-modal-backdrop" role="presentation" onClick={saving ? undefined : onClose}>
+      <div
+        className="oral-formula-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="album-edit-modal-title"
+        onClick={(ev) => ev.stopPropagation()}
+        style={{ maxWidth: 'min(28rem, calc(100vw - 2rem))' }}
+      >
+        <div className="oral-formula-modal-header">
+          <h2 id="album-edit-modal-title" style={{ margin: 0 }}>
+            Foto bearbeiten
+          </h2>
+        </div>
+        <form onSubmit={handleSubmit} className="oral-formula-modal-body" style={{ display: 'grid', gap: '0.75rem' }}>
+          <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <span>Titel</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={saving}
+              autoFocus
+            />
+          </label>
+          <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <span>Beschreibung</span>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={saving}
+            />
+          </label>
+          {error ? (
+            <p style={{ margin: 0, color: 'var(--danger)' }} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className="oral-formula-modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={onClose} disabled={saving}>
+              Abbrechen
+            </button>
+            <button type="submit" disabled={saving}>
+              {saving ? 'Wird gespeichert…' : 'Speichern'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function AlbumUploadModal({ open, onClose, onUpload, uploading }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -326,11 +422,13 @@ function AlbumUploadModal({ open, onClose, onUpload, uploading }) {
 }
 
 export default function AlbumView() {
-  const { albumPhotos, addAlbumPhoto, removeAlbumPhoto } = useData();
+  const { albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto } = useData();
   const { showAlert, showConfirm } = useDialog();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [editPhoto, setEditPhoto] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const handleUpload = async (payload) => {
     setUploading(true);
@@ -355,6 +453,25 @@ export default function AlbumView() {
     });
     if (!ok) return;
     await removeAlbumPhoto(photo.id);
+    if (previewPhoto?.id === photo.id) setPreviewPhoto(null);
+    if (editPhoto?.id === photo.id) setEditPhoto(null);
+  };
+
+  const handleEditSave = async (payload) => {
+    if (!editPhoto?.id) return;
+    setSavingEdit(true);
+    try {
+      const updated = await updateAlbumPhoto(editPhoto.id, payload);
+      if (!updated?.id) {
+        await showAlert('Die Änderungen konnten nicht gespeichert werden.');
+        return;
+      }
+      if (previewPhoto?.id === editPhoto.id) {
+        setPreviewPhoto(updated);
+      }
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   return (
@@ -374,15 +491,26 @@ export default function AlbumView() {
             <article key={photo.id} className="album-photo-card">
               <div className="album-photo-card-head">
                 <h2 className="album-photo-title">{photo.title || 'Ohne Titel'}</h2>
-                <button
-                  type="button"
-                  className="album-photo-remove danger"
-                  onClick={() => handleRemove(photo)}
-                  title="Foto entfernen"
-                  aria-label="Foto entfernen"
-                >
-                  Entfernen
-                </button>
+                <div className="album-photo-actions">
+                  <button
+                    type="button"
+                    className="tab secondary album-photo-icon-btn"
+                    onClick={() => setEditPhoto(photo)}
+                    title="Titel und Beschreibung bearbeiten"
+                    aria-label={`Bearbeiten: ${photo.title || 'Albumfoto'}`}
+                  >
+                    <Wrench size={16} strokeWidth={2.25} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="danger secondary album-photo-icon-btn"
+                    onClick={() => handleRemove(photo)}
+                    title="Foto entfernen"
+                    aria-label={`Foto entfernen: ${photo.title || 'Albumfoto'}`}
+                  >
+                    <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+                  </button>
+                </div>
               </div>
               <button
                 type="button"
@@ -412,6 +540,14 @@ export default function AlbumView() {
       <AlbumPhotoPreviewModal
         photo={previewPhoto}
         onClose={() => setPreviewPhoto(null)}
+      />
+
+      <AlbumPhotoEditModal
+        photo={editPhoto}
+        open={Boolean(editPhoto)}
+        onClose={() => !savingEdit && setEditPhoto(null)}
+        onSave={handleEditSave}
+        saving={savingEdit}
       />
     </div>
   );
