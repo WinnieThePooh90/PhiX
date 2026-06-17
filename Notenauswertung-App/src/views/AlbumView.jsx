@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Wrench } from 'lucide-react';
+import { Eye, EyeOff, Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 
@@ -426,6 +426,7 @@ export default function AlbumView() {
   const { showAlert, showConfirm } = useDialog();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [photosVisible, setPhotosVisible] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
   const [editPhoto, setEditPhoto] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -474,17 +475,42 @@ export default function AlbumView() {
     }
   };
 
+  useEffect(() => {
+    if (albumPhotos.length === 0) {
+      setPhotosVisible(false);
+    }
+  }, [albumPhotos.length]);
+
+  const hasPhotos = albumPhotos.length > 0;
+
   return (
     <div className="album-view">
       <div className="album-view-header">
         <h1 style={{ margin: 0 }}>Album</h1>
-        <button type="button" onClick={() => setUploadOpen(true)}>
-          Hochladen
-        </button>
+        <div className="album-view-actions">
+          <button type="button" onClick={() => setUploadOpen(true)}>
+            Hochladen
+          </button>
+          {hasPhotos ? (
+            <button
+              type="button"
+              className="tab secondary album-visibility-btn"
+              onClick={() => setPhotosVisible((prev) => !prev)}
+              title={photosVisible ? 'Bilder ausblenden' : 'Bilder anzeigen'}
+              aria-label={photosVisible ? 'Bilder ausblenden' : 'Bilder anzeigen'}
+            >
+              {photosVisible ? <EyeOff size={16} strokeWidth={2.2} aria-hidden /> : <Eye size={16} strokeWidth={2.2} aria-hidden />}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {albumPhotos.length === 0 ? (
+      {!hasPhotos ? (
         <p className="album-view-empty">Noch keine Fotos im Album. Klicke auf „Hochladen“, um ein Foto hinzuzufügen.</p>
+      ) : !photosVisible ? (
+        <div className="album-photo-placeholder" role="status" aria-live="polite">
+          <EyeOff size={36} strokeWidth={2.1} aria-hidden />
+        </div>
       ) : (
         <div className="album-photo-grid">
           {albumPhotos.map((photo) => (

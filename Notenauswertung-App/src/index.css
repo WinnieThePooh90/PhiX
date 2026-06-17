@@ -319,10 +319,19 @@ p {
 .course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox {
   flex: 0 0 auto;
   margin-top: 0;
+  display: inline-flex;
+  align-items: center;
   height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  max-height: var(--course-meta-control-height);
   box-sizing: border-box;
   padding-top: 0;
   padding-bottom: 0;
+  overflow: hidden;
+}
+
+.course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox > span {
+  line-height: 1;
 }
 
 .course-meta-field {
@@ -5355,9 +5364,37 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   margin-bottom: 1.25rem;
 }
 
+.album-view-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.album-visibility-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  min-width: 2.1rem;
+  padding: 0;
+}
+
 .album-view-empty {
   margin: 0;
   color: var(--text-muted);
+}
+
+.album-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: clamp(14rem, 42vh, 26rem);
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #94a3b8;
 }
 
 .album-photo-grid {
