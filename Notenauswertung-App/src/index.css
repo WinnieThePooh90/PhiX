@@ -284,6 +284,47 @@ p {
   gap: 0.75rem 1.25rem;
 }
 
+.course-class-data-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem 1.5rem;
+  align-items: end;
+}
+
+.course-class-data-grid .course-meta-field {
+  flex: initial;
+  min-width: 0;
+}
+
+.course-class-data-grid .course-meta-input,
+.course-class-data-grid input.w-full {
+  width: 100%;
+  max-width: 100%;
+}
+
+.course-meta-class-kursstufe-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.course-meta-class-kursstufe-row .course-meta-input--class {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+}
+
+.course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox {
+  flex: 0 0 auto;
+  margin-top: 0;
+  height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .course-meta-field {
   display: flex;
   flex-direction: column;
@@ -5099,7 +5140,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .grid-2,
-  .grid-3 {
+  .grid-3,
+  .course-class-data-grid {
     grid-template-columns: 1fr;
   }
 }

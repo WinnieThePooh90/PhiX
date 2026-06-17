@@ -365,7 +365,7 @@ export default function SettingsView() {
               <h3 id="settings-class-data-heading" className="mb-2">
                 Klassen & Fachdaten
               </h3>
-              <div className="course-meta-row">
+              <div className="course-class-data-grid">
                 <div className="course-meta-field">
                   <label className="text-muted course-meta-label" htmlFor="settings-course-year">
                     Schuljahr
@@ -376,43 +376,57 @@ export default function SettingsView() {
                     value={config.year}
                     onChange={handleConfigChange}
                     onFocus={selectInputOnFocus}
-                    className="course-meta-input course-meta-input--year"
+                    className="course-meta-input w-full"
                   />
                 </div>
                 <div className="course-meta-field">
                   <label className="text-muted course-meta-label" htmlFor="settings-course-class">
                     Klasse
                   </label>
+                  <div className="course-meta-class-kursstufe-row">
+                    <input
+                      id="settings-course-class"
+                      name="className"
+                      value={config.className || config.class}
+                      onChange={handleConfigChange}
+                      onFocus={selectInputOnFocus}
+                      className="course-meta-input course-meta-input--class"
+                    />
+                    <PhixCheckboxOption
+                      checked={config.kursstufe === true}
+                      onChange={(e) => handleKursstufeChange(e.target.checked)}
+                      className="course-meta-kursstufe-checkbox"
+                    >
+                      Kursstufe
+                    </PhixCheckboxOption>
+                  </div>
+                </div>
+                <div className="course-meta-field">
+                  <label className="text-muted course-meta-label" htmlFor="settings-course-subject">
+                    Fach
+                  </label>
                   <input
-                    id="settings-course-class"
-                    name="className"
-                    value={config.className || config.class}
+                    id="settings-course-subject"
+                    name="subject"
+                    value={config.subject}
                     onChange={handleConfigChange}
                     onFocus={selectInputOnFocus}
-                    className="course-meta-input course-meta-input--class"
+                    className="w-full"
                   />
                 </div>
-                <div className="course-meta-field course-meta-field--kursstufe">
-                  <span className="text-muted course-meta-label course-meta-label--spacer" aria-hidden="true">
-                    Kursstufe
-                  </span>
-                  <PhixCheckboxOption
-                    checked={config.kursstufe === true}
-                    onChange={(e) => handleKursstufeChange(e.target.checked)}
-                    className="course-meta-kursstufe-checkbox"
-                  >
-                    Kursstufe
-                  </PhixCheckboxOption>
-                </div>
-              </div>
-              <div className="flex gap-4 mt-4">
-                <div className="w-full">
-                  <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Fach</label>
-                  <input name="subject" value={config.subject} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
-                </div>
-                <div className="w-full">
-                  <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Wochenstunden</label>
-                  <input type="number" name="hours" value={config.hours} onChange={handleConfigChange} onFocus={selectInputOnFocus} className="w-full" />
+                <div className="course-meta-field">
+                  <label className="text-muted course-meta-label" htmlFor="settings-course-hours">
+                    Wochenstunden
+                  </label>
+                  <input
+                    id="settings-course-hours"
+                    type="number"
+                    name="hours"
+                    value={config.hours}
+                    onChange={handleConfigChange}
+                    onFocus={selectInputOnFocus}
+                    className="w-full"
+                  />
                 </div>
               </div>
             </section>
