@@ -100,6 +100,7 @@ export const DataProvider = ({ children }) => {
   const [attendanceLists, setAttendanceLists] = useState([]);
   const [collectionLists, setCollectionLists] = useState([]);
   const [notesLists, setNotesLists] = useState([]);
+  const [albumPhotos, setAlbumPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses and migrate
@@ -264,6 +265,7 @@ export const DataProvider = ({ children }) => {
           attendanceListsRes,
           collectionListsRes,
           notesListsRes,
+          albumPhotosRes,
         ] = await Promise.all([
           safeFetchJson(`/api/students?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/exams?courseId=${activeCourseId}`, {}),
@@ -275,6 +277,7 @@ export const DataProvider = ({ children }) => {
           safeFetchJson(`/api/attendance-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/collection-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/notes-lists?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/album-photos?courseId=${activeCourseId}`, []),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -286,6 +289,7 @@ export const DataProvider = ({ children }) => {
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
         setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
         setNotesLists(Array.isArray(notesListsRes) ? notesListsRes : []);
+        setAlbumPhotos(Array.isArray(albumPhotosRes) ? albumPhotosRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -488,6 +492,7 @@ export const DataProvider = ({ children }) => {
         setTests({});
         setProjects({});
         setGfsEntries([]);
+        setAlbumPhotos([]);
       }
     }
   };
@@ -1364,6 +1369,25 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/gfs/${entryId}`, 'DELETE');
   };
 
+  const addAlbumPhoto = async ({ title, description, mimeType, imageData }) => {
+    const created = await apiCall('/api/album-photos', 'POST', {
+      courseId: activeCourseId,
+      title,
+      description: description ?? '',
+      mimeType,
+      imageData,
+    });
+    if (created?.id) {
+      setAlbumPhotos((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const removeAlbumPhoto = (photoId) => {
+    setAlbumPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    apiCall(`/api/album-photos/${photoId}`, 'DELETE');
+  };
+
   const createMoneyList = async ({ subject, amountPerStudent, notes, dueDate, includeExternal, externalOnly }) => {
     if (!activeCourseId) return null;
     const created = await apiCall('/api/money-lists', 'POST', {
@@ -1805,6 +1829,7 @@ export const DataProvider = ({ children }) => {
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
+      albumPhotos, addAlbumPhoto, removeAlbumPhoto,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,
       attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,

@@ -21,6 +21,7 @@ const DATE_FIELDS_BY_MODEL = {
   AttendanceList: ['createdAt'],
   CollectionList: ['createdAt'],
   NotesList: ['createdAt'],
+  AlbumPhoto: ['createdAt'],
 };
 
 const PG_SEQUENCE_TABLES = [
@@ -40,6 +41,7 @@ const PG_SEQUENCE_TABLES = [
   'NotesList',
   'NotesListEntry',
   'GfsEntry',
+  'AlbumPhoto',
   'Exam',
   'Project',
   'Oral',
@@ -67,6 +69,7 @@ const EMPTY_DATA = {
   collectionListEntries: [],
   notesLists: [],
   notesListEntries: [],
+  albumPhotos: [],
 };
 
 function jsonReplacer(_key, value) {
@@ -120,6 +123,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
       collectionListEntries: [],
       notesLists: [],
       notesListEntries: [],
+      albumPhotos: [],
     };
   }
   const inCourses = { courseId: { in: courseIds } };
@@ -138,6 +142,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    albumPhotos,
   ] = await Promise.all([
     prisma.student.findMany({ where: inCourses }),
     prisma.exam.findMany({ where: inCourses }),
@@ -157,6 +162,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     }),
     prisma.notesList.findMany({ where: inCourses }),
     prisma.notesListEntry.findMany({ where: { notesList: { courseId: { in: courseIds } } } }),
+    prisma.albumPhoto.findMany({ where: inCourses }),
   ]);
   return {
     students,
@@ -173,6 +179,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    albumPhotos,
   };
 }
 
@@ -225,6 +232,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    albumPhotos,
   ] = await Promise.all([
     prisma.appUser.findMany(),
     prisma.userCrypto.findMany(),
@@ -246,6 +254,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.collectionListEntry.findMany(),
     prisma.notesList.findMany(),
     prisma.notesListEntry.findMany(),
+    prisma.albumPhoto.findMany(),
   ]);
 
   return buildBackupEnvelope(
@@ -272,6 +281,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
       collectionListEntries,
       notesLists,
       notesListEntries,
+      albumPhotos,
     },
     { ...meta, exportMode: 'raw' },
   );
@@ -364,6 +374,7 @@ async function clearAllPhixData(tx) {
   await tx.moneyListEntry.deleteMany();
   await tx.moneyList.deleteMany();
   await tx.gfsEntry.deleteMany();
+  await tx.albumPhoto.deleteMany();
   await tx.test.deleteMany();
   await tx.project.deleteMany();
   await tx.oral.deleteMany();
@@ -398,6 +409,7 @@ async function clearUserPhixData(tx, ownerUsername) {
   await tx.moneyListEntry.deleteMany({ where: { moneyList: { courseId: { in: courseIds } } } });
   await tx.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+  await tx.albumPhoto.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.test.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.project.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.oral.deleteMany({ where: { courseId: { in: courseIds } } });
@@ -469,6 +481,7 @@ function countDataSummary(d) {
     attendanceLists: d.attendanceLists?.length ?? 0,
     collectionLists: d.collectionLists?.length ?? 0,
     notesLists: d.notesLists?.length ?? 0,
+    albumPhotos: d.albumPhotos?.length ?? 0,
     schoolRosterYears: d.schoolRosterYears?.length ?? 0,
     schoolRosterStudents: d.schoolRosterStudents?.length ?? 0,
   };
@@ -502,6 +515,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries);
       await insertMany(tx, 'NotesList', d.notesLists);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries);
+      await insertMany(tx, 'AlbumPhoto', d.albumPhotos);
     },
     { maxWait: 60_000, timeout: 300_000 },
   );
@@ -563,6 +577,7 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries, insertOpts);
       await insertMany(tx, 'NotesList', d.notesLists, insertOpts);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries, insertOpts);
+      await insertMany(tx, 'AlbumPhoto', d.albumPhotos, insertOpts);
     },
     { maxWait: 60_000, timeout: 300_000 },
   );

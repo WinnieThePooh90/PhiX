@@ -28,6 +28,7 @@ import ImpressumView from './views/ImpressumView';
 import HelpView from './views/HelpView';
 import AnalysisView from './views/AnalysisView';
 import KlassenlehrerView from './views/KlassenlehrerView';
+import AlbumView from './views/AlbumView';
 import ExamsView from './views/ExamsView';
 import OralView from './views/OralView';
 import TestsView from './views/TestsView';
@@ -175,6 +176,7 @@ function App() {
   const showGfsTab = config?.gfsAccepted !== false;
   const showProjectsTab = config?.projectsAccepted === true;
   const showKlassenlehrerMenu = config?.klassenlehrerEnabled === true;
+  const showAlbumMenu = config?.albumEnabled === true;
   const showEmptyCoursePrompt = !hasActiveCourse && !TABS_WITHOUT_COURSE.has(activeTab);
 
   useEffect(() => {
@@ -182,7 +184,8 @@ function App() {
     if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary', { replace: true });
     if (!showProjectsTab && activeTab === 'projects') setActiveTab('summary', { replace: true });
     if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary', { replace: true });
-  }, [showTestsTab, showGfsTab, showProjectsTab, showKlassenlehrerMenu, activeTab]);
+    if (!showAlbumMenu && activeTab === 'album') setActiveTab('summary', { replace: true });
+  }, [showTestsTab, showGfsTab, showProjectsTab, showKlassenlehrerMenu, showAlbumMenu, activeTab]);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MEDIA);
@@ -354,6 +357,7 @@ function App() {
     showGfsTab,
     showProjectsTab,
     showKlassenlehrerMenu,
+    showAlbumMenu,
   ]);
 
   const handleNewCourseClick = () => {
@@ -391,6 +395,8 @@ function App() {
         return <BackupView />;
       case 'analysis':
         return <AnalysisView />;
+      case 'album':
+        return <AlbumView />;
       case 'klassenlehrer':
         return <KlassenlehrerView />;
       case 'export':
@@ -455,6 +461,7 @@ function App() {
     activeTab === 'userManagement' ||
     activeTab === 'keys' ||
     (hasActiveCourse && activeTab === 'analysis') ||
+    (hasActiveCourse && activeTab === 'album') ||
     (hasActiveCourse && activeTab === 'klassenlehrer') ||
     (hasActiveCourse && activeTab === 'export') ||
     activeTab === 'backup' ||
@@ -505,6 +512,7 @@ function App() {
             <SettingsNavMenu
               isAdminUser={isAdminUser}
               showKlassenlehrer={showKlassenlehrerMenu}
+              showAlbum={showAlbumMenu}
               showCourseMenuItems={hasActiveCourse}
               onSelect={openMainTab}
               onNewCourse={handleNewCourseClick}
@@ -741,6 +749,7 @@ function App() {
             className="settings-nav-menu--panel"
             isAdminUser={isAdminUser}
             showKlassenlehrer={showKlassenlehrerMenu}
+            showAlbum={showAlbumMenu}
             showCourseMenuItems={hasActiveCourse}
             onSelect={openMainTab}
             onNewCourse={handleNewCourseClick}

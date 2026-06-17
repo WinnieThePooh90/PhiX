@@ -93,6 +93,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
       collectionListEntries,
       notesLists,
       notesListEntries,
+      albumPhotos,
     ] = await Promise.all([
       prisma.student.findMany({ where: inCourses }),
       prisma.exam.findMany({ where: inCourses }),
@@ -112,6 +113,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
       }),
       prisma.notesList.findMany({ where: inCourses }),
       prisma.notesListEntry.findMany({ where: { notesList: { courseId: { in: courseIds } } } }),
+      prisma.albumPhoto.findMany({ where: inCourses }),
     ]);
     updated += await encryptModelRows(prisma, 'Student', students, dek);
     updated += await encryptModelRows(prisma, 'Exam', exams, dek);
@@ -127,6 +129,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     updated += await encryptModelRows(prisma, 'CollectionListEntry', collectionListEntries, dek);
     updated += await encryptModelRows(prisma, 'NotesList', notesLists, dek);
     updated += await encryptModelRows(prisma, 'NotesListEntry', notesListEntries, dek);
+    updated += await encryptModelRows(prisma, 'AlbumPhoto', albumPhotos, dek);
   }
 
   const years = await prisma.schoolRosterYear.findMany({ where: { ownerUsername } });

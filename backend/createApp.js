@@ -562,6 +562,7 @@ app.delete('/api/courses/:id', async (req, res) => {
   await prisma.oral.deleteMany({ where: { courseId } });
   await prisma.test.deleteMany({ where: { courseId } });
   await prisma.gfsEntry.deleteMany({ where: { courseId } });
+  await prisma.albumPhoto.deleteMany({ where: { courseId } });
   await prisma.moneyList.deleteMany({ where: { courseId } });
   await prisma.attendanceList.deleteMany({ where: { courseId } });
   await prisma.collectionList.deleteMany({ where: { courseId } });
@@ -1226,6 +1227,94 @@ app.delete('/api/gfs/:id', async (req, res) => {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
   await prisma.gfsEntry.delete({ where: { id } });
+  res.status(204).send();
+});
+
+const ALBUM_ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const ALBUM_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+function normalizeAlbumImagePayload(imageData, mimeType) {
+  const mime = String(mimeType || '').trim().toLowerCase();
+  if (!ALBUM_ALLOWED_MIME.has(mime)) {
+    return { error: 'Ungültiges Bildformat (JPEG, PNG, GIF, WebP).' };
+  }
+  let raw = String(imageData || '').trim();
+  const dataUrlMatch = /^data:([^;]+);base64,(.+)$/i.exec(raw);
+  if (dataUrlMatch) {
+    raw = dataUrlMatch[2];
+  }
+  if (!raw) return { error: 'Keine Bilddaten.' };
+  let buf;
+  try {
+    buf = Buffer.from(raw, 'base64');
+  } catch {
+    return { error: 'Bilddaten ungültig.' };
+  }
+  if (!buf.length) return { error: 'Keine Bilddaten.' };
+  if (buf.length > ALBUM_MAX_IMAGE_BYTES) {
+    return { error: `Bild zu groß (max. ${ALBUM_MAX_IMAGE_BYTES / (1024 * 1024)} MB).` };
+  }
+  return { mimeType: mime, imageData: raw };
+}
+
+app.get('/api/album-photos', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const rows = await prisma.albumPhoto.findMany({
+    where: { courseId },
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+  });
+  res.json(rows);
+});
+
+app.post('/api/album-photos', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course?.albumEnabled) {
+    return res.status(403).json({ error: 'Album ist für diesen Kurs nicht aktiviert.' });
+  }
+
+  const title = String(req.body.title ?? '').trim();
+  if (!title) return res.status(400).json({ error: 'Titel erforderlich.' });
+
+  const normalized = normalizeAlbumImagePayload(req.body.imageData, req.body.mimeType);
+  if (normalized.error) return res.status(400).json({ error: normalized.error });
+
+  const description = String(req.body.description ?? '');
+  const sortOrder = Number.isFinite(Number(req.body.sortOrder)) ? Number(req.body.sortOrder) : 0;
+
+  const photo = await prisma.albumPhoto.create({
+    data: {
+      courseId,
+      title,
+      description,
+      mimeType: normalized.mimeType,
+      imageData: normalized.imageData,
+      sortOrder,
+    },
+  });
+  res.json(photo);
+});
+
+app.delete('/api/album-photos/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.albumPhoto.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.course || !canAccessCourse(existing.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  await prisma.albumPhoto.delete({ where: { id } });
   res.status(204).send();
 });
 

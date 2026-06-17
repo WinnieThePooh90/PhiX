@@ -26,6 +26,7 @@ export default function NewCourseForm() {
     gfsAccepted: true,
     projectsAccepted: false,
     klassenlehrerEnabled: false,
+    albumEnabled: false,
     kursstufe: false,
   });
 
@@ -223,6 +224,12 @@ export default function NewCourseForm() {
             onChange={(e) => setNewCourse((p) => ({ ...p, klassenlehrerEnabled: e.target.checked }))}
           >
             Klassenlehrer
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={newCourse.albumEnabled === true}
+            onChange={(e) => setNewCourse((p) => ({ ...p, albumEnabled: e.target.checked }))}
+          >
+            Album erstellen
           </PhixCheckboxOption>
         </div>
       </section>

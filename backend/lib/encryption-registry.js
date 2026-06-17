@@ -20,6 +20,7 @@ const ENCRYPTED_FIELDS = {
   CollectionListEntry: ['externalFirstName', 'externalLastName'],
   NotesList: ['subject', 'notes', 'sessionDate'],
   NotesListEntry: ['externalFirstName', 'externalLastName', 'remark'],
+  AlbumPhoto: ['title', 'description', 'mimeType', 'imageData'],
   Config: ['year', 'className', 'subject', 'weighting'],
 };
 

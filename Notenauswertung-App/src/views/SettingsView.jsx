@@ -505,6 +505,12 @@ export default function SettingsView() {
                 >
                   Klassenlehrer
                 </PhixCheckboxOption>
+                <PhixCheckboxOption
+                  checked={config.albumEnabled === true}
+                  onChange={(e) => setConfig((c) => ({ ...c, albumEnabled: e.target.checked }))}
+                >
+                  Album erstellen
+                </PhixCheckboxOption>
               </div>
             </section>
           </div>

@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react';
 export default function SettingsNavMenu({
   isAdminUser,
   showKlassenlehrer = false,
+  showAlbum = false,
   showCourseMenuItems = true,
   onSelect,
   onNewCourse,
@@ -28,6 +29,11 @@ export default function SettingsNavMenu({
           <button type="button" role="menuitem" onClick={() => pick('analysis')}>
             Analyse
           </button>
+          {showAlbum ? (
+            <button type="button" role="menuitem" onClick={() => pick('album')}>
+              Album
+            </button>
+          ) : null}
           {showKlassenlehrer ? (
             <button type="button" role="menuitem" onClick={() => pick('klassenlehrer')}>
               Klassenlehrer

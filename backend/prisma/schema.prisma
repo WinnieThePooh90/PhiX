@@ -82,6 +82,8 @@ model Course {
   projectsMetaBarHidden Boolean @default(false)
   /** Wenn true: Eintrag „Klassenlehrer“ im Einstellungsmenü für diesen Kurs. */
   klassenlehrerEnabled Boolean @default(false)
+  /** Wenn true: Eintrag „Album“ im Einstellungsmenü für diesen Kurs. */
+  albumEnabled Boolean @default(false)
   /** Oberstufe / Kursstufe — steuert u. a. Anzahl mündlicher Bereiche bei Neuanlage. */
   kursstufe Boolean @default(false)
   /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
@@ -97,6 +99,7 @@ model Course {
   attendanceLists   AttendanceList[]
   collectionLists   CollectionList[]
   notesLists        NotesList[]
+  albumPhotos       AlbumPhoto[]
 
   @@index([ownerUsername])
 }
@@ -282,6 +285,21 @@ model GfsEntry {
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId  Int?
   course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+/** Kurs-Album: Fotos mit Titel und Beschreibung (Bilddaten verschlüsselt als Base64-String). */
+model AlbumPhoto {
+  id          Int      @id @default(autoincrement())
+  title       String   @default("")
+  description String   @default("")
+  mimeType    String   @default("image/jpeg")
+  imageData   String   @default("")
+  sortOrder   Int      @default(0)
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model Exam {

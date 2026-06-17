@@ -76,6 +76,7 @@ model Course {
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)
   klassenlehrerEnabled Boolean @default(false)
+  albumEnabled Boolean @default(false)
   kursstufe Boolean @default(false)
   ownerUsername String @default("admin")
 
@@ -89,6 +90,7 @@ model Course {
   attendanceLists   AttendanceList[]
   collectionLists   CollectionList[]
   notesLists        NotesList[]
+  albumPhotos       AlbumPhoto[]
 
   @@index([ownerUsername])
 }
@@ -266,6 +268,20 @@ model GfsEntry {
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId  Int?
   course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model AlbumPhoto {
+  id          Int      @id @default(autoincrement())
+  title       String   @default("")
+  description String   @default("")
+  mimeType    String   @default("image/jpeg")
+  imageData   String   @default("")
+  sortOrder   Int      @default(0)
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model Exam {
