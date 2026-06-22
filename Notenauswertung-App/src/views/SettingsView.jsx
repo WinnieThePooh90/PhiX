@@ -8,7 +8,7 @@ import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
 import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
-import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -59,6 +59,12 @@ export default function SettingsView() {
 
   const classFieldForGrade = config?.className || config?.class;
   const parsedClassGrade = useMemo(() => parseGradeFromClassCell(classFieldForGrade), [classFieldForGrade]);
+  const effectiveWeighting = useMemo(
+    () => resolveCourseWeighting(config?.weighting, config, exams, tests),
+    [config, exams, tests],
+  );
+  const testsWeightComputed = isTestsWeightComputed(config);
+  const testsPerKlausurHint = describeTestsPerKlausurWeighting(config, exams, tests);
 
   useEffect(() => {
     if (parsedClassGrade != null) setRosterGradeFilter(parsedClassGrade);
@@ -459,7 +465,7 @@ export default function SettingsView() {
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="tests" value={config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" readOnly={testsWeightComputed} disabled={testsWeightComputed} title={testsWeightComputed ? testsPerKlausurHint ?? 'Automatisch berechnet' : undefined} />
                 </div>
               ) : (
                 <div
@@ -477,9 +483,14 @@ export default function SettingsView() {
                 </div>
               )}
               <WeightingPercentHint
-                weighting={config.weighting}
+                weighting={effectiveWeighting}
                 showTestsColumn={showTestsInWeightingRatio(config)}
               />
+              {testsPerKlausurHint ? (
+                <p className="settings-advanced-weighting-hint text-muted" role="note">
+                  {testsPerKlausurHint}
+                </p>
+              ) : null}
               <AdvancedWeightingSettings
                 advancedEnabled={config.advancedWeightingEnabled === true}
                 onAdvancedEnabledChange={(checked) => setConfig((c) => ({ ...c, advancedWeightingEnabled: checked }))}
@@ -488,13 +499,31 @@ export default function SettingsView() {
                   ...c,
                   testsAsHalfExam: checked,
                   testsAsOral: checked ? false : c.testsAsOral,
+                  testsPerKlausurEnabled: checked ? false : c.testsPerKlausurEnabled,
                 }))}
                 testsAsOral={config.testsAsOral === true}
                 onTestsAsOralChange={(checked) => setConfig((c) => ({
                   ...c,
                   testsAsOral: checked,
                   testsAsHalfExam: checked ? false : c.testsAsHalfExam,
+                  testsPerKlausurEnabled: checked ? false : c.testsPerKlausurEnabled,
                 }))}
+                testsPerKlausurEnabled={config.testsPerKlausurEnabled === true}
+                onTestsPerKlausurEnabledChange={(checked) => setConfig((c) => ({
+                  ...c,
+                  testsPerKlausurEnabled: checked,
+                  testsAsHalfExam: checked ? false : c.testsAsHalfExam,
+                  testsAsOral: checked ? false : c.testsAsOral,
+                  testsPerKlausur: c.testsPerKlausur > 0 ? c.testsPerKlausur : 10,
+                }))}
+                testsPerKlausur={config.testsPerKlausur ?? 10}
+                onTestsPerKlausurChange={(raw) => {
+                  const v = parseInt(String(raw).replace(',', '.'), 10);
+                  setConfig((c) => ({
+                    ...c,
+                    testsPerKlausur: Number.isFinite(v) ? Math.max(1, Math.min(99, v)) : 10,
+                  }));
+                }}
                 testsWritten={config.testsWritten !== false}
               />
             </section>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from './PhixDialog';
@@ -6,7 +6,7 @@ import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import WeightingPercentHint from './WeightingPercentHint';
 import AdvancedWeightingSettings from './AdvancedWeightingSettings';
-import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
@@ -33,8 +33,16 @@ export default function NewCourseForm() {
     advancedWeightingEnabled: false,
     testsAsHalfExam: false,
     testsAsOral: false,
+    testsPerKlausurEnabled: false,
+    testsPerKlausur: 10,
     kursstufe: false,
   });
+
+  const effectiveWeighting = useMemo(
+    () => resolveCourseWeighting(newCourse.weighting, newCourse, {}, {}),
+    [newCourse],
+  );
+  const testsWeightComputed = isTestsWeightComputed(newCourse);
 
   const handleKursstufeChange = (checked) => {
     setNewCourse((prev) => ({
@@ -180,7 +188,7 @@ export default function NewCourseForm() {
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="tests" value={newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+            <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" readOnly={testsWeightComputed} disabled={testsWeightComputed} />
           </div>
         ) : (
           <div
@@ -198,7 +206,7 @@ export default function NewCourseForm() {
           </div>
         )}
         <WeightingPercentHint
-          weighting={newCourse.weighting}
+          weighting={effectiveWeighting}
           showTestsColumn={showTestsInWeightingRatio(newCourse)}
         />
         <AdvancedWeightingSettings
@@ -209,13 +217,31 @@ export default function NewCourseForm() {
             ...p,
             testsAsHalfExam: checked,
             testsAsOral: checked ? false : p.testsAsOral,
+            testsPerKlausurEnabled: checked ? false : p.testsPerKlausurEnabled,
           }))}
           testsAsOral={newCourse.testsAsOral === true}
           onTestsAsOralChange={(checked) => setNewCourse((p) => ({
             ...p,
             testsAsOral: checked,
             testsAsHalfExam: checked ? false : p.testsAsHalfExam,
+            testsPerKlausurEnabled: checked ? false : p.testsPerKlausurEnabled,
           }))}
+          testsPerKlausurEnabled={newCourse.testsPerKlausurEnabled === true}
+          onTestsPerKlausurEnabledChange={(checked) => setNewCourse((p) => ({
+            ...p,
+            testsPerKlausurEnabled: checked,
+            testsAsHalfExam: checked ? false : p.testsAsHalfExam,
+            testsAsOral: checked ? false : p.testsAsOral,
+            testsPerKlausur: p.testsPerKlausur > 0 ? p.testsPerKlausur : 10,
+          }))}
+          testsPerKlausur={newCourse.testsPerKlausur ?? 10}
+          onTestsPerKlausurChange={(raw) => {
+            const v = parseInt(String(raw), 10);
+            setNewCourse((p) => ({
+              ...p,
+              testsPerKlausur: Number.isFinite(v) ? Math.max(1, Math.min(99, v)) : 10,
+            }));
+          }}
           testsWritten={newCourse.testsWritten !== false}
         />
       </section>

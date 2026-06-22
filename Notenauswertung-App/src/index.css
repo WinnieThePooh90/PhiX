@@ -2495,6 +2495,41 @@ tfoot td {
   font-size: 0.8125rem;
 }
 
+.settings-tests-per-klausur-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.settings-tests-per-klausur-checkbox {
+  margin-top: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.settings-tests-per-klausur-inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.settings-tests-per-klausur-x {
+  width: 3.5rem;
+  min-width: 3.5rem;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.35rem;
+}
+
+.weighting-ratio-grid input[readOnly] {
+  opacity: 0.85;
+  cursor: default;
+}
+
 .sidebar-layout {
   display: flex;
   gap: 1.5rem;

@@ -8,9 +8,17 @@ export default function AdvancedWeightingSettings({
   onTestsAsHalfExamChange,
   testsAsOral,
   onTestsAsOralChange,
+  testsPerKlausurEnabled,
+  onTestsPerKlausurEnabledChange,
+  testsPerKlausur,
+  onTestsPerKlausurChange,
   testsWritten = true,
 }) {
   const testsOptionsDisabled = testsWritten === false;
+
+  const stopCheckboxToggle = (e) => {
+    e.stopPropagation();
+  };
 
   return (
     <div className="settings-advanced-weighting">
@@ -44,6 +52,33 @@ export default function AdvancedWeightingSettings({
             disabled={testsOptionsDisabled}
           >
             Tests wie mündlich
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={testsPerKlausurEnabled === true}
+            onChange={(e) => onTestsPerKlausurEnabledChange(e.target.checked)}
+            disabled={testsOptionsDisabled}
+            className="settings-tests-per-klausur-checkbox"
+          >
+            {testsPerKlausurEnabled ? (
+              <span className="settings-tests-per-klausur-inline-label">
+                <input
+                  type="number"
+                  className="course-meta-control settings-tests-per-klausur-x"
+                  min="1"
+                  max="99"
+                  step="1"
+                  value={testsPerKlausur ?? 10}
+                  onChange={(e) => onTestsPerKlausurChange(e.target.value)}
+                  onMouseDown={stopCheckboxToggle}
+                  onClick={stopCheckboxToggle}
+                  aria-label="Anzahl Tests pro Klausur"
+                />
+                {' '}
+                Tests zählen wie 1 Klausur
+              </span>
+            ) : (
+              'Tests zählen wie 1 Klausur'
+            )}
           </PhixCheckboxOption>
           {testsOptionsDisabled ? (
             <p className="settings-advanced-weighting-hint text-muted">

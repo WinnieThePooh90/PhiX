@@ -13,6 +13,10 @@ import { sortSchoolYears } from '../utils/schoolYear';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
 import { checkCryptoApiResponse } from '../utils/apiAuth';
+import {
+  usesTestsPerKlausurRatio,
+  resolveCourseWeighting,
+} from '../utils/courseWeightingOptions';
 
 const ORAL_WEEK_COL_CAP = 24;
 
@@ -415,6 +419,33 @@ export const DataProvider = ({ children }) => {
       return prev.map((c) => (c.id === courseId ? merged : c));
     });
   };
+
+  // Tests-Gewicht bei „x Tests = 1 Klausur“ aus Klausur-/Testanzahl ableiten und speichern.
+  useEffect(() => {
+    if (!activeCourseId || !config || !usesTestsPerKlausurRatio(config)) return;
+    const resolved = resolveCourseWeighting(config.weighting, config, exams, tests);
+    const nextTests = Number(resolved?.tests);
+    const currTests = Number(config.weighting?.tests);
+    if (!Number.isFinite(nextTests) || Math.abs(currTests - nextTests) < 0.0001) return;
+    setCourses((prev) => prev.map((c) => (
+      c.id === activeCourseId
+        ? { ...c, weighting: { ...c.weighting, tests: nextTests } }
+        : c
+    )));
+    apiCall(`/api/courses/${activeCourseId}`, 'PUT', {
+      ...config,
+      weighting: { ...config.weighting, tests: nextTests },
+    });
+  }, [
+    activeCourseId,
+    config?.testsPerKlausurEnabled,
+    config?.testsPerKlausur,
+    config?.weighting?.written,
+    config?.advancedWeightingEnabled,
+    config?.testsWritten,
+    exams,
+    tests,
+  ]);
 
   /**
    * Alle manuell gespeicherten Noten (Endnote, mündlich „Note“, GFS) zwischen Kodierungen umrechnen,

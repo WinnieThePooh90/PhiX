@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
-import { usesTestsAsHalfExam, usesTestsAsOral } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -153,6 +153,10 @@ export default function AnalysisView() {
   const testsWritten = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
+  const weighting = useMemo(
+    () => resolveCourseWeighting(config?.weighting, config, exams, tests),
+    [config, exams, tests],
+  );
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
   const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -169,7 +173,7 @@ export default function AnalysisView() {
     tests,
     projects,
     gfsEntries,
-    weighting: config?.weighting,
+    weighting,
     customGradingKeys,
     testsWritten,
     testsAsHalfExam,
@@ -178,7 +182,7 @@ export default function AnalysisView() {
   };
 
   const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
-    if (!config?.weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
+    if (!weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
     const withGrade = students
       .map((s) => {
         const { finalGrade } = calculateStudentGrades(
@@ -186,7 +190,7 @@ export default function AnalysisView() {
           exams,
           orals,
           tests,
-          config.weighting,
+          weighting,
           null,
           gfsEntries,
           Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
@@ -220,7 +224,7 @@ export default function AnalysisView() {
       .sort(sortWorstFirst);
 
     return { starkGefaehrdet: stark, gefaehrdet: gef };
-  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
+  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
     const isPoints = gradeSys === 'points';
@@ -233,7 +237,7 @@ export default function AnalysisView() {
       });
       return map;
     };
-    if (!config?.weighting) {
+    if (!weighting) {
       return {
         gradeCounts: emptyCounts(),
         maxCount: 1,
@@ -252,7 +256,7 @@ export default function AnalysisView() {
         exams,
         orals,
         tests,
-        config.weighting,
+        weighting,
         null,
         gfsEntries,
         Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
@@ -282,7 +286,7 @@ export default function AnalysisView() {
       distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
       studentsByBucket: buckets,
     };
-  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys]);
+  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const barPopoverStudents = useMemo(() => {
     if (distributionTooltipBucket === null || distributionTooltipBucket === undefined) return [];

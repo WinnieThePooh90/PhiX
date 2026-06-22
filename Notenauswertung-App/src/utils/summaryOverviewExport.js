@@ -6,7 +6,7 @@ import {
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
-import { usesTestsAsHalfExam, usesTestsAsOral } from './courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting } from './courseWeightingOptions';
 
 /** Excel-Layout: # und Notenspalten zentriert, Name/Vorname links. */
 export function buildSummaryOverviewExportLayout(showTests) {
@@ -37,7 +37,7 @@ export function buildSummaryOverviewExportData({
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
   const showTests = config?.testsWritten !== false;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
-  const weighting = config?.weighting;
+  const weighting = resolveCourseWeighting(config?.weighting, config, exams, tests);
 
   const headers = [
     '#',

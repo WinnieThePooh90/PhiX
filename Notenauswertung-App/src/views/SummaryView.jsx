@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight, resolveCourseWeighting } from '../utils/courseWeightingOptions';
 import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
@@ -88,10 +88,10 @@ function getActivePercentProjects(projects) {
     }));
 }
 
-function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
+function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams, tests }) {
   if (!open) return null;
 
-  const weights = resolveSummaryWeighting(config?.weighting);
+  const weights = resolveSummaryWeighting(resolveCourseWeighting(config?.weighting, config, exams, tests));
   const testsWritten = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
@@ -486,12 +486,13 @@ function SummaryStudentCalculationModal({
   const categoryLabel = CALCULATION_CATEGORIES.find((cat) => cat.key === categoryKey)?.label ?? 'Gesamt';
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
+  const resolvedWeighting = resolveCourseWeighting(config?.weighting, config, exams, tests);
   const breakdown = getStudentGradeCalculationBreakdown(
     student.id,
     exams,
     orals,
     tests,
-    config?.weighting,
+    resolvedWeighting,
     halbjahrFilter,
     gfsEntries,
     customGradingKeys,
@@ -672,7 +673,10 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
   const showTestsInWeighting = showTestsInWeightingRatio(config);
-  const weighting = config?.weighting;
+  const weighting = useMemo(
+    () => resolveCourseWeighting(config?.weighting, config, exams, tests),
+    [config, exams, tests],
+  );
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
     Number.isFinite(Number(weighting?.written)) &&
@@ -824,7 +828,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 exams,
                 orals,
                 tests,
-                config.weighting,
+                weighting,
                 null,
                 gfsEntries,
                 customGradingKeys,
@@ -936,7 +940,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           tests={tests}
                           projects={projects}
                           gfsEntries={gfsEntries}
-                          weighting={config.weighting}
+                          weighting={weighting}
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
                           testsWritten={config.testsWritten !== false}
@@ -1073,6 +1077,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
         config={config}
         projects={projects}
         gradeSys={gradeSys}
+        exams={exams}
+        tests={tests}
       />
       <SummaryStudentCalculationModal
         open={calculationStudent !== null}

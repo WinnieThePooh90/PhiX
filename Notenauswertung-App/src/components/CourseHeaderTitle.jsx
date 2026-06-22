@@ -1,6 +1,7 @@
 import React from 'react';
 import AppLogo from './AppLogo';
-import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
+import { useData } from '../store/DataContext';
+import { showTestsInWeightingRatio, resolveCourseWeighting } from '../utils/courseWeightingOptions';
 
 export function formatCourseWeightingRatio(weighting, showTestsColumn = true) {
   if (weighting == null) return '';
@@ -38,11 +39,14 @@ function formatWeighting(weighting, showTestsColumn = true) {
 }
 
 export default function CourseHeaderTitle({ config, className = '' }) {
+  const { exams, tests } = useData();
+
   if (!config) return null;
 
   const classLabel = config.className || config.class;
   const showTestsColumn = showTestsInWeightingRatio(config);
-  const weightingText = formatWeighting(config.weighting, showTestsColumn);
+  const resolvedWeighting = resolveCourseWeighting(config.weighting, config, exams, tests);
+  const weightingText = formatWeighting(resolvedWeighting, showTestsColumn);
 
   return (
     <header className={['course-header-title', className].filter(Boolean).join(' ')}>

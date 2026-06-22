@@ -929,7 +929,7 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
                 step="1"
                 value={form.weightPercent}
                 onChange={(e) => setForm((f) => ({ ...f, weightPercent: e.target.value }))}
-                style={{ width: '8rem' }}
+                style={fieldControlStyle}
               />
             </div>
           )}
