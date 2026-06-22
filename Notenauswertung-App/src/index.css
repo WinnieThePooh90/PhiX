@@ -3034,6 +3034,7 @@ a.support-phix-paypal-btn:active {
   gap: 0.35rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
   transition: var(--transition);
   overflow: hidden;
 }
@@ -3061,21 +3062,42 @@ a.support-phix-paypal-btn:active {
 }
 
 .course-item-fav:hover {
-  background: hsl(var(--accent));
+  background: hsl(var(--brand-hsl) / 0.12);
 }
 
 .course-item-fav--on {
   color: #d4af37;
 }
 
-.course-item:hover {
-  background: hsl(var(--accent));
+.course-item:hover:not(.active) {
+  background: hsl(var(--brand-hsl) / 0.08);
 }
 
 .course-item.active {
-  background: hsl(var(--background));
-  border-color: hsl(var(--foreground) / 0.22);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: var(--primary);
+  border-left-color: hsl(var(--brand-hsl) / 0.95);
+  box-shadow: 0 2px 10px hsl(var(--brand-hsl) / 0.22);
+}
+
+.course-item.active .course-item-title {
+  color: var(--brand-foreground);
+  font-weight: 700;
+}
+
+.course-item.active .course-item-meta {
+  color: hsl(var(--brand-foreground) / 0.82);
+}
+
+.course-item.active .course-item-fav {
+  color: hsl(var(--brand-foreground) / 0.78);
+}
+
+.course-item.active .course-item-fav:hover {
+  background: hsl(var(--brand-foreground) / 0.14);
+}
+
+.course-item.active .course-item-fav--on {
+  color: #f5d565;
 }
 
 .course-item-title {
