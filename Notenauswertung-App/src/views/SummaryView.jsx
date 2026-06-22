@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
+import { usesTestsAsHalfExam, showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
 import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
@@ -92,24 +93,26 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
 
   const weights = resolveSummaryWeighting(config?.weighting);
   const testsWritten = config?.testsWritten !== false;
+  const testsAsHalfExam = usesTestsAsHalfExam(config);
+  const showTestsInFinal = testsWritten && !testsAsHalfExam;
   const percentProjects = getActivePercentProjects(projects);
   const totalPercent = percentProjects.reduce((s, p) => s + p.percent, 0);
   const remainingFactor = Math.max(0, (100 - totalPercent) / 100);
-  const wSum = weights.written + weights.oral + (testsWritten ? weights.tests : 0);
+  const wSum = weights.written + weights.oral + (showTestsInFinal ? weights.tests : 0);
 
-  const weightLine = testsWritten
+  const weightLine = showTestsInFinal
     ? <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong>, <strong>w<sub>T</sub> = {weights.tests}</strong></>
     : <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong></>;
 
-  const standardClassicNumerator = testsWritten
+  const standardClassicNumerator = showTestsInFinal
     ? <>w<sub>S</sub>·S + w<sub>M</sub>·M + w<sub>T</sub>·T</>
     : <>w<sub>S</sub>·S + w<sub>M</sub>·M</>;
 
-  const standardClassicDenom = testsWritten
+  const standardClassicDenom = showTestsInFinal
     ? <>w<sub>S</sub> + w<sub>M</sub> + w<sub>T</sub></>
     : <>w<sub>S</sub> + w<sub>M</sub></>;
 
-  const standardNpNumerator = testsWritten
+  const standardNpNumerator = showTestsInFinal
     ? <>w<sub>S</sub>·NP(S) + w<sub>M</sub>·NP(M) + w<sub>T</sub>·NP(T)</>
     : <>w<sub>S</sub>·NP(S) + w<sub>M</sub>·NP(M)</>;
 
@@ -145,12 +148,13 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
           <ul style={{ margin: '0 0 1rem', paddingLeft: '1.25rem' }}>
             <li style={{ marginBottom: '0.45rem' }}>
               <strong>S</strong> (Schriftlich): arithmetisches Mittel aller zählenden Klausur-Noten, gehaltener GFS-Noten
-              (jede GFS zählt wie eine Klausur) und aktiver Projekte mit Gewichtung „zu schriftlich“.
+              (jede GFS zählt wie eine Klausur) und aktiver Projekte mit Gewichtung „zu schriftlich“
+              {testsAsHalfExam ? '; jeder Test zählt mit 50 % (wie eine halbe Klausur)' : ''}.
             </li>
             <li style={{ marginBottom: '0.45rem' }}>
               <strong>M</strong> (Mündlich): arithmetisches Mittel aller aktiven mündlichen Bereiche und Projekte mit Gewichtung „zu mündlich“.
             </li>
-            {testsWritten && (
+            {showTestsInFinal && (
               <li style={{ marginBottom: '0.45rem' }}>
                 <strong>T</strong> (Tests): arithmetisches Mittel aller aktiven, zählenden Test-Noten.
               </li>
@@ -252,25 +256,25 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
                 percentProjects.length > 0 ? (
                   <>
                     NP<sub>end</sub> = round(f · ({weights.written}·NP(S) + {weights.oral}·NP(M)
-                    {testsWritten ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum}
+                    {showTestsInFinal ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum}
                     {percentProjects.map((p) => ` + ${p.percent}%·NP(g${p.id})`).join('')})
                   </>
                 ) : (
                   <>
                     NP<sub>end</sub> = round(({weights.written}·NP(S) + {weights.oral}·NP(M)
-                    {testsWritten ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum})
+                    {showTestsInFinal ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum})
                   </>
                 )
               ) : percentProjects.length > 0 ? (
                 <>
                   Endnote = {remainingFactor.toLocaleString('de-DE', { maximumFractionDigits: 4 })} · ({weights.written}·S + {weights.oral}·M
-                  {testsWritten ? ` + ${weights.tests}·T` : ''}) / {wSum}
+                  {showTestsInFinal ? ` + ${weights.tests}·T` : ''}) / {wSum}
                   {percentProjects.map((p) => ` + ${(p.percent / 100).toLocaleString('de-DE', { maximumFractionDigits: 4 })}·g${p.id}`).join('')}
                 </>
               ) : (
                 <>
                   Endnote = ({weights.written}·S + {weights.oral}·M
-                  {testsWritten ? ` + ${weights.tests}·T` : ''}) / {wSum}
+                  {showTestsInFinal ? ` + ${weights.tests}·T` : ''}) / {wSum}
                 </>
               )}
             </p>
@@ -478,6 +482,7 @@ function SummaryStudentCalculationModal({
 
   const halbjahrFilter = categoryKey === 'all' ? null : categoryKey;
   const categoryLabel = CALCULATION_CATEGORIES.find((cat) => cat.key === categoryKey)?.label ?? 'Gesamt';
+  const testsAsHalfExam = usesTestsAsHalfExam(config);
   const breakdown = getStudentGradeCalculationBreakdown(
     student.id,
     exams,
@@ -490,6 +495,7 @@ function SummaryStudentCalculationModal({
     gradeSys,
     config?.testsWritten !== false,
     projects,
+    testsAsHalfExam,
   );
   const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, breakdown.valuesAreNotenpunkte);
   const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
@@ -659,12 +665,14 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const isKursstufe = config?.kursstufe === true;
   const showHJ1 = !isKursstufe && config?.summaryShowHJ1 !== false;
   const showTests = config?.testsWritten !== false;
+  const testsAsHalfExam = usesTestsAsHalfExam(config);
+  const showTestsInWeighting = showTestsInWeightingRatio(config);
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
     Number.isFinite(Number(weighting?.written)) &&
     Number.isFinite(Number(weighting?.oral)) &&
-    Number.isFinite(Number(weighting?.tests));
+    (!showTestsInWeighting || Number.isFinite(Number(weighting?.tests)));
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const gfmt = (g) => formatGrade(g, gradeSys);
   const gfmtCalc = (g, valuesAreNotenpunkte) =>
@@ -818,6 +826,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 gradeSys,
                 config.testsWritten !== false,
                 projects,
+                testsAsHalfExam,
               );
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
@@ -925,6 +934,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
                           testsWritten={config.testsWritten !== false}
+                          testsAsHalfExam={testsAsHalfExam}
                           kursstufe={isKursstufe}
                         />
                         {hasSummaryNotes(s) && (

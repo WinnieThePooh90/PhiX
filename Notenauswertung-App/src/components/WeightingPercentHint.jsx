@@ -1,8 +1,8 @@
 import React from 'react';
 import { formatWeightingPercentHint } from './CourseHeaderTitle';
 
-export default function WeightingPercentHint({ weighting, testsWritten = true }) {
-  const hint = formatWeightingPercentHint(weighting, testsWritten);
+export default function WeightingPercentHint({ weighting, showTestsColumn = true }) {
+  const hint = formatWeightingPercentHint(weighting, showTestsColumn);
   if (!hint) return null;
 
   return (

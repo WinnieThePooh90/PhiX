@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import MobileAppHeader from './components/MobileAppHeader';
 import CourseHeaderTitle, { formatCourseWeightingRatio } from './components/CourseHeaderTitle';
+import { showTestsInWeightingRatio } from './utils/courseWeightingOptions';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
@@ -669,7 +670,7 @@ function App() {
                         <div className="course-item-meta">
                           {course.year}
                           {course.weighting
-                            ? `, ${formatCourseWeightingRatio(course.weighting, course.testsWritten !== false)}`
+                            ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
                             : ''}
                         </div>
                       </div>

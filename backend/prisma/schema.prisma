@@ -72,6 +72,10 @@ model Course {
   customGradingKeys Json @default("[]")
   /** Wenn false: Tab „Tests“ im Kurs ausblenden (z. B. keine geschriebenen Tests). */
   testsWritten Boolean @default(true)
+  /** Erweiterte Gewichtungsoptionen in Klasse einblenden. */
+  advancedWeightingEnabled Boolean @default(false)
+  /** Tests zählen zu 50 % in den Schriftlich-Durchschnitt (keine eigene Tests-Gewichtung). */
+  testsAsHalfExam Boolean @default(false)
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
   /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */

@@ -88,6 +88,7 @@ export default function StudentGradesOverviewPanel({
   customGradingKeys,
   gradeSys,
   testsWritten = true,
+  testsAsHalfExam = false,
   kursstufe = false,
   compact = false,
 }) {
@@ -126,6 +127,7 @@ export default function StudentGradesOverviewPanel({
           gradeSys,
           testsWritten,
           projects,
+          testsAsHalfExam,
         );
         const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
         const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);

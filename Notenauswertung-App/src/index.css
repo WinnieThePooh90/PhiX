@@ -2471,6 +2471,23 @@ tfoot td {
   color: var(--text-muted);
 }
 
+.settings-advanced-weighting {
+  margin-top: 1rem;
+}
+
+.settings-advanced-weighting-panel {
+  margin-top: 0.5rem;
+  margin-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settings-advanced-weighting-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
 .sidebar-layout {
   display: flex;
   gap: 1.5rem;

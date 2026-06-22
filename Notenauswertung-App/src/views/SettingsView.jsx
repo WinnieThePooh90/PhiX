@@ -7,6 +7,8 @@ import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
+import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
+import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -439,7 +441,7 @@ export default function SettingsView() {
               <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
                 Gib hier die Gewichtung der Noten im Verhältnis an, z. B. 3:1 oder 75:25 oder 3:2:1 oder 75:33:17.
               </p>
-              {config.testsWritten !== false ? (
+              {showTestsInWeightingRatio(config) ? (
                 <div className="weighting-ratio-grid mt-4">
                   <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
                   <span className="weighting-ratio-grid__sep-slot" aria-hidden />
@@ -473,6 +475,13 @@ export default function SettingsView() {
               )}
               <WeightingPercentHint
                 weighting={config.weighting}
+                showTestsColumn={showTestsInWeightingRatio(config)}
+              />
+              <AdvancedWeightingSettings
+                advancedEnabled={config.advancedWeightingEnabled === true}
+                onAdvancedEnabledChange={(checked) => setConfig((c) => ({ ...c, advancedWeightingEnabled: checked }))}
+                testsAsHalfExam={config.testsAsHalfExam === true}
+                onTestsAsHalfExamChange={(checked) => setConfig((c) => ({ ...c, testsAsHalfExam: checked }))}
                 testsWritten={config.testsWritten !== false}
               />
             </section>

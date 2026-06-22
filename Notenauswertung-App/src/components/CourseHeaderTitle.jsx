@@ -1,20 +1,20 @@
 import React from 'react';
 import AppLogo from './AppLogo';
 
-export function formatCourseWeightingRatio(weighting, testsWritten = true) {
+export function formatCourseWeightingRatio(weighting, showTestsColumn = true) {
   if (weighting == null) return '';
   const w = weighting.written ?? '';
   const m = weighting.oral ?? '';
-  if (testsWritten === false) return `${w}:${m}`;
+  if (showTestsColumn === false) return `${w}:${m}`;
   return `${w}:${m}:${weighting.tests ?? ''}`;
 }
 
 /** Verhältnis in Prozent (nur wenn Summe ≠ 100), z. B. „75 % : 25 %“. */
-export function formatWeightingPercentHint(weighting, testsWritten = true) {
+export function formatWeightingPercentHint(weighting, showTestsColumn = true) {
   const written = Number(weighting?.written);
   const oral = Number(weighting?.oral);
   const tests = Number(weighting?.tests);
-  const values = testsWritten === false ? [written, oral] : [written, oral, tests];
+  const values = showTestsColumn === false ? [written, oral] : [written, oral, tests];
 
   if (!values.every((v) => Number.isFinite(v))) return null;
 
@@ -30,8 +30,8 @@ export function formatWeightingPercentHint(weighting, testsWritten = true) {
   return values.map((v) => `${formatPct(v)} %`).join(' : ');
 }
 
-function formatWeighting(weighting, testsWritten = true) {
-  const ratio = formatCourseWeightingRatio(weighting, testsWritten);
+function formatWeighting(weighting, showTestsColumn = true) {
+  const ratio = formatCourseWeightingRatio(weighting, showTestsColumn);
   if (!ratio) return null;
   return `Gewichtung: ${ratio}`;
 }
@@ -40,7 +40,9 @@ export default function CourseHeaderTitle({ config, className = '' }) {
   if (!config) return null;
 
   const classLabel = config.className || config.class;
-  const weightingText = formatWeighting(config.weighting, config.testsWritten !== false);
+  const showTestsColumn = config.testsWritten !== false
+    && !(config.advancedWeightingEnabled === true && config.testsAsHalfExam === true);
+  const weightingText = formatWeighting(config.weighting, showTestsColumn);
 
   return (
     <header className={['course-header-title', className].filter(Boolean).join(' ')}>

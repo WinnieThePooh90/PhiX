@@ -5,6 +5,8 @@ import { useDialog } from './PhixDialog';
 import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import WeightingPercentHint from './WeightingPercentHint';
+import AdvancedWeightingSettings from './AdvancedWeightingSettings';
+import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
@@ -28,6 +30,8 @@ export default function NewCourseForm() {
     projectsAccepted: false,
     klassenlehrerEnabled: false,
     albumEnabled: false,
+    advancedWeightingEnabled: false,
+    testsAsHalfExam: false,
     kursstufe: false,
   });
 
@@ -160,7 +164,7 @@ export default function NewCourseForm() {
         <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
           Gib hier die Gewichtung der Noten im Verhältnis an, z. B. 3:1 oder 75:25 oder 3:2:1 oder 75:33:17.
         </p>
-        {newCourse.testsWritten !== false ? (
+        {showTestsInWeightingRatio(newCourse) ? (
           <div className="weighting-ratio-grid">
             <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
             <span className="weighting-ratio-grid__sep-slot" aria-hidden />
@@ -194,6 +198,13 @@ export default function NewCourseForm() {
         )}
         <WeightingPercentHint
           weighting={newCourse.weighting}
+          showTestsColumn={showTestsInWeightingRatio(newCourse)}
+        />
+        <AdvancedWeightingSettings
+          advancedEnabled={newCourse.advancedWeightingEnabled === true}
+          onAdvancedEnabledChange={(checked) => setNewCourse((p) => ({ ...p, advancedWeightingEnabled: checked }))}
+          testsAsHalfExam={newCourse.testsAsHalfExam === true}
+          onTestsAsHalfExamChange={(checked) => setNewCourse((p) => ({ ...p, testsAsHalfExam: checked }))}
           testsWritten={newCourse.testsWritten !== false}
         />
       </section>

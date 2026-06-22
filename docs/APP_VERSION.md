@@ -4,14 +4,14 @@ Von der Projektregel `.cursor/rules/version-per-prompt.mdc` gepflegt (Agent-Modu
 
 | Feld | Wert |
 |------|------|
-| **Build** | `235` |
-| **Letzte Änderung** | `2026-06-17` |
+| **Build** | `236` |
+| **Letzte Änderung** | `2026-06-22` |
 
 Maschinenlesbar (eine Zeile pro Schlüssel):
 
 ```
-PHIX_BUILD=235
-PHIX_LETZTE_AENDERUNG=2026-06-17
+PHIX_BUILD=236
+PHIX_LETZTE_AENDERUNG=2026-06-22
 ```
 
 **Build-Nummer:** eine einzige Zahl (**`PHIX_BUILD`**, ohne Punkt/Komma in dieser Datei).

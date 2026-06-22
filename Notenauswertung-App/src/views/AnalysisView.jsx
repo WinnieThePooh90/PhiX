@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
+import { usesTestsAsHalfExam } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -79,6 +80,8 @@ function RiskStudentsTable({
   weighting,
   customGradingKeys,
   testsWritten,
+  testsAsHalfExam = false,
+  kursstufe = false,
 }) {
   const npMode = gradeSystem === 'points';
   return (
@@ -125,7 +128,8 @@ function RiskStudentsTable({
                         customGradingKeys={customGradingKeys}
                         gradeSys={gradeSystem}
                         testsWritten={testsWritten}
-                        kursstufe={config?.kursstufe === true}
+                        testsAsHalfExam={testsAsHalfExam}
+                        kursstufe={kursstufe}
                         compact
                       />
                     </td>
@@ -145,6 +149,7 @@ export default function AnalysisView() {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const testsWritten = config?.testsWritten !== false;
+  const testsAsHalfExam = usesTestsAsHalfExam(config);
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
   const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -164,6 +169,8 @@ export default function AnalysisView() {
     weighting: config?.weighting,
     customGradingKeys,
     testsWritten,
+    testsAsHalfExam,
+    kursstufe: config?.kursstufe === true,
   };
 
   const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
@@ -182,6 +189,7 @@ export default function AnalysisView() {
           gradeSys,
           config.testsWritten !== false,
           projects,
+          testsAsHalfExam,
         );
         return { student: s, finalGrade };
       })
@@ -246,6 +254,7 @@ export default function AnalysisView() {
         gradeSys,
         config.testsWritten !== false,
         projects,
+        testsAsHalfExam,
       );
       const analysisGrade = resolveAnalysisGrade(s, finalGrade, gradeSys);
       if (analysisGrade === null || Number.isNaN(analysisGrade)) return;

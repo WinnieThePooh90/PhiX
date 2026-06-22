@@ -1045,6 +1045,7 @@ function calculateStudentGradesInNotenpunkte(
   customGradingKeys,
   testsWritten,
   projects,
+  testsAsHalfExam = false,
 ) {
   let examNpSum = 0;
   let examNpCount = 0;
@@ -1063,6 +1064,18 @@ function calculateStudentGradesInNotenpunkte(
     examNpSum += np;
     examNpCount += 1;
   });
+
+  if (testsAsHalfExam && testsWritten) {
+    ({ sum: examNpSum, count: examNpCount } = addHalfWeightedTestsToWrittenAggregate(
+      studentId,
+      tests,
+      halbjahrFilter,
+      customGradingKeys,
+      'points',
+      examNpSum,
+      examNpCount,
+    ));
+  }
 
   let gfsNpSum = 0;
   let gfsNpCount = 0;
@@ -1174,7 +1187,8 @@ function calculateStudentGradesInNotenpunkte(
     npAcc += oralAvg * oral;
     wSum += oral;
   }
-  if (testAvg !== null && Number.isFinite(testAvg)) {
+  const includeTestsInFinalWeight = testsWritten && !testsAsHalfExam;
+  if (testAvg !== null && includeTestsInFinalWeight && Number.isFinite(testAvg)) {
     npAcc += testAvg * wTest;
     wSum += wTest;
   }
@@ -1208,6 +1222,7 @@ export const calculateStudentGrades = (
   gradeSystem = 'classic',
   testsWritten = true,
   projects = {},
+  testsAsHalfExam = false,
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (gs === 'points') {
@@ -1222,6 +1237,7 @@ export const calculateStudentGrades = (
       customGradingKeys,
       testsWritten,
       projects,
+      testsAsHalfExam,
     );
   }
 
@@ -1242,6 +1258,18 @@ export const calculateStudentGrades = (
     examSum += g;
     examCount++;
   });
+
+  if (testsAsHalfExam && testsWritten) {
+    ({ sum: examSum, count: examCount } = addHalfWeightedTestsToWrittenAggregate(
+      studentId,
+      tests,
+      halbjahrFilter,
+      customGradingKeys,
+      gs,
+      examSum,
+      examCount,
+    ));
+  }
   
   const examAvgPure = examCount > 0 ? examSum / examCount : null;
 
@@ -1341,7 +1369,8 @@ export const calculateStudentGrades = (
     classicAcc += oralAvg * oral;
     wSum += oral;
   }
-  if (testAvg !== null) {
+  const includeTestsInFinalWeight = testsWritten && !testsAsHalfExam;
+  if (testAvg !== null && includeTestsInFinalWeight) {
     classicAcc += testAvg * wTest;
     wSum += wTest;
   }
@@ -1428,6 +1457,120 @@ function fmtCalcNum(value, maxFractionDigits = 4) {
   const n = Number(value);
   if (!Number.isFinite(n)) return '—';
   return n.toLocaleString('de-DE', { maximumFractionDigits: maxFractionDigits });
+}
+
+function addHalfWeightedTestsToWrittenAggregate(
+  studentId,
+  tests,
+  halbjahrFilter,
+  customGradingKeys,
+  gs,
+  sum,
+  count,
+) {
+  let nextSum = sum;
+  let nextCount = count;
+  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  Object.values(tests || {}).forEach((test) => {
+    if (!test.active) return;
+    if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
+    const scoreMap = test.scores ?? test.errors;
+    if (scoreMap?.[studentId] === undefined) return;
+    const raw = scoreMap[studentId];
+    const { counted } = getNormalizedTestScore(raw);
+    if (!counted) return;
+    if (isNp) {
+      let np = null;
+      if (isExamManualGradeActive(raw)) {
+        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
+      } else {
+        const classicG = getTestGradeForStudent(test, studentId, customGradingKeys, 'classic');
+        np = thresholdClassicGradeToNotenpunkte(classicG);
+      }
+      if (np !== null) {
+        nextSum += np * 0.5;
+        nextCount += 0.5;
+      }
+    } else {
+      const g = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
+      if (g !== null) {
+        nextSum += g * 0.5;
+        nextCount += 0.5;
+      }
+    }
+  });
+  return { sum: nextSum, count: nextCount };
+}
+
+function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
+  if (weightedItems.length === 0) return null;
+  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const weightTotal = weightedItems.reduce((acc, item) => acc + item.weight, 0);
+  if (weightTotal <= 0) return null;
+  const sum = weightedItems.reduce((acc, item) => acc + item.grade * item.weight, 0);
+  const avg = sum / weightTotal;
+  const gradesPart = weightedItems.map((item) => {
+    const g = fmtCalcNum(item.grade, isNp ? 0 : 4);
+    return item.weight === 0.5 ? `${g}·½` : g;
+  }).join(' + ');
+  const denomFmt = Number.isInteger(weightTotal) ? String(weightTotal) : fmtCalcNum(weightTotal, 1);
+  return {
+    key,
+    label,
+    items: weightedItems,
+    average: avg,
+    steps: [
+      {
+        type: 'sources',
+        label,
+        key,
+        items: weightedItems.map((item) => ({
+          label: item.label,
+          grade: fmtCalcNum(item.grade, isNp ? 0 : 4) + (item.weight === 0.5 ? ' (½)' : ''),
+        })),
+      },
+      {
+        type: 'fraction',
+        label: key,
+        numerator: gradesPart,
+        denominator: denomFmt,
+        result: fmtCalcNum(avg, isNp ? 2 : 4),
+      },
+    ],
+  };
+}
+
+function collectWrittenDetailWithOptionalHalfTests(
+  studentId,
+  exams,
+  projects,
+  gfsEntries,
+  tests,
+  halbjahrFilter,
+  customGradingKeys,
+  gs,
+  testsAsHalfExam,
+  testsWritten,
+) {
+  const writtenItems = collectWrittenGradeItems(
+    studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs,
+  );
+  if (!testsAsHalfExam || !testsWritten) {
+    return averageLine('Schriftlich', 'S', writtenItems, gs);
+  }
+  const testItems = collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
+    ...item,
+    weight: 0.5,
+    label: `${item.label} (½)`,
+  }));
+  if (testItems.length === 0) {
+    return averageLine('Schriftlich', 'S', writtenItems, gs);
+  }
+  const weightedItems = [
+    ...writtenItems.map((item) => ({ ...item, weight: 1 })),
+    ...testItems,
+  ];
+  return averageLineWeighted('Schriftlich', 'S', weightedItems, gs);
 }
 
 function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs) {
@@ -1613,6 +1756,7 @@ export function getStudentGradeCalculationBreakdown(
   gradeSystem = 'classic',
   testsWritten = true,
   projects = {},
+  testsAsHalfExam = false,
 ) {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
@@ -1627,6 +1771,7 @@ export function getStudentGradeCalculationBreakdown(
     gs,
     testsWritten,
     projects,
+    testsAsHalfExam,
   );
 
   const rawWritten = Number(weighting?.written);
@@ -1636,14 +1781,15 @@ export function getStudentGradeCalculationBreakdown(
   const written = Number.isFinite(rawWritten) ? rawWritten : (hasAnyValidWeight ? 0 : 2);
   const oral = Number.isFinite(rawOral) ? rawOral : (hasAnyValidWeight ? 0 : 1);
   const wTest = Number.isFinite(rawTests) ? rawTests : (hasAnyValidWeight ? 0 : 1);
+  const includeTestsInFinalWeight = testsWritten && !testsAsHalfExam;
 
-  const writtenDetail = averageLine('Schriftlich', 'S', collectWrittenGradeItems(
-    studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs,
-  ), gs);
+  const writtenDetail = collectWrittenDetailWithOptionalHalfTests(
+    studentId, exams, projects, gfsEntries, tests, halbjahrFilter, customGradingKeys, gs, testsAsHalfExam, testsWritten,
+  );
   const oralDetail = averageLine('Mündlich', 'M', collectOralGradeItems(
     studentId, orals, projects, halbjahrFilter, customGradingKeys, gs,
   ), gs);
-  const testDetail = testsWritten
+  const testDetail = includeTestsInFinalWeight
     ? averageLine('Tests', 'T', collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs), gs)
     : null;
 
@@ -1654,7 +1800,7 @@ export function getStudentGradeCalculationBreakdown(
   if (oralAvg !== null && Number.isFinite(oralAvg)) {
     pillars.push({ key: 'M', label: 'Mündlich', value: oralAvg, weight: oral });
   }
-  if (testsWritten && testAvg !== null && Number.isFinite(testAvg)) {
+  if (includeTestsInFinalWeight && testAvg !== null && Number.isFinite(testAvg)) {
     pillars.push({ key: 'T', label: 'Tests', value: testAvg, weight: wTest });
   }
 
@@ -1726,7 +1872,7 @@ export function getStudentGradeCalculationBreakdown(
   steps.push({
     type: 'text',
     text: `Gewichte: w_S = ${fmtCalcNum(written, 0)}, w_M = ${fmtCalcNum(oral, 0)}${
-      testsWritten ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ''
+      includeTestsInFinalWeight ? `, w_T = ${fmtCalcNum(wTest, 0)}` : ''
     }`,
   });
 
