@@ -484,7 +484,7 @@ export default function AlbumView() {
   const hasPhotos = albumPhotos.length > 0;
 
   return (
-    <div className="album-view">
+    <div className="album-view view-generic-scroll">
       <div className="album-view-header">
         <h1 style={{ margin: 0 }}>Album</h1>
         <div className="album-view-actions">

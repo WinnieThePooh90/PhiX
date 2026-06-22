@@ -5352,6 +5352,9 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
 /* Album (Kurs-Fotos) */
 .album-view {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0 0 2rem;
 }
 
