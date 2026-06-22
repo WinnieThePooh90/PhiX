@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
-import { usesTestsAsHalfExam } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -81,6 +81,7 @@ function RiskStudentsTable({
   customGradingKeys,
   testsWritten,
   testsAsHalfExam = false,
+  testsAsOral = false,
   kursstufe = false,
 }) {
   const npMode = gradeSystem === 'points';
@@ -129,6 +130,7 @@ function RiskStudentsTable({
                         gradeSys={gradeSystem}
                         testsWritten={testsWritten}
                         testsAsHalfExam={testsAsHalfExam}
+                        testsAsOral={testsAsOral}
                         kursstufe={kursstufe}
                         compact
                       />
@@ -150,6 +152,7 @@ export default function AnalysisView() {
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const testsWritten = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
+  const testsAsOral = usesTestsAsOral(config);
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
   const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -170,6 +173,7 @@ export default function AnalysisView() {
     customGradingKeys,
     testsWritten,
     testsAsHalfExam,
+    testsAsOral,
     kursstufe: config?.kursstufe === true,
   };
 
@@ -190,6 +194,7 @@ export default function AnalysisView() {
           config.testsWritten !== false,
           projects,
           testsAsHalfExam,
+          testsAsOral,
         );
         return { student: s, finalGrade };
       })
@@ -255,6 +260,7 @@ export default function AnalysisView() {
         config.testsWritten !== false,
         projects,
         testsAsHalfExam,
+        testsAsOral,
       );
       const analysisGrade = resolveAnalysisGrade(s, finalGrade, gradeSys);
       if (analysisGrade === null || Number.isNaN(analysisGrade)) return;

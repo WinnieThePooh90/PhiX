@@ -76,6 +76,8 @@ model Course {
   advancedWeightingEnabled Boolean @default(false)
   /** Tests zählen zu 50 % in den Schriftlich-Durchschnitt (keine eigene Tests-Gewichtung). */
   testsAsHalfExam Boolean @default(false)
+  /** Tests zählen wie mündliche Noten im Mündlich-Durchschnitt (keine eigene Tests-Gewichtung). */
+  testsAsOral Boolean @default(false)
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
   /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */

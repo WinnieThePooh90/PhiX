@@ -6,7 +6,7 @@ import {
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
-import { usesTestsAsHalfExam } from './courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral } from './courseWeightingOptions';
 
 /** Excel-Layout: # und Notenspalten zentriert, Name/Vorname links. */
 export function buildSummaryOverviewExportLayout(showTests) {
@@ -72,6 +72,7 @@ export function buildSummaryOverviewExportData({
         config?.testsWritten !== false,
         projects,
         usesTestsAsHalfExam(config),
+        usesTestsAsOral(config),
       );
       const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
       const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';

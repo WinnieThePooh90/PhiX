@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { usesTestsAsHalfExam, showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight } from '../utils/courseWeightingOptions';
 import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
@@ -94,7 +94,8 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
   const weights = resolveSummaryWeighting(config?.weighting);
   const testsWritten = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
-  const showTestsInFinal = testsWritten && !testsAsHalfExam;
+  const testsAsOral = usesTestsAsOral(config);
+  const showTestsInFinal = includeTestsInFinalWeight(config);
   const percentProjects = getActivePercentProjects(projects);
   const totalPercent = percentProjects.reduce((s, p) => s + p.percent, 0);
   const remainingFactor = Math.max(0, (100 - totalPercent) / 100);
@@ -152,7 +153,8 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys }) {
               {testsAsHalfExam ? '; jeder Test zählt mit 50 % (wie eine halbe Klausur)' : ''}.
             </li>
             <li style={{ marginBottom: '0.45rem' }}>
-              <strong>M</strong> (Mündlich): arithmetisches Mittel aller aktiven mündlichen Bereiche und Projekte mit Gewichtung „zu mündlich“.
+              <strong>M</strong> (Mündlich): arithmetisches Mittel aller aktiven mündlichen Bereiche und Projekte mit Gewichtung „zu mündlich“
+              {testsAsOral ? '; jeder Test zählt wie eine mündliche Note' : ''}.
             </li>
             {showTestsInFinal && (
               <li style={{ marginBottom: '0.45rem' }}>
@@ -483,6 +485,7 @@ function SummaryStudentCalculationModal({
   const halbjahrFilter = categoryKey === 'all' ? null : categoryKey;
   const categoryLabel = CALCULATION_CATEGORIES.find((cat) => cat.key === categoryKey)?.label ?? 'Gesamt';
   const testsAsHalfExam = usesTestsAsHalfExam(config);
+  const testsAsOral = usesTestsAsOral(config);
   const breakdown = getStudentGradeCalculationBreakdown(
     student.id,
     exams,
@@ -496,6 +499,7 @@ function SummaryStudentCalculationModal({
     config?.testsWritten !== false,
     projects,
     testsAsHalfExam,
+    testsAsOral,
   );
   const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, breakdown.valuesAreNotenpunkte);
   const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
@@ -666,6 +670,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
   const showHJ1 = !isKursstufe && config?.summaryShowHJ1 !== false;
   const showTests = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
+  const testsAsOral = usesTestsAsOral(config);
   const showTestsInWeighting = showTestsInWeightingRatio(config);
   const weighting = config?.weighting;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
@@ -827,6 +832,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 config.testsWritten !== false,
                 projects,
                 testsAsHalfExam,
+                testsAsOral,
               );
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
@@ -935,6 +941,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           gradeSys={gradeSys}
                           testsWritten={config.testsWritten !== false}
                           testsAsHalfExam={testsAsHalfExam}
+                          testsAsOral={testsAsOral}
                           kursstufe={isKursstufe}
                         />
                         {hasSummaryNotes(s) && (

@@ -481,7 +481,17 @@ export default function SettingsView() {
                 advancedEnabled={config.advancedWeightingEnabled === true}
                 onAdvancedEnabledChange={(checked) => setConfig((c) => ({ ...c, advancedWeightingEnabled: checked }))}
                 testsAsHalfExam={config.testsAsHalfExam === true}
-                onTestsAsHalfExamChange={(checked) => setConfig((c) => ({ ...c, testsAsHalfExam: checked }))}
+                onTestsAsHalfExamChange={(checked) => setConfig((c) => ({
+                  ...c,
+                  testsAsHalfExam: checked,
+                  testsAsOral: checked ? false : c.testsAsOral,
+                }))}
+                testsAsOral={config.testsAsOral === true}
+                onTestsAsOralChange={(checked) => setConfig((c) => ({
+                  ...c,
+                  testsAsOral: checked,
+                  testsAsHalfExam: checked ? false : c.testsAsHalfExam,
+                }))}
                 testsWritten={config.testsWritten !== false}
               />
             </section>

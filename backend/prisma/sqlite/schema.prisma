@@ -72,6 +72,7 @@ model Course {
   testsWritten Boolean @default(true)
   advancedWeightingEnabled Boolean @default(false)
   testsAsHalfExam Boolean @default(false)
+  testsAsOral Boolean @default(false)
   gfsAccepted Boolean @default(true)
   projectsAccepted Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */

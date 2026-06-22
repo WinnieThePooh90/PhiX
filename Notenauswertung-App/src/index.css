@@ -2475,6 +2475,10 @@ tfoot td {
   margin-top: 1rem;
 }
 
+.settings-advanced-weighting__toggle-row {
+  margin: 0;
+}
+
 .settings-advanced-weighting-panel {
   margin-top: 0.5rem;
   margin-left: 1.5rem;

@@ -32,6 +32,7 @@ export default function NewCourseForm() {
     albumEnabled: false,
     advancedWeightingEnabled: false,
     testsAsHalfExam: false,
+    testsAsOral: false,
     kursstufe: false,
   });
 
@@ -204,7 +205,17 @@ export default function NewCourseForm() {
           advancedEnabled={newCourse.advancedWeightingEnabled === true}
           onAdvancedEnabledChange={(checked) => setNewCourse((p) => ({ ...p, advancedWeightingEnabled: checked }))}
           testsAsHalfExam={newCourse.testsAsHalfExam === true}
-          onTestsAsHalfExamChange={(checked) => setNewCourse((p) => ({ ...p, testsAsHalfExam: checked }))}
+          onTestsAsHalfExamChange={(checked) => setNewCourse((p) => ({
+            ...p,
+            testsAsHalfExam: checked,
+            testsAsOral: checked ? false : p.testsAsOral,
+          }))}
+          testsAsOral={newCourse.testsAsOral === true}
+          onTestsAsOralChange={(checked) => setNewCourse((p) => ({
+            ...p,
+            testsAsOral: checked,
+            testsAsHalfExam: checked ? false : p.testsAsHalfExam,
+          }))}
           testsWritten={newCourse.testsWritten !== false}
         />
       </section>

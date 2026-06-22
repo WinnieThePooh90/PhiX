@@ -1,5 +1,6 @@
 import React from 'react';
 import AppLogo from './AppLogo';
+import { showTestsInWeightingRatio } from '../utils/courseWeightingOptions';
 
 export function formatCourseWeightingRatio(weighting, showTestsColumn = true) {
   if (weighting == null) return '';
@@ -40,8 +41,7 @@ export default function CourseHeaderTitle({ config, className = '' }) {
   if (!config) return null;
 
   const classLabel = config.className || config.class;
-  const showTestsColumn = config.testsWritten !== false
-    && !(config.advancedWeightingEnabled === true && config.testsAsHalfExam === true);
+  const showTestsColumn = showTestsInWeightingRatio(config);
   const weightingText = formatWeighting(config.weighting, showTestsColumn);
 
   return (
