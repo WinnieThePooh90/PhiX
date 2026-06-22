@@ -2464,6 +2464,13 @@ tfoot td {
   width: 100%;
 }
 
+.weighting-percent-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .sidebar-layout {
   display: flex;
   gap: 1.5rem;

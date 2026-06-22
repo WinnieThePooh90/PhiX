@@ -4,6 +4,7 @@ import { useData } from '../store/DataContext';
 import { useDialog } from './PhixDialog';
 import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
+import WeightingPercentHint from './WeightingPercentHint';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
@@ -191,6 +192,10 @@ export default function NewCourseForm() {
             <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
           </div>
         )}
+        <WeightingPercentHint
+          weighting={newCourse.weighting}
+          testsWritten={newCourse.testsWritten !== false}
+        />
       </section>
 
       <section aria-labelledby="new-course-options-heading">

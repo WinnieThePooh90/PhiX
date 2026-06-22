@@ -9,6 +9,27 @@ export function formatCourseWeightingRatio(weighting, testsWritten = true) {
   return `${w}:${m}:${weighting.tests ?? ''}`;
 }
 
+/** Verhältnis in Prozent (nur wenn Summe ≠ 100), z. B. „75 % : 25 %“. */
+export function formatWeightingPercentHint(weighting, testsWritten = true) {
+  const written = Number(weighting?.written);
+  const oral = Number(weighting?.oral);
+  const tests = Number(weighting?.tests);
+  const values = testsWritten === false ? [written, oral] : [written, oral, tests];
+
+  if (!values.every((v) => Number.isFinite(v))) return null;
+
+  const sum = values.reduce((acc, v) => acc + v, 0);
+  if (sum <= 0 || Math.abs(sum - 100) < 1e-6) return null;
+
+  const formatPct = (value) => {
+    const pct = (value / sum) * 100;
+    const rounded = Math.round(pct * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  };
+
+  return values.map((v) => `${formatPct(v)} %`).join(' : ');
+}
+
 function formatWeighting(weighting, testsWritten = true) {
   const ratio = formatCourseWeightingRatio(weighting, testsWritten);
   if (!ratio) return null;
