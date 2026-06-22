@@ -370,7 +370,8 @@ model Project {
   description    String   @default("")
   /** written = schriftlicher Anteil; oral = mündlicher Anteil; percent = direkter Prozentanteil an der Endnote */
   weightingMode  String   @default("written")
-  /** Nur bei weightingMode percent: Anteil an der Endnote in Prozent (z. B. 20). */
+  /** Bei weightingMode percent: Anteil an der Endnote in Prozent (z. B. 20).
+   *  Bei written/oral: Anteil an einer Klausur bzw. mündlichen Note (100 = volle Note). */
   weightPercent  Float    @default(0)
   maxPoints      Float
   numFields      Int      @default(0)

@@ -1154,7 +1154,9 @@ export const DataProvider = ({ children }) => {
     const nextNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
     const defaultKeyType = '1';
     const mode = ['written', 'oral', 'percent'].includes(weightingMode) ? weightingMode : 'written';
-    const pct = mode === 'percent' ? Math.max(0, Number(weightPercent) || 0) : 0;
+    const pct = mode === 'percent'
+      ? Math.max(0, Number(weightPercent) || 0)
+      : Math.max(0, Math.min(100, Number(weightPercent) || 100));
     const gMode = gradeMode === 'manual' ? 'manual' : 'key';
     const scope = gradeScope === 'group' ? 'group' : 'individual';
     const groupsData = scope === 'group' && groups && typeof groups === 'object' && !Array.isArray(groups)

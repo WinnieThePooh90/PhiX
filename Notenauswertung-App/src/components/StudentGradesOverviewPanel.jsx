@@ -15,6 +15,7 @@ import {
   getProjectGradeForStudent,
   getProjectScoreKeyForStudent,
   getStudentEffectiveProjectFieldCount,
+  getProjectPillarWeightPercent,
   storedGradeStringToClassic,
 } from '../utils/calculator';
 
@@ -40,14 +41,17 @@ function filterProjectsForSummary(projects, weightingMode, halbjahrFilter) {
     .sort(([a], [b]) => Number(a) - Number(b));
 }
 
-function renderProjectListItems(projectEntries, studentId, customGradingKeys, gradeSys, gfmt, showPercent = false, listFontSize = '0.85rem') {
+function renderProjectListItems(projectEntries, studentId, customGradingKeys, gradeSys, gfmt, listFontSize = '0.85rem') {
   return projectEntries.map(([id, p]) => {
     const counted = isProjectScoreCounted(p, studentId);
     const gr = getProjectGradeForStudent(p, studentId, customGradingKeys, gradeSys);
-    const pct =
-      showPercent && Number.isFinite(Number(p.weightPercent)) && Number(p.weightPercent) > 0
-        ? ` (${p.weightPercent}%)`
-        : '';
+    let pct = '';
+    if (p.weightingMode === 'percent' && Number.isFinite(Number(p.weightPercent)) && Number(p.weightPercent) > 0) {
+      pct = ` (${p.weightPercent}%)`;
+    } else if (p.weightingMode === 'written' || p.weightingMode === 'oral') {
+      const pillarPct = getProjectPillarWeightPercent(p);
+      if (pillarPct < 100) pct = ` (${pillarPct} %)`;
+    }
     const label = `${p.name || `Projekt ${id}`}${pct}`;
     return (
       <li key={`proj-${id}`} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: listFontSize }}>
@@ -200,7 +204,7 @@ export default function StudentGradesOverviewPanel({
                       </li>
                     );
                   })}
-                {renderProjectListItems(writtenProjects, student.id, customGradingKeys, gradeSys, gfmt, false, listFontSize)}
+                {renderProjectListItems(writtenProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
               </ul>
             </div>
 
@@ -221,7 +225,7 @@ export default function StudentGradesOverviewPanel({
                       </li>
                     );
                   })}
-                {renderProjectListItems(oralProjects, student.id, customGradingKeys, gradeSys, gfmt, false, listFontSize)}
+                {renderProjectListItems(oralProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
               </ul>
             </div>
 
@@ -252,7 +256,7 @@ export default function StudentGradesOverviewPanel({
               <div>
                 <h4 style={{ ...sectionTitleStyle(), marginTop: testsWritten ? '1rem' : 0 }}>Projekte (prozentual)</h4>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {renderProjectListItems(percentProjects, student.id, customGradingKeys, gradeSys, gfmt, true, listFontSize)}
+                  {renderProjectListItems(percentProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
                 </ul>
               </div>
             )}

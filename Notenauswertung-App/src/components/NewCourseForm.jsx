@@ -40,7 +40,7 @@ export default function NewCourseForm() {
     setNewCourse((prev) => ({
       ...prev,
       kursstufe: checked,
-      ...(checked ? { gradeSystem: 'points' } : {}),
+      ...(checked ? { gradeSystem: 'points' } : { gradeSystem: 'classic' }),
     }));
   };
 

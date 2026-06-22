@@ -303,24 +303,27 @@ p {
 }
 
 .course-meta-class-kursstufe-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: center;
   min-width: 0;
 }
 
 .course-meta-class-kursstufe-row .course-meta-input--class {
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
-  width: auto;
-  max-width: none;
+  max-width: 100%;
 }
 
 .course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox {
-  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin-top: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
   height: var(--course-meta-control-height);
   min-height: var(--course-meta-control-height);
   max-height: var(--course-meta-control-height);

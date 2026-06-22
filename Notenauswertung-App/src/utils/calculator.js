@@ -954,6 +954,27 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
+/** Bei weightingMode written/oral: Anteil an einer Klausur bzw. mündlichen Note (100 = volle Note). */
+export function getProjectPillarWeightPercent(project) {
+  if (!project || (project.weightingMode !== 'written' && project.weightingMode !== 'oral')) return null;
+  const pct = Number(project.weightPercent);
+  if (!Number.isFinite(pct) || pct <= 0) return 100;
+  return Math.min(100, Math.max(0, pct));
+}
+
+function getProjectPillarUnitWeight(project) {
+  if (project.weightingMode !== 'written' && project.weightingMode !== 'oral') return 1;
+  return getProjectPillarWeightPercent(project) / 100;
+}
+
+function formatProjectPillarWeightSuffix(project) {
+  const pct = getProjectPillarWeightPercent(project);
+  if (pct === null || pct >= 100) return '';
+  const rounded = Math.round(pct * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return ` (${text} %)`;
+}
+
 /** Klausur-ähnliche Bewertung (Klausur, Projekt) für Teilmittelwerte. */
 const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGradingKeys, gradeSystem = 'classic') => {
   if (!item?.active) return null;
@@ -1062,8 +1083,9 @@ function calculateStudentGradesInNotenpunkte(
     if (project.weightingMode !== 'written') return;
     const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, 'points');
     if (np === null) return;
-    examNpSum += np;
-    examNpCount += 1;
+    const unitW = getProjectPillarUnitWeight(project);
+    examNpSum += np * unitW;
+    examNpCount += unitW;
   });
 
   if (testsAsHalfExam && testsWritten) {
@@ -1122,8 +1144,9 @@ function calculateStudentGradesInNotenpunkte(
     if (project.weightingMode !== 'oral') return;
     const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, 'points');
     if (np === null) return;
-    oralNpSum += np;
-    oralNpCount += 1;
+    const unitW = getProjectPillarUnitWeight(project);
+    oralNpSum += np * unitW;
+    oralNpCount += unitW;
   });
 
   if (testsAsOral && testsWritten) {
@@ -1271,8 +1294,9 @@ export const calculateStudentGrades = (
     if (project.weightingMode !== 'written') return;
     const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
-    examSum += g;
-    examCount++;
+    const unitW = getProjectPillarUnitWeight(project);
+    examSum += g * unitW;
+    examCount += unitW;
   });
 
   if (testsAsHalfExam && testsWritten) {
@@ -1310,8 +1334,9 @@ export const calculateStudentGrades = (
     if (project.weightingMode !== 'oral') return;
     const g = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (g === null) return;
-    oralSum += g;
-    oralCount++;
+    const unitW = getProjectPillarUnitWeight(project);
+    oralSum += g * unitW;
+    oralCount += unitW;
   });
 
   if (testsAsOral && testsWritten) {
@@ -1546,6 +1571,33 @@ function addHalfWeightedTestsToWrittenAggregate(
   );
 }
 
+function formatWeightedGradePart(item, isNp) {
+  const g = fmtCalcNum(item.grade, isNp ? 0 : 4);
+  const w = item.weight ?? 1;
+  if (w === 1) return g;
+  if (w === 0.5) return `${g}·½`;
+  const pct = Math.round(w * 1000) / 10;
+  const pctStr = Number.isInteger(pct) ? String(pct) : pct.toFixed(1);
+  return `${g}·${pctStr}%`;
+}
+
+function formatWeightedGradeSourceLabel(gradeStr, weight) {
+  if (weight === 1) return gradeStr;
+  if (weight === 0.5) return `${gradeStr} (½)`;
+  const pct = Math.round(weight * 1000) / 10;
+  const pctStr = Number.isInteger(pct) ? String(pct) : pct.toFixed(1);
+  return `${gradeStr} (${pctStr} %)`;
+}
+
+function averageLineFromItems(label, key, items, gs = 'classic') {
+  if (items.length === 0) return null;
+  const normalized = items.map((item) => ({ ...item, weight: item.weight ?? 1 }));
+  if (normalized.every((item) => item.weight === 1)) {
+    return averageLine(label, key, normalized, gs);
+  }
+  return averageLineWeighted(label, key, normalized, gs);
+}
+
 function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
   if (weightedItems.length === 0) return null;
   const isNp = normalizeCourseGradeSystem(gs) === 'points';
@@ -1553,10 +1605,7 @@ function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
   if (weightTotal <= 0) return null;
   const sum = weightedItems.reduce((acc, item) => acc + item.grade * item.weight, 0);
   const avg = sum / weightTotal;
-  const gradesPart = weightedItems.map((item) => {
-    const g = fmtCalcNum(item.grade, isNp ? 0 : 4);
-    return item.weight === 0.5 ? `${g}·½` : g;
-  }).join(' + ');
+  const gradesPart = weightedItems.map((item) => formatWeightedGradePart(item, isNp)).join(' + ');
   const denomFmt = Number.isInteger(weightTotal) ? String(weightTotal) : fmtCalcNum(weightTotal, 1);
   return {
     key,
@@ -1570,7 +1619,7 @@ function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
         key,
         items: weightedItems.map((item) => ({
           label: item.label,
-          grade: fmtCalcNum(item.grade, isNp ? 0 : 4) + (item.weight === 0.5 ? ' (½)' : ''),
+          grade: formatWeightedGradeSourceLabel(fmtCalcNum(item.grade, isNp ? 0 : 4), item.weight ?? 1),
         })),
       },
       {
@@ -1598,23 +1647,15 @@ function collectWrittenDetailWithOptionalHalfTests(
 ) {
   const writtenItems = collectWrittenGradeItems(
     studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs,
-  );
-  if (!testsAsHalfExam || !testsWritten) {
-    return averageLine('Schriftlich', 'S', writtenItems, gs);
-  }
-  const testItems = collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
-    ...item,
-    weight: 0.5,
-    label: `${item.label} (½)`,
-  }));
-  if (testItems.length === 0) {
-    return averageLine('Schriftlich', 'S', writtenItems, gs);
-  }
-  const weightedItems = [
-    ...writtenItems.map((item) => ({ ...item, weight: 1 })),
-    ...testItems,
-  ];
-  return averageLineWeighted('Schriftlich', 'S', weightedItems, gs);
+  ).map((item) => ({ ...item, weight: item.weight ?? 1 }));
+  const testItems = testsAsHalfExam && testsWritten
+    ? collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
+      ...item,
+      weight: 0.5,
+      label: `${item.label} (½)`,
+    }))
+    : [];
+  return averageLineFromItems('Schriftlich', 'S', [...writtenItems, ...testItems], gs);
 }
 
 function collectOralDetailWithOptionalTests(
@@ -1630,18 +1671,15 @@ function collectOralDetailWithOptionalTests(
 ) {
   const oralItems = collectOralGradeItems(
     studentId, orals, projects, halbjahrFilter, customGradingKeys, gs,
-  );
-  if (!testsAsOral || !testsWritten) {
-    return averageLine('Mündlich', 'M', oralItems, gs);
-  }
-  const testItems = collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
-    ...item,
-    label: `${item.label} (Test)`,
-  }));
-  if (testItems.length === 0) {
-    return averageLine('Mündlich', 'M', oralItems, gs);
-  }
-  return averageLine('Mündlich', 'M', [...oralItems, ...testItems], gs);
+  ).map((item) => ({ ...item, weight: item.weight ?? 1 }));
+  const testItems = testsAsOral && testsWritten
+    ? collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
+      ...item,
+      weight: 1,
+      label: `${item.label} (Test)`,
+    }))
+    : [];
+  return averageLineFromItems('Mündlich', 'M', [...oralItems, ...testItems], gs);
 }
 
 function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs) {
@@ -1674,12 +1712,27 @@ function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbja
   });
   Object.entries(projects || {}).forEach(([id, project]) => {
     if (project.weightingMode !== 'written') return;
+    const unitW = getProjectPillarUnitWeight(project);
+    const suffix = formatProjectPillarWeightSuffix(project);
     if (isNp) {
       const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
-      if (np !== null) items.push({ label: project.name || `Projekt ${id}`, grade: np, np });
+      if (np !== null) {
+        items.push({
+          label: `${project.name || `Projekt ${id}`}${suffix}`,
+          grade: np,
+          np,
+          weight: unitW,
+        });
+      }
     } else {
       const grade = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
-      if (grade !== null) items.push({ label: project.name || `Projekt ${id}`, grade });
+      if (grade !== null) {
+        items.push({
+          label: `${project.name || `Projekt ${id}`}${suffix}`,
+          grade,
+          weight: unitW,
+        });
+      }
     }
   });
   return items;
@@ -1705,12 +1758,27 @@ function collectOralGradeItems(studentId, orals, projects, halbjahrFilter, custo
   });
   Object.entries(projects || {}).forEach(([id, project]) => {
     if (project.weightingMode !== 'oral') return;
+    const unitW = getProjectPillarUnitWeight(project);
+    const suffix = formatProjectPillarWeightSuffix(project);
     if (isNp) {
       const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
-      if (np !== null) items.push({ label: project.name || `Projekt ${id}`, grade: np, np });
+      if (np !== null) {
+        items.push({
+          label: `${project.name || `Projekt ${id}`}${suffix}`,
+          grade: np,
+          np,
+          weight: unitW,
+        });
+      }
     } else {
       const grade = getExamLikeGradeContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
-      if (grade !== null) items.push({ label: project.name || `Projekt ${id}`, grade });
+      if (grade !== null) {
+        items.push({
+          label: `${project.name || `Projekt ${id}`}${suffix}`,
+          grade,
+          weight: unitW,
+        });
+      }
     }
   });
   return items;

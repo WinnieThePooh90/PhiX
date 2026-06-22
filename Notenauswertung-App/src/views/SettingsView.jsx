@@ -145,10 +145,13 @@ export default function SettingsView() {
         if (row?.halbjahr !== '1') updateGfsEntry(row.id, 'halbjahr', '1');
       }
     }
+    if (!checked && prev === 'points') {
+      await migrateGradingSystem(prev, 'classic');
+    }
     setConfig((c) => ({
       ...c,
       kursstufe: checked,
-      ...(checked ? { gradeSystem: 'points' } : {}),
+      ...(checked ? { gradeSystem: 'points' } : { gradeSystem: 'classic' }),
     }));
   };
 

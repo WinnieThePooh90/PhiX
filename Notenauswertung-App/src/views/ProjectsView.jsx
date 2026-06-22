@@ -120,10 +120,32 @@ const EMPTY_CREATE_FORM = {
   name: '',
   description: '',
   weightingMode: 'written',
-  weightPercent: '20',
+  weightPercent: '100',
   gradeMode: 'key',
   gradeScope: 'individual',
 };
+
+function defaultWeightPercentForMode(mode) {
+  return mode === 'percent' ? '20' : '100';
+}
+
+function parseWeightPercentInput(raw, fallback = 100) {
+  const v = parseFloat(String(raw).replace(',', '.'));
+  if (!Number.isFinite(v)) return fallback;
+  return Math.max(0, Math.min(100, v));
+}
+
+function projectPillarWeightPercentDisplay(project) {
+  const pct = Number(project?.weightPercent);
+  if (Number.isFinite(pct) && pct > 0) return pct;
+  return 100;
+}
+
+function projectWeightPercentFieldLabel(mode) {
+  if (mode === 'written') return 'Gewichtung (100 % = 1 Klausur)';
+  if (mode === 'oral') return 'Gewichtung (100 % = 1 mündliche Note)';
+  return 'Prozentanteil an der Endnote';
+}
 
 export default function ProjectsView({ studentIdFilterSet = null }) {
   const {
@@ -235,9 +257,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     name: form.name.trim(),
     description: form.description,
     weightingMode: form.weightingMode,
-    weightPercent: form.weightingMode === 'percent'
-      ? parseFloat(String(form.weightPercent).replace(',', '.')) || 0
-      : 0,
+    weightPercent: parseWeightPercentInput(
+      form.weightPercent,
+      form.weightingMode === 'percent' ? 0 : 100,
+    ),
     gradeMode: form.gradeMode === 'manual' ? 'manual' : 'key',
     gradeScope: form.gradeScope === 'group' ? 'group' : 'individual',
   });
@@ -516,10 +539,17 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     if (mode === 'percent') {
                       updateProjectFields(activeProject, {
                         weightingMode: mode,
-                        weightPercent: Number(project.weightPercent) > 0 ? project.weightPercent : 20,
+                        weightPercent: project.weightingMode === 'percent' && Number(project.weightPercent) > 0
+                          ? project.weightPercent
+                          : 20,
                       });
                     } else {
-                      updateProjectFields(activeProject, { weightingMode: mode, weightPercent: 0 });
+                      updateProjectFields(activeProject, {
+                        weightingMode: mode,
+                        weightPercent: project.weightingMode === mode && Number(project.weightPercent) > 0
+                          ? project.weightPercent
+                          : 100,
+                      });
                     }
                   }}
                 >
@@ -528,10 +558,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   <option value="percent">Prozentual (Anteil an der Endnote)</option>
                 </select>
               </div>
-              {project.weightingMode === 'percent' && (
+              {(project.weightingMode === 'percent' || project.weightingMode === 'written' || project.weightingMode === 'oral') && (
                 <div className="course-meta-field">
                   <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
-                    Prozentanteil
+                    {projectWeightPercentFieldLabel(project.weightingMode)}
                   </label>
                   <input
                     id={`project-percent-${activeProject}`}
@@ -540,10 +570,17 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     min="0"
                     max="100"
                     step="1"
-                    value={project.weightPercent ?? 0}
+                    value={project.weightingMode === 'percent'
+                      ? (project.weightPercent ?? 0)
+                      : projectPillarWeightPercentDisplay(project)}
                     onChange={(e) => {
                       const v = parseFloat(String(e.target.value).replace(',', '.'));
-                      updateProject(activeProject, 'weightPercent', Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0);
+                      const fallback = project.weightingMode === 'percent' ? 0 : 100;
+                      updateProject(
+                        activeProject,
+                        'weightPercent',
+                        Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : fallback,
+                      );
                     }}
                     style={{ width: '5rem' }}
                   />
@@ -863,7 +900,14 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
               id="create-project-weighting"
               className="course-meta-control"
               value={form.weightingMode}
-              onChange={(e) => setForm((f) => ({ ...f, weightingMode: e.target.value }))}
+              onChange={(e) => {
+                const mode = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  weightingMode: mode,
+                  weightPercent: defaultWeightPercentForMode(mode),
+                }));
+              }}
               style={fieldControlStyle}
             >
               <option value="written">Zu schriftlich</option>
@@ -871,10 +915,10 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
               <option value="percent">Prozentual (Anteil an der Endnote)</option>
             </select>
           </div>
-          {form.weightingMode === 'percent' && (
+          {(form.weightingMode === 'percent' || form.weightingMode === 'written' || form.weightingMode === 'oral') && (
             <div>
               <label className="course-meta-field__label" htmlFor="create-project-percent" style={fieldLabelStyle}>
-                Prozentanteil an der Endnote
+                {projectWeightPercentFieldLabel(form.weightingMode)}
               </label>
               <input
                 id="create-project-percent"
