@@ -43,6 +43,7 @@ export default function AdvancedWeightingSettings({
             checked={testsAsHalfExam === true}
             onChange={(e) => onTestsAsHalfExamChange(e.target.checked)}
             disabled={testsOptionsDisabled}
+            className="settings-advanced-weighting-option"
           >
             Tests als halbe Klausur werten
           </PhixCheckboxOption>
@@ -50,14 +51,15 @@ export default function AdvancedWeightingSettings({
             checked={testsAsOral === true}
             onChange={(e) => onTestsAsOralChange(e.target.checked)}
             disabled={testsOptionsDisabled}
+            className="settings-advanced-weighting-option"
           >
-            Tests wie mündlich
+            Tests wie mündlich werten
           </PhixCheckboxOption>
           <PhixCheckboxOption
             checked={testsPerKlausurEnabled === true}
             onChange={(e) => onTestsPerKlausurEnabledChange(e.target.checked)}
             disabled={testsOptionsDisabled}
-            className="settings-tests-per-klausur-checkbox"
+            className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
           >
             {testsPerKlausurEnabled ? (
               <span className="settings-tests-per-klausur-inline-label">
@@ -77,7 +79,7 @@ export default function AdvancedWeightingSettings({
                 Tests zählen wie 1 Klausur
               </span>
             ) : (
-              'Tests zählen wie 1 Klausur'
+              'x Tests zählen wie 1 Klausur'
             )}
           </PhixCheckboxOption>
           {testsOptionsDisabled ? (

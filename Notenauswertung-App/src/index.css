@@ -2485,9 +2485,17 @@ tfoot td {
 .settings-advanced-weighting-panel {
   margin-top: 0.5rem;
   margin-left: 1.5rem;
-  display: flex;
-  flex-direction: column;
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  width: max-content;
+  max-width: 100%;
   gap: 0.35rem;
+}
+
+.settings-advanced-weighting-panel > .settings-advanced-weighting-option {
+  width: 100%;
+  margin-top: 0;
+  box-sizing: border-box;
 }
 
 .settings-advanced-weighting-hint {
@@ -2504,8 +2512,6 @@ tfoot td {
 
 .settings-tests-per-klausur-checkbox {
   margin-top: 0;
-  width: 100%;
-  max-width: 100%;
 }
 
 .settings-tests-per-klausur-inline-label {
