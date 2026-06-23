@@ -15,11 +15,12 @@ import {
 import { buildCourseFullExportSheets } from '../utils/courseFullExport';
 import { buildExamTableExport, examExportSheetName } from '../utils/examTableExport';
 import {
-  buildOralStandardTableExportData,
   buildOralExtendedTableExportData,
+  buildOralStandardTableExportData,
   oralExportSheetName,
   oralExtendedExportSheetName,
 } from '../utils/oralTableExport';
+import { isOralExtendedActive } from '../utils/oralExtendedMode';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
 import { downloadAoaPdf, downloadMultiSectionPdf, downloadSheetDataPdf } from '../utils/phixPdfExport';
@@ -132,11 +133,11 @@ export default function ExportView() {
     [orals],
   );
   const oralStandardNumbers = useMemo(
-    () => oralNumbers.filter((id) => !orals[id]?.extended),
+    () => oralNumbers.filter((id) => !isOralExtendedActive(orals[id])),
     [oralNumbers, orals],
   );
   const oralExtendedNumbers = useMemo(
-    () => oralNumbers.filter((id) => !!orals[id]?.extended),
+    () => oralNumbers.filter((id) => isOralExtendedActive(orals[id])),
     [oralNumbers, orals],
   );
 
@@ -328,7 +329,7 @@ export default function ExportView() {
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Alle Tabellen des aktuellen Kurses: <strong>Übersicht</strong>, alle <strong>Klausuren</strong>{' '}
             und <strong>Tests</strong>, mündliche Bereiche im <strong>Standardmodus</strong> (ohne Erweitert)
-            sowie <strong>GFS</strong>. Excel: ein Tabellenblatt pro Bereich; PDF: je Bereich eine Seite.
+            sowie <strong>GFS</strong>.
           </p>
           <div className="export-item-row__actions export-course-full-actions">
             <button
@@ -501,8 +502,8 @@ export default function ExportView() {
           onToggle={() => toggleSection('oral-extended')}
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            <strong>Erweiterte Tabelle</strong> (#, Name, Wochenpunkte, Gesamt, Berechnet, Note) für Bereiche
-            im Modus „Erweitert“.
+            <strong>Erweiterte Tabelle</strong> (#, Name, Wochenpunkte oder Wochennoten, Berechnet, Note) für Bereiche
+            im erweiterten Modus (Punkte oder Noten).
           </p>
           {oralExtendedNumbers.length === 0 ? (
             <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
@@ -544,9 +545,8 @@ export default function ExportView() {
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Voreingestellte Schlüssel (Plateau/Linear) und eigene Vorlagen aus dem Reiter{' '}
-            <strong>Notenschlüssel</strong> (PKT, Note, %). PDF: je Schlüssel eine Seite; Excel: je Schlüssel ein
-            Tabellenblatt. Voreingestellte Schlüssel werden mit 50 Maximalpunkten exportiert; eigene Schlüssel mit
-            ihrem Referenzwert.
+            <strong>Notenschlüssel</strong> (PKT, Note, %). Voreingestellte Schlüssel werden mit 50 Maximalpunkten
+            exportiert; eigene Schlüssel mit ihrem Referenzwert.
           </p>
           <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
             <button

@@ -300,6 +300,48 @@ export const getNormalizedOralWeekPointsArray = (gradeData, weekCount) => {
 export const getOralTotalWeekPoints = (gradeData, weekCount) =>
   getNormalizedOralWeekPointsArray(gradeData, weekCount).reduce((a, b) => a + b, 0);
 
+/**
+ * Normalisierte Wochennoten als gespeicherte Wert-Strings (leer = keine Note).
+ * @returns {string[]}
+ */
+export const getNormalizedOralWeekGradesArray = (gradeData, weekCount) => {
+  const n = Math.max(0, Number(weekCount) || 0);
+  let arr = [];
+  if (gradeData && typeof gradeData === 'object' && Array.isArray(gradeData.weekGrades)) {
+    arr = gradeData.weekGrades.map((v) => (v == null ? '' : String(v)));
+  }
+  while (arr.length < n) arr.push('');
+  if (arr.length > n) arr = arr.slice(0, n);
+  return arr;
+};
+
+/**
+ * Berechnet im Modus „Erweitert: Noten“ den Mittelwert der eingetragenen Wochennoten.
+ * @returns {number | null} Klassische Note oder Notenpunkte (je nach gradeSystem)
+ */
+export function computeOralExtendedGradesAverage(gradeData, weekCount, gradeSystem, counted = true) {
+  if (!counted) return null;
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const weekGrades = getNormalizedOralWeekGradesArray(gradeData, weekCount);
+  const values = [];
+  for (const raw of weekGrades) {
+    const t = String(raw ?? '').trim();
+    if (!t) continue;
+    if (gs === 'points') {
+      const np = Math.round(parseFloat(t.replace(',', '.')));
+      if (Number.isFinite(np) && np >= 0 && np <= 15) values.push(np);
+    } else {
+      const classic = storedGradeStringToClassic(t, gs);
+      if (classic !== null && Number.isFinite(classic)) values.push(classic);
+    }
+  }
+  if (!values.length) return null;
+  const sum = values.reduce((acc, v) => acc + v, 0);
+  const avg = sum / values.length;
+  if (gs === 'points') return Math.round(avg);
+  return avg;
+}
+
 const ORAL_WEEK_DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Anzeigename einer Wochenspalte (ISO-Datum wird formatiert, sonst gespeicherter Text). */

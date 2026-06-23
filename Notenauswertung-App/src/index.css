@@ -2545,6 +2545,65 @@ tfoot td {
   border-color: hsl(var(--border));
 }
 
+.oral-extended-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.oral-extended-mode-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.oral-extended-mode-switch__track {
+  position: relative;
+  display: block;
+  width: 2.75rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.85);
+  border: 1px solid var(--border);
+  transition: background 0.2s ease;
+}
+
+.oral-extended-mode-switch--points .oral-extended-mode-switch__track,
+.oral-extended-mode-switch--grades .oral-extended-mode-switch__track {
+  background: hsl(221 83% 53% / 0.25);
+  border-color: hsl(221 83% 53% / 0.45);
+}
+
+.oral-extended-mode-switch__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--muted-foreground) / 0.35);
+  transform: translateY(-50%);
+  transition: left 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.oral-extended-mode-switch--points .oral-extended-mode-switch__thumb {
+  left: calc(50% - 0.5rem);
+  background: hsl(221 83% 53%);
+  border-color: hsl(221 83% 45%);
+}
+
+.oral-extended-mode-switch--grades .oral-extended-mode-switch__thumb {
+  left: calc(100% - 1.15rem);
+  background: hsl(221 83% 53%);
+  border-color: hsl(221 83% 45%);
+}
+
 .sidebar-layout {
   display: flex;
   gap: 1.5rem;

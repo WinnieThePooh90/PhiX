@@ -313,7 +313,7 @@ model Oral {
   name        String
   date        String   @default("")
   halbjahr    String   @default("1")
-  extended    Boolean  @default(false)
+  extendedMode String @default("off")
   weekCount   Int      @default(0)
   weekDates   Json     @default("[]")
   bestNote    Float    @default(1)

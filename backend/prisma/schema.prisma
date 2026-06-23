@@ -336,7 +336,8 @@ model Oral {
   name        String
   date        String   @default("")
   halbjahr    String   @default("1")
-  extended    Boolean  @default(false)
+  /** Erweiterter Modus: off | points | grades */
+  extendedMode String @default("off")
   weekCount   Int      @default(0)
   /** Datum jeder Woche als JSON-Array von Strings ["2026-05-25", ...] */
   weekDates   Json     @default("[]")

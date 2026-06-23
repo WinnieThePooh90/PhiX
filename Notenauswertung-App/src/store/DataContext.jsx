@@ -3,12 +3,14 @@ import { useAuth } from './AuthContext';
 import {
   EXAM_ABS_MAX_FIELDS,
   getNormalizedOralWeekPointsArray,
+  getNormalizedOralWeekGradesArray,
   defaultOralWeekColumnLabel,
   migrateStoredGradeString,
   migrateOralGradeEntry,
   normalizeCourseGradeSystem,
   parseScorePointsValue,
 } from '../utils/calculator';
+import { getOralExtendedMode } from '../utils/oralExtendedMode';
 import { sortSchoolYears } from '../utils/schoolYear';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
@@ -50,6 +52,17 @@ function mergeOralGradeWithWeekPoints(prevData, weekPointsArr) {
       : typeof prevData === 'string' || typeof prevData === 'number'
         ? { value: String(prevData), _counted: true, weekPoints: [...weekPointsArr] }
         : { value: '', _counted: true, weekPoints: [...weekPointsArr] };
+  if ('week1' in base) delete base.week1;
+  return base;
+}
+
+function mergeOralGradeWithWeekGrades(prevData, weekGradesArr) {
+  const base =
+    typeof prevData === 'object' && prevData !== null
+      ? { ...prevData, weekGrades: [...weekGradesArr] }
+      : typeof prevData === 'string' || typeof prevData === 'number'
+        ? { value: String(prevData), _counted: true, weekGrades: [...weekGradesArr] }
+        : { value: '', _counted: true, weekGrades: [...weekGradesArr] };
   if ('week1' in base) delete base.week1;
   return base;
 }
@@ -813,7 +826,7 @@ export const DataProvider = ({ children }) => {
       name: `Mündlich ${nextNumber}`, 
       date: '',
       halbjahr: '1',
-      extended: false,
+      extendedMode: 'off',
       weekCount: 0,
       weekDates: [],
       bestNote: 1,
@@ -896,6 +909,25 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  /** Wochennote für `weekIndex` (0-basiert), in `grades[studentId].weekGrades` */
+  const updateOralWeekGrade = (oralId, studentId, weekIndex, rawValue) => {
+    setOrals((prev) => {
+      const o = prev[oralId];
+      if (!o) return prev;
+      const weekCount = o.weekCount || 0;
+      const prevData = o.grades[studentId];
+      const arr = getNormalizedOralWeekGradesArray(prevData, weekCount);
+      if (weekIndex >= 0 && weekIndex < arr.length) arr[weekIndex] = rawValue == null ? '' : String(rawValue);
+      const newData = mergeOralGradeWithWeekGrades(prevData, arr);
+      const newOral = {
+        ...o,
+        grades: { ...o.grades, [studentId]: newData },
+      };
+      apiCall(`/api/orals/${oralId}`, 'PUT', { ...newOral, courseId: activeCourseId });
+      return { ...prev, [oralId]: newOral };
+    });
+  };
+
   const addOralWeekColumn = (oralId) => {
     setOrals(prev => {
       const o = prev[oralId];
@@ -903,12 +935,19 @@ export const DataProvider = ({ children }) => {
       const prevCount = o.weekCount || 0;
       if (prevCount >= ORAL_WEEK_COL_CAP) return prev;
       const nextCount = prevCount + 1;
+      const gradesMode = getOralExtendedMode(o) === 'grades';
       const grades = { ...o.grades };
       for (const sid of Object.keys(grades)) {
         const prevData = grades[sid];
-        const arr = getNormalizedOralWeekPointsArray(prevData, prevCount);
-        arr.push(0);
-        grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
+        if (gradesMode) {
+          const arr = getNormalizedOralWeekGradesArray(prevData, prevCount);
+          arr.push('');
+          grades[sid] = mergeOralGradeWithWeekGrades(prevData, arr);
+        } else {
+          const arr = getNormalizedOralWeekPointsArray(prevData, prevCount);
+          arr.push(0);
+          grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
+        }
       }
       const weekDates = [...(o.weekDates || []), defaultOralWeekColumnLabel()];
       const newOral = { ...o, weekCount: nextCount, weekDates, grades };
@@ -924,11 +963,17 @@ export const DataProvider = ({ children }) => {
       const prevCount = o.weekCount || 0;
       if (prevCount <= 0) return prev;
       const nextCount = prevCount - 1;
+      const gradesMode = getOralExtendedMode(o) === 'grades';
       const grades = { ...o.grades };
       for (const sid of Object.keys(grades)) {
         const prevData = grades[sid];
-        const arr = getNormalizedOralWeekPointsArray(prevData, prevCount).slice(0, nextCount);
-        grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
+        if (gradesMode) {
+          const arr = getNormalizedOralWeekGradesArray(prevData, prevCount).slice(0, nextCount);
+          grades[sid] = mergeOralGradeWithWeekGrades(prevData, arr);
+        } else {
+          const arr = getNormalizedOralWeekPointsArray(prevData, prevCount).slice(0, nextCount);
+          grades[sid] = mergeOralGradeWithWeekPoints(prevData, arr);
+        }
       }
       const weekDates = (o.weekDates || []).slice(0, nextCount);
       const newOral = { ...o, weekCount: nextCount, weekDates, grades };
@@ -1869,7 +1914,7 @@ export const DataProvider = ({ children }) => {
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,
       updateExamStudentNachschreiber, updateExamStudentNachschreiberFields,
       updateExamStudentManualGrade, updateExamStudentManualGradeValue,
-      orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
+      orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,

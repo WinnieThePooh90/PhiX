@@ -1,7 +1,9 @@
 import {
   computeOralExtendedCalculatedGrade,
+  computeOralExtendedGradesAverage,
   formatGrade,
   getNormalizedOralGrade,
+  getNormalizedOralWeekGradesArray,
   getNormalizedOralWeekPointsArray,
   getOralTotalWeekPoints,
   getOralWeekColumnLabel,
@@ -9,6 +11,12 @@ import {
   normalizeOralSpreadBeta,
   storedGradeStringToClassic,
 } from './calculator';
+import {
+  getOralExtendedMode,
+  isOralExtendedActive,
+  isOralExtendedGrades,
+  isOralExtendedPoints,
+} from './oralExtendedMode';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
 
 function studentNameCell(s) {
@@ -31,6 +39,13 @@ function formatOralTotalExport(total) {
   return v > 0 ? `+${v}` : String(v);
 }
 
+function formatOralWeekGradeExport(raw, gradeSys) {
+  const t = String(raw ?? '').trim();
+  if (!t) return '';
+  const classic = storedGradeStringToClassic(t, gradeSys);
+  return classic !== null ? formatGrade(classic, gradeSys) : '';
+}
+
 /** Excel-Layout: # und Note zentriert, Name links. */
 export function buildOralStandardExportLayout() {
   return {
@@ -45,7 +60,7 @@ export function buildOralStandardExportLayout() {
  * @returns {{ headers: string[], rows: (string|number)[][], layout: ReturnType<typeof buildOralStandardExportLayout> } | null}
  */
 export function buildOralStandardTableExportData({ oral, students, config }) {
-  if (!oral || oral.extended) return null;
+  if (!oral || isOralExtendedActive(oral)) return null;
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
@@ -77,31 +92,54 @@ export function oralExportSheetName(oralId, oralName) {
   return n ? n.slice(0, 31) : `Mündlich ${oralId}`;
 }
 
-/** Excel-Layout: erweiterte Tabelle (#, Name, Wochen, Gesamt, Berechnet, Note). */
-export function buildOralExtendedExportLayout(weekCount) {
-  const colCount = 5 + weekCount;
+/** Excel-Layout: erweiterte Tabelle (#, Name, Wochen, optional Gesamt, Berechnet, Note). */
+export function buildOralExtendedExportLayout(weekCount, includeTotalColumn = true) {
+  const colCount = (includeTotalColumn ? 5 : 4) + weekCount;
   const centerColumnIndexes = [0];
   for (let i = 2; i < colCount; i += 1) centerColumnIndexes.push(i);
   const colWidths = Array.from({ length: colCount }, () => 10);
   colWidths[0] = 6;
   colWidths[1] = 28;
   for (let i = 2; i < 2 + weekCount; i += 1) colWidths[i] = 9;
-  if (colCount >= 3) colWidths[colCount - 3] = 10;
+  if (colCount >= 3) colWidths[colCount - 3] = 12;
   if (colCount >= 2) colWidths[colCount - 2] = 12;
   if (colCount >= 1) colWidths[colCount - 1] = 10;
   return { colWidths, centerColumnIndexes, nameColumnIndex: 1 };
 }
 
+function resolveOralExtendedCalculated(oral, gradeRaw, weekCount, gradeSys, context) {
+  const { counted } = getNormalizedOralGrade(gradeRaw);
+  if (isOralExtendedGrades(oral)) {
+    return computeOralExtendedGradesAverage(gradeRaw, weekCount, gradeSys, counted);
+  }
+  const useAbiNotenpunkte = oral.notenpunkteAbi === true;
+  const totalWeekPts = getOralTotalWeekPoints(gradeRaw, weekCount);
+  return computeOralExtendedCalculatedGrade({
+    studentSumWeekPoints: totalWeekPts,
+    weekCount,
+    maxSumWeekPointsInClass: context.maxWeekSumAll,
+    classMinWeekSum: context.classWeekMin,
+    classMaxWeekSum: context.classWeekMax,
+    bestNoteAlpha: oral.bestNote,
+    weekSpread: context.weekSpreadValue,
+    worstNote: oral.worstNote,
+    counted,
+    useAbiNotenpunkte,
+    gradeSystem: gradeSys,
+  });
+}
+
 /**
- * Mündliche Noten — Erweiterte Ansicht (Wochenpunkte, Gesamt, Berechnet, Note).
+ * Mündliche Noten — Erweiterte Ansicht (Punkte oder Noten pro Woche, Berechnet, Note).
  * @returns {{ headers: string[], rows: (string|number)[][], layout: ReturnType<typeof buildOralExtendedExportLayout> } | null}
  */
 export function buildOralExtendedTableExportData({ oral, students, config }) {
-  if (!oral || !oral.extended) return null;
+  if (!oral || !isOralExtendedActive(oral)) return null;
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
   const weekCount = Math.max(0, Number(oral.weekCount) || 0);
+  const gradesMode = isOralExtendedGrades(oral);
   const useAbiNotenpunkte = oral.notenpunkteAbi === true;
   const weekSpreadValue = normalizeOralSpreadBeta(oral.weekSpread);
 
@@ -109,12 +147,13 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
   const classWeekMin = weekTotals.length ? Math.min(...weekTotals) : 0;
   const classWeekMax = weekTotals.length ? Math.max(...weekTotals) : 0;
   const maxWeekSumAll = Math.max(1, classWeekMax);
+  const calcContext = { classWeekMin, classWeekMax, maxWeekSumAll, weekSpreadValue };
 
   const headers = [
     '#',
     'Name',
     ...Array.from({ length: weekCount }, (_, wi) => oralWeekColumnLabel(oral, wi)),
-    'Gesamt',
+    ...(gradesMode ? [] : ['Gesamt']),
     `Berechnet${npSuffix}`,
     `Note${npSuffix}`,
   ];
@@ -125,20 +164,9 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
       const gradeRaw = oral.grades?.[s.id];
       const { value: gradeInput, counted } = getNormalizedOralGrade(gradeRaw);
       const weekPointsArr = getNormalizedOralWeekPointsArray(gradeRaw, weekCount);
+      const weekGradesArr = getNormalizedOralWeekGradesArray(gradeRaw, weekCount);
       const totalWeekPts = getOralTotalWeekPoints(gradeRaw, weekCount);
-      const calculatedGrade = computeOralExtendedCalculatedGrade({
-        studentSumWeekPoints: totalWeekPts,
-        weekCount,
-        maxSumWeekPointsInClass: maxWeekSumAll,
-        classMinWeekSum: classWeekMin,
-        classMaxWeekSum: classWeekMax,
-        bestNoteAlpha: oral.bestNote,
-        weekSpread: weekSpreadValue,
-        worstNote: oral.worstNote,
-        counted,
-        useAbiNotenpunkte,
-        gradeSystem: gradeSys,
-      });
+      const calculatedGrade = resolveOralExtendedCalculated(oral, gradeRaw, weekCount, gradeSys, calcContext);
 
       let note = '—';
       if (counted) {
@@ -151,15 +179,21 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
           ? formatGrade(
               calculatedGrade,
               gradeSys,
-              useAbiNotenpunkte || gradeSys === 'points' ? { inputScale: 'notenpunkte' } : undefined,
+              !gradesMode && (useAbiNotenpunkte || gradeSys === 'points')
+                ? { inputScale: 'notenpunkte' }
+                : undefined,
             )
           : '—';
+
+      const weekCells = gradesMode
+        ? weekGradesArr.map((g) => formatOralWeekGradeExport(g, gradeSys))
+        : weekPointsArr.map(formatOralWeekPointExport);
 
       return [
         s.studentNumber ?? idx + 1,
         studentNameCell(s),
-        ...weekPointsArr.map(formatOralWeekPointExport),
-        formatOralTotalExport(totalWeekPts),
+        ...weekCells,
+        ...(gradesMode ? [] : [formatOralTotalExport(totalWeekPts)]),
         berechnet,
         note,
       ];
@@ -168,7 +202,11 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
     { textColumnIndex: 1 },
   );
 
-  return { headers, rows, layout: buildOralExtendedExportLayout(weekCount) };
+  return {
+    headers,
+    rows,
+    layout: buildOralExtendedExportLayout(weekCount, !gradesMode),
+  };
 }
 
 export function oralExtendedExportSheetName(oralId, oralName) {

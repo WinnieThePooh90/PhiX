@@ -27,7 +27,7 @@ function buildDefaultExamAndOralRecords(course) {
     name: `Mündlich ${oralNumber}`,
     date: '',
     halbjahr,
-    extended: false,
+    extendedMode: 'off',
     weekCount: 0,
     weekDates: [],
     bestNote: 1,

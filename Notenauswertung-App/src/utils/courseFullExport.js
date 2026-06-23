@@ -3,6 +3,7 @@ import { buildExamTableExport, examExportSheetName } from './examTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from './testTableExport';
 import { buildOralStandardTableExportData, oralExportSheetName } from './oralTableExport';
 import { buildGfsTableExportData, gfsExportSheetName } from './gfsTableExport';
+import { isOralExtendedActive } from './oralExtendedMode';
 
 /**
  * @typedef {{ name: string, aoa: (string|number)[][], layout?: { colWidths?: number[], centerColumnIndexes?: number[], nameColumnIndex?: number }, gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} ExportSheet
@@ -62,7 +63,7 @@ export function buildCourseFullExportSheets({
   const oralIds = Object.keys(orals ?? {}).sort((a, b) => Number(a) - Number(b));
   for (const id of oralIds) {
     const oral = orals[id];
-    if (!oral || oral.extended || oral.active === false) continue;
+    if (!oral || isOralExtendedActive(oral) || oral.active === false) continue;
     const oralData = buildOralStandardTableExportData({ oral, students, config });
     if (!oralData) continue;
     sheets.push({
