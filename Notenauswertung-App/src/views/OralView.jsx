@@ -231,6 +231,7 @@ export default function OralView({ studentIdFilterSet = null }) {
   const isExtendedGradesMode = isOralExtendedGrades(record);
   const isExtendedActive = isExtendedPointsMode || isExtendedGradesMode;
   const weekCount = record.weekCount || 0;
+  const useAbiNotenpunkte = record.notenpunkteAbi === true;
   const extendedCalcFormatOpts = oralExtendedCalculatedFormatOpts(gradeSys, {
     useAbiNotenpunkte,
     extendedGradesMode: isExtendedGradesMode,
@@ -245,7 +246,6 @@ export default function OralView({ studentIdFilterSet = null }) {
   const classWeekMin = weekTotals.length ? Math.min(...weekTotals) : 0;
   const classWeekMax = weekTotals.length ? Math.max(...weekTotals) : 0;
   const maxWeekSumAll = Math.max(1, classWeekMax);
-  const useAbiNotenpunkte = record.notenpunkteAbi === true;
   const detailColSpan = isExtendedPointsMode ? 5 + weekCount : isExtendedGradesMode ? 4 + weekCount : 3;
 
   const applyBerechnetToAllNotes = () => {
