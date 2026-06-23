@@ -2,6 +2,7 @@ import {
   computeOralExtendedCalculatedGrade,
   computeOralExtendedGradesAverage,
   formatGrade,
+  formatStoredOralWeekGradeDisplay,
   getNormalizedOralGrade,
   getNormalizedOralWeekGradesArray,
   getNormalizedOralWeekPointsArray,
@@ -9,6 +10,7 @@ import {
   getOralWeekColumnLabel,
   normalizeCourseGradeSystem,
   normalizeOralSpreadBeta,
+  oralExtendedCalculatedFormatOpts,
   storedGradeStringToClassic,
 } from './calculator';
 import {
@@ -40,10 +42,7 @@ function formatOralTotalExport(total) {
 }
 
 function formatOralWeekGradeExport(raw, gradeSys) {
-  const t = String(raw ?? '').trim();
-  if (!t) return '';
-  const classic = storedGradeStringToClassic(t, gradeSys);
-  return classic !== null ? formatGrade(classic, gradeSys) : '';
+  return formatStoredOralWeekGradeDisplay(raw, gradeSys);
 }
 
 /** Excel-Layout: # und Note zentriert, Name links. */
@@ -179,9 +178,11 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
           ? formatGrade(
               calculatedGrade,
               gradeSys,
-              !gradesMode && (useAbiNotenpunkte || gradeSys === 'points')
-                ? { inputScale: 'notenpunkte' }
-                : undefined,
+              oralExtendedCalculatedFormatOpts(gradeSys, {
+                useAbiNotenpunkte,
+                extendedGradesMode: gradesMode,
+                extendedPointsMode: !gradesMode,
+              }),
             )
           : '—';
 

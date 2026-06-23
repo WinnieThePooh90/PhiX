@@ -12,7 +12,6 @@ import {
   getOralWeekColumnLabel,
   formatOralWeekPointDisplay,
   formatGrade,
-  storedGradeStringToClassic,
   classicGradeToStoredString,
   normalizeCourseGradeSystem,
   ORAL_BEST_NOTE_ALPHA_OPTIONS,
@@ -28,6 +27,8 @@ import {
   computeOralExtendedGradesAverage,
   roundOralNoteToQuarter,
   getNormalizedOralWeekGradesArray,
+  formatStoredOralWeekGradeDisplay,
+  oralExtendedCalculatedFormatOpts,
 } from '../utils/calculator';
 import {
   createOralWeekTabHandler,
@@ -230,6 +231,11 @@ export default function OralView({ studentIdFilterSet = null }) {
   const isExtendedGradesMode = isOralExtendedGrades(record);
   const isExtendedActive = isExtendedPointsMode || isExtendedGradesMode;
   const weekCount = record.weekCount || 0;
+  const extendedCalcFormatOpts = oralExtendedCalculatedFormatOpts(gradeSys, {
+    useAbiNotenpunkte,
+    extendedGradesMode: isExtendedGradesMode,
+    extendedPointsMode: isExtendedPointsMode,
+  });
   const bestNoteValue = normalizeOralBestNoteAlpha(record.bestNote);
   const worstNoteValue = normalizeOralWorstNote(record.worstNote ?? 6);
   const bestNoteValuePoints = normalizeOralBestNotePoints(record.bestNote);
@@ -901,10 +907,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                               const weekGradeCellColors = gradeCellColorsFromResolved(weekGradeColorResolved, gradeSys);
                               const displayVal = (() => {
                                 if (isWeekEditing) return oralWeekGradeDraft;
-                                const t = String(wg ?? '').trim();
-                                if (!t) return '';
-                                const classic = storedGradeStringToClassic(t, gradeSys);
-                                return classic !== null ? formatGrade(classic, gradeSys) : '';
+                                return formatStoredOralWeekGradeDisplay(wg, gradeSys);
                               })();
                               return (
                                 <td
@@ -1094,13 +1097,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                           >
                             <span>
                               {calculatedGrade !== null
-                                ? formatGrade(
-                                    calculatedGrade,
-                                    gradeSys,
-                                    useAbiNotenpunkte || (gradeSys === 'points' && isExtendedPointsMode)
-                                      ? { inputScale: 'notenpunkte' }
-                                      : undefined,
-                                  )
+                                ? formatGrade(calculatedGrade, gradeSys, extendedCalcFormatOpts)
                                 : '—'}
                             </span>
                             {calculatedGrade !== null && counted && !useAbiNotenpunkte && (
@@ -1171,8 +1168,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                             ? oralNoteDraft
                             : (() => {
                                 if (gradeInput === '' || gradeInput === undefined || gradeInput === null) return '';
-                                const classic = storedGradeStringToClassic(String(gradeInput), gradeSys);
-                                return classic === null ? '' : formatGrade(classic, gradeSys);
+                                return formatStoredOralWeekGradeDisplay(gradeInput, gradeSys);
                               })()
                         }
                         onFocus={() => {

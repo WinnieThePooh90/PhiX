@@ -1,7 +1,7 @@
 {
   "name": "phix-desktop",
   "private": true,
-  "version": "252.0.0",
+  "version": "253.0.0",
   "description": "PhiX Desktop-Hülle (Electron) – startet das Node-Backend und zeigt die Web-UI.",
   "author": "Karsten Paulokat",
   "license": "Apache-2.0",

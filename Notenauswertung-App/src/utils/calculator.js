@@ -328,8 +328,8 @@ export function computeOralExtendedGradesAverage(gradeData, weekCount, gradeSyst
     const t = String(raw ?? '').trim();
     if (!t) continue;
     if (gs === 'points') {
-      const np = Math.round(parseFloat(t.replace(',', '.')));
-      if (Number.isFinite(np) && np >= 0 && np <= 15) values.push(np);
+      const np = storedGradeStringToNotenpunkte(t, gs);
+      if (np !== null) values.push(np);
     } else {
       const classic = storedGradeStringToClassic(t, gs);
       if (classic !== null && Number.isFinite(classic)) values.push(classic);
@@ -340,6 +340,31 @@ export function computeOralExtendedGradesAverage(gradeData, weekCount, gradeSyst
   const avg = sum / values.length;
   if (gs === 'points') return Math.round(avg);
   return avg;
+}
+
+/** Anzeige einer gespeicherten Wochennote (Modus „Erweitert: Noten“). */
+export function formatStoredOralWeekGradeDisplay(raw, gradeSystem = 'classic') {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const t = String(raw ?? '').trim();
+  if (!t) return '';
+  if (gs === 'points') {
+    const np = storedGradeStringToNotenpunkte(t, gs);
+    return np === null ? '' : String(np);
+  }
+  const classic = storedGradeStringToClassic(t, gs);
+  return classic !== null ? formatGrade(classic, gs) : '';
+}
+
+/** `formatGrade`-Opts für „Berechnet“ im erweiterten Mündlich-Modus. */
+export function oralExtendedCalculatedFormatOpts(
+  gradeSystem,
+  { useAbiNotenpunkte = false, extendedGradesMode = false, extendedPointsMode = false } = {},
+) {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (useAbiNotenpunkte || (gs === 'points' && (extendedGradesMode || extendedPointsMode))) {
+    return { inputScale: 'notenpunkte' };
+  }
+  return undefined;
 }
 
 const ORAL_WEEK_DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
