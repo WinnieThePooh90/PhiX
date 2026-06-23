@@ -35,6 +35,7 @@ import {
   oralWeekInputDataAttr,
 } from '../utils/oralWeekTabNavigation';
 import {
+  getOralExtendedMode,
   getOralExtendedModeLabel,
   isOralExtendedActive,
   isOralExtendedGrades,
