@@ -5,6 +5,8 @@ import {
   getBuiltinGradingKeyShortDesc,
   getBuiltinGradingKeyTitle,
   getPlateauKeyShortDesc,
+  PLATEAU_KEY_TYPES,
+  LINEAR_KEY_TYPES,
 } from '../data/gradingKeyDisplay';
 import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradingKey';
 import {
@@ -230,6 +232,7 @@ export function resolveCustomGradingKeyForExport(customKey) {
     id: customKey.id,
     name: title,
     maxPoints,
+    preset: false,
     gradingKey: {
       title,
       desc,
@@ -239,12 +242,59 @@ export function resolveCustomGradingKeyForExport(customKey) {
   };
 }
 
-/** Alle im Kurs angelegten Notenschlüssel (customGradingKeys). */
-export function buildCourseGradingKeysExportList(config) {
+/** Voreingestellte Schlüssel (Plateau 1–3, Linear 1–3) — gleiche Reihenfolge wie im Reiter Notenschlüssel. */
+export const BUILTIN_GRADING_KEY_TYPES = [...PLATEAU_KEY_TYPES, ...LINEAR_KEY_TYPES];
+
+/** Standard-Maximalpunkte für Export (entspricht Vorgabe in Notenschlüssel-Ansicht). */
+export const DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS = 50;
+
+/**
+ * Voreingestellten Notenschlüssel für den Export aufbereiten.
+ * @returns {{ id: string, name: string, maxPoints: number, preset: boolean, gradingKey: object } | null}
+ */
+export function resolveBuiltinGradingKeyForExport(type, maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS) {
+  const keyType = String(type ?? '');
+  const title = getBuiltinGradingKeyTitle(keyType);
+  if (!title) return null;
+
+  const pts = Number(maxPoints);
+  const effectiveMax = Number.isFinite(pts) && pts > 0 ? pts : DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS;
+  const desc = getBuiltinGradingKeyShortDesc(keyType, effectiveMax);
+
+  const rows = buildGradingKeyTableRows({
+    type: keyType,
+    maxPoints: effectiveMax,
+  });
+
+  return {
+    id: `builtin:${keyType}`,
+    name: title,
+    maxPoints: effectiveMax,
+    preset: true,
+    gradingKey: {
+      title,
+      desc,
+      maxPoints: effectiveMax,
+      aoa: buildGradingKeyExportAoa(rows),
+    },
+  };
+}
+
+/** Voreingestellte und im Kurs angelegte Notenschlüssel für den Export. */
+export function buildCourseGradingKeysExportList(
+  config,
+  maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS,
+) {
+  const builtins = BUILTIN_GRADING_KEY_TYPES
+    .map((type) => resolveBuiltinGradingKeyForExport(type, maxPoints))
+    .filter(Boolean);
+
   const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
-  return customKeys
+  const custom = customKeys
     .map((key) => resolveCustomGradingKeyForExport(key))
     .filter(Boolean);
+
+  return [...builtins, ...custom];
 }
 
 /**

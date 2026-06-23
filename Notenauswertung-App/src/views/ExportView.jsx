@@ -298,10 +298,6 @@ export default function ExportView() {
 
   const exportAllGradingKeysBundle = (format) =>
     runExport(`grading-keys-all-${format}`, async () => {
-      if (!gradingKeyEntries.length) {
-        setErr('Keine angelegten Notenschlüssel zum Exportieren.');
-        return null;
-      }
       exportAllGradingKeys(config, format);
       return gradingKeysAllExportFilename(config, format);
     }, { requireStudents: false });
@@ -547,52 +543,49 @@ export default function ExportView() {
           onToggle={() => toggleSection('grading-keys')}
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            Eigene und Vorlagen-Notenschlüssel aus dem Reiter <strong>Notenschlüssel</strong> (PKT, Note, %).
-            PDF: je Schlüssel eine Seite; Excel: je Schlüssel ein Tabellenblatt. Die Maximalpunkte entsprechen dem
-            hinterlegten Referenzwert des Schlüssels.
+            Voreingestellte Schlüssel (Plateau/Linear) und eigene Vorlagen aus dem Reiter{' '}
+            <strong>Notenschlüssel</strong> (PKT, Note, %). PDF: je Schlüssel eine Seite; Excel: je Schlüssel ein
+            Tabellenblatt. Voreingestellte Schlüssel werden mit 50 Maximalpunkten exportiert; eigene Schlüssel mit
+            ihrem Referenzwert.
           </p>
-          {gradingKeyEntries.length === 0 ? (
-            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
-              Keine eigenen Notenschlüssel angelegt.
-            </p>
-          ) : (
-            <>
-              <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
-                <button
-                  type="button"
-                  className="tab secondary export-format-btn"
-                  disabled={anyBusy || !config}
-                  onClick={() => exportAllGradingKeysBundle('xlsx')}
-                >
-                  <FileSpreadsheet size={16} strokeWidth={2} aria-hidden />
-                  {busyKey === 'grading-keys-all-xlsx' ? 'Export …' : 'Alle Notenschlüssel als Excel'}
-                </button>
-                <button
-                  type="button"
-                  className="tab secondary export-format-btn"
-                  disabled={anyBusy || !config}
-                  onClick={() => exportAllGradingKeysBundle('pdf')}
-                >
-                  <FileText size={16} strokeWidth={2} aria-hidden />
-                  {busyKey === 'grading-keys-all-pdf' ? 'Export …' : 'Alle Notenschlüssel als PDF'}
-                </button>
-              </div>
-              <div className="export-item-list">
-                {gradingKeyEntries.map((entry) => (
-                  <ExportFormatButtons
-                    key={entry.id}
-                    label={entry.name}
-                    sublabel={entry.maxPoints > 0 ? `${entry.maxPoints} Maximalpunkte` : undefined}
-                    disabled={anyBusy || !config}
-                    busyKey={busyKey}
-                    exportKey={`grading-key-${entry.id}`}
-                    onExcel={() => exportGradingKey(entry, 'xlsx')}
-                    onPdf={() => exportGradingKey(entry, 'pdf')}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+          <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
+            <button
+              type="button"
+              className="tab secondary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => exportAllGradingKeysBundle('xlsx')}
+            >
+              <FileSpreadsheet size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'grading-keys-all-xlsx' ? 'Export …' : 'Alle Notenschlüssel als Excel'}
+            </button>
+            <button
+              type="button"
+              className="tab secondary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => exportAllGradingKeysBundle('pdf')}
+            >
+              <FileText size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'grading-keys-all-pdf' ? 'Export …' : 'Alle Notenschlüssel als PDF'}
+            </button>
+          </div>
+          <div className="export-item-list">
+            {gradingKeyEntries.map((entry) => (
+              <ExportFormatButtons
+                key={entry.id}
+                label={entry.name}
+                sublabel={
+                  [entry.preset ? 'Voreingestellt' : null, entry.maxPoints > 0 ? `${entry.maxPoints} Maximalpunkte` : null]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
+                }
+                disabled={anyBusy || !config}
+                busyKey={busyKey}
+                exportKey={`grading-key-${entry.id}`}
+                onExcel={() => exportGradingKey(entry, 'xlsx')}
+                onPdf={() => exportGradingKey(entry, 'pdf')}
+              />
+            ))}
+          </div>
         </ExportSection>
 
         {err ? (
