@@ -24,7 +24,6 @@ import {
   ORAL_POINTS_WORST_OPTIONS,
   normalizeOralBestNotePoints,
   normalizeOralWorstNotePoints,
-  notenpunkteToGrade,
   computeOralExtendedCalculatedGrade,
   computeOralExtendedGradesAverage,
   roundOralNoteToQuarter,
@@ -430,6 +429,19 @@ export default function OralView({ studentIdFilterSet = null }) {
                   - Woche
                 </button>
               </div>
+              {isExtendedGradesMode ? (
+                <div className="course-meta-field__row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="tab secondary course-meta-inline-btn"
+                    onClick={() => setOralFormulaModalOpen(true)}
+                    title="Berechnungsvorschrift und Erläuterungen"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Info
+                  </button>
+                </div>
+              ) : null}
               {isExtendedPointsMode ? (
                 <>
               <div className="course-meta-field__row" style={{ flexWrap: 'nowrap' }}>
@@ -774,26 +786,25 @@ export default function OralView({ studentIdFilterSet = null }) {
               const manualNoteColorResolved =
                 counted ? resolveStoredGradeForCellColor(String(gradeInput ?? ''), gradeSys) : null;
               const manualNoteCellColors = gradeCellColorsFromResolved(manualNoteColorResolved, gradeSys);
-              const calcClassicForColor =
-                calculatedGrade !== null && gradeSys === 'points' && !useAbiNotenpunkte && !isExtendedGradesMode
-                  ? notenpunkteToGrade(Math.round(calculatedGrade))
-                  : calculatedGrade;
-              const calcColorResolved =
-                calculatedGrade !== null && !useAbiNotenpunkte
-                  ? gradeSys === 'points' && !isExtendedGradesMode
-                    ? { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } }
-                    : calcClassicForColor !== null
-                      ? { value: calcClassicForColor, opts: undefined }
-                      : null
-                  : calculatedGrade !== null && useAbiNotenpunkte
-                    ? { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } }
-                    : null;
+              const calcColorResolved = (() => {
+                if (calculatedGrade === null) return null;
+                if (useAbiNotenpunkte) {
+                  return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
+                }
+                if (gradeSys === 'points' && (isExtendedPointsMode || isExtendedGradesMode)) {
+                  return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
+                }
+                if (gradeSys === 'points') {
+                  return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
+                }
+                return { value: calculatedGrade, opts: undefined };
+              })();
               const calcCellColors = gradeCellColorsFromResolved(calcColorResolved, gradeSys);
               const calcRed =
                 calculatedGrade !== null &&
                 (useAbiNotenpunkte
                   ? calculatedGrade < 5
-                  : calcClassicForColor !== null && isGradeWorseThan4(calcClassicForColor, gradeSys));
+                  : isGradeWorseThan4(calcColorResolved?.value ?? null, gradeSys, calcColorResolved?.opts));
               const isExpanded = expandedStudentId === s.id;
               const showNotCountedFlag = !counted;
 
@@ -883,6 +894,11 @@ export default function OralView({ studentIdFilterSet = null }) {
                           ? weekGradesArr.map((wg, wi) => {
                               const weekEditKey = `${s.id}:${wi}`;
                               const isWeekEditing = oralWeekGradeEditingKey === weekEditKey;
+                              const weekGradeColorResolved =
+                                String(wg ?? '').trim() !== ''
+                                  ? resolveStoredGradeForCellColor(String(wg), gradeSys)
+                                  : null;
+                              const weekGradeCellColors = gradeCellColorsFromResolved(weekGradeColorResolved, gradeSys);
                               const displayVal = (() => {
                                 if (isWeekEditing) return oralWeekGradeDraft;
                                 const t = String(wg ?? '').trim();
@@ -891,7 +907,16 @@ export default function OralView({ studentIdFilterSet = null }) {
                                 return classic !== null ? formatGrade(classic, gradeSys) : '';
                               })();
                               return (
-                                <td key={wi} className="text-center" style={{ verticalAlign: 'middle' }}>
+                                <td
+                                  key={wi}
+                                  className="text-center"
+                                  style={{
+                                    verticalAlign: 'middle',
+                                    background: weekGradeColorResolved
+                                      ? (weekGradeCellColors.background ?? 'var(--surface)')
+                                      : undefined,
+                                  }}
+                                >
                                   <input
                                     type="text"
                                     inputMode={gradeSys === 'points' ? 'numeric' : 'decimal'}
@@ -946,6 +971,10 @@ export default function OralView({ studentIdFilterSet = null }) {
                                       borderRadius: '4px',
                                       border: '1px solid var(--border)',
                                       fontVariantNumeric: 'tabular-nums',
+                                      color: weekGradeColorResolved
+                                        ? weekGradeCellColors.color
+                                        : 'var(--foreground)',
+                                      background: 'transparent',
                                     }}
                                   />
                                 </td>
@@ -1264,16 +1293,60 @@ export default function OralView({ studentIdFilterSet = null }) {
               </div>
               <div className="oral-formula-modal-body text-muted" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
                 {isExtendedGradesMode ? (
-                  <>
-                    <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
-                      Im Modus <strong>Erweitert: Noten</strong> ist <strong>„Berechnet“</strong> der arithmetische Mittelwert
-                      aller eingetragenen Wochennoten (leere Wochen zählen nicht).
-                    </p>
-                    <p style={{ margin: 0 }}>
-                      Die Spalte <strong>„Note“</strong> bleibt die manuelle Endnote; der Pfeil übernimmt den Mittelwert
-                      {gradeSys === 'points' ? ' (gerundet auf ganze Notenpunkte)' : ' (gerundet auf Viertelnoten)'}.
-                    </p>
-                  </>
+                  gradeSys === 'points' ? (
+                    <>
+                      <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
+                        Im Modus <strong>Erweitert: Noten</strong> trägst du pro Woche{' '}
+                        <strong>Notenpunkte (0–15)</strong> ein. Leere Wochen werden bei der Berechnung nicht
+                        berücksichtigt.
+                      </p>
+                      <ol style={{ margin: '0 0 0.75rem', paddingLeft: '1.25rem' }}>
+                        <li style={{ marginBottom: '0.5rem' }}>
+                          Pro Woche eine Note <strong>NP<sub>i</sub></strong> (ganze Zahl 0 … 15), leere Felder zählen
+                          nicht.
+                        </li>
+                        <li style={{ marginBottom: '0.5rem' }}>
+                          <strong>Berechnet</strong> = arithmetischer Mittelwert aller eingetragenen Wochennoten:{' '}
+                          <strong>(NP<sub>1</sub> + … + NP<sub>n</sub>) / n</strong>, anschließend{' '}
+                          <strong>Rundung auf ganze Notenpunkte</strong>.
+                        </li>
+                        <li>
+                          Die Spalte <strong>„Note“</strong> bleibt die manuelle Endnote; der Pfeil übernimmt den
+                          berechneten Mittelwert (gerundet).
+                        </li>
+                      </ol>
+                      <p style={{ margin: 0 }}>
+                        Die Hintergrundfarben der Notenfelder folgen der Notenpunkte-Skala (grün ab 8, orange 5–7,
+                        rot 0–4).
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
+                        Im Modus <strong>Erweitert: Noten</strong> trägst du pro Woche{' '}
+                        <strong>klassische Noten</strong> (1,0–6,0, Viertelnoten möglich) ein. Leere Wochen werden bei
+                        der Berechnung nicht berücksichtigt.
+                      </p>
+                      <ol style={{ margin: '0 0 0.75rem', paddingLeft: '1.25rem' }}>
+                        <li style={{ marginBottom: '0.5rem' }}>
+                          Pro Woche eine Note <strong>N<sub>i</sub></strong> (1,0 … 6,0), leere Felder zählen nicht.
+                        </li>
+                        <li style={{ marginBottom: '0.5rem' }}>
+                          <strong>Berechnet</strong> = arithmetischer Mittelwert aller eingetragenen Wochennoten:{' '}
+                          <strong>(N<sub>1</sub> + … + N<sub>n</sub>) / n</strong> (ohne zusätzliche Rundung in der
+                          Anzeige).
+                        </li>
+                        <li>
+                          Die Spalte <strong>„Note“</strong> bleibt die manuelle Endnote; der Pfeil übernimmt den
+                          Mittelwert <strong>gerundet auf Viertelnoten</strong>.
+                        </li>
+                      </ol>
+                      <p style={{ margin: 0 }}>
+                        Die Hintergrundfarben der Notenfelder folgen der klassischen Notenskala (grün bis 2, gelb 3–4,
+                        rot ab 4,5).
+                      </p>
+                    </>
+                  )
                 ) : useAbiNotenpunkte ? (
                   <>
                     <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
