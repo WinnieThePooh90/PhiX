@@ -102,7 +102,7 @@ function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, on
 }
 
 export default function ExportView() {
-  const { config, students, exams, orals, tests, projects, gfsEntries } = useData();
+  const { config, students, exams, orals, tests, projects, gfsEntries, referatEntries } = useData();
   const [busyKey, setBusyKey] = useState(null);
   const [err, setErr] = useState('');
   const [expandedSections, setExpandedSections] = useState(() => new Set());
@@ -175,6 +175,7 @@ export default function ExportView() {
         tests,
         projects,
         gfsEntries,
+        referatEntries,
         config,
       });
       const filename = courseFullExportFilename(config, format);
@@ -195,6 +196,7 @@ export default function ExportView() {
         tests,
         projects,
         gfsEntries,
+        referatEntries,
         config,
       });
       const sheetData = { headers, rows };

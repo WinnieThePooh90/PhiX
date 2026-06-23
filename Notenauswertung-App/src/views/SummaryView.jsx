@@ -471,6 +471,7 @@ function SummaryStudentCalculationModal({
   tests,
   projects,
   gfsEntries,
+  referatEntries,
   customGradingKeys,
   gradeSys,
 }) {
@@ -501,6 +502,7 @@ function SummaryStudentCalculationModal({
     projects,
     testsAsHalfExam,
     testsAsOral,
+    referatEntries,
   );
   const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, breakdown.valuesAreNotenpunkte);
   const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
@@ -655,7 +657,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
 }
 
 export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis }) {
-  const { students, exams, orals, tests, projects, gfsEntries, config, setConfig, updateStudentConfig } = useData();
+  const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config, setConfig, updateStudentConfig } = useData();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -837,6 +839,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                 projects,
                 testsAsHalfExam,
                 testsAsOral,
+                referatEntries,
               );
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
@@ -940,6 +943,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                           tests={tests}
                           projects={projects}
                           gfsEntries={gfsEntries}
+                          referatEntries={referatEntries}
                           weighting={weighting}
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
@@ -1090,6 +1094,7 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
         tests={tests}
         projects={projects}
         gfsEntries={gfsEntries}
+        referatEntries={referatEntries}
         customGradingKeys={customGradingKeys}
         gradeSys={gradeSys}
       />

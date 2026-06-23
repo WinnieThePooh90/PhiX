@@ -78,6 +78,8 @@ model Course {
   advancedWeightingStash Json?
   gfsAccepted Boolean @default(true)
   projectsAccepted Boolean @default(false)
+  /** Wenn true: Tab „Referate“; gehaltene Referate zählen schriftlich wie Klausuren. */
+  referateAccepted Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)
@@ -92,6 +94,7 @@ model Course {
   tests      Test[]
   projects   Project[]
   gfsEntries   GfsEntry[]
+  referatEntries ReferatEntry[]
   moneyLists        MoneyList[]
   attendanceLists   AttendanceList[]
   collectionLists   CollectionList[]
@@ -139,6 +142,7 @@ model Student {
   course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   gfsEntries       GfsEntry[]
+  referatEntries   ReferatEntry[]
   moneyListEntries       MoneyListEntry[]
   attendanceListEntries  AttendanceListEntry[]
   collectionListEntries  CollectionListEntry[]
@@ -263,6 +267,20 @@ model NotesListEntry {
 }
 
 model GfsEntry {
+  id        Int     @id @default(autoincrement())
+  thema     String  @default("")
+  art       String  @default("")
+  date      String  @default("")
+  gehalten  Boolean @default(false)
+  halbjahr  String  @default("1")
+  note      String  @default("")
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  Int?
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model ReferatEntry {
   id        Int     @id @default(autoincrement())
   thema     String  @default("")
   art       String  @default("")

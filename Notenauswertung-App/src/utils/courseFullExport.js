@@ -20,6 +20,7 @@ export function buildCourseFullExportSheets({
   tests,
   projects = {},
   gfsEntries,
+  referatEntries = [],
   config,
 }) {
   /** @type {ExportSheet[]} */
@@ -32,6 +33,7 @@ export function buildCourseFullExportSheets({
     tests,
     projects,
     gfsEntries,
+    referatEntries,
     config,
   });
   sheets.push({

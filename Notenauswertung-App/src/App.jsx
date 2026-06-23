@@ -35,6 +35,7 @@ import OralView from './views/OralView';
 import TestsView from './views/TestsView';
 import ProjectsView from './views/ProjectsView';
 import GfsView from './views/GfsView';
+import ReferateView from './views/ReferateView';
 import SummaryView from './views/SummaryView';
 import KeysView from './views/KeysView';
 import SupportPhiXView from './views/SupportPhiXView';
@@ -175,6 +176,7 @@ function App() {
   const hasActiveCourse = Boolean(config);
   const showTestsTab = config?.testsWritten !== false;
   const showGfsTab = config?.gfsAccepted !== false;
+  const showReferateTab = config?.referateAccepted === true;
   const showProjectsTab = config?.projectsAccepted === true;
   const showKlassenlehrerMenu = config?.klassenlehrerEnabled === true;
   const showAlbumMenu = config?.albumEnabled === true;
@@ -183,10 +185,11 @@ function App() {
   useEffect(() => {
     if (!showTestsTab && activeTab === 'tests') setActiveTab('summary', { replace: true });
     if (!showGfsTab && activeTab === 'gfs') setActiveTab('summary', { replace: true });
+    if (!showReferateTab && activeTab === 'referate') setActiveTab('summary', { replace: true });
     if (!showProjectsTab && activeTab === 'projects') setActiveTab('summary', { replace: true });
     if (!showKlassenlehrerMenu && activeTab === 'klassenlehrer') setActiveTab('summary', { replace: true });
     if (!showAlbumMenu && activeTab === 'album') setActiveTab('summary', { replace: true });
-  }, [showTestsTab, showGfsTab, showProjectsTab, showKlassenlehrerMenu, showAlbumMenu, activeTab]);
+  }, [showTestsTab, showGfsTab, showReferateTab, showProjectsTab, showKlassenlehrerMenu, showAlbumMenu, activeTab]);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MEDIA);
@@ -379,6 +382,8 @@ function App() {
         return <ProjectsView studentIdFilterSet={studentIdFilterSet} />;
       case 'gfs':
         return <GfsView studentIdFilterSet={studentIdFilterSet} />;
+      case 'referate':
+        return <ReferateView studentIdFilterSet={studentIdFilterSet} />;
       case 'summary':
         return (
           <SummaryView
@@ -454,7 +459,8 @@ function App() {
     activeTab === 'oral' ||
     activeTab === 'tests' ||
     (showProjectsTab && activeTab === 'projects') ||
-    activeTab === 'gfs';
+    activeTab === 'gfs' ||
+    (showReferateTab && activeTab === 'referate');
 
   const settingsTabActive =
     activeTab === 'settings' ||
@@ -552,6 +558,11 @@ function App() {
       {showGfsTab && (
         <button type="button" className={`tab ${activeTab === 'gfs' ? 'active' : ''}`} onClick={() => setActiveTab('gfs')}>
           GFS
+        </button>
+      )}
+      {showReferateTab && (
+        <button type="button" className={`tab ${activeTab === 'referate' ? 'active' : ''}`} onClick={() => setActiveTab('referate')}>
+          Referate
         </button>
       )}
       {!isMobile && renderDesktopSettingsControls()}

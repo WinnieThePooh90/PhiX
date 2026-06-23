@@ -88,6 +88,7 @@ export default function StudentGradesOverviewPanel({
   tests,
   projects,
   gfsEntries,
+  referatEntries,
   weighting,
   customGradingKeys,
   gradeSys,
@@ -134,6 +135,7 @@ export default function StudentGradesOverviewPanel({
           projects,
           testsAsHalfExam,
           testsAsOral,
+          referatEntries,
         );
         const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
         const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
@@ -198,6 +200,21 @@ export default function StudentGradesOverviewPanel({
                     return (
                       <li key={`gfs-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>GFS {label}:</span>
+                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
+                          {counted ? gfmt(gNum) : '-'}
+                        </strong>
+                      </li>
+                    );
+                  })}
+                {referatEntries
+                  .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
+                  .map((e) => {
+                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
+                    const gNum = storedGradeStringToClassic(e.note, gradeSys);
+                    const counted = e.gehalten === true && gNum !== null;
+                    return (
+                      <li key={`referat-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
+                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}:</span>
                         <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                           {counted ? gfmt(gNum) : '-'}
                         </strong>

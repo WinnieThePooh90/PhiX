@@ -945,11 +945,11 @@ export const parseGfsNoteValue = (raw) => {
  * GFS-Einträge für den schriftlichen Teil: nur wenn „gehalten“ und gültige Note; Halbjahr-Filter wie bei Klausuren.
  * @param {Array<{ studentId: number, gehalten?: boolean, halbjahr?: string, note?: string }>} gfsEntries
  */
-const getGfsGradeStatsForStudent = (studentId, gfsEntries, halbjahrFilter, gradeSystem = 'classic') => {
+const getGfsGradeStatsForStudent = (studentId, entries, halbjahrFilter, gradeSystem = 'classic') => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   let sum = 0;
   let count = 0;
-  (gfsEntries || []).forEach((entry) => {
+  (entries || []).forEach((entry) => {
     if (entry.studentId !== studentId) return;
     if (entry.gehalten !== true) return;
     if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
@@ -961,6 +961,40 @@ const getGfsGradeStatsForStudent = (studentId, gfsEntries, halbjahrFilter, grade
   if (count === 0) return { gfsAvg: null, gfsSum: 0, gfsCount: 0 };
   return { gfsAvg: sum / count, gfsSum: sum, gfsCount: count };
 };
+
+function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, npSum, npCount) {
+  let sum = npSum;
+  let count = npCount;
+  (entries || []).forEach((entry) => {
+    if (entry.studentId !== studentId) return;
+    if (entry.gehalten !== true) return;
+    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
+    const np = storedGradeStringToNotenpunkte(entry.note, 'points');
+    if (np === null) return;
+    sum += np;
+    count += 1;
+  });
+  return { sum, count };
+}
+
+function appendHeldLeistungGradeItems(items, entries, studentId, halbjahrFilter, gs, prefix, defaultShort) {
+  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  (entries || []).forEach((entry) => {
+    if (entry.studentId !== studentId) return;
+    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
+    if (entry.gehalten !== true) return;
+    const label = [entry.thema, entry.art].filter(Boolean).join(' · ') || defaultShort;
+    if (isNp) {
+      const np = storedGradeStringToNotenpunkte(entry.note, gs);
+      if (np === null) return;
+      items.push({ label: `${prefix} ${label}`, grade: np, np });
+    } else {
+      const grade = storedGradeStringToClassic(entry.note, gs);
+      if (grade === null) return;
+      items.push({ label: `${prefix} ${label}`, grade });
+    }
+  });
+}
 
 export const isProjectManualGradeMode = (project) => project?.gradeMode === 'manual';
 
@@ -1135,6 +1169,7 @@ function calculateStudentGradesInNotenpunkte(
   projects,
   testsAsHalfExam = false,
   testsAsOral = false,
+  referatEntries = [],
 ) {
   let examNpSum = 0;
   let examNpCount = 0;
@@ -1167,27 +1202,24 @@ function calculateStudentGradesInNotenpunkte(
     ));
   }
 
-  let gfsNpSum = 0;
-  let gfsNpCount = 0;
-  (gfsEntries || []).forEach((entry) => {
-    if (entry.studentId !== studentId) return;
-    if (entry.gehalten !== true) return;
-    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
-    const np = storedGradeStringToNotenpunkte(entry.note, 'points');
-    if (np === null) return;
-    gfsNpSum += np;
-    gfsNpCount += 1;
-  });
+  let heldNpSum = 0;
+  let heldNpCount = 0;
+  ({ sum: heldNpSum, count: heldNpCount } = addHeldEntriesToWrittenNpAggregate(
+    studentId, gfsEntries, halbjahrFilter, heldNpSum, heldNpCount,
+  ));
+  ({ sum: heldNpSum, count: heldNpCount } = addHeldEntriesToWrittenNpAggregate(
+    studentId, referatEntries, halbjahrFilter, heldNpSum, heldNpCount,
+  ));
 
   let examAvg = null;
   const examOnlyAvg = examNpCount > 0 ? examNpSum / examNpCount : null;
-  const gfsAvg = gfsNpCount > 0 ? gfsNpSum / gfsNpCount : null;
-  if (examNpCount > 0 && gfsNpCount > 0) {
-    examAvg = (examNpSum + gfsNpSum) / (examNpCount + gfsNpCount);
+  const heldOnlyAvg = heldNpCount > 0 ? heldNpSum / heldNpCount : null;
+  if (examNpCount > 0 && heldNpCount > 0) {
+    examAvg = (examNpSum + heldNpSum) / (examNpCount + heldNpCount);
   } else if (examNpCount > 0) {
     examAvg = examOnlyAvg;
-  } else if (gfsNpCount > 0) {
-    examAvg = gfsAvg;
+  } else if (heldNpCount > 0) {
+    examAvg = heldOnlyAvg;
   }
 
   let oralNpSum = 0;
@@ -1328,6 +1360,7 @@ export const calculateStudentGrades = (
   projects = {},
   testsAsHalfExam = false,
   testsAsOral = false,
+  referatEntries = [],
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (gs === 'points') {
@@ -1344,6 +1377,7 @@ export const calculateStudentGrades = (
       projects,
       testsAsHalfExam,
       testsAsOral,
+      referatEntries,
     );
   }
 
@@ -1442,16 +1476,20 @@ export const calculateStudentGrades = (
     testAvg = testCount > 0 ? testSum / testCount : null;
   }
 
-  const { gfsAvg, gfsSum, gfsCount } = getGfsGradeStatsForStudent(studentId, gfsEntries, halbjahrFilter, gs);
+  const gfsStats = getGfsGradeStatsForStudent(studentId, gfsEntries, halbjahrFilter, gs);
+  const referatStats = getGfsGradeStatsForStudent(studentId, referatEntries, halbjahrFilter, gs);
+  const heldSum = gfsStats.gfsSum + referatStats.gfsSum;
+  const heldCount = gfsStats.gfsCount + referatStats.gfsCount;
+  const heldAvg = heldCount > 0 ? heldSum / heldCount : null;
 
-  /** Schriftlich: Klausur-Noten + GFS; jede zählende GFS-Note wie eine Klausur im Durchschnitt. */
+  /** Schriftlich: Klausur-Noten + GFS/Referate; jede zählende Note wie eine Klausur im Durchschnitt. */
   let examAvg = null;
-  if (examCount > 0 && gfsCount > 0) {
-    examAvg = (examSum + gfsSum) / (examCount + gfsCount);
+  if (examCount > 0 && heldCount > 0) {
+    examAvg = (examSum + heldSum) / (examCount + heldCount);
   } else if (examCount > 0) {
     examAvg = examAvgPure;
-  } else if (gfsCount > 0) {
-    examAvg = gfsAvg;
+  } else if (heldCount > 0) {
+    examAvg = heldAvg;
   }
 
   // Endnote (Exakt): gewichtetes arithmetisches Mittel der Teildurchschnitte.
@@ -1705,6 +1743,7 @@ function collectWrittenDetailWithOptionalHalfTests(
   exams,
   projects,
   gfsEntries,
+  referatEntries,
   tests,
   halbjahrFilter,
   customGradingKeys,
@@ -1713,7 +1752,7 @@ function collectWrittenDetailWithOptionalHalfTests(
   testsWritten,
 ) {
   const writtenItems = collectWrittenGradeItems(
-    studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs,
+    studentId, exams, projects, gfsEntries, referatEntries, halbjahrFilter, customGradingKeys, gs,
   ).map((item) => ({ ...item, weight: item.weight ?? 1 }));
   const testItems = testsAsHalfExam && testsWritten
     ? collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
@@ -1749,7 +1788,7 @@ function collectOralDetailWithOptionalTests(
   return averageLineFromItems('Mündlich', 'M', [...oralItems, ...testItems], gs);
 }
 
-function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbjahrFilter, customGradingKeys, gs) {
+function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, referatEntries, halbjahrFilter, customGradingKeys, gs) {
   const items = [];
   const isNp = normalizeCourseGradeSystem(gs) === 'points';
   Object.entries(exams || {}).forEach(([id, exam]) => {
@@ -1761,22 +1800,8 @@ function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, halbja
       if (grade !== null) items.push({ label: `KA ${id}`, grade });
     }
   });
-  (gfsEntries || []).forEach((entry) => {
-    if (entry.studentId !== studentId) return;
-    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
-    if (entry.gehalten !== true) return;
-    if (isNp) {
-      const np = storedGradeStringToNotenpunkte(entry.note, gs);
-      if (np === null) return;
-      const label = [entry.thema, entry.art].filter(Boolean).join(' · ') || 'GFS';
-      items.push({ label: `GFS ${label}`, grade: np, np });
-    } else {
-      const grade = storedGradeStringToClassic(entry.note, gs);
-      if (grade === null) return;
-      const label = [entry.thema, entry.art].filter(Boolean).join(' · ') || 'GFS';
-      items.push({ label: `GFS ${label}`, grade });
-    }
-  });
+  appendHeldLeistungGradeItems(items, gfsEntries, studentId, halbjahrFilter, gs, 'GFS', 'GFS');
+  appendHeldLeistungGradeItems(items, referatEntries, studentId, halbjahrFilter, gs, 'Referat', 'Referat');
   Object.entries(projects || {}).forEach(([id, project]) => {
     if (project.weightingMode !== 'written') return;
     const unitW = getProjectPillarUnitWeight(project);
@@ -1964,6 +1989,7 @@ export function getStudentGradeCalculationBreakdown(
   projects = {},
   testsAsHalfExam = false,
   testsAsOral = false,
+  referatEntries = [],
 ) {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
@@ -1980,6 +2006,7 @@ export function getStudentGradeCalculationBreakdown(
     projects,
     testsAsHalfExam,
     testsAsOral,
+    referatEntries,
   );
 
   const rawWritten = Number(weighting?.written);
@@ -1992,7 +2019,7 @@ export function getStudentGradeCalculationBreakdown(
   const includeTestsInFinalWeight = testsWritten && !testsAsHalfExam && !testsAsOral;
 
   const writtenDetail = collectWrittenDetailWithOptionalHalfTests(
-    studentId, exams, projects, gfsEntries, tests, halbjahrFilter, customGradingKeys, gs, testsAsHalfExam, testsWritten,
+    studentId, exams, projects, gfsEntries, referatEntries, tests, halbjahrFilter, customGradingKeys, gs, testsAsHalfExam, testsWritten,
   );
   const oralDetail = collectOralDetailWithOptionalTests(
     studentId, orals, projects, tests, halbjahrFilter, customGradingKeys, gs, testsAsOral, testsWritten,

@@ -4587,6 +4587,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     transition: transform 0.25s ease;
     border-right: 1px solid var(--border);
     border-bottom: none;
+    background: var(--surface);
+    backdrop-filter: none;
   }
 
   .app-sidebar--mobile.app-sidebar--open {

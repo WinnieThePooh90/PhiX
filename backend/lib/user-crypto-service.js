@@ -85,6 +85,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
       orals,
       tests,
       gfsEntries,
+      referatEntries,
       moneyLists,
       moneyListEntries,
       attendanceLists,
@@ -101,6 +102,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
       prisma.oral.findMany({ where: inCourses }),
       prisma.test.findMany({ where: inCourses }),
       prisma.gfsEntry.findMany({ where: inCourses }),
+      prisma.referatEntry.findMany({ where: inCourses }),
       prisma.moneyList.findMany({ where: inCourses }),
       prisma.moneyListEntry.findMany({ where: { moneyList: { courseId: { in: courseIds } } } }),
       prisma.attendanceList.findMany({ where: inCourses }),
@@ -121,6 +123,7 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     updated += await encryptModelRows(prisma, 'Oral', orals, dek);
     updated += await encryptModelRows(prisma, 'Test', tests, dek);
     updated += await encryptModelRows(prisma, 'GfsEntry', gfsEntries, dek);
+    updated += await encryptModelRows(prisma, 'ReferatEntry', referatEntries, dek);
     updated += await encryptModelRows(prisma, 'MoneyList', moneyLists, dek);
     updated += await encryptModelRows(prisma, 'MoneyListEntry', moneyListEntries, dek);
     updated += await encryptModelRows(prisma, 'AttendanceList', attendanceLists, dek);

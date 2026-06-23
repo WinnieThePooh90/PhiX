@@ -562,6 +562,7 @@ app.delete('/api/courses/:id', async (req, res) => {
   await prisma.oral.deleteMany({ where: { courseId } });
   await prisma.test.deleteMany({ where: { courseId } });
   await prisma.gfsEntry.deleteMany({ where: { courseId } });
+  await prisma.referatEntry.deleteMany({ where: { courseId } });
   await prisma.albumPhoto.deleteMany({ where: { courseId } });
   await prisma.moneyList.deleteMany({ where: { courseId } });
   await prisma.attendanceList.deleteMany({ where: { courseId } });
@@ -1227,6 +1228,102 @@ app.delete('/api/gfs/:id', async (req, res) => {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
   await prisma.gfsEntry.delete({ where: { id } });
+  res.status(204).send();
+});
+
+// REFERATE (analog GFS)
+app.get('/api/referate', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const rows = await prisma.referatEntry.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+  });
+  res.json(rows);
+});
+
+app.post('/api/referate', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  const studentId = Number(req.body.studentId);
+  if (!studentId) return res.status(400).json({ error: 'studentId required' });
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+
+  const thema = req.body.thema ?? '';
+  const art = req.body.art ?? '';
+  const date = req.body.date ?? '';
+  const gehalten = Boolean(req.body.gehalten);
+  const halbjahr = req.body.halbjahr != null ? String(req.body.halbjahr) : '1';
+  const note = req.body.note != null ? String(req.body.note) : '';
+
+  const entry = await prisma.referatEntry.create({
+    data: {
+      courseId,
+      studentId,
+      thema: String(thema),
+      art: String(art),
+      date: String(date),
+      gehalten,
+      halbjahr: halbjahr === '2' ? '2' : '1',
+      note: String(note),
+    },
+  });
+  res.json(entry);
+});
+
+app.put('/api/referate/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existingEntry = await prisma.referatEntry.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existingEntry) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const { thema, art, date, gehalten, halbjahr, note, studentId, courseId: bodyCourseId } = req.body;
+  const data = {};
+  if (thema !== undefined) data.thema = String(thema);
+  if (art !== undefined) data.art = String(art);
+  if (date !== undefined) data.date = String(date);
+  if (gehalten !== undefined) data.gehalten = Boolean(gehalten);
+  if (halbjahr !== undefined) data.halbjahr = String(halbjahr) === '2' ? '2' : '1';
+  if (note !== undefined) data.note = String(note);
+  if (Number.isFinite(Number(studentId))) data.studentId = Number(studentId);
+  if (bodyCourseId !== undefined && Number.isFinite(Number(bodyCourseId))) {
+    const nc = await prisma.course.findUnique({ where: { id: Number(bodyCourseId) } });
+    if (!nc || !canAccessCourse(nc, acting)) {
+      return res.status(403).json({ error: 'Kein Zugriff' });
+    }
+    data.courseId = Number(bodyCourseId);
+  }
+
+  const entry = await prisma.referatEntry.update({
+    where: { id },
+    data,
+  });
+  res.json(entry);
+});
+
+app.delete('/api/referate/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existingEntry = await prisma.referatEntry.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existingEntry) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+  await prisma.referatEntry.delete({ where: { id } });
   res.status(204).send();
 });
 

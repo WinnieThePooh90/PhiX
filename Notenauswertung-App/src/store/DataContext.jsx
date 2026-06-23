@@ -113,6 +113,7 @@ export const DataProvider = ({ children }) => {
   const [tests, setTests] = useState({});
   const [projects, setProjects] = useState({});
   const [gfsEntries, setGfsEntries] = useState([]);
+  const [referatEntries, setReferatEntries] = useState([]);
   const [moneyLists, setMoneyLists] = useState([]);
   const [attendanceLists, setAttendanceLists] = useState([]);
   const [collectionLists, setCollectionLists] = useState([]);
@@ -278,6 +279,7 @@ export const DataProvider = ({ children }) => {
           testsRes,
           projectsRes,
           gfsRes,
+          referatRes,
           moneyListsRes,
           attendanceListsRes,
           collectionListsRes,
@@ -290,6 +292,7 @@ export const DataProvider = ({ children }) => {
           safeFetchJson(`/api/tests?courseId=${activeCourseId}`, {}),
           safeFetchJson(`/api/projects?courseId=${activeCourseId}`, {}),
           safeFetchJson(`/api/gfs?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/referate?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/money-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/attendance-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/collection-lists?courseId=${activeCourseId}`, []),
@@ -302,6 +305,7 @@ export const DataProvider = ({ children }) => {
         setTests(testsRes);
         setProjects(projectsRes);
         setGfsEntries(Array.isArray(gfsRes) ? gfsRes : []);
+        setReferatEntries(Array.isArray(referatRes) ? referatRes : []);
         setMoneyLists(Array.isArray(moneyListsRes) ? moneyListsRes : []);
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
         setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
@@ -536,6 +540,7 @@ export const DataProvider = ({ children }) => {
         setTests({});
         setProjects({});
         setGfsEntries([]);
+        setReferatEntries([]);
         setAlbumPhotos([]);
       }
     }
@@ -1447,6 +1452,38 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/gfs/${entryId}`, 'DELETE');
   };
 
+  const addReferatEntry = async (studentId) => {
+    const created = await apiCall('/api/referate', 'POST', {
+      courseId: activeCourseId,
+      studentId,
+      thema: '',
+      art: '',
+      date: '',
+      gehalten: false,
+      halbjahr: '1',
+      note: '',
+    });
+    if (created && created.id) {
+      setReferatEntries((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateReferatEntry = (entryId, field, value) => {
+    setReferatEntries((prev) => {
+      const row = prev.find((e) => e.id === entryId);
+      if (!row) return prev;
+      const next = { ...row, [field]: value };
+      apiCall(`/api/referate/${entryId}`, 'PUT', { ...next, courseId: activeCourseId });
+      return prev.map((e) => (e.id === entryId ? next : e));
+    });
+  };
+
+  const removeReferatEntry = (entryId) => {
+    setReferatEntries((prev) => prev.filter((e) => e.id !== entryId));
+    apiCall(`/api/referate/${entryId}`, 'DELETE');
+  };
+
   const addAlbumPhoto = async ({ title, description, mimeType, imageData }) => {
     const created = await apiCall('/api/album-photos', 'POST', {
       courseId: activeCourseId,
@@ -1920,6 +1957,7 @@ export const DataProvider = ({ children }) => {
       projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
+      referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry,
       albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,

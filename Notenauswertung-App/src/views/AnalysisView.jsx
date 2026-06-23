@@ -77,6 +77,7 @@ function RiskStudentsTable({
   tests,
   projects,
   gfsEntries,
+  referatEntries = [],
   weighting,
   customGradingKeys,
   testsWritten,
@@ -125,6 +126,7 @@ function RiskStudentsTable({
                         tests={tests}
                         projects={projects}
                         gfsEntries={gfsEntries}
+                        referatEntries={referatEntries}
                         weighting={weighting}
                         customGradingKeys={customGradingKeys}
                         gradeSys={gradeSystem}
@@ -147,7 +149,7 @@ function RiskStudentsTable({
 }
 
 export default function AnalysisView() {
-  const { students, exams, orals, tests, projects, gfsEntries, config } = useData();
+  const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config } = useData();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const testsWritten = config?.testsWritten !== false;
@@ -173,6 +175,7 @@ export default function AnalysisView() {
     tests,
     projects,
     gfsEntries,
+    referatEntries,
     weighting,
     customGradingKeys,
     testsWritten,
@@ -199,6 +202,7 @@ export default function AnalysisView() {
           projects,
           testsAsHalfExam,
           testsAsOral,
+          referatEntries,
         );
         return { student: s, finalGrade };
       })
@@ -224,7 +228,7 @@ export default function AnalysisView() {
       .sort(sortWorstFirst);
 
     return { starkGefaehrdet: stark, gefaehrdet: gef };
-  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+  }, [students, exams, orals, tests, projects, gfsEntries, referatEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
     const isPoints = gradeSys === 'points';
@@ -265,6 +269,7 @@ export default function AnalysisView() {
         projects,
         testsAsHalfExam,
         testsAsOral,
+        referatEntries,
       );
       const analysisGrade = resolveAnalysisGrade(s, finalGrade, gradeSys);
       if (analysisGrade === null || Number.isNaN(analysisGrade)) return;
@@ -286,7 +291,7 @@ export default function AnalysisView() {
       distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
       studentsByBucket: buckets,
     };
-  }, [students, exams, orals, tests, projects, gfsEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+  }, [students, exams, orals, tests, projects, gfsEntries, referatEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const barPopoverStudents = useMemo(() => {
     if (distributionTooltipBucket === null || distributionTooltipBucket === undefined) return [];

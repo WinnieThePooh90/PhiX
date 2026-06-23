@@ -28,6 +28,7 @@ export default function NewCourseForm() {
     testsWritten: false,
     gfsAccepted: true,
     projectsAccepted: false,
+    referateAccepted: false,
     klassenlehrerEnabled: false,
     albumEnabled: false,
     advancedWeightingEnabled: false,
@@ -294,6 +295,12 @@ export default function NewCourseForm() {
             onChange={(e) => setNewCourse((p) => ({ ...p, projectsAccepted: e.target.checked }))}
           >
             Projekte werden durchgeführt
+          </PhixCheckboxOption>
+          <PhixCheckboxOption
+            checked={newCourse.referateAccepted === true}
+            onChange={(e) => setNewCourse((p) => ({ ...p, referateAccepted: e.target.checked }))}
+          >
+            Referate werden gehalten
           </PhixCheckboxOption>
           <PhixCheckboxOption
             checked={newCourse.klassenlehrerEnabled === true}

@@ -31,6 +31,7 @@ export function buildSummaryOverviewExportData({
   tests,
   projects = {},
   gfsEntries,
+  referatEntries = [],
   config,
 }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
@@ -73,6 +74,7 @@ export function buildSummaryOverviewExportData({
         projects,
         usesTestsAsHalfExam(config),
         usesTestsAsOral(config),
+        referatEntries,
       );
       const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
       const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';

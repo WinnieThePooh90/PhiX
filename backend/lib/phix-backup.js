@@ -41,6 +41,7 @@ const PG_SEQUENCE_TABLES = [
   'NotesList',
   'NotesListEntry',
   'GfsEntry',
+  'ReferatEntry',
   'AlbumPhoto',
   'Exam',
   'Project',
@@ -61,6 +62,7 @@ const EMPTY_DATA = {
   orals: [],
   tests: [],
   gfsEntries: [],
+  referatEntries: [],
   moneyLists: [],
   moneyListEntries: [],
   attendanceLists: [],
@@ -115,6 +117,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
       orals: [],
       tests: [],
       gfsEntries: [],
+      referatEntries: [],
       moneyLists: [],
       moneyListEntries: [],
       attendanceLists: [],
@@ -134,6 +137,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     orals,
     tests,
     gfsEntries,
+    referatEntries,
     moneyLists,
     moneyListEntries,
     attendanceLists,
@@ -150,6 +154,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     prisma.oral.findMany({ where: inCourses }),
     prisma.test.findMany({ where: inCourses }),
     prisma.gfsEntry.findMany({ where: inCourses }),
+    prisma.referatEntry.findMany({ where: inCourses }),
     prisma.moneyList.findMany({ where: inCourses }),
     prisma.moneyListEntry.findMany({ where: { moneyList: { courseId: { in: courseIds } } } }),
     prisma.attendanceList.findMany({ where: inCourses }),
@@ -171,6 +176,7 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     orals,
     tests,
     gfsEntries,
+    referatEntries,
     moneyLists,
     moneyListEntries,
     attendanceLists,
@@ -224,6 +230,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     orals,
     tests,
     gfsEntries,
+    referatEntries,
     moneyLists,
     moneyListEntries,
     attendanceLists,
@@ -246,6 +253,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.oral.findMany(),
     prisma.test.findMany(),
     prisma.gfsEntry.findMany(),
+    prisma.referatEntry.findMany(),
     prisma.moneyList.findMany(),
     prisma.moneyListEntry.findMany(),
     prisma.attendanceList.findMany(),
@@ -272,8 +280,9 @@ async function exportPhixDatabase(prisma, meta = {}) {
       projects,
       orals,
       tests,
-      gfsEntries,
-      moneyLists,
+    gfsEntries,
+    referatEntries,
+    moneyLists,
       moneyListEntries,
       attendanceLists,
       attendanceListEntries,
@@ -374,6 +383,7 @@ async function clearAllPhixData(tx) {
   await tx.moneyListEntry.deleteMany();
   await tx.moneyList.deleteMany();
   await tx.gfsEntry.deleteMany();
+  await tx.referatEntry.deleteMany();
   await tx.albumPhoto.deleteMany();
   await tx.test.deleteMany();
   await tx.project.deleteMany();
@@ -409,6 +419,7 @@ async function clearUserPhixData(tx, ownerUsername) {
   await tx.moneyListEntry.deleteMany({ where: { moneyList: { courseId: { in: courseIds } } } });
   await tx.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+  await tx.referatEntry.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.albumPhoto.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.test.deleteMany({ where: { courseId: { in: courseIds } } });
   await tx.project.deleteMany({ where: { courseId: { in: courseIds } } });
@@ -477,6 +488,7 @@ function countDataSummary(d) {
     orals: d.orals?.length ?? 0,
     tests: d.tests?.length ?? 0,
     gfsEntries: d.gfsEntries?.length ?? 0,
+    referatEntries: d.referatEntries?.length ?? 0,
     moneyLists: d.moneyLists?.length ?? 0,
     attendanceLists: d.attendanceLists?.length ?? 0,
     collectionLists: d.collectionLists?.length ?? 0,
@@ -507,6 +519,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'Oral', d.orals);
       await insertMany(tx, 'Test', d.tests);
       await insertMany(tx, 'GfsEntry', d.gfsEntries);
+      await insertMany(tx, 'ReferatEntry', d.referatEntries ?? []);
       await insertMany(tx, 'MoneyList', d.moneyLists);
       await insertMany(tx, 'MoneyListEntry', d.moneyListEntries);
       await insertMany(tx, 'AttendanceList', d.attendanceLists);
@@ -569,6 +582,7 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'Oral', d.orals, insertOpts);
       await insertMany(tx, 'Test', d.tests, insertOpts);
       await insertMany(tx, 'GfsEntry', d.gfsEntries, insertOpts);
+      await insertMany(tx, 'ReferatEntry', d.referatEntries ?? [], insertOpts);
       await insertMany(tx, 'MoneyList', d.moneyLists, insertOpts);
       await insertMany(tx, 'MoneyListEntry', d.moneyListEntries, insertOpts);
       await insertMany(tx, 'AttendanceList', d.attendanceLists, insertOpts);
