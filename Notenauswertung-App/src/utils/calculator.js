@@ -1336,6 +1336,8 @@ function calculateStudentGradesInNotenpunkte(
     finalGrade = Math.min(15, Math.max(0, percentNpAcc));
   }
 
+  const gfsAvg = heldNpCount > 0 ? heldNpSum / heldNpCount : null;
+
   return {
     examAvg,
     oralAvg,
@@ -1481,6 +1483,7 @@ export const calculateStudentGrades = (
   const heldSum = gfsStats.gfsSum + referatStats.gfsSum;
   const heldCount = gfsStats.gfsCount + referatStats.gfsCount;
   const heldAvg = heldCount > 0 ? heldSum / heldCount : null;
+  const gfsAvg = heldCount > 0 ? heldAvg : null;
 
   /** Schriftlich: Klausur-Noten + GFS/Referate; jede zählende Note wie eine Klausur im Durchschnitt. */
   let examAvg = null;

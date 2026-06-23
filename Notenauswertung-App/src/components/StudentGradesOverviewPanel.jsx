@@ -88,7 +88,7 @@ export default function StudentGradesOverviewPanel({
   tests,
   projects,
   gfsEntries,
-  referatEntries,
+  referatEntries = [],
   weighting,
   customGradingKeys,
   gradeSys,
