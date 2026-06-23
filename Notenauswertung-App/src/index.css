@@ -2531,9 +2531,13 @@ tfoot td {
   padding: 0.2rem 0.35rem;
 }
 
-.weighting-ratio-grid input[readOnly] {
-  opacity: 0.85;
-  cursor: default;
+.weighting-ratio-grid input.weighting-ratio-grid__tests-computed,
+.weighting-ratio-grid input.weighting-ratio-grid__tests-computed:disabled {
+  opacity: 0.7;
+  background: hsl(var(--muted) / 0.55);
+  color: hsl(var(--muted-foreground));
+  cursor: not-allowed;
+  border-color: hsl(var(--border));
 }
 
 .sidebar-layout {

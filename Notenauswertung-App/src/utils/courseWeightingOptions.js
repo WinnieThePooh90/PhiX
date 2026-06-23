@@ -93,5 +93,54 @@ export function describeTestsPerKlausurWeighting(config, exams, tests) {
   const k = countActiveCourseExams(exams);
   const n = countActiveCourseTests(tests);
   const x = getTestsPerKlausurX(config);
-  return `${x} Tests = 1 Klausur · ${n} Test${n === 1 ? '' : 's'}, ${k} Klausur${k === 1 ? '' : 'en'} — Tests-Gewicht automatisch`;
+  return `${x} Tests = 1 Klausur. Momentan angelegt: ${n} Test${n === 1 ? '' : 's'} und ${k} Klausur${k === 1 ? '' : 'en'}`;
+}
+
+/** Aktuelle erweiterte Gewichtungsoptionen für späteres Wiederherstellen sichern. */
+export function snapshotAdvancedWeightingOptions(config) {
+  return {
+    testsAsHalfExam: config?.testsAsHalfExam === true,
+    testsAsOral: config?.testsAsOral === true,
+    testsPerKlausurEnabled: config?.testsPerKlausurEnabled === true,
+    testsPerKlausur: getTestsPerKlausurX(config),
+  };
+}
+
+/** Gesicherte Optionen nach erneutem Einschalten der erweiterten Gewichtung anwenden. */
+export function restoreAdvancedWeightingFromStash(stash) {
+  if (!stash || typeof stash !== 'object') {
+    return {
+      testsAsHalfExam: false,
+      testsAsOral: false,
+      testsPerKlausurEnabled: false,
+      testsPerKlausur: 10,
+    };
+  }
+  const x = Number(stash.testsPerKlausur);
+  return {
+    testsAsHalfExam: stash.testsAsHalfExam === true,
+    testsAsOral: stash.testsAsOral === true,
+    testsPerKlausurEnabled: stash.testsPerKlausurEnabled === true,
+    testsPerKlausur: Number.isFinite(x) && x >= 1 ? Math.min(99, Math.round(x)) : 10,
+  };
+}
+
+/**
+ * Schalter „Erweiterte Gewichtungseinstellungen“: beim Aus → Optionen löschen und sichern;
+ * beim Ein → zuvor gesicherte Optionen wiederherstellen.
+ */
+export function patchAdvancedWeightingToggle(enabled, config) {
+  if (enabled) {
+    return {
+      advancedWeightingEnabled: true,
+      ...restoreAdvancedWeightingFromStash(config?.advancedWeightingStash),
+    };
+  }
+  return {
+    advancedWeightingEnabled: false,
+    advancedWeightingStash: snapshotAdvancedWeightingOptions(config),
+    testsAsHalfExam: false,
+    testsAsOral: false,
+    testsPerKlausurEnabled: false,
+  };
 }

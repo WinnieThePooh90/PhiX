@@ -75,6 +75,7 @@ model Course {
   testsAsOral Boolean @default(false)
   testsPerKlausurEnabled Boolean @default(false)
   testsPerKlausur Int @default(10)
+  advancedWeightingStash Json?
   gfsAccepted Boolean @default(true)
   projectsAccepted Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */

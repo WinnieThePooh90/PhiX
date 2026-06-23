@@ -81,6 +81,8 @@ model Course {
   /** x Tests = 1 Klausur: Tests-Gewicht automatisch aus Anzahl Klausuren/Tests. */
   testsPerKlausurEnabled Boolean @default(false)
   testsPerKlausur Int @default(10)
+  /** Zwischengespeicherte erweiterte Gewichtung beim Ausschalten des Schalters. */
+  advancedWeightingStash Json?
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
   /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */

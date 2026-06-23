@@ -6,7 +6,7 @@ import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import WeightingPercentHint from './WeightingPercentHint';
 import AdvancedWeightingSettings from './AdvancedWeightingSettings';
-import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
@@ -35,6 +35,7 @@ export default function NewCourseForm() {
     testsAsOral: false,
     testsPerKlausurEnabled: false,
     testsPerKlausur: 10,
+    advancedWeightingStash: null,
     kursstufe: false,
   });
 
@@ -43,6 +44,7 @@ export default function NewCourseForm() {
     [newCourse],
   );
   const testsWeightComputed = isTestsWeightComputed(newCourse);
+  const testsPerKlausurHint = describeTestsPerKlausurWeighting(newCourse, {}, {});
 
   const handleKursstufeChange = (checked) => {
     setNewCourse((prev) => ({
@@ -188,7 +190,7 @@ export default function NewCourseForm() {
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" readOnly={testsWeightComputed} disabled={testsWeightComputed} />
+            <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
           </div>
         ) : (
           <div
@@ -208,10 +210,16 @@ export default function NewCourseForm() {
         <WeightingPercentHint
           weighting={effectiveWeighting}
           showTestsColumn={showTestsInWeightingRatio(newCourse)}
+          testsWeightAuto={testsWeightComputed}
         />
+        {testsPerKlausurHint ? (
+          <p className="settings-advanced-weighting-hint text-muted" role="note">
+            {testsPerKlausurHint}
+          </p>
+        ) : null}
         <AdvancedWeightingSettings
           advancedEnabled={newCourse.advancedWeightingEnabled === true}
-          onAdvancedEnabledChange={(checked) => setNewCourse((p) => ({ ...p, advancedWeightingEnabled: checked }))}
+          onAdvancedEnabledChange={(checked) => setNewCourse((p) => ({ ...p, ...patchAdvancedWeightingToggle(checked, p) }))}
           testsAsHalfExam={newCourse.testsAsHalfExam === true}
           onTestsAsHalfExamChange={(checked) => setNewCourse((p) => ({
             ...p,

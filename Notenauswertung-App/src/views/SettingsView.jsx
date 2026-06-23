@@ -8,7 +8,7 @@ import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
 import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
-import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -465,7 +465,7 @@ export default function SettingsView() {
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" readOnly={testsWeightComputed} disabled={testsWeightComputed} title={testsWeightComputed ? testsPerKlausurHint ?? 'Automatisch berechnet' : undefined} />
+                  <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
                 </div>
               ) : (
                 <div
@@ -485,6 +485,7 @@ export default function SettingsView() {
               <WeightingPercentHint
                 weighting={effectiveWeighting}
                 showTestsColumn={showTestsInWeightingRatio(config)}
+                testsWeightAuto={testsWeightComputed}
               />
               {testsPerKlausurHint ? (
                 <p className="settings-advanced-weighting-hint text-muted" role="note">
@@ -493,7 +494,7 @@ export default function SettingsView() {
               ) : null}
               <AdvancedWeightingSettings
                 advancedEnabled={config.advancedWeightingEnabled === true}
-                onAdvancedEnabledChange={(checked) => setConfig((c) => ({ ...c, advancedWeightingEnabled: checked }))}
+                onAdvancedEnabledChange={(checked) => setConfig((c) => ({ ...c, ...patchAdvancedWeightingToggle(checked, c) }))}
                 testsAsHalfExam={config.testsAsHalfExam === true}
                 onTestsAsHalfExamChange={(checked) => setConfig((c) => ({
                   ...c,
