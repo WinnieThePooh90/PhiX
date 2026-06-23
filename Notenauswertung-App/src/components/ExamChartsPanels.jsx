@@ -34,7 +34,7 @@ function pieSegmentLabelPos(startPercent, sweepPercent) {
 
 const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
 
-/** Farbe für NP-Säule (0–4 rot, 5–7 orange, 8–15 grün) */
+/** Farbe für NP-Säule (0–4 rot, 5–7 gelb wie klassisch 3,25–4, 8–15 grün) */
 function barColorForNpBucket(np) {
   return barColorForNotenpunkte(np);
 }

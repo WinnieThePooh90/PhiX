@@ -1312,8 +1312,8 @@ export default function OralView({ studentIdFilterSet = null }) {
                         </li>
                       </ol>
                       <p style={{ margin: 0 }}>
-                        Die Hintergrundfarben der Notenfelder folgen der Notenpunkte-Skala (grün ab 8, orange 5–7,
-                        rot 0–4).
+                        Die Hintergrundfarben der Notenfelder folgen der Notenpunkte-Skala (grün ab 8, gelb 5–7 wie
+                        klassisch 3,25–4, rot 0–4).
                       </p>
                     </>
                   ) : (

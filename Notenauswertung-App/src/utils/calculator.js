@@ -2356,12 +2356,12 @@ export const isGradeWorseThan4 = (grade, gradeSystem = 'classic', opts) => {
   return g > 4;
 };
 
-/** Notenpunkte-Farbstufe: 0–4 rot, 5–7 orange, 8–15 grün. */
+/** Notenpunkte-Farbstufe: 0–4 rot, 5–7 gelb (wie klassisch 3,25–4), 8–15 grün. */
 export function notenpunkteColorTier(np) {
   const n = Math.round(Number(np));
   if (!Number.isFinite(n) || n < 0 || n > 15) return null;
   if (n >= 8) return 'green';
-  if (n >= 5) return 'orange';
+  if (n >= 5) return 'yellow';
   return 'red';
 }
 
@@ -2371,7 +2371,7 @@ function notenpunkteToCellBackground(np) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   if (isDark) return undefined;
   if (tier === 'green') return '#dcfce7';
-  if (tier === 'orange') return '#ffedd5';
+  if (tier === 'yellow') return '#fef9c3';
   return '#fee2e2';
 }
 
@@ -2381,16 +2381,16 @@ function notenpunkteToTextColor(np) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   if (!isDark) return undefined;
   if (tier === 'green') return '#4ade80';
-  if (tier === 'orange') return '#fb923c';
+  if (tier === 'yellow') return '#facc15';
   return '#f87171';
 }
 
-/** Balkenfarbe für NP-Verteilungsdiagramme (0–4 rot, 5–7 orange, 8–15 grün). */
+/** Balkenfarbe für NP-Verteilungsdiagramme (0–4 rot, 5–7 gelb, 8–15 grün). */
 export function barColorForNotenpunkte(np) {
   const tier = notenpunkteColorTier(np);
   if (!tier) return 'hsl(var(--muted))';
   if (tier === 'green') return 'hsl(var(--success-hsl))';
-  if (tier === 'orange') return '#f59e0b';
+  if (tier === 'yellow') return '#facc15';
   return 'var(--danger)';
 }
 
