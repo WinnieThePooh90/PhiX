@@ -8,6 +8,7 @@ import {
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
+import { useFocusStudentTableRow } from '../utils/useFocusStudentTableRow';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
 function gfsNotePointsDisplay(note) {
@@ -29,7 +30,7 @@ function computeGfsPickerAnchor(anchorEl) {
   return rect.left + rect.width / 2 > window.innerWidth / 2 ? 'right' : 'left';
 }
 
-export default function GfsView({ studentIdFilterSet = null }) {
+export default function GfsView({ studentIdFilterSet = null, focusStudentId = null, onFocusConsumed }) {
   const { students, gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry, config } = useData();
   const { showConfirm } = useDialog();
   const isKursstufe = config?.kursstufe === true;
@@ -63,6 +64,12 @@ export default function GfsView({ studentIdFilterSet = null }) {
     if (studentIdFilterSet == null) return gfsEntries;
     return gfsEntries.filter((e) => studentIdFilterSet.has(e.studentId));
   }, [gfsEntries, studentIdFilterSet]);
+
+  const setRowRef = useFocusStudentTableRow(
+    focusStudentId,
+    displayEntries.map((e) => e.studentId).join(','),
+    onFocusConsumed,
+  );
 
   useEffect(() => {
     if (!pickerOpen) return undefined;
@@ -234,7 +241,7 @@ export default function GfsView({ studentIdFilterSet = null }) {
                 const noteColorResolved = resolveStoredGradeForCellColor(row.note, gradeSys);
                 const noteCellColors = gradeCellColorsFromResolved(noteColorResolved, gradeSys);
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} ref={(el) => setRowRef(row.studentId, el)}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
                       {idx + 1}
                     </td>

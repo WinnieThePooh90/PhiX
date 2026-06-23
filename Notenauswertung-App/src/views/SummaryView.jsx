@@ -49,6 +49,52 @@ function SummaryNotesBookmark() {
   );
 }
 
+/** Rotes Fähnchen — GFS/Referat angelegt, aber noch nicht gehalten */
+function PendingLeistungBookmark() {
+  return (
+    <svg
+      width="9"
+      height="12"
+      viewBox="0 0 10 14"
+      aria-hidden
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 1px 1px rgba(185, 28, 28, 0.35))',
+      }}
+    >
+      <path
+        d="M1.25 1C1.25 0.72 1.47 0.5 1.75 0.5H8.25C8.53 0.5 8.75 0.72 8.75 1V9.35L5 12.15L1.25 9.35V1Z"
+        fill="#fee2e2"
+        stroke="#dc2626"
+        strokeWidth="0.65"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function studentHasPendingLeistung(entries, studentId) {
+  if (!Array.isArray(entries) || !studentId) return false;
+  return entries.some((e) => e.studentId === studentId && e.gehalten !== true);
+}
+
+function SummaryLeistungFlag({ label, title, onClick }) {
+  return (
+    <button
+      type="button"
+      className="summary-leistung-flag"
+      aria-label={label}
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+    >
+      <PendingLeistungBookmark />
+    </button>
+  );
+}
+
 /** Anzeige im Eingabefeld: gespeicherten Wert mit Komma */
 function summaryEndNoteInputDisplay(raw) {
   if (raw === undefined || raw === null || raw === '') return '';
@@ -656,7 +702,12 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
   );
 }
 
-export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis }) {
+export default function SummaryView({
+  studentIdFilterSet = null,
+  onOpenAnalysis,
+  onOpenGfs,
+  onOpenReferate,
+}) {
   const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config, setConfig, updateStudentConfig } = useData();
 
   const displayStudents = useMemo(() => {
@@ -684,6 +735,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
     Number.isFinite(Number(weighting?.written)) &&
     Number.isFinite(Number(weighting?.oral)) &&
     (!showTestsInWeighting || Number.isFinite(Number(weighting?.tests)));
+  const showGfs = config?.gfsAccepted !== false;
+  const showReferate = config?.referateAccepted === true;
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const gfmt = (g) => formatGrade(g, gradeSys);
   const gfmtCalc = (g, valuesAreNotenpunkte) =>
@@ -844,6 +897,8 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
               const isExpanded = expandedStudentId === s.id;
+              const pendingGfs = showGfs && studentHasPendingLeistung(gfsEntries, s.id);
+              const pendingReferat = showReferate && studentHasPendingLeistung(referatEntries, s.id);
               
               return (
                 <React.Fragment key={s.id}>
@@ -853,6 +908,36 @@ export default function SummaryView({ studentIdFilterSet = null, onOpenAnalysis 
                     title="Klicken für Details"
                   >
                     <td style={{ position: 'relative', verticalAlign: 'middle' }}>
+                      {(pendingGfs || pendingReferat) && (
+                        <span
+                          className="summary-leistung-flags"
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            left: 2,
+                            zIndex: 5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                            lineHeight: 0,
+                          }}
+                        >
+                          {pendingGfs && (
+                            <SummaryLeistungFlag
+                              label="GFS noch nicht gehalten"
+                              title="GFS noch nicht gehalten — zu GFS wechseln"
+                              onClick={() => onOpenGfs?.(s.id)}
+                            />
+                          )}
+                          {pendingReferat && (
+                            <SummaryLeistungFlag
+                              label="Referat noch nicht gehalten"
+                              title="Referat noch nicht gehalten — zu Referate wechseln"
+                              onClick={() => onOpenReferate?.(s.id)}
+                            />
+                          )}
+                        </span>
+                      )}
                       {hasSummaryNotes(s) && (
                         <span
                           role="img"

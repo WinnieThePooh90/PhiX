@@ -4379,6 +4379,27 @@ button.school-roster-control-btn.danger {
   cursor: default;
 }
 
+/* Übersicht: rotes Fähnchen — GFS/Referat noch nicht gehalten */
+.summary-leistung-flag {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.summary-leistung-flag:hover svg path {
+  fill: #fecaca;
+}
+
+.summary-leistung-flag:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .exam-table-scroll input.exam-score-input--out-of-range {
   background: hsl(var(--danger-hsl) / 0.12) !important;
   border: 1px solid hsl(var(--danger-hsl) / 0.5) !important;

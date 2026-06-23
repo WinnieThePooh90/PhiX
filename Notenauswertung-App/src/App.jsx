@@ -169,6 +169,7 @@ function App() {
   const [headerSearch, setHeaderSearch] = useState('');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPos, setSettingsMenuPos] = useState(null);
+  const [leistungFocusStudentId, setLeistungFocusStudentId] = useState(null);
   const settingsMenuRef = useRef(null);
   const settingsGearRef = useRef(null);
   const settingsDropdownRef = useRef(null);
@@ -303,6 +304,13 @@ function App() {
     setMobileCoursesOpen(false);
   };
 
+  const openLeistungTab = (tab, studentId) => {
+    if (studentId) setLeistungFocusStudentId(studentId);
+    openMainTab(tab);
+  };
+
+  const clearLeistungFocus = () => setLeistungFocusStudentId(null);
+
   const sidebarShowsNav = !sidebarCollapsed || isMobile;
 
   const toggleSidebar = () => {
@@ -381,14 +389,28 @@ function App() {
       case 'projects':
         return <ProjectsView studentIdFilterSet={studentIdFilterSet} />;
       case 'gfs':
-        return <GfsView studentIdFilterSet={studentIdFilterSet} />;
+        return (
+          <GfsView
+            studentIdFilterSet={studentIdFilterSet}
+            focusStudentId={leistungFocusStudentId}
+            onFocusConsumed={clearLeistungFocus}
+          />
+        );
       case 'referate':
-        return <ReferateView studentIdFilterSet={studentIdFilterSet} />;
+        return (
+          <ReferateView
+            studentIdFilterSet={studentIdFilterSet}
+            focusStudentId={leistungFocusStudentId}
+            onFocusConsumed={clearLeistungFocus}
+          />
+        );
       case 'summary':
         return (
           <SummaryView
             studentIdFilterSet={studentIdFilterSet}
             onOpenAnalysis={() => openMainTab('analysis')}
+            onOpenGfs={(studentId) => openLeistungTab('gfs', studentId)}
+            onOpenReferate={(studentId) => openLeistungTab('referate', studentId)}
           />
         );
       case 'keys':
