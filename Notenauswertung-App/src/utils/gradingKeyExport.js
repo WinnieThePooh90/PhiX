@@ -187,6 +187,80 @@ export function resolveExamGradingKeyForExport(exam, config) {
   };
 }
 
+function getCustomKeyReferenceMaxPoints(customKey) {
+  const ref = Number(customKey?.referenceMaxPoints);
+  if (Number.isFinite(ref) && ref > 0) return ref;
+  if (isAbiBaWue2026KeyFamilyId(customKey?.id)) return 120;
+  if (isAbiBaWue2026Mathematik100BeFamilyId(customKey?.id)) return 100;
+  return 50;
+}
+
+/**
+ * Ein im Kurs angelegter (eigener/Vorlagen-)Notenschlüssel für den Export.
+ * @returns {{ id: string, name: string, maxPoints: number, gradingKey: { title: string, desc: string, aoa: (string|number)[][], maxPoints: number } } | null}
+ */
+export function resolveCustomGradingKeyForExport(customKey) {
+  if (!customKey?.id) return null;
+  if (!customKey.bands?.length && !isVorlage1KeyFamilyId(customKey.id)) return null;
+
+  const maxPoints = getCustomKeyReferenceMaxPoints(customKey);
+  const title = customKey.name || 'Notenschlüssel';
+
+  const desc = isVorlage1KeyFamilyId(customKey.id)
+    ? getPlateauKeyShortDesc('1', maxPoints)
+    : 'Benutzerdefinierter Schlüssel (Intervalle in % der Klausur-Maximalpunkte)';
+
+  const customBands = isVorlage1KeyFamilyId(customKey.id)
+    ? buildVorlage1Bands(maxPoints)
+    : customKey.bands;
+
+  const pktIntegerDisplay =
+    !!customKey.pktIntegerDisplay ||
+    isAbiBaWue2026KeyFamilyId(customKey.id) ||
+    isAbiBaWue2026Mathematik100BeFamilyId(customKey.id);
+
+  const rows = buildGradingKeyTableRows({
+    type: '1',
+    maxPoints,
+    customBands,
+    pktIntegerDisplay,
+  });
+
+  return {
+    id: customKey.id,
+    name: title,
+    maxPoints,
+    gradingKey: {
+      title,
+      desc,
+      maxPoints,
+      aoa: buildGradingKeyExportAoa(rows),
+    },
+  };
+}
+
+/** Alle im Kurs angelegten Notenschlüssel (customGradingKeys). */
+export function buildCourseGradingKeysExportList(config) {
+  const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  return customKeys
+    .map((key) => resolveCustomGradingKeyForExport(key))
+    .filter(Boolean);
+}
+
+/**
+ * Tabellenblatt-Inhalt für einen Notenschlüssel (Titel, Beschreibung, Tabelle).
+ * @returns {(string|number)[][]}
+ */
+export function buildGradingKeySheetAoa(entry) {
+  const { gradingKey, maxPoints } = entry;
+  const aoa = [[gradingKey.title || 'Notenschlüssel']];
+  if (gradingKey.desc) aoa.push([gradingKey.desc]);
+  if (maxPoints > 0) aoa.push([`Maximalpunkte: ${maxPoints}`]);
+  aoa.push([]);
+  aoa.push(...(gradingKey.aoa ?? []));
+  return aoa;
+}
+
 /**
  * @param {(string|number)[][]} mainAoa
  * @param {{ title?: string, desc?: string, aoa?: (string|number)[][] }} gradingKey

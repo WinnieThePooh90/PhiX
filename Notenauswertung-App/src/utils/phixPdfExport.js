@@ -217,3 +217,87 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
 
   doc.save(ensurePdfFilename(filename));
 }
+
+/**
+ * Notenschlüssel als eigene PDF-Seite (Titel, Beschreibung, Tabelle).
+ * @param {{ title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] }} gradingKey
+ * @param {string} filename
+ */
+export function downloadGradingKeyPdf(gradingKey, filename) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  renderGradingKeyFullPage(doc, gradingKey);
+  doc.save(ensurePdfFilename(filename));
+}
+
+/**
+ * @param {{ gradingKey: { title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] } }[]} entries
+ * @param {string} filename
+ */
+export function downloadGradingKeysMultiPagePdf(entries, filename) {
+  const list = entries ?? [];
+  if (!list.length) {
+    const doc = new jsPDF();
+    doc.text('Keine Notenschlüssel', 14, 20);
+    doc.save(ensurePdfFilename(filename));
+    return;
+  }
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  list.forEach((entry, index) => {
+    if (index > 0) doc.addPage('a4', 'portrait');
+    renderGradingKeyFullPage(doc, entry.gradingKey);
+  });
+  doc.save(ensurePdfFilename(filename));
+}
+
+/**
+ * @param {import('jspdf').jsPDF} doc
+ * @param {{ title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] }} gradingKey
+ */
+function renderGradingKeyFullPage(doc, gradingKey) {
+  if (!gradingKey?.aoa?.length) return;
+
+  const pw = pageWidth(doc);
+  const contentWidth = pw - PAGE_MARGIN * 2;
+  let y = 18;
+
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  const titleLines = doc.splitTextToSize(gradingKey.title || 'Notenschlüssel', contentWidth);
+  doc.text(titleLines, PAGE_MARGIN, y);
+  y += titleLines.length * 6 + 2;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  if (gradingKey.desc) {
+    const descLines = doc.splitTextToSize(String(gradingKey.desc), contentWidth);
+    doc.text(descLines, PAGE_MARGIN, y);
+    y += descLines.length * 4.5 + 2;
+  }
+
+  const maxPts = Number(gradingKey.maxPoints);
+  if (Number.isFinite(maxPts) && maxPts > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Maximalpunkte: ${maxPts}`, PAGE_MARGIN, y);
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+  }
+
+  autoTable(doc, {
+    head: [gradingKey.aoa[0].map(cellStr)],
+    body: gradingKey.aoa.slice(1).map((row) => row.map(cellStr)),
+    startY: y + 2,
+    styles: { fontSize: 9, cellPadding: 1.4, halign: 'center', overflow: 'linebreak' },
+    headStyles: {
+      fillColor: [55, 65, 81],
+      textColor: 255,
+      fontStyle: 'bold',
+      halign: 'center',
+      fontSize: 9,
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+    tableWidth: Math.min(90, contentWidth),
+  });
+}

@@ -306,7 +306,7 @@ p {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.75rem;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
 }
 
@@ -314,6 +314,12 @@ p {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
+  padding: 0 0.45rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
 }
 
 .course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox {
@@ -324,12 +330,11 @@ p {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  height: var(--course-meta-control-height);
+  align-self: stretch;
+  height: auto;
   min-height: var(--course-meta-control-height);
-  max-height: var(--course-meta-control-height);
   box-sizing: border-box;
-  padding-top: 0;
-  padding-bottom: 0;
+  padding: 0 0.85rem;
   overflow: hidden;
 }
 

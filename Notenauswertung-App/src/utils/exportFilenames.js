@@ -45,3 +45,11 @@ export function oralExtendedExportFilename(course, oralId, oralName, ext = 'xlsx
 export function courseFullExportFilename(course, ext = 'xlsx') {
   return buildExportFilename(['Klasse', course?.subject, course?.className, course?.year], ext);
 }
+
+export function gradingKeyExportFilename(course, keyName, ext = 'xlsx') {
+  return buildExportFilename(['Notenschluessel', keyName, course?.subject, course?.className, course?.year], ext);
+}
+
+export function gradingKeysAllExportFilename(course, ext = 'xlsx') {
+  return buildExportFilename(['Notenschluessel-alle', course?.subject, course?.className, course?.year], ext);
+}
