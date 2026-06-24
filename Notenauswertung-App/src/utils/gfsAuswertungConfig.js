@@ -122,20 +122,24 @@ export function getGfsCriterionActiveLevels(criterion) {
 }
 
 /**
- * Tabellenzeile je Kriterium: Punkte ergeben sich aus der Spaltenüberschrift (4 … 0).
- * Fehlende Stufen → leere Zelle in der jeweiligen Spalte (links bei hohen Punkten).
+ * Tabellenzeile je Kriterium: befüllte Zellen rechtsbündig, leere Platzhalter immer links.
+ * Gewertete Punkte = Spaltenüberschrift (4 … 0); Beschreibungstexte der Stufen von hoch nach tief.
  */
 export function buildGfsCriterionRowCells(criterion) {
-  return GFS_AUSWERTUNG_POINT_LEVELS.map((gridPoint) => {
-    const description = (criterion.descriptions[gridPoint] ?? '').trim();
-    if (!description) {
+  const activeLevels = getGfsCriterionActiveLevels(criterion);
+  const emptyLeft = GFS_AUSWERTUNG_POINT_LEVELS.length - activeLevels.length;
+
+  return GFS_AUSWERTUNG_POINT_LEVELS.map((gridPoint, colIndex) => {
+    const slot = colIndex - emptyLeft;
+    if (slot < 0) {
       return { type: 'empty', gridPoint };
     }
+    const rubricPoint = activeLevels[slot];
     return {
       type: 'active',
       gridPoint,
       pointValue: gridPoint,
-      description,
+      description: (criterion.descriptions[rubricPoint] ?? '').trim(),
     };
   });
 }
