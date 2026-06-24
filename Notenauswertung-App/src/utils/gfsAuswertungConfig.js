@@ -212,11 +212,10 @@ export function sumGfsAuswertungScores(scores) {
 
 export function suggestGradeFromGfsAuswertungPoints(totalPoints) {
   const p = Math.round(Number(totalPoints));
-  if (!Number.isFinite(p)) return null;
+  if (!Number.isFinite(p) || p < 0) return '6';
   for (const row of GFS_AUSWERTUNG_POINTS_TO_GRADE) {
     if (p >= row.points) return row.grade;
   }
-  if (p < 2) return null;
   return '6';
 }
 

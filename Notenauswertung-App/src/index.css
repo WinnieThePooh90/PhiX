@@ -4227,9 +4227,18 @@ button.school-roster-control-btn.danger {
 
 .gfs-auswertung-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.gfs-auswertung-col-criterion {
+  width: 11.5rem;
+}
+
+.gfs-auswertung-col-points {
+  width: 5.5rem;
 }
 
 .gfs-auswertung-table th,
@@ -4238,23 +4247,42 @@ button.school-roster-control-btn.danger {
   vertical-align: top;
 }
 
+.gfs-auswertung-table tbody tr {
+  height: 5.75rem;
+}
+
 .gfs-auswertung-th-criterion,
 .gfs-auswertung-criterion-label {
   text-align: left;
   padding: 0.45rem 0.55rem;
   font-weight: 600;
   background: hsl(var(--muted) / 0.35);
-  min-width: 9.5rem;
+  width: 11.5rem;
+  min-width: 11.5rem;
+  max-width: 11.5rem;
+  height: 5.75rem;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .gfs-auswertung-th-points {
-  width: 4.5rem;
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
   padding: 0.35rem;
   background: hsl(var(--muted) / 0.2);
+  box-sizing: border-box;
 }
 
 .gfs-auswertung-td {
   padding: 0;
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
+  height: 5.75rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .gfs-auswertung-td--empty {
@@ -4264,7 +4292,8 @@ button.school-roster-control-btn.danger {
 .gfs-auswertung-cell {
   display: block;
   width: 100%;
-  min-height: 2.75rem;
+  height: 100%;
+  min-height: 5.75rem;
   padding: 0.4rem 0.35rem;
   border: none;
   background: transparent;
@@ -4272,8 +4301,12 @@ button.school-roster-control-btn.danger {
   text-align: left;
   cursor: pointer;
   font: inherit;
+  font-weight: 600;
+  font-synthesis: none;
   line-height: 1.3;
   box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .gfs-auswertung-cell:hover {
@@ -4282,8 +4315,8 @@ button.school-roster-control-btn.danger {
 
 .gfs-auswertung-cell--selected {
   background: hsl(var(--brand-hsl) / 0.14);
-  box-shadow: inset 0 0 0 2px hsl(var(--brand-hsl));
-  font-weight: 600;
+  outline: 2px solid hsl(var(--brand-hsl));
+  outline-offset: -2px;
 }
 
 .gfs-auswertung-footer {
@@ -4295,11 +4328,19 @@ button.school-roster-control-btn.danger {
 .gfs-auswertung-sum-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 0.75rem 1.5rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: hsl(var(--brand-hsl) / 0.05);
+}
+
+.gfs-auswertung-sum-grade {
+  margin-left: auto;
+  text-align: right;
+  flex: 0 0 auto;
 }
 
 .gfs-auswertung-grade-table summary {

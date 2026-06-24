@@ -42,7 +42,7 @@ export default function GfsAuswertungDialog({
 
   const filled = countGfsAuswertungFilled(scores);
   const total = sumGfsAuswertungScores(scores);
-  const suggestedGrade = filled > 0 ? suggestGradeFromGfsAuswertungPoints(total) : null;
+  const suggestedGrade = suggestGradeFromGfsAuswertungPoints(total);
 
   const persist = (nextScores, nextBemerkungen) => {
     onSave({
@@ -81,6 +81,12 @@ export default function GfsAuswertungDialog({
         <div className="oral-formula-modal-body gfs-auswertung-body">
           <div className="gfs-auswertung-table-wrap">
             <table className="gfs-auswertung-table">
+              <colgroup>
+                <col className="gfs-auswertung-col-criterion" />
+                {GFS_AUSWERTUNG_POINT_LEVELS.map((p) => (
+                  <col key={p} className="gfs-auswertung-col-points" />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
                   <th className="gfs-auswertung-th-criterion">Kriterium</th>
@@ -132,23 +138,21 @@ export default function GfsAuswertungDialog({
 
           <div className="gfs-auswertung-footer">
             <div className="gfs-auswertung-sum-row">
-              <span>
+              <span className="gfs-auswertung-sum-total">
                 <strong>Summe:</strong>
                 {' '}
-                {filled > 0 ? `${total} Punkte` : '—'}
+                {total} Punkte
                 {filled > 0 && filled < GFS_AUSWERTUNG_CRITERIA.length ? (
                   <span className="text-muted" style={{ marginLeft: '0.5rem', fontWeight: 'normal' }}>
                     ({filled} von {GFS_AUSWERTUNG_CRITERIA.length} Kriterien)
                   </span>
                 ) : null}
               </span>
-              {suggestedGrade ? (
-                <span>
-                  <strong>Vorgeschlagene Note:</strong>
-                  {' '}
-                  {suggestedGrade}
-                </span>
-              ) : null}
+              <span className="gfs-auswertung-sum-grade">
+                <strong>Vorgeschlagene Note:</strong>
+                {' '}
+                {suggestedGrade}
+              </span>
             </div>
 
             <details className="gfs-auswertung-grade-table">
