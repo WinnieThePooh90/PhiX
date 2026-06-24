@@ -114,6 +114,36 @@ export const GFS_AUSWERTUNG_CRITERIA = [
   },
 ];
 
+/** Stufen mit Beschreibungstext (absteigend: 4 → 0). */
+export function getGfsCriterionActiveLevels(criterion) {
+  return GFS_AUSWERTUNG_POINT_LEVELS.filter(
+    (p) => (criterion.descriptions[p] ?? '').trim() !== '',
+  );
+}
+
+/**
+ * Tabellenzeile je Kriterium: befüllte Zellen rechtsbündig (0 … 4),
+ * leere Platzhalter immer links (Spalte 4 zuerst leer, wenn weniger als 5 Stufen).
+ */
+export function buildGfsCriterionRowCells(criterion) {
+  const activeLevels = getGfsCriterionActiveLevels(criterion);
+  const emptyLeft = GFS_AUSWERTUNG_POINT_LEVELS.length - activeLevels.length;
+
+  return GFS_AUSWERTUNG_POINT_LEVELS.map((gridPoint, colIndex) => {
+    const slot = colIndex - emptyLeft;
+    if (slot < 0) {
+      return { type: 'empty', gridPoint };
+    }
+    const pointValue = activeLevels[slot];
+    return {
+      type: 'active',
+      gridPoint,
+      pointValue,
+      description: criterion.descriptions[pointValue] ?? '',
+    };
+  });
+}
+
 /** Punkte → Note laut Auswertungsbogen (absteigend). */
 export const GFS_AUSWERTUNG_POINTS_TO_GRADE = [
   { points: 24, grade: '1' },

@@ -4,6 +4,7 @@ import {
   GFS_AUSWERTUNG_CRITERIA,
   GFS_AUSWERTUNG_POINT_LEVELS,
   GFS_AUSWERTUNG_POINTS_TO_GRADE,
+  buildGfsCriterionRowCells,
   parseGfsAuswertungHilfe,
   sumGfsAuswertungScores,
   countGfsAuswertungFilled,
@@ -96,20 +97,30 @@ export default function GfsAuswertungDialog({
                     <th scope="row" className="gfs-auswertung-criterion-label">
                       {criterion.label}
                     </th>
-                    {GFS_AUSWERTUNG_POINT_LEVELS.map((points) => {
-                      const desc = criterion.descriptions[points] ?? '';
-                      const selected = scores[criterion.id] === points;
+                    {buildGfsCriterionRowCells(criterion).map((cell) => {
+                      if (cell.type === 'empty') {
+                        return (
+                          <td
+                            key={`${criterion.id}-empty-${cell.gridPoint}`}
+                            className="gfs-auswertung-td gfs-auswertung-td--empty"
+                            aria-hidden="true"
+                          />
+                        );
+                      }
+                      const { pointValue, description } = cell;
+                      const selected = scores[criterion.id] === pointValue;
                       return (
-                        <td key={points} className="gfs-auswertung-td">
+                        <td key={`${criterion.id}-${pointValue}`} className="gfs-auswertung-td">
                           <button
                             type="button"
-                            className={`gfs-auswertung-cell${selected ? ' gfs-auswertung-cell--selected' : ''}${!desc ? ' gfs-auswertung-cell--no-desc' : ''}`}
-                            onClick={() => handleSelect(criterion.id, points)}
+                            className={`gfs-auswertung-cell${selected ? ' gfs-auswertung-cell--selected' : ''}`}
+                            onClick={() => handleSelect(criterion.id, pointValue)}
                             aria-pressed={selected}
-                            aria-label={`${criterion.label}: ${points} Punkte${desc ? ` — ${desc}` : ''}`}
-                            title={desc || `${points} Punkte`}
+                            aria-label={`${criterion.label}: ${pointValue} Punkte — ${description}`}
+                            title={`${pointValue} Punkte: ${description}`}
                           >
-                            {desc || '·'}
+                            <span className="gfs-auswertung-cell-points">{pointValue}</span>
+                            <span className="gfs-auswertung-cell-desc">{description}</span>
                           </button>
                         </td>
                       );

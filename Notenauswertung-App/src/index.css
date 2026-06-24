@@ -4257,8 +4257,15 @@ button.school-roster-control-btn.danger {
   padding: 0;
 }
 
+.gfs-auswertung-td--empty {
+  background: hsl(var(--muted) / 0.12);
+}
+
 .gfs-auswertung-cell {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
   width: 100%;
   min-height: 2.75rem;
   padding: 0.4rem 0.35rem;
@@ -4272,6 +4279,17 @@ button.school-roster-control-btn.danger {
   box-sizing: border-box;
 }
 
+.gfs-auswertung-cell-points {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.gfs-auswertung-cell-desc {
+  font-size: inherit;
+}
+
 .gfs-auswertung-cell:hover {
   background: hsl(var(--brand-hsl) / 0.06);
 }
@@ -4279,12 +4297,10 @@ button.school-roster-control-btn.danger {
 .gfs-auswertung-cell--selected {
   background: hsl(var(--brand-hsl) / 0.14);
   box-shadow: inset 0 0 0 2px hsl(var(--brand-hsl));
-  font-weight: 600;
 }
 
-.gfs-auswertung-cell--no-desc {
-  text-align: center;
-  color: var(--text-muted);
+.gfs-auswertung-cell--selected .gfs-auswertung-cell-points {
+  color: hsl(var(--brand-hsl));
 }
 
 .gfs-auswertung-footer {
