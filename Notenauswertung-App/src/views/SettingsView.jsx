@@ -114,17 +114,28 @@ export default function SettingsView() {
     }));
   };
 
+  const confirmGradeSystemChange = () => showConfirm(
+    'Vorsicht! Bereits eingetragene Noten können durch das Umstellen des Notensystems wegen der Umrechnung verfälscht werden. Ein einfaches Beispiel: Eine 1 kann 15 Punkte bedeuten oder aber auch 14 Punkte. Überprüfe bitte nach dem Umstellen alle deine Noten nochmals sorgfältig.',
+    { title: 'Notensystem ändern', confirmLabel: 'Bestätigen', cancelLabel: 'Abbrechen', danger: true },
+  );
+
   const handleGradeSystemChange = async (e) => {
     const next = normalizeCourseGradeSystem(e.target.value);
     const prev = normalizeCourseGradeSystem(config?.gradeSystem);
-    if (next !== prev) {
-      await migrateGradingSystem(prev, next);
-    }
+    if (next === prev) return;
+    const ok = await confirmGradeSystemChange();
+    if (!ok) return;
+    await migrateGradingSystem(prev, next);
     setConfig((c) => ({ ...c, gradeSystem: next }));
   };
 
   const handleKursstufeChange = async (checked) => {
     const prev = normalizeCourseGradeSystem(config?.gradeSystem);
+    const gradeSystemWillChange = (checked && prev !== 'points') || (!checked && prev === 'points');
+    if (gradeSystemWillChange) {
+      const ok = await confirmGradeSystemChange();
+      if (!ok) return;
+    }
     if (checked && prev !== 'points') {
       await migrateGradingSystem(prev, 'points');
     }
