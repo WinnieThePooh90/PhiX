@@ -925,14 +925,14 @@ export default function SummaryView({
                           {pendingGfs && (
                             <SummaryLeistungFlag
                               label="GFS noch nicht gehalten"
-                              title="GFS noch nicht gehalten — zu GFS wechseln"
+                              title="GFS noch nicht gehalten"
                               onClick={() => onOpenGfs?.(s.id)}
                             />
                           )}
                           {pendingReferat && (
                             <SummaryLeistungFlag
                               label="Referat noch nicht gehalten"
-                              title="Referat noch nicht gehalten — zu Referate wechseln"
+                              title="Referat noch nicht gehalten"
                               onClick={() => onOpenReferate?.(s.id)}
                             />
                           )}

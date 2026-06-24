@@ -47,7 +47,6 @@ export default function GradingKeyChart({
     };
 
     const samples = Math.min(400, Math.max(80, Math.ceil(max * 4)));
-    const pts = [];
     let gLo = Infinity;
     let gHi = -Infinity;
     for (let i = 0; i <= samples; i += 1) {
@@ -59,22 +58,23 @@ export default function GradingKeyChart({
     }
     if (!Number.isFinite(gLo) || !Number.isFinite(gHi)) return null;
     const pad = Math.max(0.1, (gHi - gLo) * 0.06);
-    const yMin = showNotenpunkte ? Math.max(0, Math.min(gLo - pad, 0)) : Math.min(gLo - pad, 1);
-    const yMax = showNotenpunkte ? Math.min(15, Math.max(gHi + pad, 15)) : Math.max(gHi + pad, 6);
-    const span = yMax - yMin || 1;
+    const xMin = showNotenpunkte ? Math.max(0, Math.min(gLo - pad, 0)) : Math.min(gLo - pad, 1);
+    const xMax = showNotenpunkte ? Math.min(15, Math.max(gHi + pad, 15)) : Math.max(gHi + pad, 6);
+    const xSpan = xMax - xMin || 1;
 
+    const pts = [];
     for (let i = 0; i <= samples; i += 1) {
       const p = Math.round(((max * i) / samples) * 2) / 2;
       const v = valueAtPoints(p);
       if (v === null || !Number.isFinite(v)) continue;
-      const x = PAD_L + (p / max) * PLOT_W;
-      const y = PAD_T + ((yMax - v) / span) * PLOT_H;
+      const x = PAD_L + ((v - xMin) / xSpan) * PLOT_W;
+      const y = PAD_T + PLOT_H - (p / max) * PLOT_H;
       pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
     }
 
     const tickCandidates = showNotenpunkte ? NP_TICK_CANDIDATES : NOTE_TICK_CANDIDATES;
-    const yTicks = tickCandidates.filter((g) => g >= yMin - 0.001 && g <= yMax + 0.001);
-    return { polylinePoints: pts.join(' '), yMin, yMax, yTicks, span, showNotenpunkte };
+    const xTicks = tickCandidates.filter((g) => g >= xMin - 0.001 && g <= xMax + 0.001);
+    return { polylinePoints: pts.join(' '), xMin, xMax, xTicks, xSpan, showNotenpunkte };
   }, [type, max, valid, thresholdsOverride, customBands, formulaIntercept, showNotenpunkte]);
 
   if (!valid) {
@@ -89,7 +89,8 @@ export default function GradingKeyChart({
     return null;
   }
 
-  const { polylinePoints, yMin, yMax, yTicks, span, showNotenpunkte: npMode } = chart;
+  const { polylinePoints, xMin, xMax, xTicks, xSpan, showNotenpunkte: npMode } = chart;
+  const xAxisLabel = npMode ? 'Notenpunkte' : 'Note';
 
   return (
     <div className="grading-key-chart">
@@ -99,7 +100,7 @@ export default function GradingKeyChart({
         height="200"
         style={{ display: 'block', maxWidth: '100%' }}
         role="img"
-        aria-label={npMode ? `Notenschlüssel: Notenpunkte je Punktzahl bis ${max}` : `Notenschlüssel: Note je Punktzahl bis ${max}`}
+        aria-label={npMode ? `Notenschlüssel: Punkte je Notenpunkte bis ${max}` : `Notenschlüssel: Punkte je Note bis ${max} Punkte`}
       >
         <rect
           x={PAD_L}
@@ -111,15 +112,15 @@ export default function GradingKeyChart({
           strokeWidth="1"
           rx="4"
         />
-        {yTicks.map((g) => {
-          const y = PAD_T + ((yMax - g) / span) * PLOT_H;
-          const label = npMode
-            ? String(g)
-            : Number.isInteger(g)
-              ? String(g)
-              : g.toFixed(2).replace('.', ',');
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+          const p = t * max;
+          const y = PAD_T + PLOT_H - t * PLOT_H;
+          const lbl =
+            max >= 20 || Number.isInteger(p)
+              ? String(Math.round(p))
+              : String(Math.round(p * 10) / 10).replace('.', ',');
           return (
-            <g key={g}>
+            <g key={t}>
               <line
                 x1={PAD_L}
                 x2={PAD_L + PLOT_W}
@@ -129,23 +130,23 @@ export default function GradingKeyChart({
                 strokeWidth="1"
               />
               <text x={PAD_L - 5} y={y + 4} textAnchor="end" fontSize="10" fill="hsl(var(--muted-foreground))">
-                {label}
+                {lbl}
               </text>
             </g>
           );
         })}
-        {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-          const p = t * max;
-          const x = PAD_L + t * PLOT_W;
-          const lbl =
-            max >= 20 || Number.isInteger(p)
-              ? String(Math.round(p))
-              : String(Math.round(p * 10) / 10).replace('.', ',');
+        {xTicks.map((g) => {
+          const x = PAD_L + ((g - xMin) / xSpan) * PLOT_W;
+          const label = npMode
+            ? String(g)
+            : Number.isInteger(g)
+              ? String(g)
+              : g.toFixed(2).replace('.', ',');
           return (
-            <g key={t}>
+            <g key={g}>
               <line x1={x} x2={x} y1={PAD_T + PLOT_H} y2={PAD_T + PLOT_H + 4} stroke="var(--border)" strokeWidth="1" />
               <text x={x} y={VB_H - 8} textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
-                {lbl}
+                {label}
               </text>
             </g>
           );
@@ -159,6 +160,16 @@ export default function GradingKeyChart({
           points={polylinePoints}
         />
         <text x={PAD_L + PLOT_W / 2} y={VB_H - 1} textAnchor="middle" fontSize="11" fill="hsl(var(--muted-foreground))">
+          {xAxisLabel}
+        </text>
+        <text
+          x={10}
+          y={PAD_T + PLOT_H / 2}
+          textAnchor="middle"
+          fontSize="11"
+          fill="hsl(var(--muted-foreground))"
+          transform={`rotate(-90 10 ${PAD_T + PLOT_H / 2})`}
+        >
           Punkte
         </text>
       </svg>
