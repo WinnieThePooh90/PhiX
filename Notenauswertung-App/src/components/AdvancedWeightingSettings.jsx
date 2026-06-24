@@ -16,6 +16,20 @@ export default function AdvancedWeightingSettings({
   referateAccepted = false,
   referatAsExam = false,
   onReferatAsExamChange,
+  referatAsOral = false,
+  onReferatAsOralChange,
+  referatWrittenPercentEnabled = false,
+  onReferatWrittenPercentEnabledChange,
+  referatWrittenPercent = 100,
+  onReferatWrittenPercentChange,
+  referatOralPercentEnabled = false,
+  onReferatOralPercentEnabledChange,
+  referatOralPercent = 100,
+  onReferatOralPercentChange,
+  referatFinalPercentEnabled = false,
+  onReferatFinalPercentEnabledChange,
+  referatFinalPercent = 100,
+  onReferatFinalPercentChange,
 }) {
   const testsOptionsDisabled = testsWritten === false;
 
@@ -86,13 +100,106 @@ export default function AdvancedWeightingSettings({
             )}
           </PhixCheckboxOption>
           {referateAccepted ? (
-            <PhixCheckboxOption
-              checked={referatAsExam === true}
-              onChange={(e) => onReferatAsExamChange?.(e.target.checked)}
-              className="settings-advanced-weighting-option"
-            >
-              Referat als Klausur werten
-            </PhixCheckboxOption>
+            <>
+              <PhixCheckboxOption
+                checked={referatAsExam === true}
+                onChange={(e) => onReferatAsExamChange?.(e.target.checked)}
+                className="settings-advanced-weighting-option"
+              >
+                Referat als Klausur werten
+              </PhixCheckboxOption>
+              <PhixCheckboxOption
+                checked={referatAsOral === true}
+                onChange={(e) => onReferatAsOralChange?.(e.target.checked)}
+                className="settings-advanced-weighting-option"
+              >
+                Referat wie mündlich werten
+              </PhixCheckboxOption>
+              <PhixCheckboxOption
+                checked={referatWrittenPercentEnabled === true}
+                onChange={(e) => onReferatWrittenPercentEnabledChange?.(e.target.checked)}
+                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+              >
+                {referatWrittenPercentEnabled ? (
+                  <span className="settings-tests-per-klausur-inline-label">
+                    Referat zählt zu
+                    {' '}
+                    <input
+                      type="number"
+                      className="course-meta-control settings-tests-per-klausur-x"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={referatWrittenPercent ?? 100}
+                      onChange={(e) => onReferatWrittenPercentChange?.(e.target.value)}
+                      onMouseDown={stopCheckboxToggle}
+                      onClick={stopCheckboxToggle}
+                      aria-label="Prozentualer Anteil des Referats in Schriftlich"
+                    />
+                    {' '}
+                    % in schriftlich
+                  </span>
+                ) : (
+                  'Referat zählt zu x % in schriftlich'
+                )}
+              </PhixCheckboxOption>
+              <PhixCheckboxOption
+                checked={referatOralPercentEnabled === true}
+                onChange={(e) => onReferatOralPercentEnabledChange?.(e.target.checked)}
+                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+              >
+                {referatOralPercentEnabled ? (
+                  <span className="settings-tests-per-klausur-inline-label">
+                    Referat zählt zu
+                    {' '}
+                    <input
+                      type="number"
+                      className="course-meta-control settings-tests-per-klausur-x"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={referatOralPercent ?? 100}
+                      onChange={(e) => onReferatOralPercentChange?.(e.target.value)}
+                      onMouseDown={stopCheckboxToggle}
+                      onClick={stopCheckboxToggle}
+                      aria-label="Prozentualer Anteil des Referats in Mündlich"
+                    />
+                    {' '}
+                    % in mündlich
+                  </span>
+                ) : (
+                  'Referat zählt zu x % in mündlich'
+                )}
+              </PhixCheckboxOption>
+              <PhixCheckboxOption
+                checked={referatFinalPercentEnabled === true}
+                onChange={(e) => onReferatFinalPercentEnabledChange?.(e.target.checked)}
+                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+              >
+                {referatFinalPercentEnabled ? (
+                  <span className="settings-tests-per-klausur-inline-label">
+                    Referat zählt zu
+                    {' '}
+                    <input
+                      type="number"
+                      className="course-meta-control settings-tests-per-klausur-x"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={referatFinalPercent ?? 100}
+                      onChange={(e) => onReferatFinalPercentChange?.(e.target.value)}
+                      onMouseDown={stopCheckboxToggle}
+                      onClick={stopCheckboxToggle}
+                      aria-label="Prozentualer Anteil des Referats an der Gesamtnote"
+                    />
+                    {' '}
+                    % in die Gesamtnote
+                  </span>
+                ) : (
+                  'Referat zählt zu x % in die Gesamtnote'
+                )}
+              </PhixCheckboxOption>
+            </>
           ) : null}
         </div>
       ) : null}

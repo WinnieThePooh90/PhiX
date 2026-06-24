@@ -962,9 +962,9 @@ const getGfsGradeStatsForStudent = (studentId, entries, halbjahrFilter, gradeSys
   return { gfsAvg: sum / count, gfsSum: sum, gfsCount: count };
 };
 
-function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, npSum, npCount) {
-  let sum = npSum;
-  let count = npCount;
+function getHeldReferatNpAverage(studentId, entries, halbjahrFilter) {
+  let sum = 0;
+  let count = 0;
   (entries || []).forEach((entry) => {
     if (entry.studentId !== studentId) return;
     if (entry.gehalten !== true) return;
@@ -974,11 +974,83 @@ function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, 
     sum += np;
     count += 1;
   });
+  if (count === 0) return null;
+  return sum / count;
+}
+
+function applyReferatFinalPercentContribution(
+  studentId,
+  entries,
+  halbjahrFilter,
+  gs,
+  referatFinalPercent,
+  totalPercentWeight,
+  percentClassicAcc,
+  percentNpAcc,
+) {
+  const pct = Number(referatFinalPercent);
+  if (!Number.isFinite(pct) || pct <= 0) {
+    return { totalPercentWeight, percentClassicAcc, percentNpAcc };
+  }
+  const stats = getGfsGradeStatsForStudent(studentId, entries, halbjahrFilter, gs);
+  if (stats.gfsCount === 0) {
+    return { totalPercentWeight, percentClassicAcc, percentNpAcc };
+  }
+  let nextTotal = totalPercentWeight + pct;
+  let nextClassic = percentClassicAcc;
+  let nextNp = percentNpAcc;
+  if (normalizeCourseGradeSystem(gs) === 'points') {
+    const npAvg = getHeldReferatNpAverage(studentId, entries, halbjahrFilter);
+    if (npAvg !== null) nextNp += npAvg * (pct / 100);
+  } else {
+    nextClassic += stats.gfsAvg * (pct / 100);
+  }
+  return {
+    totalPercentWeight: nextTotal,
+    percentClassicAcc: nextClassic,
+    percentNpAcc: nextNp,
+  };
+}
+
+function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, npSum, npCount, unitWeight = 1) {
+  let sum = npSum;
+  let count = npCount;
+  const w = Number.isFinite(unitWeight) && unitWeight > 0 ? unitWeight : 1;
+  (entries || []).forEach((entry) => {
+    if (entry.studentId !== studentId) return;
+    if (entry.gehalten !== true) return;
+    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
+    const np = storedGradeStringToNotenpunkte(entry.note, 'points');
+    if (np === null) return;
+    sum += np * w;
+    count += w;
+  });
   return { sum, count };
 }
 
-function appendHeldLeistungGradeItems(items, entries, studentId, halbjahrFilter, gs, prefix, defaultShort) {
+function addHeldEntriesToClassicAggregate(studentId, entries, halbjahrFilter, gs, sum, count, unitWeight = 1) {
+  let aggSum = sum;
+  let aggCount = count;
+  const w = Number.isFinite(unitWeight) && unitWeight > 0 ? unitWeight : 1;
+  (entries || []).forEach((entry) => {
+    if (entry.studentId !== studentId) return;
+    if (entry.gehalten !== true) return;
+    if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
+    const g = storedGradeStringToClassic(entry.note, gs);
+    if (g === null) return;
+    aggSum += g * w;
+    aggCount += w;
+  });
+  return { sum: aggSum, count: aggCount };
+}
+
+function appendHeldLeistungGradeItems(items, entries, studentId, halbjahrFilter, gs, prefix, defaultShort, unitWeight = 1) {
   const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const w = Number.isFinite(unitWeight) && unitWeight > 0 ? unitWeight : 1;
+  const pct = w < 1 ? Math.round(w * 1000) / 10 : null;
+  const suffix = pct !== null && pct < 100
+    ? ` (${Number.isInteger(pct) ? String(pct) : pct.toFixed(1)} %)`
+    : '';
   (entries || []).forEach((entry) => {
     if (entry.studentId !== studentId) return;
     if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
@@ -987,11 +1059,11 @@ function appendHeldLeistungGradeItems(items, entries, studentId, halbjahrFilter,
     if (isNp) {
       const np = storedGradeStringToNotenpunkte(entry.note, gs);
       if (np === null) return;
-      items.push({ label: `${prefix} ${label}`, grade: np, np });
+      items.push({ label: `${prefix} ${label}${suffix}`, grade: np, np, weight: w });
     } else {
       const grade = storedGradeStringToClassic(entry.note, gs);
       if (grade === null) return;
-      items.push({ label: `${prefix} ${label}`, grade });
+      items.push({ label: `${prefix} ${label}${suffix}`, grade, weight: w });
     }
   });
 }
@@ -1170,6 +1242,13 @@ function calculateStudentGradesInNotenpunkte(
   testsAsHalfExam = false,
   testsAsOral = false,
   referatEntries = [],
+  oralReferatEntries = [],
+  partialWrittenReferatEntries = [],
+  referatWrittenUnitWeight = 0,
+  partialOralReferatEntries = [],
+  referatOralUnitWeight = 0,
+  finalPercentReferatEntries = [],
+  referatFinalPercent = 0,
 ) {
   let examNpSum = 0;
   let examNpCount = 0;
@@ -1199,6 +1278,12 @@ function calculateStudentGradesInNotenpunkte(
       'points',
       examNpSum,
       examNpCount,
+    ));
+  }
+
+  if (referatWrittenUnitWeight > 0) {
+    ({ sum: examNpSum, count: examNpCount } = addHeldEntriesToWrittenNpAggregate(
+      studentId, partialWrittenReferatEntries, halbjahrFilter, examNpSum, examNpCount, referatWrittenUnitWeight,
     ));
   }
 
@@ -1261,6 +1346,16 @@ function calculateStudentGradesInNotenpunkte(
     ));
   }
 
+  ({ sum: oralNpSum, count: oralNpCount } = addHeldEntriesToWrittenNpAggregate(
+    studentId, oralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount,
+  ));
+
+  if (referatOralUnitWeight > 0) {
+    ({ sum: oralNpSum, count: oralNpCount } = addHeldEntriesToWrittenNpAggregate(
+      studentId, partialOralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount, referatOralUnitWeight,
+    ));
+  }
+
   const oralAvg = oralNpCount > 0 ? oralNpSum / oralNpCount : null;
 
   let testAvg = null;
@@ -1310,6 +1405,9 @@ function calculateStudentGradesInNotenpunkte(
     totalPercentWeight += pct;
     percentNpAcc += np * (pct / 100);
   });
+  ({ totalPercentWeight, percentNpAcc } = applyReferatFinalPercentContribution(
+    studentId, finalPercentReferatEntries, halbjahrFilter, 'points', referatFinalPercent, totalPercentWeight, 0, percentNpAcc,
+  ));
   const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
 
   let finalGrade = null;
@@ -1363,6 +1461,13 @@ export const calculateStudentGrades = (
   testsAsHalfExam = false,
   testsAsOral = false,
   referatEntries = [],
+  oralReferatEntries = [],
+  partialWrittenReferatEntries = [],
+  referatWrittenUnitWeight = 0,
+  partialOralReferatEntries = [],
+  referatOralUnitWeight = 0,
+  finalPercentReferatEntries = [],
+  referatFinalPercent = 0,
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (gs === 'points') {
@@ -1380,6 +1485,13 @@ export const calculateStudentGrades = (
       testsAsHalfExam,
       testsAsOral,
       referatEntries,
+      oralReferatEntries,
+      partialWrittenReferatEntries,
+      referatWrittenUnitWeight,
+      partialOralReferatEntries,
+      referatOralUnitWeight,
+      finalPercentReferatEntries,
+      referatFinalPercent,
     );
   }
 
@@ -1411,6 +1523,12 @@ export const calculateStudentGrades = (
       gs,
       examSum,
       examCount,
+    ));
+  }
+
+  if (referatWrittenUnitWeight > 0) {
+    ({ sum: examSum, count: examCount } = addHeldEntriesToClassicAggregate(
+      studentId, partialWrittenReferatEntries, halbjahrFilter, gs, examSum, examCount, referatWrittenUnitWeight,
     ));
   }
   
@@ -1455,8 +1573,20 @@ export const calculateStudentGrades = (
     ));
   }
 
+  const referatOralStats = getGfsGradeStatsForStudent(studentId, oralReferatEntries, halbjahrFilter, gs);
+  if (referatOralStats.gfsCount > 0) {
+    oralSum += referatOralStats.gfsSum;
+    oralCount += referatOralStats.gfsCount;
+  }
+
+  if (referatOralUnitWeight > 0) {
+    ({ sum: oralSum, count: oralCount } = addHeldEntriesToClassicAggregate(
+      studentId, partialOralReferatEntries, halbjahrFilter, gs, oralSum, oralCount, referatOralUnitWeight,
+    ));
+  }
+
   const oralAvg = oralCount > 0 ? oralSum / oralCount : null;
-  
+
   let testAvg = null;
   if (testsWritten) {
     let testSum = 0;
@@ -1518,6 +1648,9 @@ export const calculateStudentGrades = (
     totalPercentWeight += pct;
     percentClassicAcc += g * (pct / 100);
   });
+  ({ totalPercentWeight, percentClassicAcc } = applyReferatFinalPercentContribution(
+    studentId, finalPercentReferatEntries, halbjahrFilter, gs, referatFinalPercent, totalPercentWeight, percentClassicAcc, 0,
+  ));
   const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
 
   let finalGrade = null;
@@ -1747,6 +1880,8 @@ function collectWrittenDetailWithOptionalHalfTests(
   projects,
   gfsEntries,
   referatEntries,
+  partialWrittenReferatEntries,
+  referatWrittenUnitWeight,
   tests,
   halbjahrFilter,
   customGradingKeys,
@@ -1755,7 +1890,7 @@ function collectWrittenDetailWithOptionalHalfTests(
   testsWritten,
 ) {
   const writtenItems = collectWrittenGradeItems(
-    studentId, exams, projects, gfsEntries, referatEntries, halbjahrFilter, customGradingKeys, gs,
+    studentId, exams, projects, gfsEntries, referatEntries, partialWrittenReferatEntries, referatWrittenUnitWeight, halbjahrFilter, customGradingKeys, gs,
   ).map((item) => ({ ...item, weight: item.weight ?? 1 }));
   const testItems = testsAsHalfExam && testsWritten
     ? collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
@@ -1777,10 +1912,21 @@ function collectOralDetailWithOptionalTests(
   gs,
   testsAsOral,
   testsWritten,
+  oralReferatEntries = [],
+  partialOralReferatEntries = [],
+  referatOralUnitWeight = 0,
+  finalPercentReferatEntries = [],
+  referatFinalPercent = 0,
 ) {
   const oralItems = collectOralGradeItems(
     studentId, orals, projects, halbjahrFilter, customGradingKeys, gs,
   ).map((item) => ({ ...item, weight: item.weight ?? 1 }));
+  appendHeldLeistungGradeItems(oralItems, oralReferatEntries, studentId, halbjahrFilter, gs, 'Referat', 'Referat');
+  if (referatOralUnitWeight > 0) {
+    appendHeldLeistungGradeItems(
+      oralItems, partialOralReferatEntries, studentId, halbjahrFilter, gs, 'Referat', 'Referat', referatOralUnitWeight,
+    );
+  }
   const testItems = testsAsOral && testsWritten
     ? collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs).map((item) => ({
       ...item,
@@ -1791,7 +1937,7 @@ function collectOralDetailWithOptionalTests(
   return averageLineFromItems('Mündlich', 'M', [...oralItems, ...testItems], gs);
 }
 
-function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, referatEntries, halbjahrFilter, customGradingKeys, gs) {
+function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, referatEntries, partialWrittenReferatEntries, referatWrittenUnitWeight, halbjahrFilter, customGradingKeys, gs) {
   const items = [];
   const isNp = normalizeCourseGradeSystem(gs) === 'points';
   Object.entries(exams || {}).forEach(([id, exam]) => {
@@ -1805,6 +1951,11 @@ function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, refera
   });
   appendHeldLeistungGradeItems(items, gfsEntries, studentId, halbjahrFilter, gs, 'GFS', 'GFS');
   appendHeldLeistungGradeItems(items, referatEntries, studentId, halbjahrFilter, gs, 'Referat', 'Referat');
+  if (referatWrittenUnitWeight > 0) {
+    appendHeldLeistungGradeItems(
+      items, partialWrittenReferatEntries, studentId, halbjahrFilter, gs, 'Referat', 'Referat', referatWrittenUnitWeight,
+    );
+  }
   Object.entries(projects || {}).forEach(([id, project]) => {
     if (project.weightingMode !== 'written') return;
     const unitW = getProjectPillarUnitWeight(project);
@@ -1993,6 +2144,13 @@ export function getStudentGradeCalculationBreakdown(
   testsAsHalfExam = false,
   testsAsOral = false,
   referatEntries = [],
+  oralReferatEntries = [],
+  partialWrittenReferatEntries = [],
+  referatWrittenUnitWeight = 0,
+  partialOralReferatEntries = [],
+  referatOralUnitWeight = 0,
+  finalPercentReferatEntries = [],
+  referatFinalPercent = 0,
 ) {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   const { examAvg, oralAvg, testAvg, finalGrade } = calculateStudentGrades(
@@ -2010,6 +2168,13 @@ export function getStudentGradeCalculationBreakdown(
     testsAsHalfExam,
     testsAsOral,
     referatEntries,
+    oralReferatEntries,
+    partialWrittenReferatEntries,
+    referatWrittenUnitWeight,
+    partialOralReferatEntries,
+    referatOralUnitWeight,
+    finalPercentReferatEntries,
+    referatFinalPercent,
   );
 
   const rawWritten = Number(weighting?.written);
@@ -2022,10 +2187,10 @@ export function getStudentGradeCalculationBreakdown(
   const includeTestsInFinalWeight = testsWritten && !testsAsHalfExam && !testsAsOral;
 
   const writtenDetail = collectWrittenDetailWithOptionalHalfTests(
-    studentId, exams, projects, gfsEntries, referatEntries, tests, halbjahrFilter, customGradingKeys, gs, testsAsHalfExam, testsWritten,
+    studentId, exams, projects, gfsEntries, referatEntries, partialWrittenReferatEntries, referatWrittenUnitWeight, tests, halbjahrFilter, customGradingKeys, gs, testsAsHalfExam, testsWritten,
   );
   const oralDetail = collectOralDetailWithOptionalTests(
-    studentId, orals, projects, tests, halbjahrFilter, customGradingKeys, gs, testsAsOral, testsWritten,
+    studentId, orals, projects, tests, halbjahrFilter, customGradingKeys, gs, testsAsOral, testsWritten, oralReferatEntries, partialOralReferatEntries, referatOralUnitWeight,
   );
   const testDetail = includeTestsInFinalWeight
     ? averageLine('Tests', 'T', collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs), gs)
@@ -2080,6 +2245,39 @@ export function getStudentGradeCalculationBreakdown(
       classicContribution,
     });
   });
+
+  if (referatFinalPercent > 0) {
+    const referatStats = getGfsGradeStatsForStudent(studentId, finalPercentReferatEntries, halbjahrFilter, gs);
+    if (referatStats.gfsCount > 0) {
+      const pct = referatFinalPercent;
+      totalPercentWeight += pct;
+      if (gs === 'points') {
+        const npAvg = getHeldReferatNpAverage(studentId, finalPercentReferatEntries, halbjahrFilter);
+        if (npAvg !== null) {
+          const npContribution = npAvg * (pct / 100);
+          percentNpAcc += npContribution;
+          percentContributions.push({
+            id: 'referat',
+            name: 'Referat',
+            percent: pct,
+            grade: npAvg,
+            np: npAvg,
+            npContribution,
+          });
+        }
+      } else {
+        const classicContribution = referatStats.gfsAvg * (pct / 100);
+        percentClassicAcc += classicContribution;
+        percentContributions.push({
+          id: 'referat',
+          name: 'Referat',
+          percent: pct,
+          grade: referatStats.gfsAvg,
+          classicContribution,
+        });
+      }
+    }
+  }
 
   const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
   const wSum = pillars.reduce((sum, pillar) => sum + pillar.weight, 0);

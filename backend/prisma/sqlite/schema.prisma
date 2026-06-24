@@ -81,6 +81,13 @@ model Course {
   /** Wenn true: Tab „Referate“; gehaltene Referate optional schriftlich wie Klausuren. */
   referateAccepted Boolean @default(false)
   referatAsExam Boolean @default(false)
+  referatAsOral Boolean @default(false)
+  referatWrittenPercentEnabled Boolean @default(false)
+  referatWrittenPercent Int @default(100)
+  referatOralPercentEnabled Boolean @default(false)
+  referatOralPercent Int @default(100)
+  referatFinalPercentEnabled Boolean @default(false)
+  referatFinalPercent Int @default(100)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)

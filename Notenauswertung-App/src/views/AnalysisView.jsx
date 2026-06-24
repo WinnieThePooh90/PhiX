@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
-import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, usesReferatAsExam } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent, usesReferatAsExam, usesReferatAsOral, usesReferatWrittenPercent, usesReferatOralPercent, usesReferatFinalPercent } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
@@ -79,6 +79,13 @@ function RiskStudentsTable({
   gfsEntries,
   referatEntries = [],
   referatCountsAsExam = false,
+  referatCountsAsOral = false,
+  referatCountsAsPartialWritten = false,
+  referatWrittenPercent = 100,
+  referatCountsAsPartialOral = false,
+  referatOralPercent = 100,
+  referatCountsAsFinalPercent = false,
+  referatFinalPercent = 100,
   weighting,
   customGradingKeys,
   testsWritten,
@@ -129,6 +136,13 @@ function RiskStudentsTable({
                         gfsEntries={gfsEntries}
                         referatEntries={referatEntries}
                         referatCountsAsExam={referatCountsAsExam}
+                        referatCountsAsOral={referatCountsAsOral}
+                        referatCountsAsPartialWritten={referatCountsAsPartialWritten}
+                        referatWrittenPercent={referatWrittenPercent}
+                        referatCountsAsPartialOral={referatCountsAsPartialOral}
+                        referatOralPercent={referatOralPercent}
+                        referatCountsAsFinalPercent={referatCountsAsFinalPercent}
+                        referatFinalPercent={referatFinalPercent}
                         weighting={weighting}
                         customGradingKeys={customGradingKeys}
                         gradeSys={gradeSystem}
@@ -165,7 +179,30 @@ export default function AnalysisView() {
     () => effectiveReferatEntriesForGrading(config, referatEntries),
     [config, referatEntries],
   );
+  const gradingOralReferatEntries = useMemo(
+    () => effectiveReferatEntriesForOralGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const gradingPartialWrittenReferatEntries = useMemo(
+    () => effectiveReferatEntriesForPartialWrittenGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const gradingPartialOralReferatEntries = useMemo(
+    () => effectiveReferatEntriesForPartialOralGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const referatWrittenUnitWeight = getReferatWrittenUnitWeight(config);
+  const referatOralUnitWeight = getReferatOralUnitWeight(config);
+  const gradingFinalPercentReferatEntries = useMemo(
+    () => effectiveReferatEntriesForFinalPercentGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const referatFinalPercent = getReferatFinalPercent(config);
   const referatCountsAsExam = usesReferatAsExam(config);
+  const referatCountsAsOral = usesReferatAsOral(config);
+  const referatCountsAsPartialWritten = usesReferatWrittenPercent(config);
+  const referatCountsAsPartialOral = usesReferatOralPercent(config);
+  const referatCountsAsFinalPercent = usesReferatFinalPercent(config);
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
   const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -184,6 +221,13 @@ export default function AnalysisView() {
     gfsEntries,
     referatEntries,
     referatCountsAsExam,
+    referatCountsAsOral,
+    referatCountsAsPartialWritten,
+    referatWrittenPercent: config?.referatWrittenPercent ?? 100,
+    referatCountsAsPartialOral,
+    referatOralPercent: config?.referatOralPercent ?? 100,
+    referatCountsAsFinalPercent,
+    referatFinalPercent: config?.referatFinalPercent ?? 100,
     weighting,
     customGradingKeys,
     testsWritten,
@@ -211,6 +255,13 @@ export default function AnalysisView() {
           testsAsHalfExam,
           testsAsOral,
           gradingReferatEntries,
+          gradingOralReferatEntries,
+          gradingPartialWrittenReferatEntries,
+          referatWrittenUnitWeight,
+          gradingPartialOralReferatEntries,
+          referatOralUnitWeight,
+          gradingFinalPercentReferatEntries,
+          referatFinalPercent,
         );
         return { student: s, finalGrade };
       })
@@ -236,7 +287,7 @@ export default function AnalysisView() {
       .sort(sortWorstFirst);
 
     return { starkGefaehrdet: stark, gefaehrdet: gef };
-  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, gradingOralReferatEntries, gradingPartialWrittenReferatEntries, referatWrittenUnitWeight, gradingPartialOralReferatEntries, referatOralUnitWeight, gradingFinalPercentReferatEntries, referatFinalPercent, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
     const isPoints = gradeSys === 'points';
@@ -278,6 +329,13 @@ export default function AnalysisView() {
         testsAsHalfExam,
         testsAsOral,
         gradingReferatEntries,
+        gradingOralReferatEntries,
+        gradingPartialWrittenReferatEntries,
+        referatWrittenUnitWeight,
+        gradingPartialOralReferatEntries,
+        referatOralUnitWeight,
+        gradingFinalPercentReferatEntries,
+        referatFinalPercent,
       );
       const analysisGrade = resolveAnalysisGrade(s, finalGrade, gradeSys);
       if (analysisGrade === null || Number.isNaN(analysisGrade)) return;
@@ -299,7 +357,7 @@ export default function AnalysisView() {
       distributionKeys: isPoints ? Array.from({ length: 16 }, (_, i) => i) : [1, 2, 3, 4, 5, 6],
       studentsByBucket: buckets,
     };
-  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, gradingOralReferatEntries, gradingPartialWrittenReferatEntries, referatWrittenUnitWeight, gradingPartialOralReferatEntries, referatOralUnitWeight, gradingFinalPercentReferatEntries, referatFinalPercent, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
 
   const barPopoverStudents = useMemo(() => {
     if (distributionTooltipBucket === null || distributionTooltipBucket === undefined) return [];

@@ -38,9 +38,87 @@ export function usesReferatAsExam(config) {
   return config.referatAsExam === true;
 }
 
-/** Referat-Einträge für die Notenberechnung (leer, wenn nicht als Klausur gewertet). */
+/** Gehaltene Referate zählen im Mündlich-Durchschnitt wie mündliche Noten. */
+export function usesReferatAsOral(config) {
+  if (!config || config.referateAccepted !== true) return false;
+  return config.referatAsOral === true;
+}
+
+/** Referat-Einträge für Schriftlich (leer, wenn nicht als Klausur gewertet). */
 export function effectiveReferatEntriesForGrading(config, referatEntries) {
   if (!usesReferatAsExam(config)) return [];
+  return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
+/** Referat-Einträge für Mündlich (leer, wenn nicht mündlich gewertet). */
+export function effectiveReferatEntriesForOralGrading(config, referatEntries) {
+  if (!usesReferatAsOral(config)) return [];
+  return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
+/** Gehaltene Referate zählen anteilig im Schriftlich-Durchschnitt (x % einer Klausur). */
+export function usesReferatWrittenPercent(config) {
+  if (!config || config.referateAccepted !== true) return false;
+  return config.referatWrittenPercentEnabled === true;
+}
+
+export function getReferatWrittenPercent(config) {
+  const pct = Number(config?.referatWrittenPercent);
+  if (!Number.isFinite(pct)) return 100;
+  return Math.min(100, Math.max(0, Math.round(pct)));
+}
+
+/** Anteil einer Klausur (0–1) für anteilig schriftliche Referate. */
+export function getReferatWrittenUnitWeight(config) {
+  if (!usesReferatWrittenPercent(config)) return 0;
+  return getReferatWrittenPercent(config) / 100;
+}
+
+/** Referat-Einträge für anteilig schriftliche Gewichtung. */
+export function effectiveReferatEntriesForPartialWrittenGrading(config, referatEntries) {
+  if (!usesReferatWrittenPercent(config)) return [];
+  return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
+/** Gehaltene Referate zählen anteilig im Mündlich-Durchschnitt (x % einer mündlichen Note). */
+export function usesReferatOralPercent(config) {
+  if (!config || config.referateAccepted !== true) return false;
+  return config.referatOralPercentEnabled === true;
+}
+
+export function getReferatOralPercent(config) {
+  const pct = Number(config?.referatOralPercent);
+  if (!Number.isFinite(pct)) return 100;
+  return Math.min(100, Math.max(0, Math.round(pct)));
+}
+
+/** Anteil einer mündlichen Note (0–1) für anteilig mündliche Referate. */
+export function getReferatOralUnitWeight(config) {
+  if (!usesReferatOralPercent(config)) return 0;
+  return getReferatOralPercent(config) / 100;
+}
+
+/** Referat-Einträge für anteilig mündliche Gewichtung. */
+export function effectiveReferatEntriesForPartialOralGrading(config, referatEntries) {
+  if (!usesReferatOralPercent(config)) return [];
+  return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
+/** Gehaltene Referate zählen anteilig direkt in die Gesamtnote. */
+export function usesReferatFinalPercent(config) {
+  if (!config || config.referateAccepted !== true) return false;
+  return config.referatFinalPercentEnabled === true;
+}
+
+export function getReferatFinalPercent(config) {
+  const pct = Number(config?.referatFinalPercent);
+  if (!Number.isFinite(pct)) return 100;
+  return Math.min(100, Math.max(0, Math.round(pct)));
+}
+
+/** Referat-Einträge für prozentualen Anteil an der Gesamtnote. */
+export function effectiveReferatEntriesForFinalPercentGrading(config, referatEntries) {
+  if (!usesReferatFinalPercent(config)) return [];
   return Array.isArray(referatEntries) ? referatEntries : [];
 }
 
@@ -116,6 +194,13 @@ export function snapshotAdvancedWeightingOptions(config) {
     testsPerKlausurEnabled: config?.testsPerKlausurEnabled === true,
     testsPerKlausur: getTestsPerKlausurX(config),
     referatAsExam: config?.referatAsExam === true,
+    referatAsOral: config?.referatAsOral === true,
+    referatWrittenPercentEnabled: config?.referatWrittenPercentEnabled === true,
+    referatWrittenPercent: getReferatWrittenPercent(config),
+    referatOralPercentEnabled: config?.referatOralPercentEnabled === true,
+    referatOralPercent: getReferatOralPercent(config),
+    referatFinalPercentEnabled: config?.referatFinalPercentEnabled === true,
+    referatFinalPercent: getReferatFinalPercent(config),
   };
 }
 
@@ -128,6 +213,13 @@ export function restoreAdvancedWeightingFromStash(stash) {
       testsPerKlausurEnabled: false,
       testsPerKlausur: 10,
       referatAsExam: false,
+      referatAsOral: false,
+      referatWrittenPercentEnabled: false,
+      referatWrittenPercent: 100,
+      referatOralPercentEnabled: false,
+      referatOralPercent: 100,
+      referatFinalPercentEnabled: false,
+      referatFinalPercent: 100,
     };
   }
   const x = Number(stash.testsPerKlausur);
@@ -137,6 +229,25 @@ export function restoreAdvancedWeightingFromStash(stash) {
     testsPerKlausurEnabled: stash.testsPerKlausurEnabled === true,
     testsPerKlausur: Number.isFinite(x) && x >= 1 ? Math.min(99, Math.round(x)) : 10,
     referatAsExam: stash.referatAsExam === true,
+    referatAsOral: stash.referatAsOral === true,
+    referatWrittenPercentEnabled: stash.referatWrittenPercentEnabled === true,
+    referatWrittenPercent: (() => {
+      const pct = Number(stash.referatWrittenPercent);
+      if (!Number.isFinite(pct)) return 100;
+      return Math.min(100, Math.max(0, Math.round(pct)));
+    })(),
+    referatOralPercentEnabled: stash.referatOralPercentEnabled === true,
+    referatOralPercent: (() => {
+      const pct = Number(stash.referatOralPercent);
+      if (!Number.isFinite(pct)) return 100;
+      return Math.min(100, Math.max(0, Math.round(pct)));
+    })(),
+    referatFinalPercentEnabled: stash.referatFinalPercentEnabled === true,
+    referatFinalPercent: (() => {
+      const pct = Number(stash.referatFinalPercent);
+      if (!Number.isFinite(pct)) return 100;
+      return Math.min(100, Math.max(0, Math.round(pct)));
+    })(),
   };
 }
 

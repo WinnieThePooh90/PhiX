@@ -56,9 +56,6 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
     };
   }, [pickerOpen, updatePickerAnchor]);
 
-  const usedStudentIds = new Set(referatEntries.map((e) => e.studentId));
-  const availableStudents = students.filter((s) => !usedStudentIds.has(s.id));
-
   const displayEntries = useMemo(() => {
     if (studentIdFilterSet == null) return referatEntries;
     return referatEntries.filter((e) => studentIdFilterSet.has(e.studentId));
@@ -151,14 +148,12 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                 zIndex: 60,
               }}
             >
-              {availableStudents.length === 0 ? (
+              {students.length === 0 ? (
                 <div className="text-muted" style={{ padding: '0.75rem 1rem', fontSize: '0.875rem' }}>
-                  {students.length === 0
-                    ? 'Keine Schüler angelegt. Lege zuerst in den Einstellungen Schüler an.'
-                    : 'Alle Schüler sind bereits in der Tabelle.'}
+                  Keine Schüler angelegt. Lege zuerst in den Einstellungen Schüler an.
                 </div>
               ) : (
-                availableStudents.map((s) => (
+                students.map((s) => (
                   <button
                     key={s.id}
                     type="button"

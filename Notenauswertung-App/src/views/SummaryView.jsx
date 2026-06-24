@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight, resolveCourseWeighting, effectiveReferatEntriesForGrading, usesReferatAsExam } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent, usesReferatAsExam, usesReferatAsOral, usesReferatWrittenPercent, usesReferatOralPercent, usesReferatFinalPercent } from '../utils/courseWeightingOptions';
 import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
@@ -518,6 +518,13 @@ function SummaryStudentCalculationModal({
   projects,
   gfsEntries,
   referatEntries,
+  oralReferatEntries = [],
+  partialWrittenReferatEntries = [],
+  referatWrittenUnitWeight = 0,
+  partialOralReferatEntries = [],
+  referatOralUnitWeight = 0,
+  finalPercentReferatEntries = [],
+  referatFinalPercent = 0,
   customGradingKeys,
   gradeSys,
 }) {
@@ -549,6 +556,13 @@ function SummaryStudentCalculationModal({
     testsAsHalfExam,
     testsAsOral,
     referatEntries,
+    oralReferatEntries,
+    partialWrittenReferatEntries,
+    referatWrittenUnitWeight,
+    partialOralReferatEntries,
+    referatOralUnitWeight,
+    finalPercentReferatEntries,
+    referatFinalPercent,
   );
   const gfmtOverview = (g) => formatOverviewCalculatedGrade(g, gradeSys, breakdown.valuesAreNotenpunkte);
   const calcOpts = calculatedGradeDisplayOpts(breakdown.valuesAreNotenpunkte, gradeSys);
@@ -734,7 +748,30 @@ export default function SummaryView({
     () => effectiveReferatEntriesForGrading(config, referatEntries),
     [config, referatEntries],
   );
+  const gradingOralReferatEntries = useMemo(
+    () => effectiveReferatEntriesForOralGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const gradingPartialWrittenReferatEntries = useMemo(
+    () => effectiveReferatEntriesForPartialWrittenGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const gradingPartialOralReferatEntries = useMemo(
+    () => effectiveReferatEntriesForPartialOralGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const referatWrittenUnitWeight = getReferatWrittenUnitWeight(config);
+  const referatOralUnitWeight = getReferatOralUnitWeight(config);
+  const gradingFinalPercentReferatEntries = useMemo(
+    () => effectiveReferatEntriesForFinalPercentGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const referatFinalPercent = getReferatFinalPercent(config);
   const referatCountsAsExam = usesReferatAsExam(config);
+  const referatCountsAsOral = usesReferatAsOral(config);
+  const referatCountsAsPartialWritten = usesReferatWrittenPercent(config);
+  const referatCountsAsPartialOral = usesReferatOralPercent(config);
+  const referatCountsAsFinalPercent = usesReferatFinalPercent(config);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
     Number.isFinite(Number(weighting?.written)) &&
@@ -898,6 +935,13 @@ export default function SummaryView({
                 testsAsHalfExam,
                 testsAsOral,
                 gradingReferatEntries,
+                gradingOralReferatEntries,
+                gradingPartialWrittenReferatEntries,
+                referatWrittenUnitWeight,
+                gradingPartialOralReferatEntries,
+                referatOralUnitWeight,
+                gradingFinalPercentReferatEntries,
+                referatFinalPercent,
               );
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
@@ -1035,6 +1079,13 @@ export default function SummaryView({
                           gfsEntries={gfsEntries}
                           referatEntries={referatEntries}
                           referatCountsAsExam={referatCountsAsExam}
+                          referatCountsAsOral={referatCountsAsOral}
+                          referatCountsAsPartialWritten={referatCountsAsPartialWritten}
+                          referatWrittenPercent={config?.referatWrittenPercent ?? 100}
+                          referatCountsAsPartialOral={referatCountsAsPartialOral}
+                          referatOralPercent={config?.referatOralPercent ?? 100}
+                          referatCountsAsFinalPercent={referatCountsAsFinalPercent}
+                          referatFinalPercent={config?.referatFinalPercent ?? 100}
                           weighting={weighting}
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
@@ -1186,6 +1237,13 @@ export default function SummaryView({
         projects={projects}
         gfsEntries={gfsEntries}
         referatEntries={gradingReferatEntries}
+        oralReferatEntries={gradingOralReferatEntries}
+        partialWrittenReferatEntries={gradingPartialWrittenReferatEntries}
+        referatWrittenUnitWeight={referatWrittenUnitWeight}
+        partialOralReferatEntries={gradingPartialOralReferatEntries}
+        referatOralUnitWeight={referatOralUnitWeight}
+        finalPercentReferatEntries={gradingFinalPercentReferatEntries}
+        referatFinalPercent={referatFinalPercent}
         customGradingKeys={customGradingKeys}
         gradeSys={gradeSys}
       />

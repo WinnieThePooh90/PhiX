@@ -6,7 +6,7 @@ import {
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
-import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading } from './courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent } from './courseWeightingOptions';
 
 /** Excel-Layout: # und Notenspalten zentriert, Name/Vorname links. */
 export function buildSummaryOverviewExportLayout(showTests) {
@@ -75,6 +75,13 @@ export function buildSummaryOverviewExportData({
         usesTestsAsHalfExam(config),
         usesTestsAsOral(config),
         effectiveReferatEntriesForGrading(config, referatEntries),
+        effectiveReferatEntriesForOralGrading(config, referatEntries),
+        effectiveReferatEntriesForPartialWrittenGrading(config, referatEntries),
+        getReferatWrittenUnitWeight(config),
+        effectiveReferatEntriesForPartialOralGrading(config, referatEntries),
+        getReferatOralUnitWeight(config),
+        effectiveReferatEntriesForFinalPercentGrading(config, referatEntries),
+        getReferatFinalPercent(config),
       );
       const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
       const manualDisplay = manualEndNum !== null ? formatGrade(manualEndNum, gradeSys) : '';

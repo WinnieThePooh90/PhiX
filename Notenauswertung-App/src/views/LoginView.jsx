@@ -11,13 +11,21 @@ export default function LoginView({ onRecovery }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const doLogin = async (user, pass) => {
     setError('');
     setSubmitting(true);
-    const r = await login(username, password);
+    const r = await login(user, pass);
     setSubmitting(false);
     if (!r.ok) setError(r.error || 'Anmeldung fehlgeschlagen.');
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    await doLogin(username, password);
+  };
+
+  const onDevLogin = async () => {
+    await doLogin('admin', 'admin');
   };
 
   return (
@@ -59,6 +67,16 @@ export default function LoginView({ onRecovery }) {
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden'}
           </button>
+          {import.meta.env.DEV ? (
+            <button
+              type="button"
+              className="tab secondary app-login-dev-btn"
+              onClick={onDevLogin}
+              disabled={submitting}
+            >
+              Development
+            </button>
+          ) : null}
         </form>
       </div>
       <div className="app-login-footer">

@@ -91,6 +91,17 @@ model Course {
   referateAccepted Boolean @default(false)
   /** Gehaltene Referate zählen schriftlich wie Klausuren (wenn referateAccepted). */
   referatAsExam Boolean @default(false)
+  /** Gehaltene Referate zählen mündlich wie mündliche Noten (wenn referateAccepted). */
+  referatAsOral Boolean @default(false)
+  /** Gehaltene Referate zählen anteilig schriftlich (x % einer Klausur). */
+  referatWrittenPercentEnabled Boolean @default(false)
+  referatWrittenPercent Int @default(100)
+  /** Gehaltene Referate zählen anteilig mündlich (x % einer mündlichen Note). */
+  referatOralPercentEnabled Boolean @default(false)
+  referatOralPercent Int @default(100)
+  /** Gehaltene Referate zählen anteilig direkt in die Gesamtnote. */
+  referatFinalPercentEnabled Boolean @default(false)
+  referatFinalPercent Int @default(100)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   /** Wenn true: Menüleiste im Tab Projekte eingeklappt (nur Tabellen sichtbar). */
