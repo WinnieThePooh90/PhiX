@@ -246,7 +246,10 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                 const gehalten = row.gehalten === true;
                 const noteColorResolved = resolveStoredGradeForCellColor(row.note, gradeSys);
                 const noteCellColors = gradeCellColorsFromResolved(noteColorResolved, gradeSys);
-                const auswertungSummary = formatGfsAuswertungSummary(parseGfsAuswertungHilfe(row.auswertungHilfe).scores);
+                const auswertungSummary = formatGfsAuswertungSummary(
+                  parseGfsAuswertungHilfe(row.auswertungHilfe).scores,
+                  gradeSys,
+                );
                 return (
                   <tr key={row.id} ref={(el) => setRowRef(row.studentId, el)}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -377,7 +380,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                           <span>
                             {auswertungSummary.sum}
                             {' Pkt.'}
-                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}` : ''}
+                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${gradeSys === 'points' ? ' NP' : ''}` : ''}
                           </span>
                         ) : (
                           <span>Öffnen</span>
@@ -416,6 +419,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
         onClose={() => setAuswertungEntry(null)}
         studentName={auswertungEntry?.studentName ?? ''}
         titleLabel="Referat-Auswertung"
+        gradeSystem={gradeSys}
         auswertungHilfe={auswertungEntry?.auswertungHilfe}
         onSave={handleAuswertungSave}
       />

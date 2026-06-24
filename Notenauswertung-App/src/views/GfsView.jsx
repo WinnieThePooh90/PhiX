@@ -252,7 +252,10 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                 const gehalten = row.gehalten === true;
                 const noteColorResolved = resolveStoredGradeForCellColor(row.note, gradeSys);
                 const noteCellColors = gradeCellColorsFromResolved(noteColorResolved, gradeSys);
-                const auswertungSummary = formatGfsAuswertungSummary(parseGfsAuswertungHilfe(row.auswertungHilfe).scores);
+                const auswertungSummary = formatGfsAuswertungSummary(
+                  parseGfsAuswertungHilfe(row.auswertungHilfe).scores,
+                  gradeSys,
+                );
                 return (
                   <tr key={row.id} ref={(el) => setRowRef(row.studentId, el)}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -383,7 +386,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                           <span>
                             {auswertungSummary.sum}
                             {' Pkt.'}
-                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}` : ''}
+                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${gradeSys === 'points' ? ' NP' : ''}` : ''}
                           </span>
                         ) : (
                           <span>Öffnen</span>
@@ -421,6 +424,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
         open={auswertungEntry != null}
         onClose={() => setAuswertungEntry(null)}
         studentName={auswertungEntry?.studentName ?? ''}
+        gradeSystem={gradeSys}
         auswertungHilfe={auswertungEntry?.auswertungHilfe}
         onSave={handleAuswertungSave}
       />

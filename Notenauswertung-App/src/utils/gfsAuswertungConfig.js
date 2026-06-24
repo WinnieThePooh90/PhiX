@@ -1,4 +1,6 @@
 /** Kriterien aus GFS-Auswertungsbogen (Paulokat) – Spalten 4 bis 0. */
+import { gradeToNotenpunkte, normalizeCourseGradeSystem } from './calculator';
+
 export const GFS_AUSWERTUNG_POINT_LEVELS = [4, 3, 2, 1, 0];
 
 export const GFS_AUSWERTUNG_CRITERIA = [
@@ -171,6 +173,41 @@ export const GFS_AUSWERTUNG_POINTS_TO_GRADE = [
   { points: 2, grade: '6' },
 ];
 
+/** Klassische Vorschlagsnote (Text) aus Gesamtpunktzahl. */
+export function getGfsAuswertungClassicGradeString(totalPoints) {
+  const p = Math.round(Number(totalPoints));
+  if (!Number.isFinite(p) || p < 0) return '6';
+  for (const row of GFS_AUSWERTUNG_POINTS_TO_GRADE) {
+    if (p >= row.points) return row.grade;
+  }
+  return '6';
+}
+
+/** Textnote aus der Tabelle (z. B. „2+“, „1,5“) → klassische Viertelnote. */
+export function parseGfsAuswertungClassicGradeString(gradeStr) {
+  const s = String(gradeStr ?? '').trim().replace(',', '.');
+  const m = s.match(/^(\d+(?:\.\d+)?)([+-])?$/);
+  if (!m) return null;
+  let base = parseFloat(m[1]);
+  if (!Number.isFinite(base)) return null;
+  if (m[2] === '+') base -= 0.25;
+  if (m[2] === '-') base += 0.25;
+  return base;
+}
+
+/** Punktesystem: klassische Vorschlagsnote → Notenpunkte (24 Pkt. → 15; „1“ → 14). */
+export function suggestGfsAuswertungNotenpunkte(totalPoints) {
+  const p = Math.round(Number(totalPoints));
+  if (!Number.isFinite(p) || p < 0) return 0;
+  if (p >= 24) return 15;
+  const classicStr = getGfsAuswertungClassicGradeString(p);
+  if (classicStr === '1') return 14;
+  const classic = parseGfsAuswertungClassicGradeString(classicStr);
+  if (classic === null) return 0;
+  const np = gradeToNotenpunkte(classic);
+  return np !== null ? np : 0;
+}
+
 export function parseGfsAuswertungHilfe(raw) {
   const empty = { scores: {}, bemerkungen: '' };
   if (raw == null || raw === '') return empty;
@@ -210,19 +247,18 @@ export function sumGfsAuswertungScores(scores) {
   }, 0);
 }
 
-export function suggestGradeFromGfsAuswertungPoints(totalPoints) {
-  const p = Math.round(Number(totalPoints));
-  if (!Number.isFinite(p) || p < 0) return '6';
-  for (const row of GFS_AUSWERTUNG_POINTS_TO_GRADE) {
-    if (p >= row.points) return row.grade;
+export function suggestGradeFromGfsAuswertungPoints(totalPoints, gradeSystem = 'classic') {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (gs === 'points') {
+    return String(suggestGfsAuswertungNotenpunkte(totalPoints));
   }
-  return '6';
+  return getGfsAuswertungClassicGradeString(totalPoints);
 }
 
-export function formatGfsAuswertungSummary(scores) {
+export function formatGfsAuswertungSummary(scores, gradeSystem = 'classic') {
   const filled = countGfsAuswertungFilled(scores);
   if (filled === 0) return null;
   const sum = sumGfsAuswertungScores(scores);
-  const grade = suggestGradeFromGfsAuswertungPoints(sum);
+  const grade = suggestGradeFromGfsAuswertungPoints(sum, gradeSystem);
   return { filled, sum, grade };
 }

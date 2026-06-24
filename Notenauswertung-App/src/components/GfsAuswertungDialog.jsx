@@ -17,6 +17,7 @@ export default function GfsAuswertungDialog({
   onClose,
   studentName,
   titleLabel = 'GFS-Auswertung',
+  gradeSystem = 'classic',
   auswertungHilfe,
   onSave,
 }) {
@@ -45,7 +46,8 @@ export default function GfsAuswertungDialog({
 
   const filled = countGfsAuswertungFilled(scores);
   const total = sumGfsAuswertungScores(scores);
-  const suggestedGrade = suggestGradeFromGfsAuswertungPoints(total);
+  const suggestedGrade = suggestGradeFromGfsAuswertungPoints(total, gradeSystem);
+  const isPointsMode = gradeSystem === 'points';
 
   const persist = (nextScores, nextBemerkungen) => {
     onSave({
@@ -175,20 +177,25 @@ export default function GfsAuswertungDialog({
               <span className="gfs-auswertung-sum-grade">
                 <strong>Vorgeschlagene Note:</strong>
                 {' '}
-                {suggestedGrade}
+                {isPointsMode ? `${suggestedGrade} NP` : suggestedGrade}
               </span>
             </div>
 
             <details className="gfs-auswertung-grade-table">
-              <summary>Punkte-Noten-Tabelle</summary>
+              <summary>{isPointsMode ? 'Punkte-Notenpunkte-Tabelle' : 'Punkte-Noten-Tabelle'}</summary>
               <div className="gfs-auswertung-grade-table-grid">
-                {GFS_AUSWERTUNG_POINTS_TO_GRADE.map((row) => (
-                  <span key={row.points} className={total === row.points ? 'gfs-auswertung-grade-hit' : ''}>
-                    <strong>{row.points}</strong>
-                    {' → '}
-                    {row.grade}
-                  </span>
-                ))}
+                {GFS_AUSWERTUNG_POINTS_TO_GRADE.map((row) => {
+                  const gradeLabel = isPointsMode
+                    ? suggestGradeFromGfsAuswertungPoints(row.points, 'points')
+                    : row.grade;
+                  return (
+                    <span key={row.points} className={total === row.points ? 'gfs-auswertung-grade-hit' : ''}>
+                      <strong>{row.points}</strong>
+                      {' → '}
+                      {isPointsMode ? `${gradeLabel} NP` : gradeLabel}
+                    </span>
+                  );
+                })}
               </div>
             </details>
 
