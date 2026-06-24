@@ -107,20 +107,19 @@ export default function GfsAuswertungDialog({
                           />
                         );
                       }
-                      const { pointValue, description } = cell;
-                      const selected = scores[criterion.id] === pointValue;
+                      const { gridPoint, description } = cell;
+                      const selected = scores[criterion.id] === gridPoint;
                       return (
-                        <td key={`${criterion.id}-${pointValue}`} className="gfs-auswertung-td">
+                        <td key={`${criterion.id}-${gridPoint}`} className="gfs-auswertung-td">
                           <button
                             type="button"
                             className={`gfs-auswertung-cell${selected ? ' gfs-auswertung-cell--selected' : ''}`}
-                            onClick={() => handleSelect(criterion.id, pointValue)}
+                            onClick={() => handleSelect(criterion.id, gridPoint)}
                             aria-pressed={selected}
-                            aria-label={`${criterion.label}: ${pointValue} Punkte — ${description}`}
-                            title={`${pointValue} Punkte: ${description}`}
+                            aria-label={`${criterion.label}: ${gridPoint} Punkte — ${description}`}
+                            title={description}
                           >
-                            <span className="gfs-auswertung-cell-points">{pointValue}</span>
-                            <span className="gfs-auswertung-cell-desc">{description}</span>
+                            {description}
                           </button>
                         </td>
                       );
