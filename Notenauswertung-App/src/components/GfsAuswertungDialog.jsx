@@ -10,6 +10,7 @@ import {
   countGfsAuswertungFilled,
   suggestGradeFromGfsAuswertungPoints,
 } from '../utils/gfsAuswertungConfig';
+import { useDialog } from './PhixDialog';
 
 export default function GfsAuswertungDialog({
   open,
@@ -19,6 +20,7 @@ export default function GfsAuswertungDialog({
   auswertungHilfe,
   onSave,
 }) {
+  const { showConfirm } = useDialog();
   const initial = useMemo(() => parseGfsAuswertungHilfe(auswertungHilfe), [auswertungHilfe, open]);
   const [scores, setScores] = useState(initial.scores);
   const [bemerkungen, setBemerkungen] = useState(initial.bemerkungen);
@@ -62,6 +64,22 @@ export default function GfsAuswertungDialog({
     persist(scores, bemerkungen);
   };
 
+  const handleReset = async () => {
+    const ok = await showConfirm(
+      'Alle ausgewählten Kriterien und Bemerkungen werden gelöscht.',
+      {
+        title: 'Reset durchführen',
+        confirmLabel: 'Reset durchführen',
+        cancelLabel: 'Abbrechen',
+        danger: true,
+      },
+    );
+    if (!ok) return;
+    setScores({});
+    setBemerkungen('');
+    persist({ scores: {}, bemerkungen: '' });
+  };
+
   return createPortal(
     <div className="oral-formula-modal-backdrop gfs-auswertung-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -71,13 +89,18 @@ export default function GfsAuswertungDialog({
         aria-labelledby="gfs-auswertung-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="oral-formula-modal-header">
+        <div className="oral-formula-modal-header gfs-auswertung-header">
           <h2 id="gfs-auswertung-title" style={{ margin: 0, fontSize: '1.05rem' }}>
             {titleLabel} — {studentName}
           </h2>
-          <button type="button" className="tab secondary" onClick={onClose} aria-label="Schließen">
-            Schließen
-          </button>
+          <div className="gfs-auswertung-header-actions">
+            <button type="button" className="tab secondary danger" onClick={handleReset}>
+              Reset
+            </button>
+            <button type="button" className="tab secondary" onClick={onClose} aria-label="Schließen">
+              Schließen
+            </button>
+          </div>
         </div>
         <div className="oral-formula-modal-body gfs-auswertung-body">
           <div className="gfs-auswertung-table-wrap">

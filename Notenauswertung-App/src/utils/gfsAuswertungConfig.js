@@ -15,7 +15,7 @@ export const GFS_AUSWERTUNG_CRITERIA = [
   },
   {
     id: 'vollstaendigkeit',
-    label: 'Vollständigkeit (physikalischer, Aktueller Bezug)',
+    label: 'Vollständigkeit',
     descriptions: {
       4: 'Vollständig',
       3: 'Geringe Lücken, unbedeutend',

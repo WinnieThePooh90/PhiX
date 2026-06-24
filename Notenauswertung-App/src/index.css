@@ -4213,16 +4213,43 @@ button.school-roster-control-btn.danger {
 
 /* GFS: Auswertungshilfe-Dialog */
 .gfs-auswertung-dialog {
+  display: flex;
+  flex-direction: column;
   max-width: min(58rem, calc(100vw - 1.5rem));
+  max-height: min(85dvh, 100%);
+  overflow: hidden;
+}
+
+.gfs-auswertung-header {
+  position: relative;
+  z-index: 30;
+  flex-shrink: 0;
+}
+
+.gfs-auswertung-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .gfs-auswertung-body {
   padding: 0.75rem 1rem 1rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .gfs-auswertung-table-wrap {
   overflow-x: auto;
   margin-bottom: 1rem;
+}
+
+.gfs-auswertung-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: hsl(var(--muted) / 0.95);
 }
 
 .gfs-auswertung-table {
