@@ -28,10 +28,6 @@ export default function LoginView({ onRecovery }) {
     await doLogin('admin', 'admin');
   };
 
-  const showDevLoginButton =
-    import.meta.env.DEV
-    || (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname));
-
   return (
     <div className="app-login-screen">
       <div className="app-login-card">
@@ -71,16 +67,14 @@ export default function LoginView({ onRecovery }) {
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden'}
           </button>
-          {showDevLoginButton ? (
-            <button
-              type="button"
-              className="tab secondary app-login-dev-btn"
-              onClick={onDevLogin}
-              disabled={submitting}
-            >
-              Development
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="tab secondary app-login-dev-btn"
+            onClick={onDevLogin}
+            disabled={submitting}
+          >
+            Development
+          </button>
         </form>
       </div>
       <div className="app-login-footer">
