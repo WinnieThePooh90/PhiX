@@ -6,7 +6,7 @@ import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import WeightingPercentHint from './WeightingPercentHint';
 import AdvancedWeightingSettings from './AdvancedWeightingSettings';
-import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 function defaultSchoolYear() {
@@ -262,32 +262,8 @@ export default function NewCourseForm() {
           testsWritten={newCourse.testsWritten !== false}
           referateAccepted={newCourse.referateAccepted === true}
           referatAsExam={newCourse.referatAsExam === true}
-          onReferatAsExamChange={(checked) => setNewCourse((p) => ({
-            ...p,
-            referatAsExam: checked,
-            referatAsOral: checked ? false : p.referatAsOral,
-            referatWrittenPercentEnabled: checked ? false : p.referatWrittenPercentEnabled,
-            referatOralPercentEnabled: checked ? false : p.referatOralPercentEnabled,
-            referatFinalPercentEnabled: checked ? false : p.referatFinalPercentEnabled,
-          }))}
           referatAsOral={newCourse.referatAsOral === true}
-          onReferatAsOralChange={(checked) => setNewCourse((p) => ({
-            ...p,
-            referatAsOral: checked,
-            referatAsExam: checked ? false : p.referatAsExam,
-            referatWrittenPercentEnabled: checked ? false : p.referatWrittenPercentEnabled,
-            referatOralPercentEnabled: checked ? false : p.referatOralPercentEnabled,
-            referatFinalPercentEnabled: checked ? false : p.referatFinalPercentEnabled,
-          }))}
           referatWrittenPercentEnabled={newCourse.referatWrittenPercentEnabled === true}
-          onReferatWrittenPercentEnabledChange={(checked) => setNewCourse((p) => ({
-            ...p,
-            referatWrittenPercentEnabled: checked,
-            referatAsExam: checked ? false : p.referatAsExam,
-            referatAsOral: checked ? false : p.referatAsOral,
-            referatFinalPercentEnabled: checked ? false : p.referatFinalPercentEnabled,
-            referatWrittenPercent: p.referatWrittenPercent > 0 ? p.referatWrittenPercent : 50,
-          }))}
           referatWrittenPercent={newCourse.referatWrittenPercent ?? 100}
           onReferatWrittenPercentChange={(raw) => {
             const v = parseInt(String(raw), 10);
@@ -297,14 +273,6 @@ export default function NewCourseForm() {
             }));
           }}
           referatOralPercentEnabled={newCourse.referatOralPercentEnabled === true}
-          onReferatOralPercentEnabledChange={(checked) => setNewCourse((p) => ({
-            ...p,
-            referatOralPercentEnabled: checked,
-            referatAsExam: checked ? false : p.referatAsExam,
-            referatAsOral: checked ? false : p.referatAsOral,
-            referatFinalPercentEnabled: checked ? false : p.referatFinalPercentEnabled,
-            referatOralPercent: p.referatOralPercent > 0 ? p.referatOralPercent : 50,
-          }))}
           referatOralPercent={newCourse.referatOralPercent ?? 100}
           onReferatOralPercentChange={(raw) => {
             const v = parseInt(String(raw), 10);
@@ -314,15 +282,6 @@ export default function NewCourseForm() {
             }));
           }}
           referatFinalPercentEnabled={newCourse.referatFinalPercentEnabled === true}
-          onReferatFinalPercentEnabledChange={(checked) => setNewCourse((p) => ({
-            ...p,
-            referatFinalPercentEnabled: checked,
-            referatAsExam: checked ? false : p.referatAsExam,
-            referatAsOral: checked ? false : p.referatAsOral,
-            referatWrittenPercentEnabled: checked ? false : p.referatWrittenPercentEnabled,
-            referatOralPercentEnabled: checked ? false : p.referatOralPercentEnabled,
-            referatFinalPercent: p.referatFinalPercent > 0 ? p.referatFinalPercent : 50,
-          }))}
           referatFinalPercent={newCourse.referatFinalPercent ?? 100}
           onReferatFinalPercentChange={(raw) => {
             const v = parseInt(String(raw), 10);
@@ -331,6 +290,10 @@ export default function NewCourseForm() {
               referatFinalPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
             }));
           }}
+          onReferatModeChange={(mode, checked) => setNewCourse((p) => ({
+            ...p,
+            ...resolveReferatModeToggle(mode, checked, p),
+          }))}
         />
       </section>
 

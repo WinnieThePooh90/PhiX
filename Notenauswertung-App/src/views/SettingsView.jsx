@@ -8,7 +8,7 @@ import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
 import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
-import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle } from '../utils/courseWeightingOptions';
+import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -528,32 +528,8 @@ export default function SettingsView() {
                 testsWritten={config.testsWritten !== false}
                 referateAccepted={config.referateAccepted === true}
                 referatAsExam={config.referatAsExam === true}
-                onReferatAsExamChange={(checked) => setConfig((c) => ({
-                  ...c,
-                  referatAsExam: checked,
-                  referatAsOral: checked ? false : c.referatAsOral,
-                  referatWrittenPercentEnabled: checked ? false : c.referatWrittenPercentEnabled,
-                  referatOralPercentEnabled: checked ? false : c.referatOralPercentEnabled,
-                  referatFinalPercentEnabled: checked ? false : c.referatFinalPercentEnabled,
-                }))}
                 referatAsOral={config.referatAsOral === true}
-                onReferatAsOralChange={(checked) => setConfig((c) => ({
-                  ...c,
-                  referatAsOral: checked,
-                  referatAsExam: checked ? false : c.referatAsExam,
-                  referatWrittenPercentEnabled: checked ? false : c.referatWrittenPercentEnabled,
-                  referatOralPercentEnabled: checked ? false : c.referatOralPercentEnabled,
-                  referatFinalPercentEnabled: checked ? false : c.referatFinalPercentEnabled,
-                }))}
                 referatWrittenPercentEnabled={config.referatWrittenPercentEnabled === true}
-                onReferatWrittenPercentEnabledChange={(checked) => setConfig((c) => ({
-                  ...c,
-                  referatWrittenPercentEnabled: checked,
-                  referatAsExam: checked ? false : c.referatAsExam,
-                  referatAsOral: checked ? false : c.referatAsOral,
-                  referatFinalPercentEnabled: checked ? false : c.referatFinalPercentEnabled,
-                  referatWrittenPercent: c.referatWrittenPercent > 0 ? c.referatWrittenPercent : 50,
-                }))}
                 referatWrittenPercent={config.referatWrittenPercent ?? 100}
                 onReferatWrittenPercentChange={(raw) => {
                   const v = parseInt(String(raw).replace(',', '.'), 10);
@@ -563,14 +539,6 @@ export default function SettingsView() {
                   }));
                 }}
                 referatOralPercentEnabled={config.referatOralPercentEnabled === true}
-                onReferatOralPercentEnabledChange={(checked) => setConfig((c) => ({
-                  ...c,
-                  referatOralPercentEnabled: checked,
-                  referatAsExam: checked ? false : c.referatAsExam,
-                  referatAsOral: checked ? false : c.referatAsOral,
-                  referatFinalPercentEnabled: checked ? false : c.referatFinalPercentEnabled,
-                  referatOralPercent: c.referatOralPercent > 0 ? c.referatOralPercent : 50,
-                }))}
                 referatOralPercent={config.referatOralPercent ?? 100}
                 onReferatOralPercentChange={(raw) => {
                   const v = parseInt(String(raw).replace(',', '.'), 10);
@@ -580,15 +548,6 @@ export default function SettingsView() {
                   }));
                 }}
                 referatFinalPercentEnabled={config.referatFinalPercentEnabled === true}
-                onReferatFinalPercentEnabledChange={(checked) => setConfig((c) => ({
-                  ...c,
-                  referatFinalPercentEnabled: checked,
-                  referatAsExam: checked ? false : c.referatAsExam,
-                  referatAsOral: checked ? false : c.referatAsOral,
-                  referatWrittenPercentEnabled: checked ? false : c.referatWrittenPercentEnabled,
-                  referatOralPercentEnabled: checked ? false : c.referatOralPercentEnabled,
-                  referatFinalPercent: c.referatFinalPercent > 0 ? c.referatFinalPercent : 50,
-                }))}
                 referatFinalPercent={config.referatFinalPercent ?? 100}
                 onReferatFinalPercentChange={(raw) => {
                   const v = parseInt(String(raw).replace(',', '.'), 10);
@@ -597,6 +556,10 @@ export default function SettingsView() {
                     referatFinalPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
                   }));
                 }}
+                onReferatModeChange={(mode, checked) => setConfig((c) => ({
+                  ...c,
+                  ...resolveReferatModeToggle(mode, checked, c),
+                }))}
               />
             </section>
 

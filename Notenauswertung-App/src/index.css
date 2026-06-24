@@ -2506,7 +2506,40 @@ tfoot td {
   gap: 0.35rem;
 }
 
-.settings-advanced-weighting-panel > .settings-advanced-weighting-option {
+.settings-advanced-weighting-panel--columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 100%;
+  max-width: 52rem;
+  gap: 1.25rem 2rem;
+  align-items: start;
+}
+
+.settings-advanced-weighting-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.settings-advanced-weighting-column__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .settings-advanced-weighting-panel--columns {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.settings-advanced-weighting-panel > .settings-advanced-weighting-option,
+.settings-advanced-weighting-column > .settings-advanced-weighting-option {
   width: 100%;
   margin-top: 0;
   box-sizing: border-box;

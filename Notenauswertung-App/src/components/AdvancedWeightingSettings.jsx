@@ -1,5 +1,6 @@
 import React from 'react';
 import PhixCheckboxOption from './PhixCheckboxOption';
+import { REFERAT_WEIGHTING_MODES, getReferatWeightingMode } from '../utils/courseWeightingOptions';
 
 export default function AdvancedWeightingSettings({
   advancedEnabled,
@@ -15,23 +16,31 @@ export default function AdvancedWeightingSettings({
   testsWritten = true,
   referateAccepted = false,
   referatAsExam = false,
-  onReferatAsExamChange,
   referatAsOral = false,
-  onReferatAsOralChange,
   referatWrittenPercentEnabled = false,
-  onReferatWrittenPercentEnabledChange,
   referatWrittenPercent = 100,
   onReferatWrittenPercentChange,
   referatOralPercentEnabled = false,
-  onReferatOralPercentEnabledChange,
   referatOralPercent = 100,
   onReferatOralPercentChange,
   referatFinalPercentEnabled = false,
-  onReferatFinalPercentEnabledChange,
   referatFinalPercent = 100,
   onReferatFinalPercentChange,
+  onReferatModeChange,
 }) {
   const testsOptionsDisabled = testsWritten === false;
+
+  const referatMode = getReferatWeightingMode({
+    referatAsExam,
+    referatAsOral,
+    referatWrittenPercentEnabled,
+    referatOralPercentEnabled,
+    referatFinalPercentEnabled,
+  });
+
+  const handleReferatModeToggle = (mode) => (e) => {
+    onReferatModeChange?.(mode, e.target.checked);
+  };
 
   const stopCheckboxToggle = (e) => {
     e.stopPropagation();
@@ -55,72 +64,76 @@ export default function AdvancedWeightingSettings({
         </div>
       </div>
       {advancedEnabled ? (
-        <div className="settings-advanced-weighting-panel">
-          <PhixCheckboxOption
-            checked={testsAsHalfExam === true}
-            onChange={(e) => onTestsAsHalfExamChange(e.target.checked)}
-            disabled={testsOptionsDisabled}
-            className="settings-advanced-weighting-option"
-          >
-            Tests als halbe Klausur werten
-          </PhixCheckboxOption>
-          <PhixCheckboxOption
-            checked={testsAsOral === true}
-            onChange={(e) => onTestsAsOralChange(e.target.checked)}
-            disabled={testsOptionsDisabled}
-            className="settings-advanced-weighting-option"
-          >
-            Tests wie mündlich werten
-          </PhixCheckboxOption>
-          <PhixCheckboxOption
-            checked={testsPerKlausurEnabled === true}
-            onChange={(e) => onTestsPerKlausurEnabledChange(e.target.checked)}
-            disabled={testsOptionsDisabled}
-            className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
-          >
-            {testsPerKlausurEnabled ? (
-              <span className="settings-tests-per-klausur-inline-label">
-                <input
-                  type="number"
-                  className="course-meta-control settings-tests-per-klausur-x"
-                  min="1"
-                  max="99"
-                  step="1"
-                  value={testsPerKlausur ?? 10}
-                  onChange={(e) => onTestsPerKlausurChange(e.target.value)}
-                  onMouseDown={stopCheckboxToggle}
-                  onClick={stopCheckboxToggle}
-                  aria-label="Anzahl Tests pro Klausur"
-                />
-                {' '}
-                Tests zählen wie 1 Klausur
-              </span>
-            ) : (
-              'x Tests zählen wie 1 Klausur'
-            )}
-          </PhixCheckboxOption>
+        <div className={`settings-advanced-weighting-panel${referateAccepted ? ' settings-advanced-weighting-panel--columns' : ''}`}>
+          <div className="settings-advanced-weighting-column">
+            <h4 className="settings-advanced-weighting-column__title">Tests</h4>
+            <PhixCheckboxOption
+              checked={testsAsHalfExam === true}
+              onChange={(e) => onTestsAsHalfExamChange(e.target.checked)}
+              disabled={testsOptionsDisabled}
+              className="settings-advanced-weighting-option"
+            >
+              Tests als halbe Klausur werten
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={testsAsOral === true}
+              onChange={(e) => onTestsAsOralChange(e.target.checked)}
+              disabled={testsOptionsDisabled}
+              className="settings-advanced-weighting-option"
+            >
+              Tests wie mündlich werten
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={testsPerKlausurEnabled === true}
+              onChange={(e) => onTestsPerKlausurEnabledChange(e.target.checked)}
+              disabled={testsOptionsDisabled}
+              className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+            >
+              {testsPerKlausurEnabled ? (
+                <span className="settings-tests-per-klausur-inline-label">
+                  <input
+                    type="number"
+                    className="course-meta-control settings-tests-per-klausur-x"
+                    min="1"
+                    max="99"
+                    step="1"
+                    value={testsPerKlausur ?? 10}
+                    onChange={(e) => onTestsPerKlausurChange(e.target.value)}
+                    onMouseDown={stopCheckboxToggle}
+                    onClick={stopCheckboxToggle}
+                    aria-label="Anzahl Tests pro Klausur"
+                  />
+                  {' '}
+                  Tests zählen wie 1 Klausur
+                </span>
+              ) : (
+                'x Tests zählen wie 1 Klausur'
+              )}
+            </PhixCheckboxOption>
+          </div>
           {referateAccepted ? (
-            <>
+            <div className="settings-advanced-weighting-column">
+              <h4 className="settings-advanced-weighting-column__title">Referate</h4>
               <PhixCheckboxOption
-                checked={referatAsExam === true}
-                onChange={(e) => onReferatAsExamChange?.(e.target.checked)}
+                checked={referatMode === REFERAT_WEIGHTING_MODES.EXAM}
+                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.EXAM)}
                 className="settings-advanced-weighting-option"
               >
                 Referat als Klausur werten
               </PhixCheckboxOption>
               <PhixCheckboxOption
-                checked={referatAsOral === true}
-                onChange={(e) => onReferatAsOralChange?.(e.target.checked)}
+                checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL}
+                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL)}
                 className="settings-advanced-weighting-option"
               >
                 Referat wie mündlich werten
               </PhixCheckboxOption>
               <PhixCheckboxOption
-                checked={referatWrittenPercentEnabled === true}
-                onChange={(e) => onReferatWrittenPercentEnabledChange?.(e.target.checked)}
+                checked={referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT}
+                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT)}
                 className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
               >
-                {referatWrittenPercentEnabled ? (
+                {referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT ? (
                   <span className="settings-tests-per-klausur-inline-label">
                     Referat zählt zu
                     {' '}
@@ -144,11 +157,11 @@ export default function AdvancedWeightingSettings({
                 )}
               </PhixCheckboxOption>
               <PhixCheckboxOption
-                checked={referatOralPercentEnabled === true}
-                onChange={(e) => onReferatOralPercentEnabledChange?.(e.target.checked)}
+                checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT}
+                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL_PERCENT)}
                 className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
               >
-                {referatOralPercentEnabled ? (
+                {referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT ? (
                   <span className="settings-tests-per-klausur-inline-label">
                     Referat zählt zu
                     {' '}
@@ -172,11 +185,11 @@ export default function AdvancedWeightingSettings({
                 )}
               </PhixCheckboxOption>
               <PhixCheckboxOption
-                checked={referatFinalPercentEnabled === true}
-                onChange={(e) => onReferatFinalPercentEnabledChange?.(e.target.checked)}
+                checked={referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT}
+                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.FINAL_PERCENT)}
                 className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
               >
-                {referatFinalPercentEnabled ? (
+                {referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT ? (
                   <span className="settings-tests-per-klausur-inline-label">
                     Referat zählt zu
                     {' '}
@@ -199,7 +212,7 @@ export default function AdvancedWeightingSettings({
                   'Referat zählt zu x % in die Gesamtnote'
                 )}
               </PhixCheckboxOption>
-            </>
+            </div>
           ) : null}
         </div>
       ) : null}

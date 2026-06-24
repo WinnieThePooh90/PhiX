@@ -35,7 +35,11 @@ export function includeTestsInFinalWeight(config) {
 /** Gehaltene Referate zählen im Schriftlich-Durchschnitt wie Klausuren. */
 export function usesReferatAsExam(config) {
   if (!config || config.referateAccepted !== true) return false;
-  return config.referatAsExam === true;
+  if (config.referatAsOral === true) return false;
+  if (config.referatWrittenPercentEnabled === true) return false;
+  if (config.referatOralPercentEnabled === true) return false;
+  if (config.referatFinalPercentEnabled === true) return false;
+  return true;
 }
 
 /** Gehaltene Referate zählen im Mündlich-Durchschnitt wie mündliche Noten. */
@@ -120,6 +124,66 @@ export function getReferatFinalPercent(config) {
 export function effectiveReferatEntriesForFinalPercentGrading(config, referatEntries) {
   if (!usesReferatFinalPercent(config)) return [];
   return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
+export const REFERAT_WEIGHTING_MODES = {
+  EXAM: 'exam',
+  ORAL: 'oral',
+  WRITTEN_PERCENT: 'writtenPercent',
+  ORAL_PERCENT: 'oralPercent',
+  FINAL_PERCENT: 'finalPercent',
+};
+
+/** Aktiver Referat-Gewichtungsmodus (Standard: Klausur). */
+export function getReferatWeightingMode(config) {
+  if (!config) return REFERAT_WEIGHTING_MODES.EXAM;
+  if (config.referatAsOral === true) return REFERAT_WEIGHTING_MODES.ORAL;
+  if (config.referatWrittenPercentEnabled === true) return REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT;
+  if (config.referatOralPercentEnabled === true) return REFERAT_WEIGHTING_MODES.ORAL_PERCENT;
+  if (config.referatFinalPercentEnabled === true) return REFERAT_WEIGHTING_MODES.FINAL_PERCENT;
+  return REFERAT_WEIGHTING_MODES.EXAM;
+}
+
+/** Setzt genau einen Referat-Gewichtungsmodus (alle anderen aus). */
+export function patchReferatWeightingMode(mode, prev = {}) {
+  const off = {
+    referatAsExam: false,
+    referatAsOral: false,
+    referatWrittenPercentEnabled: false,
+    referatOralPercentEnabled: false,
+    referatFinalPercentEnabled: false,
+  };
+  switch (mode) {
+    case REFERAT_WEIGHTING_MODES.ORAL:
+      return { ...off, referatAsOral: true };
+    case REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT:
+      return {
+        ...off,
+        referatWrittenPercentEnabled: true,
+        referatWrittenPercent: Number(prev.referatWrittenPercent) > 0 ? prev.referatWrittenPercent : 50,
+      };
+    case REFERAT_WEIGHTING_MODES.ORAL_PERCENT:
+      return {
+        ...off,
+        referatOralPercentEnabled: true,
+        referatOralPercent: Number(prev.referatOralPercent) > 0 ? prev.referatOralPercent : 50,
+      };
+    case REFERAT_WEIGHTING_MODES.FINAL_PERCENT:
+      return {
+        ...off,
+        referatFinalPercentEnabled: true,
+        referatFinalPercent: Number(prev.referatFinalPercent) > 0 ? prev.referatFinalPercent : 50,
+      };
+    case REFERAT_WEIGHTING_MODES.EXAM:
+    default:
+      return { ...off, referatAsExam: true };
+  }
+}
+
+/** Checkbox-Umschaltung: bei Abwahl → wieder „Referat als Klausur“. */
+export function resolveReferatModeToggle(mode, checked, prev = {}) {
+  if (checked) return patchReferatWeightingMode(mode, prev);
+  return patchReferatWeightingMode(REFERAT_WEIGHTING_MODES.EXAM, prev);
 }
 
 /** Für Berechnungsfunktionen mit Einzelflags statt Config-Objekt. */
