@@ -1265,6 +1265,9 @@ app.post('/api/referate', async (req, res) => {
   const gehalten = Boolean(req.body.gehalten);
   const halbjahr = req.body.halbjahr != null ? String(req.body.halbjahr) : '1';
   const note = req.body.note != null ? String(req.body.note) : '';
+  const auswertungHilfe = req.body.auswertungHilfe != null && typeof req.body.auswertungHilfe === 'object'
+    ? req.body.auswertungHilfe
+    : {};
 
   const entry = await prisma.referatEntry.create({
     data: {
@@ -1276,6 +1279,7 @@ app.post('/api/referate', async (req, res) => {
       gehalten,
       halbjahr: halbjahr === '2' ? '2' : '1',
       note: String(note),
+      auswertungHilfe,
     },
   });
   res.json(entry);
@@ -1294,7 +1298,7 @@ app.put('/api/referate/:id', async (req, res) => {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
 
-  const { thema, art, date, gehalten, halbjahr, note, studentId, courseId: bodyCourseId } = req.body;
+  const { thema, art, date, gehalten, halbjahr, note, studentId, courseId: bodyCourseId, auswertungHilfe } = req.body;
   const data = {};
   if (thema !== undefined) data.thema = String(thema);
   if (art !== undefined) data.art = String(art);
@@ -1302,6 +1306,9 @@ app.put('/api/referate/:id', async (req, res) => {
   if (gehalten !== undefined) data.gehalten = Boolean(gehalten);
   if (halbjahr !== undefined) data.halbjahr = String(halbjahr) === '2' ? '2' : '1';
   if (note !== undefined) data.note = String(note);
+  if (auswertungHilfe !== undefined && typeof auswertungHilfe === 'object' && !Array.isArray(auswertungHilfe)) {
+    data.auswertungHilfe = auswertungHilfe;
+  }
   if (Number.isFinite(Number(studentId))) data.studentId = Number(studentId);
   if (bodyCourseId !== undefined && Number.isFinite(Number(bodyCourseId))) {
     const nc = await prisma.course.findUnique({ where: { id: Number(bodyCourseId) } });

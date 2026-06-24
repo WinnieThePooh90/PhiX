@@ -12,7 +12,7 @@ const ENCRYPTED_FIELDS = {
   Test: ['name', 'date', 'halbjahr', 'keyType', 'scores'],
   Oral: ['name', 'date', 'halbjahr', 'grades'],
   GfsEntry: ['thema', 'art', 'date', 'halbjahr', 'note', 'auswertungHilfe'],
-  ReferatEntry: ['thema', 'art', 'date', 'halbjahr', 'note'],
+  ReferatEntry: ['thema', 'art', 'date', 'halbjahr', 'note', 'auswertungHilfe'],
   MoneyList: ['subject', 'notes', 'dueDate'],
   MoneyListEntry: ['externalFirstName', 'externalLastName'],
   AttendanceList: ['subject', 'notes', 'sessionDate'],

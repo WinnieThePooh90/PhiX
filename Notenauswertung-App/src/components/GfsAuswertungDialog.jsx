@@ -15,6 +15,7 @@ export default function GfsAuswertungDialog({
   open,
   onClose,
   studentName,
+  titleLabel = 'GFS-Auswertung',
   auswertungHilfe,
   onSave,
 }) {
@@ -72,7 +73,7 @@ export default function GfsAuswertungDialog({
       >
         <div className="oral-formula-modal-header">
           <h2 id="gfs-auswertung-title" style={{ margin: 0, fontSize: '1.05rem' }}>
-            GFS-Auswertung — {studentName}
+            {titleLabel} — {studentName}
           </h2>
           <button type="button" className="tab secondary" onClick={onClose} aria-label="Schließen">
             Schließen
