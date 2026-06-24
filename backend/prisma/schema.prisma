@@ -302,17 +302,18 @@ model NotesListEntry {
 }
 
 model GfsEntry {
-  id        Int     @id @default(autoincrement())
-  thema     String  @default("")
-  art       String  @default("")
-  date      String  @default("")
-  gehalten  Boolean @default(false)
-  halbjahr  String  @default("1")
-  note      String  @default("")
-  studentId Int
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseId  Int?
-  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id              Int     @id @default(autoincrement())
+  thema           String  @default("")
+  art             String  @default("")
+  date            String  @default("")
+  gehalten        Boolean @default(false)
+  halbjahr        String  @default("1")
+  note            String  @default("")
+  auswertungHilfe Json    @default("{}")
+  studentId       Int
+  student         Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId        Int?
+  course          Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model ReferatEntry {

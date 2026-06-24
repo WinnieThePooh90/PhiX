@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ClipboardList } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import {
   gradeCellColorsFromResolved,
@@ -9,6 +9,8 @@ import {
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
 import { useFocusStudentTableRow } from '../utils/useFocusStudentTableRow';
+import GfsAuswertungDialog from '../components/GfsAuswertungDialog';
+import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from '../utils/gfsAuswertungConfig';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
 function gfsNotePointsDisplay(note) {
@@ -40,6 +42,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
   const [gfsNoteEditingId, setGfsNoteEditingId] = useState(null);
   const [gfsNoteDraft, setGfsNoteDraft] = useState('');
   const [tableMaximized, setTableMaximized] = useState(false);
+  const [auswertungEntry, setAuswertungEntry] = useState(null);
   const wrapRef = useRef(null);
 
   const updatePickerAnchor = useCallback(() => {
@@ -99,6 +102,14 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
   const handleGfsNoteChange = (entryId, raw) => {
     updateGfsEntry(entryId, 'note', raw.replace(/,/g, '.'));
   };
+
+  const handleAuswertungSave = (payload) => {
+    if (!auswertungEntry) return;
+    updateGfsEntry(auswertungEntry.id, 'auswertungHilfe', payload);
+    setAuswertungEntry((prev) => (prev ? { ...prev, auswertungHilfe: payload } : prev));
+  };
+
+  const colCount = isKursstufe ? 10 : 11;
 
   return (
     <div className="view-generic-scroll view-generic-scroll--gfs">
@@ -214,6 +225,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                 </th>
                 {!isKursstufe && <th style={{ width: '100px' }}>Halbjahr</th>}
                 <th style={{ width: '120px' }}>Note</th>
+                <th style={{ width: '130px' }} className="text-center">Auswertungshilfe</th>
                 <th style={{ width: '88px' }} className="text-right">
                   Aktion
                 </th>
@@ -222,14 +234,14 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
             <tbody>
               {gfsEntries.length === 0 && (
                 <tr>
-                  <td colSpan={isKursstufe ? 8 : 9} className="text-center text-muted" style={{ padding: '2rem' }}>
+                  <td colSpan={colCount} className="text-center text-muted" style={{ padding: '2rem' }}>
                     Noch keine Einträge. Klicke auf den Plus-Button, um einen Schüler auszuwählen.
                   </td>
                 </tr>
               )}
               {gfsEntries.length > 0 && displayEntries.length === 0 && (
                 <tr>
-                  <td colSpan={isKursstufe ? 8 : 9} className="text-center text-muted" style={{ padding: '2rem' }}>
+                  <td colSpan={colCount} className="text-center text-muted" style={{ padding: '2rem' }}>
                     Kein Schüler entspricht der Suche.
                   </td>
                 </tr>
@@ -240,6 +252,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                 const gehalten = row.gehalten === true;
                 const noteColorResolved = resolveStoredGradeForCellColor(row.note, gradeSys);
                 const noteCellColors = gradeCellColorsFromResolved(noteColorResolved, gradeSys);
+                const auswertungSummary = formatGfsAuswertungSummary(parseGfsAuswertungHilfe(row.auswertungHilfe).scores);
                 return (
                   <tr key={row.id} ref={(el) => setRowRef(row.studentId, el)}>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -357,6 +370,26 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                         }}
                       />
                     </td>
+                    <td className="text-center" style={{ verticalAlign: 'middle' }}>
+                      <button
+                        type="button"
+                        className="tab secondary gfs-auswertung-open-btn"
+                        onClick={() => setAuswertungEntry({ id: row.id, studentName: name, auswertungHilfe: row.auswertungHilfe })}
+                        title="Auswertungshilfe öffnen"
+                        aria-label={`Auswertungshilfe für ${name}`}
+                      >
+                        <ClipboardList size={16} strokeWidth={2} aria-hidden style={{ marginRight: auswertungSummary ? '0.35rem' : 0 }} />
+                        {auswertungSummary ? (
+                          <span>
+                            {auswertungSummary.sum}
+                            {' Pkt.'}
+                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}` : ''}
+                          </span>
+                        ) : (
+                          <span>Öffnen</span>
+                        )}
+                      </button>
+                    </td>
                     <td className="text-right">
                       <button
                         type="button"
@@ -383,6 +416,14 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
         </div>
       </MaximizableTableSection>
       </div>
+
+      <GfsAuswertungDialog
+        open={auswertungEntry != null}
+        onClose={() => setAuswertungEntry(null)}
+        studentName={auswertungEntry?.studentName ?? ''}
+        auswertungHilfe={auswertungEntry?.auswertungHilfe}
+        onSave={handleAuswertungSave}
+      />
     </div>
   );
 }

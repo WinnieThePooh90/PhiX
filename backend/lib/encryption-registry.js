@@ -11,7 +11,7 @@ const ENCRYPTED_FIELDS = {
   Project: ['name', 'description', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'fieldNames', 'groups', 'scores'],
   Test: ['name', 'date', 'halbjahr', 'keyType', 'scores'],
   Oral: ['name', 'date', 'halbjahr', 'grades'],
-  GfsEntry: ['thema', 'art', 'date', 'halbjahr', 'note'],
+  GfsEntry: ['thema', 'art', 'date', 'halbjahr', 'note', 'auswertungHilfe'],
   ReferatEntry: ['thema', 'art', 'date', 'halbjahr', 'note'],
   MoneyList: ['subject', 'notes', 'dueDate'],
   MoneyListEntry: ['externalFirstName', 'externalLastName'],
@@ -33,6 +33,7 @@ const JSON_FIELDS = new Set([
   'groups',
   'scores',
   'grades',
+  'auswertungHilfe',
 ]);
 
 const DATE_STRING_FIELDS = new Set(['dueDate', 'sessionDate']);
