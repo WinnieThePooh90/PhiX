@@ -4,16 +4,14 @@ Von der Projektregel `.cursor/rules/version-per-prompt.mdc` gepflegt (Agent-Modu
 
 | Feld | Wert |
 |------|------|
-| **Build** | `274` |
+| **Build** | `275` |
 | **Letzte Änderung** | `2026-06-22` |
 
 Maschinenlesbar (eine Zeile pro Schlüssel):
 
 ```
-PHIX_BUILD=274
+PHIX_BUILD=275
 PHIX_LETZTE_AENDERUNG=2026-06-22
 ```
 
-**Build-Nummer:** eine einzige Zahl (**`PHIX_BUILD`**, ohne Punkt/Komma in dieser Datei).
-
-**npm / electron-builder:** in allen drei `package.json` steht **`"<PHIX_BUILD>.0.0"`** (z. B. Build `6` → `"6.0.0"`), weil **electron-builder** kein reines `"6"` akzeptiert. Die sichtbare Versionszahl ist weiterhin die **erste** Komponente.
+Die sichtbare Versionsnummer in der App entspricht **PHIX_BUILD** (eine Ganzzahl).

@@ -64,6 +64,35 @@ function renderProjectListItems(projectEntries, studentId, customGradingKeys, gr
   });
 }
 
+function renderHeldReferatListItems({
+  entries,
+  studentId,
+  halbjahrFilter,
+  gradeSys,
+  gfmt,
+  listFontSize,
+  active,
+  suffix = '',
+  keyPrefix,
+}) {
+  if (!active) return null;
+  return entries
+    .filter((e) => e.studentId === studentId && (!halbjahrFilter || e.halbjahr === halbjahrFilter))
+    .map((e) => {
+      const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
+      const gNum = storedGradeStringToClassic(e.note, gradeSys);
+      const counted = e.gehalten === true && gNum !== null;
+      return (
+        <li key={`${keyPrefix}-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
+          <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}{suffix}:</span>
+          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
+            {counted ? gfmt(gNum) : '-'}
+          </strong>
+        </li>
+      );
+    });
+}
+
 function gradeListItemStyle(fontSize) {
   return { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize };
 }
@@ -97,6 +126,8 @@ export default function StudentGradesOverviewPanel({
   referatOralPercent = 100,
   referatCountsAsFinalPercent = false,
   referatFinalPercent = 100,
+  showGfs = true,
+  showReferate = false,
   weighting,
   customGradingKeys,
   gradeSys,
@@ -220,7 +251,7 @@ export default function StudentGradesOverviewPanel({
                       </li>
                     );
                   })}
-                {gfsEntries
+                {showGfs ? gfsEntries
                   .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
                   .map((e) => {
                     const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'GFS';
@@ -234,40 +265,28 @@ export default function StudentGradesOverviewPanel({
                         </strong>
                       </li>
                     );
-                  })}
-                {referatEntries
-                  .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
-                  .map((e) => {
-                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
-                    const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                    const counted = e.gehalten === true && gNum !== null && referatCountsAsExam;
-                    return (
-                      <li key={`referat-exam-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                          {counted ? gfmt(gNum) : '-'}
-                        </strong>
-                      </li>
-                    );
-                  })}
-                {referatEntries
-                  .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
-                  .map((e) => {
-                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
-                    const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                    const counted = e.gehalten === true && gNum !== null && referatCountsAsPartialWritten;
-                    const pctLabel = referatCountsAsPartialWritten
-                      ? ` (${Math.round(referatWrittenPercent)} %)`
-                      : '';
-                    return (
-                      <li key={`referat-partial-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}{pctLabel}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                          {counted ? gfmt(gNum) : '-'}
-                        </strong>
-                      </li>
-                    );
-                  })}
+                  }) : null}
+                {showReferate && renderHeldReferatListItems({
+                  entries: referatEntries,
+                  studentId: student.id,
+                  halbjahrFilter: cat.filter,
+                  gradeSys,
+                  gfmt,
+                  listFontSize,
+                  active: referatCountsAsExam,
+                  keyPrefix: 'referat-exam',
+                })}
+                {showReferate && renderHeldReferatListItems({
+                  entries: referatEntries,
+                  studentId: student.id,
+                  halbjahrFilter: cat.filter,
+                  gradeSys,
+                  gfmt,
+                  listFontSize,
+                  active: referatCountsAsPartialWritten,
+                  suffix: referatCountsAsPartialWritten ? ` (${Math.round(referatWrittenPercent)} %)` : '',
+                  keyPrefix: 'referat-partial-written',
+                })}
                 {renderProjectListItems(writtenProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
               </ul>
             </div>
@@ -289,39 +308,27 @@ export default function StudentGradesOverviewPanel({
                       </li>
                     );
                   })}
-                {referatEntries
-                  .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
-                  .map((e) => {
-                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
-                    const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                    const counted = e.gehalten === true && gNum !== null && referatCountsAsOral;
-                    return (
-                      <li key={`referat-oral-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                          {counted ? gfmt(gNum) : '-'}
-                        </strong>
-                      </li>
-                    );
-                  })}
-                {referatEntries
-                  .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
-                  .map((e) => {
-                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
-                    const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                    const counted = e.gehalten === true && gNum !== null && referatCountsAsPartialOral;
-                    const pctLabel = referatCountsAsPartialOral
-                      ? ` (${Math.round(referatOralPercent)} %)`
-                      : '';
-                    return (
-                      <li key={`referat-oral-partial-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}{pctLabel}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                          {counted ? gfmt(gNum) : '-'}
-                        </strong>
-                      </li>
-                    );
-                  })}
+                {showReferate && renderHeldReferatListItems({
+                  entries: referatEntries,
+                  studentId: student.id,
+                  halbjahrFilter: cat.filter,
+                  gradeSys,
+                  gfmt,
+                  listFontSize,
+                  active: referatCountsAsOral,
+                  keyPrefix: 'referat-oral',
+                })}
+                {showReferate && renderHeldReferatListItems({
+                  entries: referatEntries,
+                  studentId: student.id,
+                  halbjahrFilter: cat.filter,
+                  gradeSys,
+                  gfmt,
+                  listFontSize,
+                  active: referatCountsAsPartialOral,
+                  suffix: referatCountsAsPartialOral ? ` (${Math.round(referatOralPercent)} %)` : '',
+                  keyPrefix: 'referat-partial-oral',
+                })}
                 {renderProjectListItems(oralProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
               </ul>
             </div>
@@ -349,31 +356,24 @@ export default function StudentGradesOverviewPanel({
               </div>
             )}
 
-            {(percentProjects.length > 0 || referatCountsAsFinalPercent) && (
+            {(percentProjects.length > 0 || (showReferate && referatCountsAsFinalPercent)) && (
               <div>
                 <h4 style={{ ...sectionTitleStyle(), marginTop: testsWritten ? '1rem' : 0 }}>
                   {percentProjects.length > 0 ? 'Projekte (prozentual)' : 'Gesamtnote (prozentual)'}
                 </h4>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {renderProjectListItems(percentProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
-                  {referatEntries
-                    .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
-                    .map((e) => {
-                      const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
-                      const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                      const counted = e.gehalten === true && gNum !== null && referatCountsAsFinalPercent;
-                      const pctLabel = referatCountsAsFinalPercent
-                        ? ` (${Math.round(referatFinalPercent)} %)`
-                        : '';
-                      return (
-                        <li key={`referat-final-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                          <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}{pctLabel}:</span>
-                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                            {counted ? gfmt(gNum) : '-'}
-                          </strong>
-                        </li>
-                      );
-                    })}
+                  {showReferate && renderHeldReferatListItems({
+                    entries: referatEntries,
+                    studentId: student.id,
+                    halbjahrFilter: cat.filter,
+                    gradeSys,
+                    gfmt,
+                    listFontSize,
+                    active: referatCountsAsFinalPercent,
+                    suffix: referatCountsAsFinalPercent ? ` (${Math.round(referatFinalPercent)} %)` : '',
+                    keyPrefix: 'referat-final',
+                  })}
                 </ul>
               </div>
             )}

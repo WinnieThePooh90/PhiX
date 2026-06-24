@@ -86,6 +86,8 @@ function RiskStudentsTable({
   referatOralPercent = 100,
   referatCountsAsFinalPercent = false,
   referatFinalPercent = 100,
+  showGfs = true,
+  showReferate = false,
   weighting,
   customGradingKeys,
   testsWritten,
@@ -143,6 +145,8 @@ function RiskStudentsTable({
                         referatOralPercent={referatOralPercent}
                         referatCountsAsFinalPercent={referatCountsAsFinalPercent}
                         referatFinalPercent={referatFinalPercent}
+                        showGfs={showGfs}
+                        showReferate={showReferate}
                         weighting={weighting}
                         customGradingKeys={customGradingKeys}
                         gradeSys={gradeSystem}
@@ -203,6 +207,8 @@ export default function AnalysisView() {
   const referatCountsAsPartialWritten = usesReferatWrittenPercent(config);
   const referatCountsAsPartialOral = usesReferatOralPercent(config);
   const referatCountsAsFinalPercent = usesReferatFinalPercent(config);
+  const showGfs = config?.gfsAccepted !== false;
+  const showReferate = config?.referateAccepted === true;
   const [expandedRiskStudentId, setExpandedRiskStudentId] = useState(null);
   const [distributionTooltipBucket, setDistributionTooltipBucket] = useState(null);
   const [barPopoverGeom, setBarPopoverGeom] = useState(null);
@@ -228,6 +234,8 @@ export default function AnalysisView() {
     referatOralPercent: config?.referatOralPercent ?? 100,
     referatCountsAsFinalPercent,
     referatFinalPercent: config?.referatFinalPercent ?? 100,
+    showGfs,
+    showReferate,
     weighting,
     customGradingKeys,
     testsWritten,

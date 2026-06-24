@@ -1086,6 +1086,8 @@ export default function SummaryView({
                           referatOralPercent={config?.referatOralPercent ?? 100}
                           referatCountsAsFinalPercent={referatCountsAsFinalPercent}
                           referatFinalPercent={config?.referatFinalPercent ?? 100}
+                          showGfs={showGfs}
+                          showReferate={showReferate}
                           weighting={weighting}
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
