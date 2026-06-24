@@ -29,6 +29,7 @@ export default function NewCourseForm() {
     gfsAccepted: true,
     projectsAccepted: false,
     referateAccepted: false,
+    referatAsExam: false,
     klassenlehrerEnabled: false,
     albumEnabled: false,
     advancedWeightingEnabled: false,
@@ -252,6 +253,9 @@ export default function NewCourseForm() {
             }));
           }}
           testsWritten={newCourse.testsWritten !== false}
+          referateAccepted={newCourse.referateAccepted === true}
+          referatAsExam={newCourse.referatAsExam === true}
+          onReferatAsExamChange={(checked) => setNewCourse((p) => ({ ...p, referatAsExam: checked }))}
         />
       </section>
 
@@ -298,7 +302,11 @@ export default function NewCourseForm() {
           </PhixCheckboxOption>
           <PhixCheckboxOption
             checked={newCourse.referateAccepted === true}
-            onChange={(e) => setNewCourse((p) => ({ ...p, referateAccepted: e.target.checked }))}
+            onChange={(e) => setNewCourse((p) => ({
+              ...p,
+              referateAccepted: e.target.checked,
+              referatAsExam: e.target.checked ? true : false,
+            }))}
           >
             Referate werden gehalten
           </PhixCheckboxOption>

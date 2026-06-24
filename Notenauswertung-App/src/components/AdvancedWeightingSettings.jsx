@@ -13,6 +13,9 @@ export default function AdvancedWeightingSettings({
   testsPerKlausur,
   onTestsPerKlausurChange,
   testsWritten = true,
+  referateAccepted = false,
+  referatAsExam = false,
+  onReferatAsExamChange,
 }) {
   const testsOptionsDisabled = testsWritten === false;
 
@@ -82,6 +85,15 @@ export default function AdvancedWeightingSettings({
               'x Tests zählen wie 1 Klausur'
             )}
           </PhixCheckboxOption>
+          {referateAccepted ? (
+            <PhixCheckboxOption
+              checked={referatAsExam === true}
+              onChange={(e) => onReferatAsExamChange?.(e.target.checked)}
+              className="settings-advanced-weighting-option"
+            >
+              Referat als Klausur werten
+            </PhixCheckboxOption>
+          ) : null}
           {testsOptionsDisabled ? (
             <p className="settings-advanced-weighting-hint text-muted">
               Nur verfügbar, wenn Tests geschrieben werden.

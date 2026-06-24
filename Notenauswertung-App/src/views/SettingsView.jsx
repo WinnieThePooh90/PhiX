@@ -526,6 +526,9 @@ export default function SettingsView() {
                   }));
                 }}
                 testsWritten={config.testsWritten !== false}
+                referateAccepted={config.referateAccepted === true}
+                referatAsExam={config.referatAsExam === true}
+                onReferatAsExamChange={(checked) => setConfig((c) => ({ ...c, referatAsExam: checked }))}
               />
             </section>
 
@@ -572,7 +575,11 @@ export default function SettingsView() {
                 </PhixCheckboxOption>
                 <PhixCheckboxOption
                   checked={config.referateAccepted === true}
-                  onChange={(e) => setConfig((c) => ({ ...c, referateAccepted: e.target.checked }))}
+                  onChange={(e) => setConfig((c) => ({
+                    ...c,
+                    referateAccepted: e.target.checked,
+                    referatAsExam: e.target.checked ? true : false,
+                  }))}
                 >
                   Referate werden gehalten
                 </PhixCheckboxOption>

@@ -87,8 +87,10 @@ model Course {
   gfsAccepted Boolean @default(true)
   /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */
   projectsAccepted Boolean @default(false)
-  /** Wenn true: Tab „Referate“ im Kurs; gehaltene Referate zählen schriftlich wie Klausuren. */
+  /** Wenn true: Tab „Referate“ im Kurs. */
   referateAccepted Boolean @default(false)
+  /** Gehaltene Referate zählen schriftlich wie Klausuren (wenn referateAccepted). */
+  referatAsExam Boolean @default(false)
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   /** Wenn true: Menüleiste im Tab Projekte eingeklappt (nur Tabellen sichtbar). */

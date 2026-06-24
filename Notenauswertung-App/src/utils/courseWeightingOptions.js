@@ -32,6 +32,18 @@ export function includeTestsInFinalWeight(config) {
   return !usesTestsAsHalfExam(config) && !usesTestsAsOral(config);
 }
 
+/** Gehaltene Referate zählen im Schriftlich-Durchschnitt wie Klausuren. */
+export function usesReferatAsExam(config) {
+  if (!config || config.referateAccepted !== true) return false;
+  return config.referatAsExam === true;
+}
+
+/** Referat-Einträge für die Notenberechnung (leer, wenn nicht als Klausur gewertet). */
+export function effectiveReferatEntriesForGrading(config, referatEntries) {
+  if (!usesReferatAsExam(config)) return [];
+  return Array.isArray(referatEntries) ? referatEntries : [];
+}
+
 /** Für Berechnungsfunktionen mit Einzelflags statt Config-Objekt. */
 export function includeTestsInFinalWeightFromFlags(testsWritten, testsAsHalfExam, testsAsOral) {
   return testsWritten && !testsAsHalfExam && !testsAsOral;
@@ -103,6 +115,7 @@ export function snapshotAdvancedWeightingOptions(config) {
     testsAsOral: config?.testsAsOral === true,
     testsPerKlausurEnabled: config?.testsPerKlausurEnabled === true,
     testsPerKlausur: getTestsPerKlausurX(config),
+    referatAsExam: config?.referatAsExam === true,
   };
 }
 
@@ -114,6 +127,7 @@ export function restoreAdvancedWeightingFromStash(stash) {
       testsAsOral: false,
       testsPerKlausurEnabled: false,
       testsPerKlausur: 10,
+      referatAsExam: false,
     };
   }
   const x = Number(stash.testsPerKlausur);
@@ -122,6 +136,7 @@ export function restoreAdvancedWeightingFromStash(stash) {
     testsAsOral: stash.testsAsOral === true,
     testsPerKlausurEnabled: stash.testsPerKlausurEnabled === true,
     testsPerKlausur: Number.isFinite(x) && x >= 1 ? Math.min(99, Math.round(x)) : 10,
+    referatAsExam: stash.referatAsExam === true,
   };
 }
 

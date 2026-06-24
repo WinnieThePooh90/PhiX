@@ -89,6 +89,7 @@ export default function StudentGradesOverviewPanel({
   projects,
   gfsEntries,
   referatEntries = [],
+  referatCountsAsExam = false,
   weighting,
   customGradingKeys,
   gradeSys,
@@ -105,6 +106,7 @@ export default function StudentGradesOverviewPanel({
     : GRADE_OVERVIEW_CATEGORIES;
 
   const gfmt = (g) => formatGrade(g, gradeSys);
+  const gradingReferatEntries = referatCountsAsExam ? referatEntries : [];
   const panelPadding = compact ? '1rem' : '1.5rem';
   const listFontSize = compact ? '0.8rem' : '0.85rem';
   const titleSize = compact ? '1rem' : '1.1rem';
@@ -135,7 +137,7 @@ export default function StudentGradesOverviewPanel({
           projects,
           testsAsHalfExam,
           testsAsOral,
-          referatEntries,
+          gradingReferatEntries,
         );
         const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
         const gfmtCalc = (g) => formatCalculatedGradeValue(g, gradeSys, valuesAreNotenpunkte);
@@ -211,7 +213,7 @@ export default function StudentGradesOverviewPanel({
                   .map((e) => {
                     const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
                     const gNum = storedGradeStringToClassic(e.note, gradeSys);
-                    const counted = e.gehalten === true && gNum !== null;
+                    const counted = e.gehalten === true && gNum !== null && referatCountsAsExam;
                     return (
                       <li key={`referat-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}:</span>

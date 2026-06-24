@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Wrench } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight, resolveCourseWeighting } from '../utils/courseWeightingOptions';
+import { usesTestsAsHalfExam, usesTestsAsOral, showTestsInWeightingRatio, includeTestsInFinalWeight, resolveCourseWeighting, effectiveReferatEntriesForGrading, usesReferatAsExam } from '../utils/courseWeightingOptions';
 import {
   calculateStudentGrades,
   getStudentGradeCalculationBreakdown,
@@ -730,6 +730,11 @@ export default function SummaryView({
     () => resolveCourseWeighting(config?.weighting, config, exams, tests),
     [config, exams, tests],
   );
+  const gradingReferatEntries = useMemo(
+    () => effectiveReferatEntriesForGrading(config, referatEntries),
+    [config, referatEntries],
+  );
+  const referatCountsAsExam = usesReferatAsExam(config);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const hasValidWeighting =
     Number.isFinite(Number(weighting?.written)) &&
@@ -892,7 +897,7 @@ export default function SummaryView({
                 projects,
                 testsAsHalfExam,
                 testsAsOral,
-                referatEntries,
+                gradingReferatEntries,
               );
               const calcOpts = calculatedGradeDisplayOpts(valuesAreNotenpunkte, gradeSys);
               const manualEndNum = storedGradeStringToClassic(s.summaryEndNote, gradeSys);
@@ -1029,6 +1034,7 @@ export default function SummaryView({
                           projects={projects}
                           gfsEntries={gfsEntries}
                           referatEntries={referatEntries}
+                          referatCountsAsExam={referatCountsAsExam}
                           weighting={weighting}
                           customGradingKeys={customGradingKeys}
                           gradeSys={gradeSys}
@@ -1179,7 +1185,7 @@ export default function SummaryView({
         tests={tests}
         projects={projects}
         gfsEntries={gfsEntries}
-        referatEntries={referatEntries}
+        referatEntries={gradingReferatEntries}
         customGradingKeys={customGradingKeys}
         gradeSys={gradeSys}
       />
