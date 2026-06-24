@@ -314,12 +314,7 @@ p {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  height: var(--course-meta-control-height);
-  min-height: var(--course-meta-control-height);
   box-sizing: border-box;
-  padding: 0 0.45rem;
-  font-size: 0.875rem;
-  line-height: 1.2;
 }
 
 .course-meta-class-kursstufe-row .course-meta-kursstufe-checkbox {
@@ -3206,7 +3201,7 @@ a.support-phix-paypal-btn:active {
 }
 
 .course-item-fav--on {
-  color: #eab308;
+  color: #f5d565;
 }
 
 .course-item:hover:not(.active) {

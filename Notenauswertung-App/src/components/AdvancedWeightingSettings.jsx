@@ -94,11 +94,6 @@ export default function AdvancedWeightingSettings({
               Referat als Klausur werten
             </PhixCheckboxOption>
           ) : null}
-          {testsOptionsDisabled ? (
-            <p className="settings-advanced-weighting-hint text-muted">
-              Nur verfügbar, wenn Tests geschrieben werden.
-            </p>
-          ) : null}
         </div>
       ) : null}
     </div>

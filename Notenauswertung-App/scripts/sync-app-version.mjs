@@ -38,7 +38,7 @@ function readFromPackageJson() {
 }
 
 const info = readFromAppVersionMd() ?? readFromPackageJson();
-const buildAt = `${info.date}T12:00:00.000Z`;
+const buildAt = new Date().toISOString();
 
 const contents = `/** Automatisch — scripts/sync-app-version.mjs (nicht von Hand ändern). Quelle: ${info.source} */
 export const APP_VERSION = ${info.build};
