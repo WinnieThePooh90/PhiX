@@ -104,7 +104,6 @@ function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, on
 export default function ExportView() {
   const { config, students, exams, orals, tests, projects, gfsEntries, referatEntries } = useData();
   const [busyKey, setBusyKey] = useState(null);
-  const [err, setErr] = useState('');
   const [expandedSections, setExpandedSections] = useState(() => new Set());
 
   const toggleSection = (sectionId) => {
@@ -147,20 +146,13 @@ export default function ExportView() {
   );
 
   const runExport = async (key, fn, { requireStudents = true } = {}) => {
-    setErr('');
-    if (!config) {
-      setErr('Kein Kurs ausgewählt.');
-      return;
-    }
-    if (requireStudents && !students.length) {
-      setErr('Keine Schüler im aktuellen Kurs — nichts zu exportieren.');
-      return;
-    }
+    if (!config) return;
+    if (requireStudents && !students.length) return;
     setBusyKey(key);
     try {
       await fn();
-    } catch {
-      setErr('Export fehlgeschlagen.');
+    } catch (e) {
+      console.error(e);
     } finally {
       setBusyKey(null);
     }
@@ -213,10 +205,7 @@ export default function ExportView() {
     runExport(`exam-${examId}-${format}`, async () => {
       const exam = exams[examId];
       if (!exam) throw new Error('missing exam');
-      if (exam.active === false) {
-        setErr('Inaktive Klausuren werden nicht exportiert.');
-        return null;
-      }
+      if (exam.active === false) return null;
       const { aoa, layout, gradingKey } = buildExamTableExport({ exam, examId, students, config });
       const sheetName = examExportSheetName(examId);
       const filename = examExportFilename(config, examId, format);
@@ -232,10 +221,7 @@ export default function ExportView() {
     runExport(`test-${testId}-${format}`, async () => {
       const test = tests[testId];
       if (!test) throw new Error('missing test');
-      if (test.active === false) {
-        setErr('Inaktive Tests werden nicht exportiert.');
-        return null;
-      }
+      if (test.active === false) return null;
       const aoa = buildTestTableExportAoa({ test, testId, students, config });
       const sheetName = testExportSheetName(testId, test.name);
       const filename = testExportFilename(config, testId, test.name, format);
@@ -250,15 +236,9 @@ export default function ExportView() {
   const exportOral = (oralId, format) =>
     runExport(`oral-${oralId}-${format}`, async () => {
       const oral = orals[oralId];
-      if (oral?.active === false) {
-        setErr('Inaktive mündliche Bereiche werden nicht exportiert.');
-        return null;
-      }
+      if (oral?.active === false) return null;
       const sheetData = buildOralStandardTableExportData({ oral, students, config });
-      if (!sheetData) {
-        setErr('Dieser Bereich ist nicht im Standardmodus verfügbar.');
-        return null;
-      }
+      if (!sheetData) return null;
       const { headers, rows, layout } = sheetData;
       const sheetName = oralExportSheetName(oralId, oral?.name);
       const filename = oralExportFilename(config, oralId, oral?.name, format);
@@ -273,15 +253,9 @@ export default function ExportView() {
   const exportOralExtended = (oralId, format) =>
     runExport(`oral-ext-${oralId}-${format}`, async () => {
       const oral = orals[oralId];
-      if (oral?.active === false) {
-        setErr('Inaktive mündliche Bereiche werden nicht exportiert.');
-        return null;
-      }
+      if (oral?.active === false) return null;
       const sheetData = buildOralExtendedTableExportData({ oral, students, config });
-      if (!sheetData) {
-        setErr('Dieser Bereich ist nicht im Erweitert-Modus verfügbar.');
-        return null;
-      }
+      if (!sheetData) return null;
       const { headers, rows, layout } = sheetData;
       const sheetName = oralExtendedExportSheetName(oralId, oral?.name);
       const filename = oralExtendedExportFilename(config, oralId, oral?.name, format);
@@ -295,13 +269,13 @@ export default function ExportView() {
 
   const exportGradingKey = (entry, format) =>
     runExport(`grading-key-${entry.id}-${format}`, async () => {
-      exportSingleGradingKey(config, entry, format);
+      await exportSingleGradingKey(config, entry, format);
       return gradingKeyExportFilename(config, entry.name, format);
     }, { requireStudents: false });
 
   const exportAllGradingKeysBundle = (format) =>
     runExport(`grading-keys-all-${format}`, async () => {
-      exportAllGradingKeys(config, format);
+      await exportAllGradingKeys(config, format);
       return gradingKeysAllExportFilename(config, format);
     }, { requireStudents: false });
 
@@ -357,7 +331,7 @@ export default function ExportView() {
 
         <ExportSection
           sectionId="summary"
-          title="Übersicht (Gesamtübersicht)"
+          title="Übersicht"
           expanded={isSectionOpen('summary')}
           onToggle={() => toggleSection('summary')}
         >
@@ -547,7 +521,7 @@ export default function ExportView() {
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Voreingestellte Schlüssel (Plateau/Linear) und eigene Vorlagen aus dem Reiter{' '}
-            <strong>Notenschlüssel</strong> (PKT, Note, %). Voreingestellte Schlüssel werden mit 50 Maximalpunkten
+            <strong>Notenschlüssel</strong> (PKT, Note, % und Diagramm). Voreingestellte Schlüssel werden mit 50 Maximalpunkten
             exportiert; eigene Schlüssel mit ihrem Referenzwert.
           </p>
           <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
@@ -589,12 +563,6 @@ export default function ExportView() {
             ))}
           </div>
         </ExportSection>
-
-        {err ? (
-          <p className="backup-feedback backup-feedback--error" role="alert">
-            {err}
-          </p>
-        ) : null}
       </div>
     </div>
   );

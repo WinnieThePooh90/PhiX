@@ -7,6 +7,7 @@ import {
   storedGradeStringToClassic,
 } from './calculator';
 import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent } from './courseWeightingOptions';
+import { expandRowsWithStudentNotes } from './studentNotesExport';
 
 /** Excel-Layout: # und Notenspalten zentriert, Name/Vorname links. */
 export function buildSummaryOverviewExportLayout(showTests) {

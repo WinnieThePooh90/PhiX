@@ -12,6 +12,7 @@ import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradin
 import {
   displayPointIntervalsHalfSteps,
   getCustomKeyDefinition,
+  normalizeCourseGradeSystem,
   normalizeQuarterGrade,
   pointsFromPercentHalfStep,
   resolveGradingThresholds,
@@ -186,6 +187,11 @@ export function resolveExamGradingKeyForExport(exam, config) {
     title,
     desc,
     aoa: buildGradingKeyExportAoa(rows),
+    chart: {
+      type,
+      maxPoints,
+      customBands,
+    },
   };
 }
 
@@ -238,6 +244,11 @@ export function resolveCustomGradingKeyForExport(customKey) {
       desc,
       maxPoints,
       aoa: buildGradingKeyExportAoa(rows),
+      chart: {
+        type: '1',
+        maxPoints,
+        customBands,
+      },
     },
   };
 }
@@ -276,6 +287,10 @@ export function resolveBuiltinGradingKeyForExport(type, maxPoints = DEFAULT_GRAD
       desc,
       maxPoints: effectiveMax,
       aoa: buildGradingKeyExportAoa(rows),
+      chart: {
+        type: keyType,
+        maxPoints: effectiveMax,
+      },
     },
   };
 }
@@ -285,14 +300,31 @@ export function buildCourseGradingKeysExportList(
   config,
   maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS,
 ) {
+  const showNotenpunkte = normalizeCourseGradeSystem(config?.gradeSystem) === 'points';
+  const withChartMode = (entry) => {
+    if (!entry?.gradingKey?.chart) return entry;
+    return {
+      ...entry,
+      gradingKey: {
+        ...entry.gradingKey,
+        chart: {
+          ...entry.gradingKey.chart,
+          showNotenpunkte,
+        },
+      },
+    };
+  };
+
   const builtins = BUILTIN_GRADING_KEY_TYPES
     .map((type) => resolveBuiltinGradingKeyForExport(type, maxPoints))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(withChartMode);
 
   const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const custom = customKeys
     .map((key) => resolveCustomGradingKeyForExport(key))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(withChartMode);
 
   return [...builtins, ...custom];
 }

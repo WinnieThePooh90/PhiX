@@ -219,21 +219,23 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
 }
 
 /**
- * Notenschlüssel als eigene PDF-Seite (Titel, Beschreibung, Tabelle).
+ * Notenschlüssel als eigene PDF-Seite (Titel, Beschreibung, Tabelle, Diagramm).
  * @param {{ title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] }} gradingKey
  * @param {string} filename
+ * @param {string|null} [chartPngDataUrl]
  */
-export function downloadGradingKeyPdf(gradingKey, filename) {
+export function downloadGradingKeyPdf(gradingKey, filename, chartPngDataUrl = null) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  renderGradingKeyFullPage(doc, gradingKey);
+  renderGradingKeyFullPage(doc, gradingKey, chartPngDataUrl);
   doc.save(ensurePdfFilename(filename));
 }
 
 /**
  * @param {{ gradingKey: { title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] } }[]} entries
  * @param {string} filename
+ * @param {Map<string, string|null>|Record<string, string|null>} [chartPngByEntryId]
  */
-export function downloadGradingKeysMultiPagePdf(entries, filename) {
+export function downloadGradingKeysMultiPagePdf(entries, filename, chartPngByEntryId = {}) {
   const list = entries ?? [];
   if (!list.length) {
     const doc = new jsPDF();
@@ -245,7 +247,10 @@ export function downloadGradingKeysMultiPagePdf(entries, filename) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   list.forEach((entry, index) => {
     if (index > 0) doc.addPage('a4', 'portrait');
-    renderGradingKeyFullPage(doc, entry.gradingKey);
+    const chartPng = chartPngByEntryId instanceof Map
+      ? chartPngByEntryId.get(entry.id)
+      : chartPngByEntryId?.[entry.id];
+    renderGradingKeyFullPage(doc, entry.gradingKey, chartPng ?? null);
   });
   doc.save(ensurePdfFilename(filename));
 }
@@ -253,8 +258,9 @@ export function downloadGradingKeysMultiPagePdf(entries, filename) {
 /**
  * @param {import('jspdf').jsPDF} doc
  * @param {{ title?: string, desc?: string, maxPoints?: number, aoa?: (string|number)[][] }} gradingKey
+ * @param {string|null} [chartPngDataUrl]
  */
-function renderGradingKeyFullPage(doc, gradingKey) {
+function renderGradingKeyFullPage(doc, gradingKey, chartPngDataUrl = null) {
   if (!gradingKey?.aoa?.length) return;
 
   const pw = pageWidth(doc);
@@ -284,7 +290,7 @@ function renderGradingKeyFullPage(doc, gradingKey) {
     y += 6;
   }
 
-  autoTable(doc, {
+  const tableResult = autoTable(doc, {
     head: [gradingKey.aoa[0].map(cellStr)],
     body: gradingKey.aoa.slice(1).map((row) => row.map(cellStr)),
     startY: y + 2,
@@ -300,4 +306,16 @@ function renderGradingKeyFullPage(doc, gradingKey) {
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     tableWidth: Math.min(90, contentWidth),
   });
+
+  if (chartPngDataUrl) {
+    const chartW = Math.min(contentWidth, 120);
+    const chartH = chartW * (75 / 120);
+    let chartY = (tableResult?.lastAutoTable?.finalY ?? y) + 8;
+    const pageH = doc.internal.pageSize.getHeight();
+    if (chartY + chartH > pageH - PAGE_MARGIN) {
+      doc.addPage('a4', 'portrait');
+      chartY = 18;
+    }
+    doc.addImage(chartPngDataUrl, 'PNG', PAGE_MARGIN, chartY, chartW, chartH);
+  }
 }

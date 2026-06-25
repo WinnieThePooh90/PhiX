@@ -1,7 +1,7 @@
 {
   "name": "phix-app",
   "private": true,
-  "version": "291.0.0",
+  "version": "293.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "author": "Karsten Paulokat",
@@ -16,6 +16,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^1.14.0",
