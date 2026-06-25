@@ -685,7 +685,7 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
       inputMode={gradeSystem === 'points' ? 'numeric' : 'decimal'}
       aria-label={`${label} für ${student.firstName} ${student.lastName}`}
       value={draft}
-      placeholder="—"
+      placeholder="-"
       title={
         gradeSystem === 'points'
           ? 'Notenpunkte 0–15 (werden so in der Datenbank gespeichert)'

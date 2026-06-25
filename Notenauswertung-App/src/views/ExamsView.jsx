@@ -681,7 +681,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                   updateExamStudentManualGradeValue(activeKlausur, s.id, e.target.value)
                                 }
                                 onKeyDown={handleTableEnterAsTab}
-                                placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                                placeholder="-"
                                 title="Manuelle Note (Berechnung wird ignoriert)"
                                 aria-label={`Manuelle Note für ${s.lastName}, ${s.firstName}`}
                                 style={{

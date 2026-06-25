@@ -362,7 +362,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                           setGfsNoteEditingId(null);
                           setGfsNoteDraft('');
                         }}
-                        placeholder={gradeSys === 'points' ? '—' : 'z. B. 2.25'}
+                        placeholder="-"
                         aria-label={`Note GFS für ${name}`}
                         className="gfs-note-input"
                         style={{

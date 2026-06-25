@@ -692,7 +692,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                     onChange={(e) =>
                                       updateTestStudentManualGradeValue(activeTest, s.id, e.target.value)
                                     }
-                                    placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                                    placeholder="-"
                                     title="Manuelle Note (Berechnung wird ignoriert)"
                                     aria-label={`Manuelle Note für ${s.lastName}, ${s.firstName}`}
                                     style={{

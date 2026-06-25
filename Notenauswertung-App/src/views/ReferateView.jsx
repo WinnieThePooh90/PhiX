@@ -356,7 +356,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                           setReferatNoteEditingId(null);
                           setReferatNoteDraft('');
                         }}
-                        placeholder={gradeSys === 'points' ? '—' : 'z. B. 2.25'}
+                        placeholder="-"
                         aria-label={`Note Referat für ${name}`}
                         className="gfs-note-input"
                         style={{

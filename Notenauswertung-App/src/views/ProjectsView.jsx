@@ -1209,7 +1209,7 @@ function ProjectScoresTable({
                         className="exam-manual-grade-input"
                         value={manualGradeInput}
                         onChange={(e) => updateProjectStudentManualGradeValue(activeProject, scoreKey, e.target.value)}
-                        placeholder={gradeSys === 'points' ? 'NP' : 'Note'}
+                        placeholder="-"
                         style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
                       />
                     ) : counted && grade !== null ? (

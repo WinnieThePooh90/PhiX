@@ -925,6 +925,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                                     inputMode={gradeSys === 'points' ? 'numeric' : 'decimal'}
                                     lang="en"
                                     autoComplete="off"
+                                    placeholder="-"
                                     data-oral-week-input={oralWeekInputDataAttr(activeOral, s.id, wi)}
                                     aria-label={`${getOralWeekColumnLabel(record.weekDates, wi)}, ${s.lastName}, ${s.firstName}`}
                                     value={displayVal}
@@ -1205,7 +1206,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                           setOralNoteEditingId(null);
                           setOralNoteDraft('');
                         }}
-                        placeholder={gradeSys === 'points' ? '—' : '...'}
+                        placeholder="-"
                         style={{
                           fontWeight: 'bold',
                           color: manualNoteColorResolved ? manualNoteCellColors.color : 'var(--foreground)',
