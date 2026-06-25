@@ -5,18 +5,15 @@ globs:
   - desktop/electron-builder.config.cjs
   - desktop/main.cjs
   - desktop/README.md
-  - Build-Release.bat
-  - installer/**
-  - portable/**
   - docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md
 ---
 
 # Build-Dokumentation pflegen
 
-Wenn du **Build-Artefakte, Speicherorte, Skripte oder Zielplattformen** änderst (z. B. `npm run dist`, `Build-Release.bat`, electron-builder-Targets, Ausgabeordner, Datenbank-Default pro Variante):
+Wenn du **Build-Artefakte, Speicherorte, Skripte oder Zielplattformen** änderst (z. B. `npm run dist`, electron-builder-Targets, Ausgabeordner, Datenbank-Default pro Variante):
 
 1. **`docs/BUILD_VERSIONEN.md`** prüfen und **inhaltlich aktualisieren** (Tabellen, Befehle, Pfade, „Zuletzt abgestimmt“-Datum).
-2. Bei größeren Umbauten ggf. Verweis in `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` (Tabelle „Weiterführende Dokumentation“) und `installer/RELEASE.md` / `desktop/README.md` angleichen.
+2. Bei größeren Umbauten ggf. Verweis in `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` und `desktop/README.md` angleichen.
 3. Keine Duplikation der gesamten Install-Anleitung — `BUILD_VERSIONEN.md` bleibt die **Vergleichs- und Artefakt-Referenz**.
 
 Typische Trigger: neues `dist:*`-Script, anderes `--win`-Target, neuer Ausgabeordner, Wechsel SQLite/Postgres pro Variante, Linux-Targets, Umbenennung von ZIP/EXE.

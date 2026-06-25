@@ -16,7 +16,7 @@ Die SQLite-Datei liegt bei Release unter **`data\phix.db`** (ohne eigene `DATABA
 
 ## Voraussetzungen
 
-- **Node.js** (wie für das Backend) — im PATH, außer Sie binden eine portable `node`-Runtime ein (siehe unten).
+- **Node.js** (wie für das Backend) — im PATH; gepackte App nutzt **Electron als Node** (`ELECTRON_RUN_AS_NODE`).
 - Backend-Abhängigkeiten: im Ordner `backend/` einmal `npm install` (führt `postinstall` → beide Prisma-Clients aus).
 - Datenbank: **PostgreSQL** mit `DATABASE_URL=postgresql://…`, oder **SQLite** (Electron setzt bei fehlender URL automatisch `file:…/phix.db` — siehe `docs/SQLITE_DESKTOP.md`).
 
@@ -78,9 +78,9 @@ Das Fenster lädt dann `http://127.0.0.1:3000` (oder `PORT`).
 
 Vor dem Packen:
 
-1. `cd backend && npm install && npx prisma generate`
-2. Optional: gebautes Frontend in `Notenauswertung-App/dist` und `PHIX_STANDALONE=1` testen (siehe Portable-Doku).
-3. `cd desktop && npm run dist` (führt `prepare-pack` aus: baut `Notenauswertung-App` falls nötig, packt `frontend-dist` + `backend` mit)
+1. `cd backend && npm install`
+2. `cd Notenauswertung-App && npm run build` (oder von `npm run dist` automatisch)
+3. `cd desktop && npm run dist`
 
 Ergebnis liegt unter **`desktop/dist-pack/`** (u. a. **ZIP** und **portable .exe**).
 
@@ -88,11 +88,7 @@ Ergebnis liegt unter **`desktop/dist-pack/`** (u. a. **ZIP** und **portable .exe
 
 ### `.env` im gepackten Backend
 
-`electron-builder` kopiert **`backend/`** ohne `.env`-Dateien (Filter). Für eine **verteilbare** Desktop-Version müssen Endnutzer oder Ihr Installer eine `DATABASE_URL` setzen — z. B. durch Kopieren von `backend/.env.example` nach `%APPDATA%\PhiX\backend.env` (noch nicht automatisch geladen; Roadmap Phase C mit SQLite vereinfacht das).
-
-### Optionale portable Node-Runtime
-
-Legt beim Packen zusätzlich unter **`resources/node/`** die gleiche Struktur wie im PhiX-Portable-Release ab (Windows: `node.exe`), erkennt `main.cjs` diese automatisch und startet das Backend damit statt mit globalem `node`.
+`electron-builder` kopiert **`backend/`** ohne `.env`-Dateien. Ohne `DATABASE_URL` setzt Electron automatisch SQLite (`phix.db` im Datenordner) — siehe `docs/SQLITE_DESKTOP.md`.
 
 ## Hinweise
 

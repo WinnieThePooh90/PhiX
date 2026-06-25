@@ -33,4 +33,4 @@ Wir setzen auf **Electron** (Main-Prozess: Node.js, Renderer: Chromium).
 ## Referenzen
 
 - `desktop/README.md`
-- `ROADMAP_SERVER_DESKTOP_SQLITE.md` Phase B
+- `docs/BUILD_VERSIONEN.md`

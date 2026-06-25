@@ -20,7 +20,7 @@ Schema und Client: `prisma/sqlite/schema.prisma` → generiert nach `generated/p
 
 ## Postgres vs. SQLite
 
-- **Server / Docker / Portable mit Postgres:** weiter `DATABASE_URL=postgresql://…`.
+- **Server / Docker:** `DATABASE_URL=postgresql://…`.
 - **Desktop Release ohne eigene URL:** SQLite im Installationsordner `data/phix.db` (siehe oben).
 - **Desktop Dev:** SQLite unter `%APPDATA%\PhiX\` (siehe oben).
 

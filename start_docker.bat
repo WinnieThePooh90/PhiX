@@ -34,7 +34,7 @@ if !ERRORLEVEL! equ 0 (
     echo        phix-db kann deshalb nicht starten.
     echo.
     echo Haeufige Ursachen:
-    echo   - alter Docker-Container ^(z.B. nach start_db_docker.bat^)
+    echo   - alter Docker-Container mit gleichem Port
     echo   - lokale PostgreSQL unter Windows
     echo   - alter Compose-Stack mit anderem Projektnamen
     echo.

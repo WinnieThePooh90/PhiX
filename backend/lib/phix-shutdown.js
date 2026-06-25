@@ -5,10 +5,6 @@ const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
 
-function pgCtlPath(pgBin) {
-  return path.join(pgBin, process.platform === 'win32' ? 'pg_ctl.exe' : 'pg_ctl');
-}
-
 function dockerCmd() {
   return process.platform === 'win32' ? 'docker.exe' : 'docker';
 }
@@ -37,22 +33,7 @@ function composeBaseArgs(composeFile) {
   return args;
 }
 
-/** Portable Windows: mitgelieferte PostgreSQL-Instanz stoppen. */
-async function stopEmbeddedPostgres() {
-  const pgData = process.env.PHIX_PGDATA;
-  const pgBin = process.env.PHIX_PGBIN;
-  if (!pgData || !pgBin) return;
-
-  const pgCtl = pgCtlPath(pgBin);
-  try {
-    await execFileAsync(pgCtl, ['-D', pgData, '-w', 'stop'], { timeout: 20000 });
-    console.log('[shutdown] PostgreSQL (eingebettet) gestoppt.');
-  } catch (err) {
-    console.warn('[shutdown] PostgreSQL (eingebettet) stop:', err.message || err);
-  }
-}
-
-/** Nur den db-Service stoppen (z. B. start_db_docker.bat / nativer Dev). */
+/** Nur den db-Service stoppen (z. B. nativer Dev mit Docker-DB). */
 async function stopDockerComposeDb() {
   const composeDir = resolveComposeDir();
   if (!composeDir) return;
@@ -172,8 +153,6 @@ async function shutdownPhix(deps = {}) {
       server.close(() => resolve());
     });
   }
-
-  await stopEmbeddedPostgres();
 
   let composeDownOk = true;
   if (fullDockerShutdown) {

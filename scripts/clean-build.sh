@@ -15,10 +15,6 @@ rm -rf \
   Notenauswertung-App/dist \
   Notenauswertung-App/.vite \
   desktop/node_modules \
-  desktop/dist-pack \
-  release/_cache \
-  release/PhiX-Windows-x64 \
-  release/PhiX-Windows-x64.zip \
-  installer/output
+  desktop/dist-pack
 
 echo "Fertig."

@@ -67,7 +67,7 @@ PhiX ist **kostenlos** nutzbar (keine Werbung, keine versteckten Kosten). Eine f
 |--------|--------|
 | Frontend | React 19, Vite, React Router |
 | Backend | Node.js, Express 5, Prisma |
-| Datenbank | **PostgreSQL** (Web/Server/Docker, Portable-Release) · **SQLite** (Electron-Desktop) |
+| Datenbank | **PostgreSQL** (Docker/Server) · **SQLite** (Electron-Desktop) |
 | Desktop | Electron (Windows) |
 | Deployment | Docker Compose (nginx + API + Postgres) |
 
@@ -82,8 +82,6 @@ Prisma nutzt **zwei Schema-Dateien** (PostgreSQL und SQLite), die manuell synchr
 | [`Notenauswertung-App/`](Notenauswertung-App/) | React/Vite-Web-UI |
 | [`backend/`](backend/) | Node.js/Express-API, Prisma, Verschlüsselung |
 | [`desktop/`](desktop/) | Electron-Desktop-Hülle (Windows) |
-| [`installer/`](installer/) | Portable-Release, Inno-Setup-Skripte |
-| [`portable/`](portable/) | Starter für ZIP-Release (PowerShell) |
 | [`docs/`](docs/) | Installation, Builds, ADRs, Version |
 
 ---
@@ -116,11 +114,10 @@ Browser: **http://localhost:1990** (Frontend; API intern auf Port 3000).
 
 Unter Windows alternativ: `start_docker.bat` / `stop_docker.bat`.
 
-### Variante B — Nativ (Frontend + Backend)
+### Variante B — Web-Entwicklung (Frontend + Backend)
 
-1. PostgreSQL starten (z. B. `start_db_docker.bat` unter Windows)
-2. `backend/.env` aus `backend/.env.example` konfigurieren
-3. Zwei Terminals:
+1. `backend/.env` aus `backend/.env.example` konfigurieren (PostgreSQL, z. B. per Docker Compose)
+2. Zwei Terminals:
 
 ```bash
 cd backend && npm run dev
@@ -148,7 +145,6 @@ PhiX kann auf unterschiedliche Weise verteilt werden. Ausführliche Tabellen: [`
 | Variante | Typisch für | Datenbank | Start |
 |----------|-------------|-----------|--------|
 | **Docker Compose** | Schulserver, mehrere Clients | PostgreSQL (Volume) | Browser → Port 1990 |
-| **Portable-Release (ZIP)** | Windows ohne Docker, Browser reicht | PostgreSQL (im Paket) | `PhiX.cmd` → Browser :3000 |
 | **Electron Desktop** | Einzelplatz, USB-tauglich | SQLite neben `PhiX.exe` | `PhiX.exe` (ZIP oder Portable-EXE) |
 | **Entwicklung** | Mitwirkende | Postgres oder SQLite | siehe oben |
 
@@ -158,9 +154,7 @@ PhiX kann auf unterschiedliche Weise verteilt werden. Ausführliche Tabellen: [`
 |------|--------|----------|
 | Docker-Stack | `docker compose up -d --build` | Container-Images |
 | Frontend-Produktion | `cd Notenauswertung-App && npm run build` | `dist/` |
-| Windows Portable-Release | `Build-Release.bat` (Root) | `release/PhiX-Windows-x64.zip` |
 | Windows Electron | `cd desktop && npm run dist` | `desktop/dist-pack/*.zip` und `*.exe` |
-| Optional Installer | Inno Setup: `installer/PhiX-Portable.iss` | `installer/output/PhiX-Setup.exe` |
 
 **Plattformen:** Windows ist für Desktop-Builds vorgesehen. Ein fertiges **Linux-/macOS-Desktop-Paket** ist derzeit nicht vorkonfiguriert. Apple-Geräte (Mac/iPad) werden nicht unterstützt.
 
@@ -203,7 +197,6 @@ Hauptabhängigkeiten (Auszug): React (MIT), Express (MIT), Prisma (Apache-2.0), 
 | Windows Installation (Docker + Standalone) | [`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
 | Build-Varianten & Artefakte | [`docs/BUILD_VERSIONEN.md`](docs/BUILD_VERSIONEN.md) |
 | Windows-Übersicht | [`WINDOWS.md`](WINDOWS.md) |
-| Portable-Release | [`installer/RELEASE.md`](installer/RELEASE.md) |
 | Electron Desktop | [`desktop/README.md`](desktop/README.md) |
 | SQLite Desktop / Backup | [`docs/SQLITE_DESKTOP.md`](docs/SQLITE_DESKTOP.md) |
 | Verschlüsselung | [`docs/ENCRYPTION.md`](docs/ENCRYPTION.md) |

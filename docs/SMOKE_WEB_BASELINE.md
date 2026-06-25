@@ -1,15 +1,14 @@
 # Web-Baseline & Smoke-Tests (Server-Version)
 
-Diese Datei ist Teil der Roadmap **Phase A** (`ROADMAP_SERVER_DESKTOP_SQLITE.md`):  
-festhalten, wie die Referenz-Installation (Browser + Backend + Postgres) läuft und was vor jedem Release kurz geprüft werden sollte.
+Festhalten, wie die Referenz-Installation (Browser + Backend + Postgres) läuft und was vor jedem Release kurz geprüft werden sollte.
 
 ## Typische Start-/Build-Pfade
 
 | Szenario | Kurzbeschreibung | Wo dokumentiert |
 |----------|------------------|-----------------|
 | Docker (alles) | `docker compose` → Frontend-Port (z. B. 1990) | `WINDOWS.md`, `docker-compose.yml`, `.env.example` |
-| Nativ + Vite | Backend Port 3000, Vite leitet `/api` weiter | `WINDOWS.md`, `Notenauswertung-App/vite.config.js` |
-| Portable Windows | Node + Postgres + gebautes Frontend | `installer/RELEASE.md`, `portable/Start-PhiX.ps1` |
+| Web-Dev (Vite) | Backend Port 3000, Vite leitet `/api` weiter | `README.md`, `Notenauswertung-App/vite.config.js` |
+| Electron Desktop | `cd desktop && npm run dist` | `desktop/README.md`, `docs/BUILD_VERSIONEN.md` |
 
 ## Smoke-Checkliste (manuell, ~10–15 Min.)
 
@@ -24,12 +23,12 @@ Vor einem Release oder nach größeren Infra-Änderungen abhaken:
 7. **Export** – falls vorhanden: ein Export durchklicken ohne Fehler.
 8. **Herunterfahren** – Menü „Herunterfahren“ (oder `/api/shutdown`): sauberer Stop erwartetes Verhalten (je nach Setup: nur Backend oder Compose).
 
-## Bekannte Risiken / technische Schulden (Stand Roadmap-Start)
+## Bekannte Risiken / technische Schulden
 
-- **API-URLs:** Historisch viele `fetch('/api/...')`. Zentral über `src/utils/apiBase.js` (`apiFetch`, `apiUrl`); Desktop kann später `VITE_API_BASE_URL` setzen.
-- **Vite vs. Standalone:** Dev nutzt Proxy auf Backend; Portable nutzt oft ein gebündeltes Frontend unter `PHIX_STANDALONE` / `PHIX_FRONTEND_DIST` (siehe Backend `setupStandaloneFrontend`).
-- **Datenbank:** Prisma mit **PostgreSQL** (`DATABASE_URL=postgresql://…`) für Server/Docker; **SQLite** mit `DATABASE_URL=file:…` und zweitem Schema unter `prisma/sqlite/` für Desktop — siehe `docs/SQLITE_DESKTOP.md`.
-- **Shutdown:** Verhalten hängt von `PHIX_DOCKER_SHUTDOWN`, `PHIX_COMPOSE_DIR`, eingebetteter Postgres (`PHIX_PGDATA` / `PHIX_PGBIN`) ab — siehe `backend/lib/phix-shutdown.js`.
+- **API-URLs:** Zentral über `src/utils/apiBase.js` (`apiFetch`, `apiUrl`); Desktop kann `VITE_API_BASE_URL` setzen.
+- **Vite vs. Standalone:** Dev nutzt Proxy auf Backend; Electron nutzt gebündeltes Frontend unter `PHIX_STANDALONE` / `PHIX_FRONTEND_DIST` (siehe Backend `setupStandaloneFrontend`).
+- **Datenbank:** Prisma mit **PostgreSQL** für Docker; **SQLite** mit `DATABASE_URL=file:…` für Electron — siehe `docs/SQLITE_DESKTOP.md`.
+- **Shutdown:** Verhalten hängt von `PHIX_DOCKER_SHUTDOWN`, `PHIX_COMPOSE_DIR` ab — siehe `backend/lib/phix-shutdown.js`.
 
 ## Frontend-Konfiguration (API-Basis)
 
@@ -43,19 +42,19 @@ Siehe `Notenauswertung-App/src/utils/apiBase.js`.
 
 | Variable | Bedeutung |
 |----------|-----------|
-| `APP_MODE` | `web` (Standard) oder `desktop` — Logging/ spätere Verzweigung; unbekannte Werte werden wie `web` behandelt. |
-| `DATABASE_URL` | PostgreSQL-Verbindung (Pflicht für aktuelle Web-Version). |
+| `APP_MODE` | `web` (Standard) oder `desktop` — Logging/Verzweigung. |
+| `DATABASE_URL` | PostgreSQL (Docker) oder `file:` (Electron/SQLite). |
 | `PORT` | HTTP-Port des Backends (Standard 3000). |
 | `PHIX_FRONTEND_DIST` | Pfad zum gebauten Frontend (`dist` mit `index.html`). |
-| `PHIX_STANDALONE` | `1` = Backend liefert statisches Frontend aus (Portable). |
+| `PHIX_STANDALONE` | `1` = Backend liefert statisches Frontend aus (Electron). |
 
 Siehe `backend/.env.example`.
 
 ## CI / gleiche Pruefungen lokal (ohne GitHub-Workflow)
 
-Es liegt **kein** `.github/workflows/ci.yml` im Repository (Upload auf GitHub war blockiert). Die folgenden Schritte entsprechen der frueheren CI-Logik und koennen **manuell** oder in einem eigenen Runner ausgefuehrt werden:
+Es liegt **kein** `.github/workflows/ci.yml` im Repository. Die folgenden Schritte koennen **manuell** ausgefuehrt werden:
 
-- **Backend Postgres:** im Ordner `backend/`: `npm ci`, `npm test`, `npx prisma migrate deploy`, `npm run ci:smoke` mit `DATABASE_URL=postgresql://…` (laufende Postgres-Instanz).
+- **Backend Postgres:** im Ordner `backend/`: `npm ci`, `npm test`, `npx prisma migrate deploy`, `npm run ci:smoke` mit `DATABASE_URL=postgresql://…`.
 - **Backend SQLite:** im Ordner `backend/`: `npm ci`, `npm test`, `npx prisma db push --schema=prisma/sqlite/schema.prisma`, `npm run ci:smoke` mit z. B. `DATABASE_URL=file:./ci-smoke.sqlite`.
 - **Frontend:** im Ordner `Notenauswertung-App/`: `npm ci` und `npm run build`.
 

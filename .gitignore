@@ -3,10 +3,6 @@ node_modules/
 dist/
 dist-pack/
 dist-ssr/
-release/*
-!release/.gitignore
-installer/output/
-
 # Prisma / DB (lokal)
 *.sqlite
 .prisma-generate-dummy.sqlite
