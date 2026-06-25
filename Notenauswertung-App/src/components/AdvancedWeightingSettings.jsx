@@ -29,6 +29,7 @@ export default function AdvancedWeightingSettings({
   onReferatModeChange,
 }) {
   const testsOptionsDisabled = testsWritten === false;
+  const referateOptionsDisabled = referateAccepted === false;
 
   const referatMode = getReferatWeightingMode({
     referatAsExam,
@@ -64,7 +65,7 @@ export default function AdvancedWeightingSettings({
         </div>
       </div>
       {advancedEnabled ? (
-        <div className={`settings-advanced-weighting-panel${referateAccepted ? ' settings-advanced-weighting-panel--columns' : ''}`}>
+        <div className="settings-advanced-weighting-panel settings-advanced-weighting-panel--columns">
           <div className="settings-advanced-weighting-column">
             <h4 className="settings-advanced-weighting-column__title">Tests</h4>
             <PhixCheckboxOption
@@ -111,109 +112,115 @@ export default function AdvancedWeightingSettings({
               )}
             </PhixCheckboxOption>
           </div>
-          {referateAccepted ? (
-            <div className="settings-advanced-weighting-column">
-              <h4 className="settings-advanced-weighting-column__title">Referate</h4>
-              <PhixCheckboxOption
-                checked={referatMode === REFERAT_WEIGHTING_MODES.EXAM}
-                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.EXAM)}
-                className="settings-advanced-weighting-option"
-              >
-                Referat als Klausur werten
-              </PhixCheckboxOption>
-              <PhixCheckboxOption
-                checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL}
-                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL)}
-                className="settings-advanced-weighting-option"
-              >
-                Referat wie mündlich werten
-              </PhixCheckboxOption>
-              <PhixCheckboxOption
-                checked={referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT}
-                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT)}
-                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
-              >
-                {referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT ? (
-                  <span className="settings-tests-per-klausur-inline-label">
-                    Referat zählt zu
-                    {' '}
-                    <input
-                      type="number"
-                      className="course-meta-control settings-tests-per-klausur-x"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={referatWrittenPercent ?? 100}
-                      onChange={(e) => onReferatWrittenPercentChange?.(e.target.value)}
-                      onMouseDown={stopCheckboxToggle}
-                      onClick={stopCheckboxToggle}
-                      aria-label="Prozentualer Anteil des Referats in Schriftlich"
-                    />
-                    {' '}
-                    % in schriftlich
-                  </span>
-                ) : (
-                  'Referat zählt zu x % in schriftlich'
-                )}
-              </PhixCheckboxOption>
-              <PhixCheckboxOption
-                checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT}
-                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL_PERCENT)}
-                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
-              >
-                {referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT ? (
-                  <span className="settings-tests-per-klausur-inline-label">
-                    Referat zählt zu
-                    {' '}
-                    <input
-                      type="number"
-                      className="course-meta-control settings-tests-per-klausur-x"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={referatOralPercent ?? 100}
-                      onChange={(e) => onReferatOralPercentChange?.(e.target.value)}
-                      onMouseDown={stopCheckboxToggle}
-                      onClick={stopCheckboxToggle}
-                      aria-label="Prozentualer Anteil des Referats in Mündlich"
-                    />
-                    {' '}
-                    % in mündlich
-                  </span>
-                ) : (
-                  'Referat zählt zu x % in mündlich'
-                )}
-              </PhixCheckboxOption>
-              <PhixCheckboxOption
-                checked={referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT}
-                onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.FINAL_PERCENT)}
-                className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
-              >
-                {referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT ? (
-                  <span className="settings-tests-per-klausur-inline-label">
-                    Referat zählt zu
-                    {' '}
-                    <input
-                      type="number"
-                      className="course-meta-control settings-tests-per-klausur-x"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={referatFinalPercent ?? 100}
-                      onChange={(e) => onReferatFinalPercentChange?.(e.target.value)}
-                      onMouseDown={stopCheckboxToggle}
-                      onClick={stopCheckboxToggle}
-                      aria-label="Prozentualer Anteil des Referats an der Gesamtnote"
-                    />
-                    {' '}
-                    % in die Gesamtnote
-                  </span>
-                ) : (
-                  'Referat zählt zu x % in die Gesamtnote'
-                )}
-              </PhixCheckboxOption>
-            </div>
-          ) : null}
+          <div className="settings-advanced-weighting-column">
+            <h4 className="settings-advanced-weighting-column__title">Referate</h4>
+            <PhixCheckboxOption
+              checked={referatMode === REFERAT_WEIGHTING_MODES.EXAM}
+              onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.EXAM)}
+              disabled={referateOptionsDisabled}
+              className="settings-advanced-weighting-option"
+            >
+              Referat als Klausur werten
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL}
+              onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL)}
+              disabled={referateOptionsDisabled}
+              className="settings-advanced-weighting-option"
+            >
+              Referat wie mündlich werten
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT}
+              onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT)}
+              disabled={referateOptionsDisabled}
+              className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+            >
+              {referatMode === REFERAT_WEIGHTING_MODES.WRITTEN_PERCENT ? (
+                <span className="settings-tests-per-klausur-inline-label">
+                  Referat zählt zu
+                  {' '}
+                  <input
+                    type="number"
+                    className="course-meta-control settings-tests-per-klausur-x"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={referatWrittenPercent ?? 100}
+                    onChange={(e) => onReferatWrittenPercentChange?.(e.target.value)}
+                    onMouseDown={stopCheckboxToggle}
+                    onClick={stopCheckboxToggle}
+                    disabled={referateOptionsDisabled}
+                    aria-label="Prozentualer Anteil des Referats in Schriftlich"
+                  />
+                  {' '}
+                  % in schriftlich
+                </span>
+              ) : (
+                'Referat zählt zu x % in schriftlich'
+              )}
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT}
+              onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.ORAL_PERCENT)}
+              disabled={referateOptionsDisabled}
+              className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+            >
+              {referatMode === REFERAT_WEIGHTING_MODES.ORAL_PERCENT ? (
+                <span className="settings-tests-per-klausur-inline-label">
+                  Referat zählt zu
+                  {' '}
+                  <input
+                    type="number"
+                    className="course-meta-control settings-tests-per-klausur-x"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={referatOralPercent ?? 100}
+                    onChange={(e) => onReferatOralPercentChange?.(e.target.value)}
+                    onMouseDown={stopCheckboxToggle}
+                    onClick={stopCheckboxToggle}
+                    disabled={referateOptionsDisabled}
+                    aria-label="Prozentualer Anteil des Referats in Mündlich"
+                  />
+                  {' '}
+                  % in mündlich
+                </span>
+              ) : (
+                'Referat zählt zu x % in mündlich'
+              )}
+            </PhixCheckboxOption>
+            <PhixCheckboxOption
+              checked={referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT}
+              onChange={handleReferatModeToggle(REFERAT_WEIGHTING_MODES.FINAL_PERCENT)}
+              disabled={referateOptionsDisabled}
+              className="settings-advanced-weighting-option settings-tests-per-klausur-checkbox"
+            >
+              {referatMode === REFERAT_WEIGHTING_MODES.FINAL_PERCENT ? (
+                <span className="settings-tests-per-klausur-inline-label">
+                  Referat zählt zu
+                  {' '}
+                  <input
+                    type="number"
+                    className="course-meta-control settings-tests-per-klausur-x"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={referatFinalPercent ?? 100}
+                    onChange={(e) => onReferatFinalPercentChange?.(e.target.value)}
+                    onMouseDown={stopCheckboxToggle}
+                    onClick={stopCheckboxToggle}
+                    disabled={referateOptionsDisabled}
+                    aria-label="Prozentualer Anteil des Referats an der Gesamtnote"
+                  />
+                  {' '}
+                  % in die Gesamtnote
+                </span>
+              ) : (
+                'Referat zählt zu x % in die Gesamtnote'
+              )}
+            </PhixCheckboxOption>
+          </div>
         </div>
       ) : null}
     </div>

@@ -54,20 +54,9 @@ export default function GradingKeyChart({
     };
 
     const samples = Math.min(400, Math.max(80, Math.ceil(max * 4)));
-    let gLo = Infinity;
-    let gHi = -Infinity;
-    for (let i = 0; i <= samples; i += 1) {
-      const p = Math.round(((max * i) / samples) * 2) / 2;
-      const v = valueAtPoints(p);
-      if (v === null || !Number.isFinite(v)) continue;
-      gLo = Math.min(gLo, v);
-      gHi = Math.max(gHi, v);
-    }
-    if (!Number.isFinite(gLo) || !Number.isFinite(gHi)) return null;
-    const pad = Math.max(0.1, (gHi - gLo) * 0.06);
-    const yMin = showNotenpunkte ? Math.max(0, Math.min(gLo - pad, 0)) : Math.min(gLo - pad, 1);
-    const yMax = showNotenpunkte ? Math.min(15, Math.max(gHi + pad, 15)) : Math.max(gHi + pad, 6);
-    const ySpan = yMax - yMin || 1;
+    const yMin = showNotenpunkte ? 0 : 1;
+    const yMax = showNotenpunkte ? 15 : 6;
+    const ySpan = yMax - yMin;
 
     const pts = [];
     for (let i = 0; i <= samples; i += 1) {
@@ -78,6 +67,7 @@ export default function GradingKeyChart({
       const y = gradeValueToPlotY(v, yMin, ySpan, showNotenpunkte);
       pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
     }
+    if (pts.length === 0) return null;
 
     const tickCandidates = showNotenpunkte ? NP_TICK_CANDIDATES : NOTE_TICK_CANDIDATES;
     const yTicks = tickCandidates.filter((g) => g >= yMin - 0.001 && g <= yMax + 0.001);
