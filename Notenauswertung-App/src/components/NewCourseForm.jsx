@@ -6,6 +6,7 @@ import NotensystemHelpButton from './NotensystemHelpButton';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import WeightingPercentHint from './WeightingPercentHint';
 import AdvancedWeightingSettings from './AdvancedWeightingSettings';
+import DeferredNumberInput from './DeferredNumberInput';
 import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
@@ -69,14 +70,13 @@ export default function NewCourseForm() {
 
   const handleNewCourseChange = (e) => {
     const { name, value } = e.target;
-    setNewCourse((prev) => ({ ...prev, [name]: name === 'hours' ? parseInt(value, 10) || 0 : value }));
+    setNewCourse((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleNewCourseWeightingChange = (e) => {
-    const { name, value } = e.target;
+  const setNewCourseWeightingField = (name, value) => {
     setNewCourse((prev) => ({
       ...prev,
-      weighting: { ...prev.weighting, [name]: parseFloat(value) || 0 },
+      weighting: { ...prev.weighting, [name]: value },
     }));
   };
 
@@ -164,12 +164,13 @@ export default function NewCourseForm() {
             <label className="text-muted course-meta-label" htmlFor="new-course-hours">
               Wochenstunden
             </label>
-            <input
+            <DeferredNumberInput
               id="new-course-hours"
-              type="number"
-              name="hours"
+              integer
+              min={1}
+              defaultValue={4}
               value={newCourse.hours}
-              onChange={handleNewCourseChange}
+              onChange={(v) => setNewCourse((prev) => ({ ...prev, hours: v }))}
               onFocus={selectInputOnFocus}
               className="w-full"
             />
@@ -191,15 +192,15 @@ export default function NewCourseForm() {
             <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
             <span className="weighting-ratio-grid__sep-slot" aria-hidden />
             <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+            <DeferredNumberInput name="written" value={newCourse.weighting.written} defaultValue={0} min={0} onChange={(v) => setNewCourseWeightingField('written', v)} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+            <DeferredNumberInput name="oral" value={newCourse.weighting.oral} defaultValue={0} min={0} onChange={(v) => setNewCourseWeightingField('oral', v)} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : newCourse.weighting.tests} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
+            <DeferredNumberInput name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : newCourse.weighting.tests} defaultValue={0} min={0} onChange={(v) => setNewCourseWeightingField('tests', v)} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
           </div>
         ) : (
           <div
@@ -209,11 +210,11 @@ export default function NewCourseForm() {
             <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
             <span className="weighting-ratio-grid__sep-slot" aria-hidden />
             <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-            <input type="number" name="written" value={newCourse.weighting.written} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+            <DeferredNumberInput name="written" value={newCourse.weighting.written} defaultValue={0} min={0} onChange={(v) => setNewCourseWeightingField('written', v)} onFocus={selectInputOnFocus} className="w-full" />
             <span className="weighting-ratio-grid__colon" aria-hidden>
               :
             </span>
-            <input type="number" name="oral" value={newCourse.weighting.oral} onChange={handleNewCourseWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+            <DeferredNumberInput name="oral" value={newCourse.weighting.oral} defaultValue={0} min={0} onChange={(v) => setNewCourseWeightingField('oral', v)} onFocus={selectInputOnFocus} className="w-full" />
           </div>
         )}
         <WeightingPercentHint
@@ -252,12 +253,8 @@ export default function NewCourseForm() {
             testsPerKlausur: p.testsPerKlausur > 0 ? p.testsPerKlausur : 10,
           }))}
           testsPerKlausur={newCourse.testsPerKlausur ?? 10}
-          onTestsPerKlausurChange={(raw) => {
-            const v = parseInt(String(raw), 10);
-            setNewCourse((p) => ({
-              ...p,
-              testsPerKlausur: Number.isFinite(v) ? Math.max(1, Math.min(99, v)) : 10,
-            }));
+          onTestsPerKlausurChange={(v) => {
+            setNewCourse((p) => ({ ...p, testsPerKlausur: v }));
           }}
           testsWritten={newCourse.testsWritten !== false}
           referateAccepted={newCourse.referateAccepted === true}
@@ -265,30 +262,18 @@ export default function NewCourseForm() {
           referatAsOral={newCourse.referatAsOral === true}
           referatWrittenPercentEnabled={newCourse.referatWrittenPercentEnabled === true}
           referatWrittenPercent={newCourse.referatWrittenPercent ?? 100}
-          onReferatWrittenPercentChange={(raw) => {
-            const v = parseInt(String(raw), 10);
-            setNewCourse((p) => ({
-              ...p,
-              referatWrittenPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-            }));
+          onReferatWrittenPercentChange={(v) => {
+            setNewCourse((p) => ({ ...p, referatWrittenPercent: v }));
           }}
           referatOralPercentEnabled={newCourse.referatOralPercentEnabled === true}
           referatOralPercent={newCourse.referatOralPercent ?? 100}
-          onReferatOralPercentChange={(raw) => {
-            const v = parseInt(String(raw), 10);
-            setNewCourse((p) => ({
-              ...p,
-              referatOralPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-            }));
+          onReferatOralPercentChange={(v) => {
+            setNewCourse((p) => ({ ...p, referatOralPercent: v }));
           }}
           referatFinalPercentEnabled={newCourse.referatFinalPercentEnabled === true}
           referatFinalPercent={newCourse.referatFinalPercent ?? 100}
-          onReferatFinalPercentChange={(raw) => {
-            const v = parseInt(String(raw), 10);
-            setNewCourse((p) => ({
-              ...p,
-              referatFinalPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-            }));
+          onReferatFinalPercentChange={(v) => {
+            setNewCourse((p) => ({ ...p, referatFinalPercent: v }));
           }}
           onReferatModeChange={(mode, checked) => setNewCourse((p) => ({
             ...p,

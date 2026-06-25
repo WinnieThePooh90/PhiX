@@ -1,5 +1,6 @@
 import React from 'react';
 import PhixCheckboxOption from './PhixCheckboxOption';
+import DeferredNumberInput from './DeferredNumberInput';
 import { REFERAT_WEIGHTING_MODES, getReferatWeightingMode } from '../utils/courseWeightingOptions';
 
 export default function AdvancedWeightingSettings({
@@ -92,14 +93,14 @@ export default function AdvancedWeightingSettings({
             >
               {testsPerKlausurEnabled ? (
                 <span className="settings-tests-per-klausur-inline-label">
-                  <input
-                    type="number"
+                  <DeferredNumberInput
                     className="course-meta-control settings-tests-per-klausur-x"
-                    min="1"
-                    max="99"
-                    step="1"
+                    integer
+                    min={1}
+                    max={99}
+                    defaultValue={10}
                     value={testsPerKlausur ?? 10}
-                    onChange={(e) => onTestsPerKlausurChange(e.target.value)}
+                    onChange={onTestsPerKlausurChange}
                     onMouseDown={stopCheckboxToggle}
                     onClick={stopCheckboxToggle}
                     aria-label="Anzahl Tests pro Klausur"
@@ -120,7 +121,7 @@ export default function AdvancedWeightingSettings({
               disabled={referateOptionsDisabled}
               className="settings-advanced-weighting-option"
             >
-              Referat als Klausur werten
+              Referat wie Klausur werten
             </PhixCheckboxOption>
             <PhixCheckboxOption
               checked={referatMode === REFERAT_WEIGHTING_MODES.ORAL}
@@ -140,14 +141,14 @@ export default function AdvancedWeightingSettings({
                 <span className="settings-tests-per-klausur-inline-label">
                   Referat zählt zu
                   {' '}
-                  <input
-                    type="number"
+                  <DeferredNumberInput
                     className="course-meta-control settings-tests-per-klausur-x"
-                    min="0"
-                    max="100"
-                    step="1"
+                    integer
+                    min={0}
+                    max={100}
+                    defaultValue={100}
                     value={referatWrittenPercent ?? 100}
-                    onChange={(e) => onReferatWrittenPercentChange?.(e.target.value)}
+                    onChange={onReferatWrittenPercentChange}
                     onMouseDown={stopCheckboxToggle}
                     onClick={stopCheckboxToggle}
                     disabled={referateOptionsDisabled}
@@ -170,14 +171,14 @@ export default function AdvancedWeightingSettings({
                 <span className="settings-tests-per-klausur-inline-label">
                   Referat zählt zu
                   {' '}
-                  <input
-                    type="number"
+                  <DeferredNumberInput
                     className="course-meta-control settings-tests-per-klausur-x"
-                    min="0"
-                    max="100"
-                    step="1"
+                    integer
+                    min={0}
+                    max={100}
+                    defaultValue={100}
                     value={referatOralPercent ?? 100}
-                    onChange={(e) => onReferatOralPercentChange?.(e.target.value)}
+                    onChange={onReferatOralPercentChange}
                     onMouseDown={stopCheckboxToggle}
                     onClick={stopCheckboxToggle}
                     disabled={referateOptionsDisabled}
@@ -200,24 +201,24 @@ export default function AdvancedWeightingSettings({
                 <span className="settings-tests-per-klausur-inline-label">
                   Referat zählt zu
                   {' '}
-                  <input
-                    type="number"
+                  <DeferredNumberInput
                     className="course-meta-control settings-tests-per-klausur-x"
-                    min="0"
-                    max="100"
-                    step="1"
+                    integer
+                    min={0}
+                    max={100}
+                    defaultValue={100}
                     value={referatFinalPercent ?? 100}
-                    onChange={(e) => onReferatFinalPercentChange?.(e.target.value)}
+                    onChange={onReferatFinalPercentChange}
                     onMouseDown={stopCheckboxToggle}
                     onClick={stopCheckboxToggle}
                     disabled={referateOptionsDisabled}
-                    aria-label="Prozentualer Anteil des Referats an der Gesamtnote"
+                    aria-label="Prozentualer Anteil des Referats in der Gesamtnote"
                   />
                   {' '}
-                  % in die Gesamtnote
+                  % in der Gesamtnote
                 </span>
               ) : (
-                'Referat zählt zu x % in die Gesamtnote'
+                'Referat zählt zu x % in der Gesamtnote'
               )}
             </PhixCheckboxOption>
           </div>

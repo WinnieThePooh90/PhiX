@@ -25,6 +25,7 @@ import {
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { useDialog } from '../components/PhixDialog';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
+import DeferredNumberInput from '../components/DeferredNumberInput';
 
 export default function KeysView() {
   const { config, setConfig, exams, updateExam } = useData();
@@ -141,10 +142,11 @@ export default function KeysView() {
         <div className="flex flex-wrap gap-4 mb-4" style={{ alignItems: 'stretch' }}>
           <div className="glass-panel" style={{ flex: '0 1 300px', maxWidth: '300px', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.25rem' }} className="text-muted">Simulierte Maximalpunkte:</label>
-            <input
-              type="number"
+            <DeferredNumberInput
               value={maxPoints}
-              onChange={(e) => setMaxPoints(parseFloat(e.target.value) || 0)}
+              defaultValue={50}
+              min={0.5}
+              onChange={setMaxPoints}
               style={{ width: '100%' }}
             />
             <div style={{ marginTop: '0.5rem' }}>

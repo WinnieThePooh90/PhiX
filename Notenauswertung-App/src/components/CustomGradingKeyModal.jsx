@@ -8,6 +8,7 @@ import {
   normalizeQuarterGrade,
 } from '../utils/calculator';
 import GradingKeyChart from './GradingKeyChart';
+import DeferredNumberInput from './DeferredNumberInput';
 import { isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 
@@ -332,11 +333,11 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
               <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
                 Referenz-Maximalpunkte (für Punkt-Spalte)
               </label>
-              <input
-                type="number"
+              <DeferredNumberInput
                 min={1}
                 value={refMax}
-                onChange={(e) => setRefMax(parseFloat(e.target.value) || 50)}
+                defaultValue={50}
+                onChange={setRefMax}
                 style={{ width: '5rem', padding: '0.35rem' }}
               />
             </div>

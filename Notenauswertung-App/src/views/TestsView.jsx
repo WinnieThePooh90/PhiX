@@ -36,6 +36,7 @@ import {
   focusScoreTaskInput,
   scoreTaskInputDataAttr,
 } from '../utils/scoreTaskTabNavigation';
+import DeferredNumberInput from '../components/DeferredNumberInput';
 
 const TEST_INDEX_COL_PX = 52;
 const TEST_DETAIL_COL_SPAN = 5;
@@ -211,9 +212,8 @@ export default function TestsView({ studentIdFilterSet = null }) {
     updateTestScore(activeTest, studentId, value);
   };
 
-  const handleMaxPointsChange = (e) => {
-    const v = parseFloat(String(e.target.value).replace(',', '.'));
-    updateTest(activeTest, 'maxPoints', Number.isFinite(v) && v > 0 ? v : 10);
+  const handleMaxPointsChange = (v) => {
+    updateTest(activeTest, 'maxPoints', v > 0 ? v : 10);
   };
 
   return (
@@ -295,12 +295,11 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 <label className="course-meta-field__label" htmlFor={`test-max-${activeTest}`}>
                   Maximalpunktzahl
                 </label>
-                <input
+                <DeferredNumberInput
                   id={`test-max-${activeTest}`}
                   className="course-meta-control"
-                  type="number"
-                  min="1"
-                  step="0.5"
+                  min={0.5}
+                  defaultValue={10}
                   title="Obergrenze für die Summe der erreichbaren Punkte in der Tabelle (wie Klausur-Maximum)."
                   value={maxPtsDisplay}
                   onChange={handleMaxPointsChange}
@@ -775,10 +774,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                         >
                                           Max. Punkte (Nachschreiber):
                                         </span>
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          step="0.5"
+                                        <DeferredNumberInput
+                                          min={0.5}
+                                          defaultValue={Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0 ? parseFloat(test.maxPoints) : 10}
                                           className="course-meta-control"
                                           style={{
                                             width: '84px',
@@ -787,8 +785,8 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                             boxSizing: 'border-box',
                                           }}
                                           value={effectiveMax}
-                                          onChange={(e) =>
-                                            updateTestNachschreiberMaxPoints(activeTest, s.id, e.target.value)
+                                          onChange={(n) =>
+                                            updateTestNachschreiberMaxPoints(activeTest, s.id, n)
                                           }
                                           title="Nur für diesen Schüler — Note aus erreichte Punkte geteilt durch dieses Maximum und dem gewählten Schlüssel."
                                         />

@@ -322,7 +322,7 @@ export default function BackupView() {
               ersetzt.
             </>
           }
-          downloadLabel="Verschlüsseltes Backup erstellen und herunterladen"
+          downloadLabel="Verschlüsseltes Backup erstellen"
           downloadPath="/api/backup/me/download?mode=raw"
           restorePath="/api/backup/me/restore"
           actingUsername={username}
@@ -348,7 +348,7 @@ export default function BackupView() {
                   Zuerst ein aktuelles Voll-Backup erstellen.
                 </>
               }
-              downloadLabel="Voll-Backup erstellen und herunterladen"
+              downloadLabel="Voll-Backup erstellen"
               downloadPath="/api/backup/full/download"
               restorePath="/api/backup/full/restore"
               actingUsername={username}

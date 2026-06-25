@@ -32,8 +32,10 @@ import {
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
   classicGradeToStoredString,
+  parseScorePointsValue,
 } from '../utils/calculator';
 import GradingKeyTable from '../components/GradingKeyTable';
+import DeferredNumberInput from '../components/DeferredNumberInput';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
 import {
@@ -563,25 +565,17 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
                     {projectWeightPercentFieldLabel(project.weightingMode)}
                   </label>
-                  <input
+                  <DeferredNumberInput
                     id={`project-percent-${activeProject}`}
                     className="course-meta-control"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
+                    integer
+                    min={0}
+                    max={100}
+                    defaultValue={project.weightingMode === 'percent' ? 0 : 100}
                     value={project.weightingMode === 'percent'
                       ? (project.weightPercent ?? 0)
                       : projectPillarWeightPercentDisplay(project)}
-                    onChange={(e) => {
-                      const v = parseFloat(String(e.target.value).replace(',', '.'));
-                      const fallback = project.weightingMode === 'percent' ? 0 : 100;
-                      updateProject(
-                        activeProject,
-                        'weightPercent',
-                        Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : fallback,
-                      );
-                    }}
+                    onChange={(v) => updateProject(activeProject, 'weightPercent', v)}
                     style={{ width: '5rem' }}
                   />
                 </div>
@@ -618,19 +612,15 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                 <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
                   Themenfelder
                 </label>
-                <input
+                <DeferredNumberInput
                   id={`project-numfields-${activeProject}`}
                   className="course-meta-control"
-                  type="number"
-                  min="0"
+                  integer
+                  min={0}
                   max={EXAM_ABS_MAX_FIELDS}
+                  defaultValue={0}
                   value={numFields}
-                  onChange={(e) => {
-                    const fields = parseInt(e.target.value, 10);
-                    if (!Number.isNaN(fields) && fields >= 0 && fields <= EXAM_ABS_MAX_FIELDS) {
-                      updateProject(activeProject, 'numFields', fields);
-                    }
-                  }}
+                  onChange={(n) => updateProject(activeProject, 'numFields', n)}
                   style={{ width: '70px' }}
                 />
               </div>
@@ -920,15 +910,15 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
               <label className="course-meta-field__label" htmlFor="create-project-percent" style={fieldLabelStyle}>
                 {projectWeightPercentFieldLabel(form.weightingMode)}
               </label>
-              <input
+              <DeferredNumberInput
                 id="create-project-percent"
                 className="course-meta-control"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
+                integer
+                min={0}
+                max={100}
+                defaultValue={form.weightingMode === 'percent' ? 0 : 100}
                 value={form.weightPercent}
-                onChange={(e) => setForm((f) => ({ ...f, weightPercent: e.target.value }))}
+                onChange={(v) => setForm((f) => ({ ...f, weightPercent: v }))}
                 style={fieldControlStyle}
               />
             </div>
@@ -1055,10 +1045,11 @@ function ProjectScoresTable({
             <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
             {[...Array(displayFieldCount)].map((_, i) => (
               <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
-                <input
-                  type="number"
-                  value={project.fieldMaxPoints?.[i] ?? ''}
-                  onChange={(e) => updateProjectFieldMaxPoints(activeProject, i, e.target.value)}
+                <DeferredNumberInput
+                  value={parseScorePointsValue(project.fieldMaxPoints?.[i])}
+                  defaultValue={0}
+                  min={0}
+                  onChange={(n) => updateProjectFieldMaxPoints(activeProject, i, n)}
                   onKeyDown={handleTableEnterAsTab}
                   placeholder="0"
                   style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}

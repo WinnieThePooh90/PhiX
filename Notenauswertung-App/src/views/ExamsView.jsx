@@ -35,6 +35,7 @@ import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimu
 import GradingKeyTable from '../components/GradingKeyTable';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
+import DeferredNumberInput from '../components/DeferredNumberInput';
 import { useDialog } from '../components/PhixDialog';
 import {
   createScoreTaskTabHandler,
@@ -254,13 +255,6 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     updateExamFieldMaxPoints(activeKlausur, fieldIndex, value);
   };
 
-  const handleNumFieldsChange = (e) => {
-    const fields = parseInt(e.target.value, 10);
-    if (fields >= 1 && fields <= EXAM_ABS_MAX_FIELDS) {
-      updateExam(activeKlausur, 'numFields', fields);
-    }
-  };
-
   const toggleStudentRow = (studentId) => {
     setExpandedStudentId((prev) => (prev === studentId ? null : studentId));
   };
@@ -338,14 +332,15 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                 <label className="course-meta-field__label" htmlFor={`exam-numfields-${activeKlausur}`}>
                   Aufgabenfelder
                 </label>
-                <input
+                <DeferredNumberInput
                   id={`exam-numfields-${activeKlausur}`}
                   className="course-meta-control"
-                  type="number"
-                  min="1"
+                  integer
+                  min={1}
                   max={EXAM_ABS_MAX_FIELDS}
+                  defaultValue={1}
                   value={numFields}
-                  onChange={handleNumFieldsChange}
+                  onChange={(n) => updateExam(activeKlausur, 'numFields', n)}
                   style={{ width: '70px' }}
                 />
               </div>
@@ -463,10 +458,11 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                     <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${EXAM_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
                     {[...Array(displayFieldCount)].map((_, i) => (
                       <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }} title={i >= numFields ? 'Max-Punkte für Zusatzaufgaben (z. B. Nachschreiber)' : undefined}>
-                        <input 
-                          type="number" 
-                          value={exam.fieldMaxPoints?.[i] ?? ''}
-                          onChange={e => handleMaxPointsChange(i, e.target.value)}
+                        <DeferredNumberInput
+                          value={parseScorePointsValue(exam.fieldMaxPoints?.[i])}
+                          defaultValue={0}
+                          min={0}
+                          onChange={(n) => handleMaxPointsChange(i, n)}
                           onKeyDown={handleTableEnterAsTab}
                           placeholder="0"
                           style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: i >= numFields ? 'var(--surface-muted)' : 'var(--surface)' }}
@@ -741,12 +737,13 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                 {isNach && (
                                   <>
                                     <span className="text-muted" style={{ fontSize: '0.875rem' }}>Aufgabenfelder (dieser Schüler):</span>
-                                    <input
-                                      type="number"
+                                    <DeferredNumberInput
+                                      integer
                                       min={1}
                                       max={EXAM_ABS_MAX_FIELDS}
+                                      defaultValue={numFields}
                                       value={effN}
-                                      onChange={e => updateExamStudentNachschreiberFields(activeKlausur, s.id, e.target.value)}
+                                      onChange={(n) => updateExamStudentNachschreiberFields(activeKlausur, s.id, n)}
                                       style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
                                       title={`1–${EXAM_ABS_MAX_FIELDS}; Standard ist die Klausur (${numFields} Felder). Zusatzspalten: Max-Punkte oben in den violett markierten Spalten eintragen.`}
                                     />

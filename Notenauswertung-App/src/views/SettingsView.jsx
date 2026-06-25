@@ -8,6 +8,7 @@ import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
 import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
+import DeferredNumberInput from '../components/DeferredNumberInput';
 import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
 
@@ -106,11 +107,10 @@ export default function SettingsView() {
     setConfig(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleWeightingChange = (e) => {
-    const { name, value } = e.target;
-    setConfig(prev => ({
+  const setWeightingField = (name, value) => {
+    setConfig((prev) => ({
       ...prev,
-      weighting: { ...prev.weighting, [name]: parseFloat(value) || 0 }
+      weighting: { ...prev.weighting, [name]: value },
     }));
   };
 
@@ -450,12 +450,13 @@ export default function SettingsView() {
                   <label className="text-muted course-meta-label" htmlFor="settings-course-hours">
                     Wochenstunden
                   </label>
-                  <input
+                  <DeferredNumberInput
                     id="settings-course-hours"
-                    type="number"
-                    name="hours"
+                    integer
+                    min={1}
+                    defaultValue={4}
                     value={config.hours}
-                    onChange={handleConfigChange}
+                    onChange={(v) => setConfig((prev) => ({ ...prev, hours: v }))}
                     onFocus={selectInputOnFocus}
                     className="w-full"
                   />
@@ -477,15 +478,15 @@ export default function SettingsView() {
                   <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
                   <span className="weighting-ratio-grid__sep-slot" aria-hidden />
                   <label className="text-muted" style={{ display: 'block' }}>Tests</label>
-                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <DeferredNumberInput name="written" value={config.weighting.written} defaultValue={0} min={0} onChange={(v) => setWeightingField('written', v)} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <DeferredNumberInput name="oral" value={config.weighting.oral} defaultValue={0} min={0} onChange={(v) => setWeightingField('oral', v)} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : config.weighting.tests} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
+                  <DeferredNumberInput name="tests" value={testsWeightComputed ? formatComputedTestsWeight(effectiveWeighting?.tests) : config.weighting.tests} defaultValue={0} min={0} onChange={(v) => setWeightingField('tests', v)} onFocus={selectInputOnFocus} className={`w-full${testsWeightComputed ? ' weighting-ratio-grid__tests-computed' : ''}`} readOnly={testsWeightComputed} disabled={testsWeightComputed} />
                 </div>
               ) : (
                 <div
@@ -495,11 +496,11 @@ export default function SettingsView() {
                   <label className="text-muted" style={{ display: 'block' }}>Schriftlich</label>
                   <span className="weighting-ratio-grid__sep-slot" aria-hidden />
                   <label className="text-muted" style={{ display: 'block' }}>Mündlich</label>
-                  <input type="number" name="written" value={config.weighting.written} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <DeferredNumberInput name="written" value={config.weighting.written} defaultValue={0} min={0} onChange={(v) => setWeightingField('written', v)} onFocus={selectInputOnFocus} className="w-full" />
                   <span className="weighting-ratio-grid__colon" aria-hidden>
                     :
                   </span>
-                  <input type="number" name="oral" value={config.weighting.oral} onChange={handleWeightingChange} onFocus={selectInputOnFocus} className="w-full" />
+                  <DeferredNumberInput name="oral" value={config.weighting.oral} defaultValue={0} min={0} onChange={(v) => setWeightingField('oral', v)} onFocus={selectInputOnFocus} className="w-full" />
                 </div>
               )}
               <WeightingPercentHint
@@ -538,11 +539,10 @@ export default function SettingsView() {
                   testsPerKlausur: c.testsPerKlausur > 0 ? c.testsPerKlausur : 10,
                 }))}
                 testsPerKlausur={config.testsPerKlausur ?? 10}
-                onTestsPerKlausurChange={(raw) => {
-                  const v = parseInt(String(raw).replace(',', '.'), 10);
+                onTestsPerKlausurChange={(v) => {
                   setConfig((c) => ({
                     ...c,
-                    testsPerKlausur: Number.isFinite(v) ? Math.max(1, Math.min(99, v)) : 10,
+                    testsPerKlausur: v,
                   }));
                 }}
                 testsWritten={config.testsWritten !== false}
@@ -551,30 +551,18 @@ export default function SettingsView() {
                 referatAsOral={config.referatAsOral === true}
                 referatWrittenPercentEnabled={config.referatWrittenPercentEnabled === true}
                 referatWrittenPercent={config.referatWrittenPercent ?? 100}
-                onReferatWrittenPercentChange={(raw) => {
-                  const v = parseInt(String(raw).replace(',', '.'), 10);
-                  setConfig((c) => ({
-                    ...c,
-                    referatWrittenPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-                  }));
+                onReferatWrittenPercentChange={(v) => {
+                  setConfig((c) => ({ ...c, referatWrittenPercent: v }));
                 }}
                 referatOralPercentEnabled={config.referatOralPercentEnabled === true}
                 referatOralPercent={config.referatOralPercent ?? 100}
-                onReferatOralPercentChange={(raw) => {
-                  const v = parseInt(String(raw).replace(',', '.'), 10);
-                  setConfig((c) => ({
-                    ...c,
-                    referatOralPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-                  }));
+                onReferatOralPercentChange={(v) => {
+                  setConfig((c) => ({ ...c, referatOralPercent: v }));
                 }}
                 referatFinalPercentEnabled={config.referatFinalPercentEnabled === true}
                 referatFinalPercent={config.referatFinalPercent ?? 100}
-                onReferatFinalPercentChange={(raw) => {
-                  const v = parseInt(String(raw).replace(',', '.'), 10);
-                  setConfig((c) => ({
-                    ...c,
-                    referatFinalPercent: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100,
-                  }));
+                onReferatFinalPercentChange={(v) => {
+                  setConfig((c) => ({ ...c, referatFinalPercent: v }));
                 }}
                 onReferatModeChange={(mode, checked) => setConfig((c) => ({
                   ...c,

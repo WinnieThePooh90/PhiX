@@ -800,7 +800,7 @@ export const DataProvider = ({ children }) => {
   const updateExamStudentNachschreiberFields = (examId, studentId, rawN) => {
     setExams(prev => {
       const exam = prev[examId];
-      const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, parseInt(rawN, 10) || 1));
+      const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, typeof rawN === 'number' ? rawN : (parseInt(rawN, 10) || 1)));
       const prevStudentScores = exam.scores[studentId];
       const base = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
         ? { ...prevStudentScores, _nachschreiber: true, _nachschreiberFields: n }
