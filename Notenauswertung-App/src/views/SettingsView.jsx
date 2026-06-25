@@ -194,6 +194,15 @@ export default function SettingsView() {
     }
   };
 
+  const handleRemoveStudent = async (student) => {
+    const ok = await showConfirm(
+      'Schüler wirklich löschen? Damit werden auch alle Noten und Notizen gelöscht.',
+      { title: 'Schüler löschen', confirmLabel: 'Löschen', cancelLabel: 'Abbrechen', danger: true },
+    );
+    if (!ok) return;
+    await removeStudent(student.id);
+  };
+
   const handleClearCourseStudents = async () => {
     const n = students.length;
     if (n === 0) return;
@@ -578,7 +587,13 @@ export default function SettingsView() {
               <h3 id="settings-course-options-heading" className="mb-2">
                 Facheinstellungen
               </h3>
-              <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Notensystem</label>
+              <div
+                className="flex flex-wrap items-center gap-2 text-muted"
+                style={{ marginBottom: '0.25rem' }}
+              >
+                <span>Notensystem</span>
+                <NotensystemHelpButton />
+              </div>
               <div className="flex flex-wrap items-center gap-2" style={{ width: '100%' }}>
                 <select
                   value={config.gradeSystem ?? 'classic'}
@@ -594,7 +609,6 @@ export default function SettingsView() {
                   <option value="classic">Klassisches Notensystem</option>
                   <option value="points">Punktesystem</option>
                 </select>
-                <NotensystemHelpButton />
               </div>
               <div className="settings-course-check-options">
                 <PhixCheckboxOption
@@ -941,7 +955,7 @@ export default function SettingsView() {
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
                     <td className="text-right">
-                      <button className="danger" onClick={() => removeStudent(s.id)}>Löschen</button>
+                      <button type="button" className="danger" onClick={() => handleRemoveStudent(s)}>Löschen</button>
                     </td>
                   </tr>
                 ))}

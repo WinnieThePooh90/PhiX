@@ -79,12 +79,12 @@ function renderHeldReferatListItems({
   return entries
     .filter((e) => e.studentId === studentId && (!halbjahrFilter || e.halbjahr === halbjahrFilter))
     .map((e) => {
-      const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
+      const thema = String(e.thema ?? '').trim() || '—';
       const gNum = storedGradeStringToClassic(e.note, gradeSys);
       const counted = e.gehalten === true && gNum !== null;
       return (
         <li key={`${keyPrefix}-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-          <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat {label}{suffix}:</span>
+          <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>Referat: {thema}{suffix}</span>
           <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
             {counted ? gfmt(gNum) : '-'}
           </strong>
@@ -254,12 +254,12 @@ export default function StudentGradesOverviewPanel({
                 {showGfs ? gfsEntries
                   .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
                   .map((e) => {
-                    const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'GFS';
+                    const thema = String(e.thema ?? '').trim() || '—';
                     const gNum = storedGradeStringToClassic(e.note, gradeSys);
                     const counted = e.gehalten === true && gNum !== null;
                     return (
                       <li key={`gfs-${e.id}`} className="text-muted" style={gradeListItemStyle(listFontSize)}>
-                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>GFS {label}:</span>
+                        <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>GFS: {thema}</span>
                         <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gNum, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
                           {counted ? gfmt(gNum) : '-'}
                         </strong>

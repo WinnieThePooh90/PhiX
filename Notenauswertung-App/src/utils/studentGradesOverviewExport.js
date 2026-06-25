@@ -74,11 +74,11 @@ function buildReferatItems({
   return entries
     .filter((e) => e.studentId === studentId && (!halbjahrFilter || e.halbjahr === halbjahrFilter))
     .map((e) => {
-      const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'Referat';
+      const thema = String(e.thema ?? '').trim() || '—';
       const gNum = storedGradeStringToClassic(e.note, gradeSys);
       const counted = e.gehalten === true && gNum !== null;
       return {
-        label: `Referat ${label}${suffix}`,
+        label: `Referat: ${thema}${suffix}`,
         grade: counted ? formatGradeDisplay(gNum, gradeSys) : '-',
         counted,
       };
@@ -203,11 +203,11 @@ export function buildStudentGradesOverviewDetailSections(student, ctx) {
         ? gfsEntries
           .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
           .map((e) => {
-            const label = [e.thema, e.art].filter(Boolean).join(' · ') || 'GFS';
+            const thema = String(e.thema ?? '').trim() || '—';
             const gNum = storedGradeStringToClassic(e.note, gradeSys);
             const counted = e.gehalten === true && gNum !== null;
             return {
-              label: `GFS ${label}`,
+              label: `GFS: ${thema}`,
               grade: counted ? formatGradeDisplay(gNum, gradeSys) : '-',
               counted,
             };
