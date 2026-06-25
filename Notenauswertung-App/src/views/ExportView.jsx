@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { buildSummaryOverviewExportData } from '../utils/summaryOverviewExport';
+import { buildSummaryOverviewExportData, buildSummaryOverviewWithDetailsExportData } from '../utils/summaryOverviewExport';
 import {
   courseFullExportFilename,
   examExportFilename,
   oralExportFilename,
   oralExtendedExportFilename,
   summaryOverviewExportFilename,
+  summaryOverviewDetailsExportFilename,
   testExportFilename,
   gradingKeyExportFilename,
   gradingKeysAllExportFilename,
@@ -179,9 +180,10 @@ export default function ExportView() {
       return filename;
     });
 
-  const exportSummary = (format) =>
-    runExport(`summary-${format}`, async () => {
-      const { headers, rows, layout } = buildSummaryOverviewExportData({
+  const exportSummary = (format, withDetails = false) =>
+    runExport(`summary${withDetails ? '-details' : ''}-${format}`, async () => {
+      const buildData = withDetails ? buildSummaryOverviewWithDetailsExportData : buildSummaryOverviewExportData;
+      const { headers, rows, layout } = buildData({
         students,
         exams,
         orals,
@@ -192,7 +194,9 @@ export default function ExportView() {
         config,
       });
       const sheetData = { headers, rows };
-      const filename = summaryOverviewExportFilename(config, format);
+      const filename = withDetails
+        ? summaryOverviewDetailsExportFilename(config, format)
+        : summaryOverviewExportFilename(config, format);
       if (format === 'pdf') {
         downloadSheetDataPdf(sheetData, 'Übersicht', filename);
       } else {
@@ -337,15 +341,26 @@ export default function ExportView() {
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
             Tabelle aus dem Reiter <strong>Übersicht</strong> (Schriftlich, Mündlich, Tests, Endnoten).
+            Mit Details: je Schüler die Aufschlüsselung nach Halbjahr 1, Halbjahr 2 und Gesamt.
           </p>
-          <ExportFormatButtons
-            label="Übersicht exportieren"
-            disabled={anyBusy || !config}
-            busyKey={busyKey}
-            exportKey="summary"
-            onExcel={() => exportSummary('xlsx')}
-            onPdf={() => exportSummary('pdf')}
-          />
+          <div className="export-item-list">
+            <ExportFormatButtons
+              label="Übersicht exportieren"
+              disabled={anyBusy || !config}
+              busyKey={busyKey}
+              exportKey="summary"
+              onExcel={() => exportSummary('xlsx')}
+              onPdf={() => exportSummary('pdf')}
+            />
+            <ExportFormatButtons
+              label="Übersicht mit Details exportieren"
+              disabled={anyBusy || !config}
+              busyKey={busyKey}
+              exportKey="summary-details"
+              onExcel={() => exportSummary('xlsx', true)}
+              onPdf={() => exportSummary('pdf', true)}
+            />
+          </div>
         </ExportSection>
 
         <ExportSection

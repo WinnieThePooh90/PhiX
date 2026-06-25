@@ -19,6 +19,10 @@ export function summaryOverviewExportFilename(course, ext = 'xlsx') {
   return buildExportFilename(['Uebersicht', course?.subject, course?.className, course?.year], ext);
 }
 
+export function summaryOverviewDetailsExportFilename(course, ext = 'xlsx') {
+  return buildExportFilename(['Uebersicht-Details', course?.subject, course?.className, course?.year], ext);
+}
+
 export function examExportFilename(course, examId, ext = 'xlsx') {
   return buildExportFilename(['Klausur', `KA-${examId}`, course?.subject, course?.className, course?.year], ext);
 }
