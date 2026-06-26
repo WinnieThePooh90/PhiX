@@ -8,7 +8,7 @@ import { getFormulaKeyIntercept, gradeFromFormulaPoints, buildFormulaBands } fro
 import { gradeFromVorlage1Points, isVorlage1KeyFamilyId, buildVorlage1Bands } from '../data/vorlage1GradingKey';
 import {
   getBuiltinNpPercentAnchors,
-  notenpunkteFromLinearNpAnchors,
+  notenpunkteFromNpAnchors,
   deriveNpAnchorsFromClassicBands,
   buildNpBandsFromLinearAnchors,
 } from '../data/npGradingKeyAnchors';
@@ -1833,7 +1833,7 @@ export const buildNotenpunkteBandsFromClassicBands = (classicBands) => {
 };
 
 /**
- * NP-Bänder für Plateau/Linear 1–6: feste %-Anker (0/5/11/15 NP), dazwischen linear.
+ * NP-Bänder für Plateau 1–3 bzw. Linear 1–3 (4–6): feste %-Anker für 5/11 NP.
  * @returns {{ np: number, g: number, lo: number, hi: number }[]}
  */
 export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride = null) => {
@@ -1850,7 +1850,7 @@ export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride
 export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) => {
   const anchors = getBuiltinNpPercentAnchors(type, thresholdsOverride);
   if (!anchors) return null;
-  return notenpunkteFromLinearNpAnchors(percent, anchors);
+  return notenpunkteFromNpAnchors(percent, anchors);
 };
 
 /**
