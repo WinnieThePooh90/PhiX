@@ -1,3 +1,3 @@
 /** Automatisch — scripts/sync-app-version.mjs (nicht von Hand ändern). Quelle: docs/APP_VERSION.md */
-export const APP_VERSION = 312;
-export const APP_BUILD_AT = '2026-06-26T09:45:12.386Z';
+export const APP_VERSION = 313;
+export const APP_BUILD_AT = '2026-06-26T09:48:39.517Z';
