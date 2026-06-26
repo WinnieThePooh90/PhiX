@@ -139,8 +139,8 @@ export default function KeysView() {
       <div className="mb-8">
         <h2 className="mb-4">Notenschlüssel</h2>
 
-        <div className="flex flex-wrap gap-4 mb-4" style={{ alignItems: 'stretch' }}>
-          <div className="glass-panel" style={{ flex: '0 1 300px', maxWidth: '300px', padding: '1rem' }}>
+        <div className="keys-view-toolbar flex flex-wrap gap-4 mb-4" style={{ alignItems: 'stretch' }}>
+          <div className="glass-panel keys-view-toolbar-panel" style={{ flex: '0 1 300px', maxWidth: '300px', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.25rem' }} className="text-muted">Simulierte Maximalpunkte:</label>
             <DeferredNumberInput
               value={maxPoints}
@@ -158,7 +158,7 @@ export default function KeysView() {
               </PhixCheckboxOption>
             </div>
           </div>
-          <div className="glass-panel" style={{ flex: '0 1 280px', maxWidth: '320px', minWidth: 'min(100%, 220px)', padding: '1rem' }}>
+          <div className="glass-panel keys-view-toolbar-panel" style={{ flex: '0 1 280px', maxWidth: '320px', minWidth: 'min(100%, 220px)', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }} className="text-muted">
               Eigener Notenschlüssel
             </label>
@@ -182,7 +182,7 @@ export default function KeysView() {
               Neuen Notenschlüssel erstellen
             </button>
           </div>
-          <div className="glass-panel" style={{ flex: '1 1 280px', minWidth: 'min(100%, 240px)', padding: '1rem' }}>
+          <div className="glass-panel keys-view-toolbar-panel" style={{ flex: '1 1 280px', minWidth: 'min(100%, 240px)', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem' }} className="text-muted">
               Vorlagen
             </label>

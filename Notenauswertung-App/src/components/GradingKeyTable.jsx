@@ -10,7 +10,9 @@ import {
   displayPointIntervalsHalfSteps,
   normalizeQuarterGrade,
   classicGradeToGradingKeyNotenpunkte,
+  buildBuiltinNotenpunkteBands,
 } from '../utils/calculator';
+import { isBuiltinGradingKeyType } from '../data/gradingKeyDisplay';
 import { buildFormulaBands, getFormulaKeyIntercept } from '../data/formulaGradingKey';
 
 function formatPointsHalfStepDisplay(n) {
@@ -52,10 +54,13 @@ export default function GradingKeyTable({
 
   const effectiveBands = useMemo(() => {
     if (customBands?.length) return customBands;
+    if (showNotenpunkte && isBuiltinGradingKeyType(type) && max > 0) {
+      return buildBuiltinNotenpunkteBands(type, max, thresholdsOverride);
+    }
     if (formulaIntercept != null && max > 0) return buildFormulaBands(max, formulaIntercept);
     if (type === 'abi') return ABI_BAWUE_2026_120_BE_KEY.bands;
     return null;
-  }, [customBands, type, formulaIntercept, max]);
+  }, [customBands, type, formulaIntercept, max, showNotenpunkte, thresholdsOverride]);
 
   const pktInt = pktIntegerDisplay || type === 'abi';
 
@@ -79,6 +84,7 @@ export default function GradingKeyTable({
   const renderRows = () => {
     if (effectiveBands?.length) {
       const sorted = [...effectiveBands].sort((a, b) => {
+        if (showNotenpunkte && a.np != null && b.np != null) return Number(b.np) - Number(a.np);
         const gDiff = Number(a.g) - Number(b.g);
         if (Math.abs(gDiff) > 1e-9) return gDiff;
         return Number(b.hi) - Number(a.hi);

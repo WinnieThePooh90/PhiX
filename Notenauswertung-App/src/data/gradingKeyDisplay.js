@@ -8,6 +8,11 @@ import { getThresholds } from '../utils/calculator';
 export const PLATEAU_KEY_TYPES = ['1', '2', '3'];
 export const LINEAR_KEY_TYPES = ['4', '5', '6'];
 
+export function isBuiltinGradingKeyType(type) {
+  const t = String(type ?? '');
+  return PLATEAU_KEY_TYPES.includes(t) || LINEAR_KEY_TYPES.includes(t);
+}
+
 export function isPlateauGradingKeyType(type) {
   return PLATEAU_KEY_TYPES.includes(String(type ?? ''));
 }

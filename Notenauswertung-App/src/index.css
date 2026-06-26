@@ -5180,6 +5180,22 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .app-container--mobile .view-generic-scroll--gfs > .view-page-chrome {
     flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .keys-view-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-container--mobile .keys-view-toolbar-panel {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
   }
 
   .app-container--mobile .view-generic-scroll--gfs > .gfs-table-scroll {
@@ -5682,12 +5698,6 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .app-container--mobile .gfs-table-scroll thead th:nth-child(8),
   .app-container--mobile .gfs-table-scroll tbody td:nth-child(8) {
     min-width: 4.25rem !important;
-  }
-
-  .app-container--mobile .view-generic-scroll--gfs > .view-page-chrome {
-    width: max-content;
-    max-width: 100%;
-    min-width: min(100%, max-content);
   }
 
   .exam-charts-modal-backdrop {

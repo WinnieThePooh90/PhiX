@@ -16,7 +16,10 @@ import {
   normalizeQuarterGrade,
   pointsFromPercentHalfStep,
   resolveGradingThresholds,
+  buildBuiltinNotenpunkteBands,
+  classicGradeToGradingKeyNotenpunkte,
 } from './calculator';
+import { isBuiltinGradingKeyType } from '../data/gradingKeyDisplay';
 
 function formatPointsHalfStepDisplay(n) {
   const x = Number(n);
@@ -30,7 +33,7 @@ function formatGradeDisplay(grade) {
 }
 
 /**
- * @param {{ type: string, maxPoints: number|string, thresholdsOverride?: object, customBands?: object[], pktIntegerDisplay?: boolean }} params
+ * @param {{ type: string, maxPoints: number|string, thresholdsOverride?: object, customBands?: object[], pktIntegerDisplay?: boolean, showNotenpunkte?: boolean }} params
  * @returns {{ pkt: string, grade: string, pct: string }[]}
  */
 export function buildGradingKeyTableRows({
@@ -39,6 +42,7 @@ export function buildGradingKeyTableRows({
   thresholdsOverride,
   customBands,
   pktIntegerDisplay = false,
+  showNotenpunkte = false,
 }) {
   const t = resolveGradingThresholds(type, thresholdsOverride);
   const max = parseFloat(maxPoints) || 0;
@@ -46,7 +50,9 @@ export function buildGradingKeyTableRows({
 
   let effectiveBands = customBands;
   if (!effectiveBands?.length) {
-    if (formulaIntercept != null && max > 0) {
+    if (showNotenpunkte && isBuiltinGradingKeyType(type) && max > 0) {
+      effectiveBands = buildBuiltinNotenpunkteBands(type, max, thresholdsOverride);
+    } else if (formulaIntercept != null && max > 0) {
       effectiveBands = buildFormulaBands(max, formulaIntercept);
     } else if (type === 'abi') {
       effectiveBands = ABI_BAWUE_2026_120_BE_KEY.bands;
@@ -63,7 +69,10 @@ export function buildGradingKeyTableRows({
   }
 
   if (effectiveBands?.length) {
-    const sorted = [...effectiveBands].sort((a, b) => Number(a.g) - Number(b.g));
+    const sorted = [...effectiveBands].sort((a, b) => {
+      if (showNotenpunkte && a.np != null && b.np != null) return Number(b.np) - Number(a.np);
+      return Number(a.g) - Number(b.g);
+    });
     return sorted.map((s) => {
       const lo = Number(s.lo);
       const hi = Number(s.hi);
@@ -93,7 +102,13 @@ export function buildGradingKeyTableRows({
               : `${formatPointsHalfStepDisplay(pkLo)}–${formatPointsHalfStepDisplay(pkHi)}`;
         }
       }
-      return { pkt, grade: formatGradeDisplay(s.g), pct };
+      return {
+        pkt,
+        grade: showNotenpunkte && s.np != null
+          ? String(Math.round(Number(s.np)))
+          : formatGradeDisplay(s.g),
+        pct,
+      };
     });
   }
 
@@ -132,7 +147,7 @@ export function buildGradingKeyTableRows({
     } else if (s.pLabel && t.badPlateauMax != null && parseFloat(s.g) === 6) {
       pkt = `≤ ${Math.ceil((max * t.badPlateauMax) / 100)}`;
     }
-    return { pkt: String(pkt), grade: formatGradeDisplay(s.g), pct };
+    return { pkt: String(pkt), grade: showNotenpunkte ? String(classicGradeToGradingKeyNotenpunkte(parseFloat(s.g)) ?? '–') : formatGradeDisplay(s.g), pct };
   });
 }
 
@@ -140,8 +155,9 @@ export function buildGradingKeyTableRows({
  * @param {{ pkt: string, grade: string, pct: string }[]} rows
  * @returns {(string|number)[][]}
  */
-export function buildGradingKeyExportAoa(rows) {
-  return [['PKT', 'Note', '%'], ...rows.map((r) => [r.pkt, r.grade, r.pct])];
+export function buildGradingKeyExportAoa(rows, showNotenpunkte = false) {
+  const gradeCol = showNotenpunkte ? 'NP' : 'Note';
+  return [['PKT', gradeCol, '%'], ...rows.map((r) => [r.pkt, r.grade, r.pct])];
 }
 
 /**
@@ -263,7 +279,11 @@ export const DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS = 50;
  * Voreingestellten Notenschlüssel für den Export aufbereiten.
  * @returns {{ id: string, name: string, maxPoints: number, preset: boolean, gradingKey: object } | null}
  */
-export function resolveBuiltinGradingKeyForExport(type, maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS) {
+export function resolveBuiltinGradingKeyForExport(
+  type,
+  maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS,
+  showNotenpunkte = false,
+) {
   const keyType = String(type ?? '');
   const title = getBuiltinGradingKeyTitle(keyType);
   if (!title) return null;
@@ -275,6 +295,7 @@ export function resolveBuiltinGradingKeyForExport(type, maxPoints = DEFAULT_GRAD
   const rows = buildGradingKeyTableRows({
     type: keyType,
     maxPoints: effectiveMax,
+    showNotenpunkte,
   });
 
   return {
@@ -286,7 +307,7 @@ export function resolveBuiltinGradingKeyForExport(type, maxPoints = DEFAULT_GRAD
       title,
       desc,
       maxPoints: effectiveMax,
-      aoa: buildGradingKeyExportAoa(rows),
+      aoa: buildGradingKeyExportAoa(rows, showNotenpunkte),
       chart: {
         type: keyType,
         maxPoints: effectiveMax,
@@ -316,7 +337,7 @@ export function buildCourseGradingKeysExportList(
   };
 
   const builtins = BUILTIN_GRADING_KEY_TYPES
-    .map((type) => resolveBuiltinGradingKeyForExport(type, maxPoints))
+    .map((type) => resolveBuiltinGradingKeyForExport(type, maxPoints, showNotenpunkte))
     .filter(Boolean)
     .map(withChartMode);
 

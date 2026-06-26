@@ -4,7 +4,7 @@
  */
 
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
-import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
+import { getFormulaKeyIntercept, gradeFromFormulaPoints, formulaLeftBoundary } from '../data/formulaGradingKey';
 import { gradeFromVorlage1Points, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
 
 const EXAM_SCORE_META_KEYS = new Set([
@@ -821,6 +821,80 @@ export const buildBandsFromAnchorThresholds = (overrideThresholds, refMaxPoints 
   }
   out.push({ g: prevG, lo: startPct, hi: 100 });
   return out;
+};
+
+/** Prozent-Anker für eingebaute Schlüssel 1–6 (Formel: aus Punktgrenzen; Linear: feste Schwellen). */
+export const getBuiltinKeyPercentAnchors = (type, maxPoints, thresholdsOverride = null) => {
+  const max = Number(maxPoints);
+  const formulaIntercept = getFormulaKeyIntercept(type);
+  if (formulaIntercept != null && Number.isFinite(max) && max > 0) {
+    const p2 = (formulaLeftBoundary(2, max, formulaIntercept) / max) * 100;
+    const p4 = (formulaLeftBoundary(4, max, formulaIntercept) / max) * 100;
+    return {
+      percent1: 100,
+      percent2: p2,
+      percent4: p4,
+      goodPlateauMin: null,
+      badPlateauMax: null,
+    };
+  }
+  const th = resolveGradingThresholds(type, thresholdsOverride);
+  return {
+    percent1: th.percent1,
+    percent2: th.percent2,
+    percent4: th.percent4,
+    goodPlateauMin: th.goodPlateauMin ?? null,
+    badPlateauMax: th.badPlateauMax ?? null,
+  };
+};
+
+/** Notenpunkte 0–15 für Anzeige eingebauter Schlüssel im Punktesystem (Ankerlogik wie 1–6). */
+export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) => {
+  const p = Number(percent);
+  if (!Number.isFinite(p)) return null;
+  const anchors = getBuiltinKeyPercentAnchors(type, maxPoints, thresholdsOverride);
+  if (anchors.goodPlateauMin != null && p >= anchors.goodPlateauMin) return 15;
+  if (anchors.badPlateauMax != null && p <= anchors.badPlateauMax) return 0;
+  const g = gradeFromThreeAnchors(p, anchors.percent1, anchors.percent2, anchors.percent4);
+  return classicGradeToGradingKeyNotenpunkte(g);
+};
+
+/**
+ * NP-Bänder (0–15) für Plateau/Linear 1–3 — eine Zeile je NP-Stufe, Anker aus Schlüssel 1–6.
+ * @returns {{ np: number, g: number, lo: number, hi: number }[]}
+ */
+export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride = null) => {
+  const max = Number(maxPoints);
+  if (!Number.isFinite(max) || max <= 0) return [];
+  if (!['1', '2', '3', '4', '5', '6'].includes(String(type ?? ''))) return [];
+
+  const steps = Math.max(200, Math.round(max * 4));
+  const runs = [];
+  let curNp = null;
+  let startPct = 0;
+
+  for (let i = 0; i <= steps; i += 1) {
+    const pct = (i / steps) * 100;
+    const np = notenpunkteFromBuiltinKeyPercent(pct, type, max, thresholdsOverride);
+    if (np === null) continue;
+    if (curNp === null) {
+      curNp = np;
+      startPct = 0;
+    } else if (np !== curNp) {
+      const boundary = ((i - 0.5) / steps) * 100;
+      runs.push({ np: curNp, lo: startPct, hi: boundary });
+      curNp = np;
+      startPct = boundary;
+    }
+  }
+  if (curNp !== null) runs.push({ np: curNp, lo: startPct, hi: 100 });
+
+  return runs.map(({ np, lo, hi }) => ({
+    np,
+    g: notenpunkteToGrade(np) ?? 6,
+    lo,
+    hi,
+  }));
 };
 
 /** Kernlogik Schlüssel 1–3 und Mittelbereich 4–6 (ohne Plateau-Ränder). */
