@@ -723,6 +723,26 @@ export const gradeFromPercentBands = (percent, bands) => {
   return 6.0;
 };
 
+/** Notenpunkte aus Prozent-Bändern (nutzt `band.np`, falls gesetzt — z. B. ABI-Schlüssel). */
+export const notenpunkteFromPercentBands = (percent, bands) => {
+  const p = Number(percent);
+  if (!Number.isFinite(p) || !bands?.length) return null;
+  const sorted = [...bands].sort((a, b) => Number(b.lo) - Number(a.lo));
+  for (let i = 0; i < sorted.length; i += 1) {
+    const b = sorted[i];
+    const lo = Number(b.lo);
+    const hi = Number(b.hi);
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) continue;
+    if (p >= lo - 1e-9 && p <= hi + 1e-9) {
+      if (b.np != null && Number.isFinite(Number(b.np))) return Math.round(Number(b.np));
+      const g = Number(b.g);
+      if (Number.isFinite(g)) return classicGradeToGradingKeyNotenpunkte(g);
+      return null;
+    }
+  }
+  return null;
+};
+
 /** Punkte aus Prozent der Maximalpunktzahl, gerundet auf halbe Punkte (Anzeige eigener Schlüssel). */
 export const pointsFromPercentHalfStep = (maxPoints, percent) => {
   const max = Number(maxPoints);
@@ -1691,7 +1711,7 @@ export const calculateStudentGrades = (
 
 /** Abitur-übliche Zuordnung Notenpunkte (0–15) → Viertelnote (Anzeige Punktesystem). */
 export const NOTENPUNKTE_TO_GRADE = Object.freeze({
-  15: 0.75,
+  15: 1.0,
   14: 1.0,
   13: 1.25,
   12: 1.5,

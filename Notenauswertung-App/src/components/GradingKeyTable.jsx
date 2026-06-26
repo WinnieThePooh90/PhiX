@@ -24,8 +24,9 @@ function formatClassicGradeDisplay(grade) {
   return parseFloat(String(grade)).toFixed(2).replace('.00', '.0');
 }
 
-function formatGradeColumnDisplay(grade, showNotenpunkte) {
+function formatGradeColumnDisplay(grade, showNotenpunkte, npOverride = null) {
   if (!showNotenpunkte) return formatClassicGradeDisplay(grade);
+  if (npOverride != null && Number.isFinite(Number(npOverride))) return String(Math.round(Number(npOverride)));
   const np = classicGradeToGradingKeyNotenpunkte(parseFloat(String(grade)));
   return np !== null ? String(np) : '–';
 }
@@ -77,7 +78,11 @@ export default function GradingKeyTable({
 
   const renderRows = () => {
     if (effectiveBands?.length) {
-      const sorted = [...effectiveBands].sort((a, b) => Number(a.g) - Number(b.g));
+      const sorted = [...effectiveBands].sort((a, b) => {
+        const gDiff = Number(a.g) - Number(b.g);
+        if (Math.abs(gDiff) > 1e-9) return gDiff;
+        return Number(b.hi) - Number(a.hi);
+      });
       return sorted.map((s) => {
         const anchor = isAnchorRow(s.g);
         const lo = Number(s.lo);
@@ -106,9 +111,9 @@ export default function GradingKeyTable({
               pkLo === pkHi ? formatPointsHalfStepDisplay(pkLo) : `${formatPointsHalfStepDisplay(pkLo)}–${formatPointsHalfStepDisplay(pkHi)}`;
           }
         }
-        const gStr = formatGradeColumnDisplay(s.g, showNotenpunkte);
+        const gStr = formatGradeColumnDisplay(s.g, showNotenpunkte, s.np);
         return (
-          <tr key={String(s.g)} style={anchor ? anchorRowStyle : {}}>
+          <tr key={`${s.g}-${s.lo}-${s.hi}-${s.np ?? ''}`} style={anchor ? anchorRowStyle : {}}>
             <td className="text-center" style={{ padding: '0.4rem 0.5rem' }}>{pktCell}</td>
             <td style={{ padding: '0.4rem 0.5rem' }} className="text-center">{gStr}</td>
             <td className="text-center text-muted" style={{ padding: '0.4rem 0.5rem' }}>{pctCell}</td>

@@ -6,7 +6,7 @@
  */
 
 const NP_TO_GRADE = {
-  15: 0.75,
+  15: 1.0,
   14: 1.0,
   13: 1.25,
   12: 1.5,
@@ -26,8 +26,8 @@ const NP_TO_GRADE = {
 
 /** [BE_min, BE_max, Notenpunkte] — Zeilen wie in der offiziellen Tabelle (oben sehr gut … unten ungenügend). */
 const BE_ROWS = [
-  [114, 120, 15],
-  [108, 113, 14],
+  [115, 120, 15],
+  [108, 114, 14],
   [102, 107, 13],
   [96, 101, 12],
   [90, 95, 11],
@@ -50,7 +50,7 @@ function buildBandsFromBeRows() {
     const g = NP_TO_GRADE[np];
     const lo = (beLo / 120) * 100;
     const hi = beHi >= 120 ? 100 : ((beHi + 1) / 120) * 100 - EPS;
-    return { g, lo, hi };
+    return { g, lo, hi, np };
   }).sort((a, b) => a.lo - b.lo);
 }
 

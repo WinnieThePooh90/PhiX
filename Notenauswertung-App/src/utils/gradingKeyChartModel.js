@@ -1,4 +1,4 @@
-import { calculateGradeFromThresholds, gradeFromPercentBands, classicGradeToGradingKeyNotenpunkte } from './calculator';
+import { calculateGradeFromThresholds, gradeFromPercentBands, classicGradeToGradingKeyNotenpunkte, notenpunkteFromPercentBands } from './calculator';
 import { getFormulaKeyIntercept, gradeFromFormulaPoints } from '../data/formulaGradingKey';
 
 export const GRADING_KEY_CHART_VB_W = 320;
@@ -46,6 +46,10 @@ export function buildGradingKeyChartModel({
   };
 
   const valueAtPoints = (p) => {
+    if (showNotenpunkte && customBands?.length) {
+      const np = notenpunkteFromPercentBands((p / max) * 100, customBands);
+      if (np !== null) return np;
+    }
     const g = gradeAtPoints(p);
     if (g === null || !Number.isFinite(g)) return null;
     if (!showNotenpunkte) return g;

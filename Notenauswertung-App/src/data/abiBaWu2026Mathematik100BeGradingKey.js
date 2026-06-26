@@ -8,7 +8,7 @@
 const REF = 100;
 
 const NP_TO_GRADE = {
-  15: 0.75,
+  15: 1.0,
   14: 1.0,
   13: 1.25,
   12: 1.5,
@@ -28,8 +28,8 @@ const NP_TO_GRADE = {
 
 /** [BE_min, BE_max, Notenpunkte] — Tabelle sehr gut … ungenügend. */
 const BE_ROWS = [
-  [95, 100, 15],
-  [90, 94, 14],
+  [96, 100, 15],
+  [90, 95, 14],
   [85, 89, 13],
   [80, 84, 12],
   [75, 79, 11],
@@ -52,7 +52,7 @@ function buildBandsFromBeRows() {
     const g = NP_TO_GRADE[np];
     const lo = (beLo / REF) * 100;
     const hi = beHi >= REF ? 100 : ((beHi + 1) / REF) * 100 - EPS;
-    return { g, lo, hi };
+    return { g, lo, hi, np };
   }).sort((a, b) => a.lo - b.lo);
 }
 

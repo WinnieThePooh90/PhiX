@@ -6,10 +6,21 @@ import { formatAppBuildAt } from '../utils/formatAppBuild';
 import { usePhiXRegistration } from '../utils/phixRegistration';
 import { useAuth } from '../store/AuthContext';
 import { PHIX_COPYRIGHT, PHIX_LICENSE_SPDX, PHIX_LICENSE_TITLE } from '../config/phixLicense';
+import { useDialog } from '../components/PhixDialog';
 
 export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
   const { registered, unregister } = usePhiXRegistration();
   const { currentUser } = useAuth();
+  const { showConfirm } = useDialog();
+
+  const handleUnregister = async () => {
+    const ok = await showConfirm('Registrierung wirklich löschen?', {
+      title: 'Registrierung löschen',
+      confirmLabel: 'Löschen',
+      danger: true,
+    });
+    if (ok) unregister(currentUser?.username);
+  };
 
   return (
     <div className="view-generic-scroll program-view">
@@ -24,7 +35,7 @@ export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
               <button
                 type="button"
                 className="tab secondary school-roster-control-btn app-info-unregister-btn"
-                onClick={() => unregister(currentUser?.username)}
+                onClick={handleUnregister}
               >
                 Registrierung löschen
               </button>
