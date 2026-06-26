@@ -1,75 +1,66 @@
 /**
- * Pflichtangaben nach Art. 13 und 14 DSGVO (Informationspflichten).
- * Bitte mit Ihren tatsächlichen Angaben ergänzen und ggf. rechtlich prüfen lassen.
+ * Datenschutzhinweise für selbst betriebene PhiX-Instanzen (Desktop oder eigener Server).
+ * Kein zentraler Online-Dienst — Art.-13/14-Pflichten gegenüber Schülern/Eltern obliegen dem Betreiber.
  */
 export const DSGVO_SECTIONS = [
   {
-    id: 'controller',
-    heading: 'Verantwortlicher',
-    lines: ['[Name / Firma]', '[Straße und Hausnummer]', '[PLZ Ort]', 'E-Mail: [E-Mail-Adresse]'],
-  },
-  {
-    id: 'dpo',
-    heading: 'Datenschutzbeauftragter (falls bestellt)',
-    lines: [
-      '[Name des Datenschutzbeauftragten oder: Ein Datenschutzbeauftragter ist nicht bestellt.]',
-      'E-Mail: [E-Mail-Adresse]',
+    id: 'deployment',
+    heading: 'Bereitstellungsmodell',
+    paragraphs: [
+      'PhiX ist eine Anwendung zur lokalen Nutzung: als Desktop-Programm (Datenbank auf Ihrem Rechner) oder als Server-Version in Ihrem Netzwerk (Docker auf einem von Ihnen betriebenen Rechner). Es gibt keine zentrale PhiX-Cloud und keinen öffentlichen Internet-Hosting-Dienst des Softwareherstellers, auf dem Ihre Kurs- und Schülerdaten gespeichert würden.',
     ],
   },
   {
-    id: 'purposes',
-    heading: 'Zwecke und Rechtsgrundlagen der Verarbeitung',
+    id: 'controller',
+    heading: 'Verantwortlicher für Daten in Ihrer Instanz',
     paragraphs: [
-      'Wir verarbeiten personenbezogene Daten zur Bereitstellung und Nutzung der Anwendung (insbesondere Benutzerkonten, Kurs- und Notendaten, Schülerverwaltung). Rechtsgrundlagen sind je nach Vorgang insbesondere Art. 6 Abs. 1 lit. b DSGVO (Vertrag/Nutzung), lit. c (rechtliche Verpflichtung) und lit. f (berechtigtes Interesse an einem sicheren, funktionsfähigen Betrieb) sowie ggf. lit. a (Einwilligung).',
+      'Verantwortlicher im Sinne der DSGVO für die in PhiX erfassten personenbezogenen Daten (insbesondere Schülerdaten und Noten) ist der Betreiber Ihrer Installation — in der Regel die nutzende Lehrkraft, die Schule oder die von ihr beauftragte Stelle, nicht der Softwarehersteller.',
+      'Der Softwarehersteller erhält im Regelbetrieb keinen Zugriff auf diese Daten und verarbeitet sie nicht.',
     ],
   },
   {
     id: 'categories',
-    heading: 'Kategorien personenbezogener Daten',
+    heading: 'Welche Daten die Software speichert',
     paragraphs: [
-      'Verarbeitet werden u. a. Stammdaten (z. B. Benutzername, E-Mail), schulische Daten (Fächer, Klassen, Schuljahre), Schülerdaten (Name, Klasse, ggf. Nummer) sowie Noten- und Leistungsdaten, soweit Sie diese in der Anwendung erfassen. Fachliche Inhalte werden in der Datenbank verschlüsselt gespeichert (siehe technische Dokumentation „Verschlüsselung“ in der Anwendung); Passwörter liegen nur als Hash vor.',
+      'In Ihrer Instanz können u. a. gespeichert werden: Benutzerkonten (Benutzername, Passwort-Hash), Kurs- und Schuljahresdaten, Schülerstammdaten (Name, Klasse, ggf. Nummer), Noten und Leistungsdaten sowie von Ihnen hochgeladene Inhalte (z. B. Fotos). Fachliche Inhalte werden in der Datenbank verschlüsselt abgelegt (siehe technische Dokumentation „Verschlüsselung“ in der Anwendung). Alle Daten verbleiben auf dem von Ihnen gewählten Speicherort (lokale SQLite-Datei oder Ihre PostgreSQL-Instanz).',
     ],
   },
   {
-    id: 'recipients',
-    heading: 'Empfänger und Übermittlung',
+    id: 'no-transmission',
+    heading: 'Keine Übermittlung an den Hersteller (Regelbetrieb)',
     paragraphs: [
-      'Eine Weitergabe erfolgt nur, soweit dies für den Betrieb erforderlich ist (z. B. Hosting/IT-Dienstleister als Auftragsverarbeiter nach Art. 28 DSGVO) oder eine gesetzliche Pflicht besteht. Eine Übermittlung in Drittländer findet nur statt, wenn die Voraussetzungen der Art. 44 ff. DSGVO erfüllt sind.',
+      'Bei normaler Nutzung werden Kurs-, Schüler- und Notendaten nicht an den Softwarehersteller oder andere Dritte übermittelt. Es findet kein Tracking, keine Analyse-Nutzung und keine automatische Cloud-Synchronisation statt.',
+      'Optional und nur auf Ihre Initiative: Registrierungsschlüssel (lokal in Ihrer Datenbank), Spenden über verlinkte externe Anbieter (z. B. PayPal, Buy Me a Coffee) oder Kontakt zum Hersteller außerhalb der Anwendung. Für diese freiwilligen Vorgänge gelten die Datenschutzhinweise des jeweiligen Anbieters bzw. die Angaben im Impressum.',
     ],
   },
   {
-    id: 'retention',
-    heading: 'Speicherdauer',
+    id: 'operator-duties',
+    heading: 'Pflichten des Betreibers (Art. 13 und 14 DSGVO)',
     paragraphs: [
-      'Personenbezogene Daten werden nur so lange gespeichert, wie es für die genannten Zwecke erforderlich ist oder gesetzliche Aufbewahrungsfristen bestehen. Danach werden die Daten gelöscht oder anonymisiert, sofern keine berechtigten Gründe für eine weitere Speicherung entgegenstehen.',
+      'Wenn Sie PhiX mit personenbezogenen Daten von Schülerinnen und Schülern nutzen, müssen Sie als Verantwortlicher diese Personen (bzw. bei Minderjährigen die Erziehungsberechtigten) über die Verarbeitung informieren — etwa über eine schulische Datenschutzerklärung, Elternbrief oder vergleichbare Regelung Ihrer Schule.',
+      'Dazu gehören insbesondere: Zweck und Rechtsgrundlage (z. B. schulische Aufgabenerfüllung, Art. 6 Abs. 1 lit. e DSGVO i. V. m. Landesrecht), Kategorien der Daten, Speicherdauer, Empfänger (falls vorhanden), Rechte der Betroffenen und Kontakt Ihres Datenschutzbeauftragten, sofern einer bestellt ist.',
+      'Die folgenden Abschnitte auf dieser Seite ersetzen keine vollständige Datenschutzerklärung Ihrer Schule oder Ihres Trägers.',
     ],
   },
   {
     id: 'rights',
-    heading: 'Rechte der betroffenen Personen',
+    heading: 'Rechte betroffener Personen',
     paragraphs: [
-      'Sie haben nach der DSGVO insbesondere das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21). Sofern die Verarbeitung auf einer Einwilligung beruht, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO).',
+      'Schülerinnen, Schüler und Erziehungsberechtigte wenden sich für Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit oder Widerspruch an den Verantwortlichen — also an den Betreiber Ihrer PhiX-Instanz (Schule/Lehrkraft), nicht an den Softwarehersteller.',
     ],
   },
   {
     id: 'complaint',
-    heading: 'Beschwerderecht bei einer Aufsichtsbehörde',
+    heading: 'Beschwerderecht',
     paragraphs: [
-      'Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, insbesondere in dem Mitgliedstaat Ihres gewöhnlichen Aufenthaltsorts, Ihres Arbeitsplatzes oder des Orts des mutmaßlichen Verstoßes.',
-    ],
-  },
-  {
-    id: 'obligation',
-    heading: 'Bereitstellung der Daten / Pflicht zur Angabe',
-    paragraphs: [
-      'Die Bereitstellung bestimmter Daten kann für die Nutzung der Anwendung erforderlich sein. Ohne diese Daten ist eine vollständige Nutzung ggf. nicht möglich. Eine gesetzliche Verpflichtung zur Bereitstellung besteht nur, soweit dies ausdrücklich genannt ist.',
+      'Betroffene Personen können sich bei einer Datenschutz-Aufsichtsbehörde beschweren. Zuständig ist in der Regel die Behörde am Ort des Verantwortlichen (Betreiber), nicht der des Softwareherstellers.',
     ],
   },
   {
     id: 'automated',
-    heading: 'Automatisierte Entscheidungsfindung',
+    heading: 'Notenberechnung',
     paragraphs: [
-      'Es findet keine ausschließlich auf einer automatisierten Verarbeitung — einschließlich Profiling — beruhende Entscheidungsfindung im Sinne von Art. 22 DSGVO statt, die Ihnen gegenüber rechtliche Wirkung entfaltet oder Sie in ähnlicher Weise erheblich beeinträchtigt.',
+      'PhiX berechnet Noten nach von Ihnen hinterlegten Regeln (Gewichtungen, Notenschlüssel). Es gibt keine automatisierte Entscheidungsfindung im Sinne von Art. 22 DSGVO, die Betroffenen gegenüber rechtliche Wirkung entfaltet oder sie in ähnlicher Weise erheblich beeinträchtigt.',
     ],
   },
 ];

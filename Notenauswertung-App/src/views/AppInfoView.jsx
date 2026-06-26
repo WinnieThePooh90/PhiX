@@ -97,9 +97,12 @@ export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
         ) : null}
       </section>
 
-      <h3 className="program-view-section-heading">Angaben nach DSGVO</h3>
+      <h3 className="program-view-section-heading">Datenschutz (DSGVO)</h3>
       <p className="text-muted program-view-intro program-view-intro--tight">
-        Informationspflichten nach Art. 13 und 14 der Datenschutz-Grundverordnung (DSGVO).
+        PhiX wird nicht als zentraler Online-Dienst betrieben — jede Installation liegt bei Ihnen (Desktop oder
+        eigener Server). Die Informationspflichten nach Art. 13 und 14 DSGVO gegenüber Schülerinnen, Schülern und
+        Eltern erfüllt der <strong>Betreiber Ihrer Instanz</strong>, nicht der Softwarehersteller. Nachfolgend: was
+        relevant ist und welche klassischen Website-Pflichtangaben hier entfallen.
       </p>
       <LegalContentSections sections={DSGVO_SECTIONS} />
     </div>
