@@ -6,6 +6,12 @@
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
 import { getFormulaKeyIntercept, gradeFromFormulaPoints, buildFormulaBands } from '../data/formulaGradingKey';
 import { gradeFromVorlage1Points, isVorlage1KeyFamilyId, buildVorlage1Bands } from '../data/vorlage1GradingKey';
+import {
+  getBuiltinNpPercentAnchors,
+  notenpunkteFromLinearNpAnchors,
+  deriveNpAnchorsFromClassicBands,
+  buildNpBandsFromLinearAnchors,
+} from '../data/npGradingKeyAnchors';
 
 const EXAM_SCORE_META_KEYS = new Set([
   '_counted',
@@ -1816,89 +1822,18 @@ export const buildClassicBuiltinPercentBands = (type, maxPoints, thresholdsOverr
   return buildBandsFromAnchorThresholds(th, max) ?? [];
 };
 
-function mergeAdjacentNpBands(bands) {
-  if (!bands?.length) return [];
-  const sorted = [...bands].sort((a, b) => Number(a.lo) - Number(b.lo));
-  const merged = [];
-  for (const b of sorted) {
-    const np = Math.round(Number(b.np));
-    const lo = Number(b.lo);
-    const hi = Number(b.hi);
-    if (!Number.isFinite(np) || !Number.isFinite(lo) || !Number.isFinite(hi)) continue;
-    const last = merged[merged.length - 1];
-    if (last && last.np === np && hi >= last.hi - 0.02) {
-      last.hi = Math.max(last.hi, hi);
-    } else {
-      merged.push({ np, lo, hi, g: b.g });
-    }
-  }
-  return merged;
-}
-
-/** Note 1,0 im klassischen Schlüssel: ca. 90–95 % → 14 NP, ab 95 % → 15 NP. */
-function applyTopNotenpunkteSplit(bands) {
-  const TOP_14 = 90;
-  const TOP_15 = 95;
-  const out = [];
-  for (const b of bands) {
-    const g = normalizeQuarterGrade(b.g);
-    const lo = Number(b.lo);
-    const hi = Number(b.hi);
-    const baseNp = gradeToNotenpunkte(g);
-
-    if (g > 1.0 + 1e-9 || hi <= TOP_14 + 1e-9) {
-      out.push({ np: baseNp, lo, hi, g });
-      continue;
-    }
-
-    if (hi <= TOP_15 + 1e-9) {
-      out.push({ np: 14, lo: Math.max(lo, TOP_14), hi, g });
-      continue;
-    }
-    if (lo >= TOP_15 - 1e-9) {
-      out.push({ np: 15, lo, hi, g });
-      continue;
-    }
-    if (lo < TOP_15 && hi > TOP_15) {
-      if (Math.max(lo, TOP_14) < TOP_15 - 1e-9) {
-        out.push({ np: 14, lo: Math.max(lo, TOP_14), hi: TOP_15, g });
-      }
-      out.push({ np: 15, lo: TOP_15, hi, g });
-      continue;
-    }
-    out.push({ np: baseNp ?? 14, lo, hi, g });
-  }
-  return mergeAdjacentNpBands(out);
-}
-
 /**
- * NP-Bänder aus klassischen Prozent-Bändern: Note je Intervall → NP, oben 90–95/95–100.
+ * NP-Bänder aus klassischen Prozent-Bändern: Anker (0/5/11/15 NP) ableiten, dazwischen linear.
  * @returns {{ np: number, g: number, lo: number, hi: number }[]}
  */
 export const buildNotenpunkteBandsFromClassicBands = (classicBands) => {
-  if (!classicBands?.length) return [];
-  const mapped = classicBands
-    .map((b) => {
-      const g = normalizeQuarterGrade(b.g);
-      const np = gradeToNotenpunkte(g);
-      if (np === null) return null;
-      return { np, lo: Number(b.lo), hi: Number(b.hi), g };
-    })
-    .filter(Boolean);
-  const merged = mergeAdjacentNpBands(mapped);
-  const split = applyTopNotenpunkteSplit(merged);
-  return split
-    .map(({ np, lo, hi }) => ({
-      np,
-      g: notenpunkteToGrade(np) ?? 6,
-      lo,
-      hi,
-    }))
-    .sort((a, b) => Number(b.np) - Number(a.np));
+  const anchors = deriveNpAnchorsFromClassicBands(classicBands, normalizeQuarterGrade);
+  if (!anchors) return [];
+  return buildNpBandsFromLinearAnchors(anchors, notenpunkteToGrade);
 };
 
 /**
- * NP-Bänder für Plateau/Linear 1–6: klassisches %-Intervall → Note → NP, oben 90–95/95–100 angepasst.
+ * NP-Bänder für Plateau/Linear 1–6: feste %-Anker (0/5/11/15 NP), dazwischen linear.
  * @returns {{ np: number, g: number, lo: number, hi: number }[]}
  */
 export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride = null) => {
@@ -1906,13 +1841,17 @@ export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride
   if (!Number.isFinite(max) || max <= 0) return [];
   if (!['1', '2', '3', '4', '5', '6'].includes(String(type ?? ''))) return [];
 
-  const classicBands = buildClassicBuiltinPercentBands(type, max, thresholdsOverride);
-  return buildNotenpunkteBandsFromClassicBands(classicBands);
+  const anchors = getBuiltinNpPercentAnchors(type, thresholdsOverride);
+  if (!anchors) return [];
+  return buildNpBandsFromLinearAnchors(anchors, notenpunkteToGrade);
 };
 
-/** Notenpunkte aus Prozent für eingebaute Schlüssel 1–6 (NP-Anzeige). */
-export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) =>
-  notenpunkteFromPercentBands(percent, buildBuiltinNotenpunkteBands(type, maxPoints, thresholdsOverride));
+/** Notenpunkte aus Prozent für eingebaute Schlüssel 1–6 (NP-Anzeige / Berechnung). */
+export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) => {
+  const anchors = getBuiltinNpPercentAnchors(type, thresholdsOverride);
+  if (!anchors) return null;
+  return notenpunkteFromLinearNpAnchors(percent, anchors);
+};
 
 /**
  * NP-Bänder wie in der Notenschlüssel-Anzeige (Berechnung + Darstellung).
