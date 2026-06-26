@@ -2,7 +2,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { parseSchoolRosterXlsx } from '../utils/schoolRosterXlsxImport';
+import { parseSchoolRosterXlsx, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
+import GradingKeyHelpButton from '../components/GradingKeyHelpButton';
 import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear';
 
 const GRADE_OPTIONS = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -420,15 +421,14 @@ export default function SchoolRosterView() {
           Neuen Schüler anlegen
           {activeYear ? ` (${activeYear.label})` : ''}
         </h3>
-        <form onSubmit={handleAdd} className="flex flex-wrap gap-3 school-roster-add-form">
-          <div>
+        <form onSubmit={handleAdd} className="school-roster-add-form">
+          <div className="school-roster-add-form__grade">
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
               Klasse (Stufe)
             </label>
             <select
               value={gradeLevel}
               onChange={(e) => setGradeLevel(Number(e.target.value))}
-              style={{ minWidth: '5rem', width: 'auto' }}
               aria-label="Klassenstufe"
             >
               {GRADE_OPTIONS.map((g) => (
@@ -438,24 +438,22 @@ export default function SchoolRosterView() {
               ))}
             </select>
           </div>
-          <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
+          <div className="school-roster-add-form__name">
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
               Nachname
             </label>
             <input
-              className="w-full"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               autoComplete="family-name"
               placeholder="Nachname"
             />
           </div>
-          <div style={{ flex: '1 1 10rem', minWidth: '8rem' }}>
+          <div className="school-roster-add-form__name">
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
               Vorname
             </label>
             <input
-              className="w-full"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               autoComplete="given-name"
@@ -470,14 +468,21 @@ export default function SchoolRosterView() {
               <button type="submit" className="tab active school-roster-control-btn" disabled={busy}>
                 {saving ? '…' : 'Hinzufügen'}
               </button>
-              <button
-                type="button"
-                className="tab secondary school-roster-control-btn"
-                disabled={busy}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {importing ? 'Importieren…' : 'Importieren'}
-              </button>
+              <div className="school-roster-import-actions">
+                <button
+                  type="button"
+                  className="tab secondary school-roster-control-btn"
+                  disabled={busy}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {importing ? 'Importieren…' : 'Importieren'}
+                </button>
+                <GradingKeyHelpButton
+                  text={SCHOOL_ROSTER_IMPORT_HELP}
+                  title="Excel-Import"
+                  ariaLabel="Hilfe zum Excel-Import"
+                />
+              </div>
             </div>
           </div>
         </form>

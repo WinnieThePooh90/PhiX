@@ -110,3 +110,18 @@ export function parseSchoolRosterXlsx(arrayBuffer) {
   }
   return { rows: toImport, skipped };
 }
+
+/** Hilfetext für den Excel-Import (Schülerverwaltung). */
+export const SCHOOL_ROSTER_IMPORT_HELP = [
+  'Format: Excel-Datei (.xlsx oder .xls), erstes Tabellenblatt.',
+  '',
+  'Zeile 1 = Überschriften mit genau diesen Pflicht-Spalten:',
+  '• Klasse — auch: Klassenstufe, Stufe, Jahrgang, Jahrgangsstufe, Jgst, JG',
+  '• Vorname — auch: Vornamen',
+  '• Nachname — auch: Nachnamen, Familienname, Zuname',
+  '',
+  'Ab Zeile 2: je Schüler eine Zeile. Klasse = Jahrgangsstufe 5–13 (Zahl oder Text mit Zahl, z. B. „7“ oder „Klasse 7“).',
+  'Leere Zeilen werden übersprungen. Vor- und Nachname müssen gesetzt sein.',
+  '',
+  'Der Import gilt für das aktuell gewählte Schuljahr.',
+].join('\n');

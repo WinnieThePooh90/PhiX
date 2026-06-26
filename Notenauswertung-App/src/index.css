@@ -3887,6 +3887,9 @@ button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
 .school-roster-inline-actions {
   display: flex;
   flex-direction: column;
+  flex: 1 1 12rem;
+  min-width: min(100%, 12rem);
+  max-width: 100%;
 }
 
 .school-roster-inline-actions__label-spacer {
@@ -3906,9 +3909,51 @@ button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
   gap: 0.75rem;
 }
 
+.school-roster-import-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.school-roster-import-actions .school-roster-control-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* Schülerverwaltung: Formularzeile — Eingaben und Buttons gleiche Höhe */
+.school-roster-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.school-roster-add-form > div {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.school-roster-add-form__grade {
+  flex: 0 1 auto;
+}
+
+.school-roster-add-form__name {
+  flex: 1 1 10rem;
+  min-width: min(100%, 8rem);
+}
+
 .school-roster-add-form input,
 .school-roster-add-form select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: var(--course-meta-control-height);
   min-height: var(--course-meta-control-height);
   box-sizing: border-box;
@@ -3916,6 +3961,7 @@ button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
   font-size: 0.875rem;
   line-height: 1.2;
 }
+
 
 .school-roster-years-row select,
 .settings-roster-transfer-row select,
@@ -5236,6 +5282,54 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .user-auswertungshilfe-btn {
     max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .school-roster-add-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .school-roster-add-form > div,
+  .school-roster-add-form__grade,
+  .school-roster-add-form__name,
+  .school-roster-inline-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .school-roster-inline-actions__label-spacer {
+    display: none;
+  }
+
+  .school-roster-inline-actions__buttons {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .school-roster-inline-actions__buttons .school-roster-control-btn {
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .school-roster-import-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .school-roster-import-actions .school-roster-control-btn {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  .school-roster-years-toolbar__new-year {
+    margin-left: 0;
+    width: 100%;
     white-space: normal;
     text-align: center;
   }
