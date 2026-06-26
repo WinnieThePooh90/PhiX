@@ -23,12 +23,12 @@ export const IMPRESSUM_SECTIONS = [
   {
     id: 'provider',
     heading: 'Softwarehersteller',
-    lines: ['[Karsten Paulokat]', '[Le-Plessis-Trévise-Straße 15]', '[72393 Burladingen]', 'Deutschland'],
+    lines: ['Karsten Paulokat', 'Le-Plessis-Trévise-Straße 15', '72393 Burladingen', 'Deutschland'],
   },
   {
     id: 'contact',
     heading: 'Kontakt zum Softwarehersteller',
-    lines: ['E-Mail: [karsten@paulokat.de]'],
+    lines: 'E-Mail: [karsten@paulokat.de'],
     paragraphs: [
       'Dieser Kontakt gilt für Fragen zur Software, zur Lizenz und zur freiwilligen Unterstützung — nicht für Anfragen zu Schülerdaten in Ihrer Instanz, zu denen der Hersteller keinen Zugang hat.',
     ],

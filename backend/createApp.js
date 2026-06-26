@@ -431,6 +431,144 @@ app.put('/api/user-settings', async (req, res) => {
   res.json(row);
 });
 
+const AUSWERTUNGSHILFE_ALLOWED_EXT = new Set([
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.txt',
+  '.rtf',
+  '.odt',
+]);
+const AUSWERTUNGSHILFE_ALLOWED_MIME = new Set([
+  'application/pdf',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/rtf',
+  'text/rtf',
+  'application/vnd.oasis.opendocument.text',
+]);
+const AUSWERTUNGSHILFE_MAX_BYTES = 10 * 1024 * 1024;
+
+function mimeFromFileName(fileName) {
+  const lower = String(fileName || '').toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.txt')) return 'text/plain';
+  if (lower.endsWith('.rtf')) return 'application/rtf';
+  if (lower.endsWith('.odt')) return 'application/vnd.oasis.opendocument.text';
+  return '';
+}
+
+function normalizeAuswertungshilfePayload(body) {
+  const fileName = String(body?.fileName ?? '').trim();
+  if (!fileName) return { error: 'Dateiname erforderlich.' };
+  const ext = fileName.includes('.') ? `.${fileName.split('.').pop().toLowerCase()}` : '';
+  if (!AUSWERTUNGSHILFE_ALLOWED_EXT.has(ext)) {
+    return { error: 'Ungültiges Dateiformat (PDF, DOC, DOCX, TXT, RTF, ODT).' };
+  }
+  let mimeType = String(body?.mimeType ?? '').trim().toLowerCase();
+  if (!mimeType || mimeType === 'application/octet-stream') {
+    mimeType = mimeFromFileName(fileName);
+  }
+  if (!AUSWERTUNGSHILFE_ALLOWED_MIME.has(mimeType)) {
+    return { error: 'Ungültiges Dateiformat (PDF, DOC, DOCX, TXT, RTF, ODT).' };
+  }
+  let raw = String(body?.fileData ?? '').trim();
+  const dataUrlMatch = /^data:[^;]+;base64,(.+)$/i.exec(raw);
+  if (dataUrlMatch) raw = dataUrlMatch[1];
+  if (!raw) return { error: 'Keine Dateidaten.' };
+  let buf;
+  try {
+    buf = Buffer.from(raw, 'base64');
+  } catch {
+    return { error: 'Dateidaten ungültig.' };
+  }
+  if (!buf.length) return { error: 'Keine Dateidaten.' };
+  if (buf.length > AUSWERTUNGSHILFE_MAX_BYTES) {
+    return { error: `Datei zu groß (max. ${AUSWERTUNGSHILFE_MAX_BYTES / (1024 * 1024)} MB).` };
+  }
+  return { fileName, mimeType, fileData: raw };
+}
+
+async function resolveActingUserId(req, res) {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return null;
+  const user = await prisma.appUser.findFirst({
+    where: usernameWhere(acting),
+    select: { id: true },
+  });
+  if (!user) {
+    res.status(404).json({ error: 'Benutzer nicht gefunden' });
+    return null;
+  }
+  return user.id;
+}
+
+app.get('/api/user-auswertungshilfe', async (req, res) => {
+  const userId = await resolveActingUserId(req, res);
+  if (!userId) return;
+  const row = await prisma.userAuswertungshilfe.findUnique({
+    where: { userId },
+    select: { fileName: true, mimeType: true, updatedAt: true },
+  });
+  if (!row) return res.json({ uploaded: false });
+  res.json({
+    uploaded: true,
+    fileName: row.fileName,
+    mimeType: row.mimeType,
+    updatedAt: row.updatedAt,
+  });
+});
+
+app.get('/api/user-auswertungshilfe/file', async (req, res) => {
+  const userId = await resolveActingUserId(req, res);
+  if (!userId) return;
+  const row = await prisma.userAuswertungshilfe.findUnique({ where: { userId } });
+  if (!row?.fileData) return res.status(404).json({ error: 'Keine Auswertungshilfe hinterlegt.' });
+  let buf;
+  try {
+    buf = Buffer.from(String(row.fileData), 'base64');
+  } catch {
+    return res.status(500).json({ error: 'Datei konnte nicht gelesen werden.' });
+  }
+  const safeName = String(row.fileName || 'auswertungshilfe').replace(/[^\wäöüÄÖÜß .()-]+/gi, '_');
+  res.setHeader('Content-Type', row.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safeName)}"`);
+  res.send(buf);
+});
+
+app.put('/api/user-auswertungshilfe', async (req, res) => {
+  const userId = await resolveActingUserId(req, res);
+  if (!userId) return;
+  const normalized = normalizeAuswertungshilfePayload(req.body);
+  if (normalized.error) return res.status(400).json({ error: normalized.error });
+  const row = await prisma.userAuswertungshilfe.upsert({
+    where: { userId },
+    create: {
+      userId,
+      fileName: normalized.fileName,
+      mimeType: normalized.mimeType,
+      fileData: normalized.fileData,
+    },
+    update: {
+      fileName: normalized.fileName,
+      mimeType: normalized.mimeType,
+      fileData: normalized.fileData,
+    },
+    select: { fileName: true, mimeType: true, updatedAt: true },
+  });
+  res.json({
+    uploaded: true,
+    fileName: row.fileName,
+    mimeType: row.mimeType,
+    updatedAt: row.updatedAt,
+  });
+});
+
 // REGISTRATION (global, für alle Benutzer)
 function isValidRegistrationKey(raw) {
   const k = String(raw ?? '').replace(/-/g, '').toUpperCase();

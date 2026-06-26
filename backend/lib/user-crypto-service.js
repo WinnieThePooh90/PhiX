@@ -145,6 +145,15 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     updated += await encryptModelRows(prisma, 'SchoolRosterStudent', rosterStudents, dek);
   }
 
+  const userRow = await prisma.appUser.findFirst({
+    where: { username: ownerUsername },
+    select: { id: true },
+  });
+  if (userRow) {
+    const hilfe = await prisma.userAuswertungshilfe.findUnique({ where: { userId: userRow.id } });
+    if (hilfe) updated += await encryptModelRows(prisma, 'UserAuswertungshilfe', [hilfe], dek);
+  }
+
   return { updated };
 }
 

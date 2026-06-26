@@ -21,6 +21,19 @@ model AppUser {
   settings UserSettings?
 
   crypto UserCrypto?
+  auswertungshilfe UserAuswertungshilfe?
+}
+
+/** Eigene Auswertungshilfe (Dokument) pro Benutzer — gilt für GFS und Referate in allen Kursen. */
+model UserAuswertungshilfe {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  fileData  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserCrypto {

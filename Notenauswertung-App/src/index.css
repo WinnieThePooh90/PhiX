@@ -5234,6 +5234,12 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     text-align: center;
   }
 
+  .user-auswertungshilfe-btn {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
   .app-main {
     flex: 1 1 0%;
     min-height: 0;

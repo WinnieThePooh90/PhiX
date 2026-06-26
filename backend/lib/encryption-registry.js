@@ -22,6 +22,7 @@ const ENCRYPTED_FIELDS = {
   NotesList: ['subject', 'notes', 'sessionDate'],
   NotesListEntry: ['externalFirstName', 'externalLastName', 'remark'],
   AlbumPhoto: ['title', 'description', 'mimeType', 'imageData'],
+  UserAuswertungshilfe: ['fileName', 'mimeType', 'fileData'],
   Config: ['year', 'className', 'subject', 'weighting'],
 };
 

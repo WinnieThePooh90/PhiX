@@ -22,6 +22,7 @@ const DATE_FIELDS_BY_MODEL = {
   CollectionList: ['createdAt'],
   NotesList: ['createdAt'],
   AlbumPhoto: ['createdAt'],
+  UserAuswertungshilfe: ['createdAt', 'updatedAt'],
 };
 
 const PG_SEQUENCE_TABLES = [
@@ -43,6 +44,7 @@ const PG_SEQUENCE_TABLES = [
   'GfsEntry',
   'ReferatEntry',
   'AlbumPhoto',
+  'UserAuswertungshilfe',
   'Exam',
   'Project',
   'Oral',
@@ -72,6 +74,7 @@ const EMPTY_DATA = {
   notesLists: [],
   notesListEntries: [],
   albumPhotos: [],
+  userAuswertungshilfe: [],
 };
 
 function jsonReplacer(_key, value) {
@@ -240,6 +243,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     notesLists,
     notesListEntries,
     albumPhotos,
+    userAuswertungshilfe,
   ] = await Promise.all([
     prisma.appUser.findMany(),
     prisma.userCrypto.findMany(),
@@ -263,6 +267,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.notesList.findMany(),
     prisma.notesListEntry.findMany(),
     prisma.albumPhoto.findMany(),
+    prisma.userAuswertungshilfe.findMany(),
   ]);
 
   return buildBackupEnvelope(
@@ -291,9 +296,20 @@ async function exportPhixDatabase(prisma, meta = {}) {
       notesLists,
       notesListEntries,
       albumPhotos,
+      userAuswertungshilfe,
     },
     { ...meta, exportMode: 'raw' },
   );
+}
+
+async function fetchUserAuswertungshilfe(prisma, ownerUsername) {
+  const userRow = await prisma.appUser.findFirst({
+    where: { username: ownerUsername },
+    select: { id: true },
+  });
+  if (!userRow) return [];
+  const row = await prisma.userAuswertungshilfe.findUnique({ where: { userId: userRow.id } });
+  return row ? [row] : [];
 }
 
 async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) {
@@ -310,6 +326,7 @@ async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) 
     where: { username: ownerUsername },
     select: { id: true, username: true },
   });
+  const userAuswertungshilfe = await fetchUserAuswertungshilfe(prisma, ownerUsername);
 
   return buildBackupEnvelope(
     BACKUP_SCOPE_USER,
@@ -320,6 +337,7 @@ async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) 
       courses,
       ...scoped,
       ...roster,
+      userAuswertungshilfe,
     },
     { ...meta, exportMode: 'raw' },
   );
@@ -385,6 +403,7 @@ async function clearAllPhixData(tx) {
   await tx.gfsEntry.deleteMany();
   await tx.referatEntry.deleteMany();
   await tx.albumPhoto.deleteMany();
+  await tx.userAuswertungshilfe.deleteMany();
   await tx.test.deleteMany();
   await tx.project.deleteMany();
   await tx.oral.deleteMany();
@@ -494,6 +513,7 @@ function countDataSummary(d) {
     collectionLists: d.collectionLists?.length ?? 0,
     notesLists: d.notesLists?.length ?? 0,
     albumPhotos: d.albumPhotos?.length ?? 0,
+    userAuswertungshilfe: d.userAuswertungshilfe?.length ?? 0,
     schoolRosterYears: d.schoolRosterYears?.length ?? 0,
     schoolRosterStudents: d.schoolRosterStudents?.length ?? 0,
   };
@@ -529,6 +549,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'NotesList', d.notesLists);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries);
       await insertMany(tx, 'AlbumPhoto', d.albumPhotos);
+      await insertMany(tx, 'UserAuswertungshilfe', d.userAuswertungshilfe ?? []);
     },
     { maxWait: 60_000, timeout: 300_000 },
   );
@@ -568,6 +589,10 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
     ...y,
     ownerUsername: targetUsername,
   }));
+  const targetUser = await prisma.appUser.findFirst({
+    where: usernameWhere(targetUsername),
+    select: { id: true },
+  });
 
   await prisma.$transaction(
     async (tx) => {
@@ -592,6 +617,15 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'NotesList', d.notesLists, insertOpts);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries, insertOpts);
       await insertMany(tx, 'AlbumPhoto', d.albumPhotos, insertOpts);
+      if (targetUser && Array.isArray(d.userAuswertungshilfe) && d.userAuswertungshilfe.length) {
+        await tx.userAuswertungshilfe.deleteMany({ where: { userId: targetUser.id } });
+        const rows = d.userAuswertungshilfe.map((row) => ({
+          ...row,
+          id: undefined,
+          userId: targetUser.id,
+        }));
+        await insertMany(tx, 'UserAuswertungshilfe', rows, insertOpts);
+      }
     },
     { maxWait: 60_000, timeout: 300_000 },
   );

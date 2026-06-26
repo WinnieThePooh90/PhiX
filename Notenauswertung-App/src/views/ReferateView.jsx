@@ -10,6 +10,7 @@ import MaximizableTableSection, { TableMaximizeToggle } from '../components/Maxi
 import { useDialog } from '../components/PhixDialog';
 import { useFocusStudentTableRow } from '../utils/useFocusStudentTableRow';
 import GfsAuswertungDialog from '../components/GfsAuswertungDialog';
+import UserAuswertungshilfeButton from '../components/UserAuswertungshilfeButton';
 import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from '../utils/gfsAuswertungConfig';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
@@ -190,6 +191,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
             </div>
           )}
         </div>
+        <UserAuswertungshilfeButton />
         <TableMaximizeToggle
           maximized={tableMaximized}
           onClick={() => setTableMaximized((m) => !m)}
