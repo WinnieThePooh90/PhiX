@@ -74,7 +74,11 @@ export default function GradingKeyTable({
     return m;
   }, [effectiveBands, max, pktInt]);
 
-  const isAnchorRow = (grade) => {
+  const isAnchorRow = (grade, npValue) => {
+    if (showNotenpunkte && npValue != null && Number.isFinite(Number(npValue))) {
+      const n = Math.round(Number(npValue));
+      return n === 5 || n === 11;
+    }
     const g = parseFloat(grade);
     return g === 1.0 || g === 2.0 || g === 4.0;
   };
@@ -90,7 +94,7 @@ export default function GradingKeyTable({
         return Number(b.hi) - Number(a.hi);
       });
       return sorted.map((s) => {
-        const anchor = isAnchorRow(s.g);
+        const anchor = isAnchorRow(s.g, s.np);
         const lo = Number(s.lo);
         const hi = Number(s.hi);
         const pctCell = `${Math.round(lo)}–${Math.round(hi)}%`;

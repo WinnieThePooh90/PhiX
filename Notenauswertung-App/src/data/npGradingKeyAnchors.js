@@ -1,7 +1,7 @@
 /**
  * Notenpunkte aus Prozent für eingebaute Schlüssel 1–6.
- * Plateau 1–3: unteres/obere Plateau (0 NP / 15 NP), dazwischen linear über 5- und 11-NP-Anker.
- * Linear 1–3 (4–6): durchgehend eine Gerade durch (at5, 5 NP) und (at11, 11 NP), ohne Plateaus.
+ * Plateau 1–3: unteres/obere Plateau (0 NP / 15 NP), dazwischen linear; 5- und 11-NP-Intervall ab Anker-%.
+ * Linear 1–3 (4–6): stückweise linear 0→5→11→15 ohne unteres Plateau; Anker ab at5 / at11.
  */
 
 export const LINEAR_NP_KEY_TYPES = ['4', '5', '6'];
@@ -84,8 +84,12 @@ function lerp(x, x0, y0, x1, y1) {
   return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
 }
 
+function roundNpInSegment(np, minNp, maxNp) {
+  return Math.min(maxNp, Math.max(minNp, Math.round(np)));
+}
+
 /**
- * Plateau-Schlüssel: 0 NP / 15 NP an den Rändern, dazwischen stückweise linear.
+ * Plateau-Schlüssel: 0 NP / 15 NP an den Rändern; 5- und 11-NP erst ab Anker-%.
  */
 export function notenpunkteFromPlateauNpAnchors(percent, anchors) {
   const p = Number(percent);
@@ -100,20 +104,20 @@ export function notenpunkteFromPlateauNpAnchors(percent, anchors) {
   if (p >= top) return 15;
   if (p <= bad) return 0;
 
-  let np;
   if (p < at5) {
-    np = lerp(p, bad, 0, at5, 5);
-  } else if (p < at11) {
-    np = lerp(p, at5, 5, at11, 11);
-  } else {
-    np = lerp(p, at11, 11, top, 15);
+    const np = lerp(p, bad, 0, at5, 5);
+    return roundNpInSegment(np, 0, 4);
   }
-
-  return Math.round(Math.min(15, Math.max(0, np)));
+  if (p < at11) {
+    const np = lerp(p, at5, 5, at11, 11);
+    return roundNpInSegment(np, 5, 10);
+  }
+  const np = lerp(p, at11, 11, top, 15);
+  return roundNpInSegment(np, 11, 14);
 }
 
 /**
- * Lineare Schlüssel: eine Gerade durch (at5, 5 NP) und (at11, 11 NP), über 0–100 % extrapoliert.
+ * Lineare Schlüssel: 0 % → 0 NP linear bis at5; dann at5→at11→100 % ohne Plateaus.
  */
 export function notenpunkteFromFullLinearNpAnchors(percent, anchors) {
   const p = Number(percent);
@@ -123,8 +127,16 @@ export function notenpunkteFromFullLinearNpAnchors(percent, anchors) {
   const at11 = Number(anchors.at11);
   if (!Number.isFinite(at5) || !Number.isFinite(at11) || Math.abs(at11 - at5) < 1e-12) return null;
 
-  const np = lerp(p, at5, 5, at11, 11);
-  return Math.round(Math.min(15, Math.max(0, np)));
+  if (p < at5) {
+    const np = lerp(p, 0, 0, at5, 5);
+    return roundNpInSegment(np, 0, 4);
+  }
+  if (p < at11) {
+    const np = lerp(p, at5, 5, at11, 11);
+    return roundNpInSegment(np, 5, 10);
+  }
+  const np = lerp(p, at11, 11, 100, 15);
+  return roundNpInSegment(np, 11, 15);
 }
 
 /** Notenpunkte aus Anker-Set (Plateau oder durchgehend linear). */
@@ -200,6 +212,26 @@ function mergeAdjacentNpBands(bands) {
   return merged;
 }
 
+/** 5- und 11-NP-Zeilen beginnen exakt an den Anker-Prozenten. */
+function snapAnchorBandStarts(bands, anchors) {
+  if (!bands?.length || !anchors) return bands;
+  const at5 = Number(anchors.at5);
+  const at11 = Number(anchors.at11);
+  const byLo = [...bands].sort((a, b) => Number(a.lo) - Number(b.lo));
+  for (const b of byLo) {
+    if (b.np === 5 && Number.isFinite(at5)) b.lo = at5;
+    if (b.np === 11 && Number.isFinite(at11)) b.lo = at11;
+  }
+  for (let i = 0; i < byLo.length - 1; i += 1) {
+    byLo[i].hi = byLo[i + 1].lo;
+  }
+  if (byLo.length > 0) {
+    byLo[0].lo = 0;
+    byLo[byLo.length - 1].hi = 100;
+  }
+  return byLo;
+}
+
 /**
  * NP-Bänder für Anzeige und Lookup (ganzzahlige NP je Intervall).
  * @param {{ mode?: 'plateau'|'fullLinear', badPlateauMax?: number, at5: number, at11: number, topPlateauMin?: number }} anchors
@@ -231,7 +263,9 @@ export function buildNpBandsFromLinearAnchors(anchors, notenpunkteToGrade, sampl
     raw.push({ np: prevNp, lo: startPct, hi: 100 });
   }
 
-  return mergeAdjacentNpBands(raw)
+  const snapped = snapAnchorBandStarts(mergeAdjacentNpBands(raw), anchors);
+
+  return snapped
     .map(({ np, lo, hi }) => ({
       np,
       g: notenpunkteToGrade(np) ?? 6,
