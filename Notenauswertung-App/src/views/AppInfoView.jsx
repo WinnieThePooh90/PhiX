@@ -5,9 +5,7 @@ import { APP_VERSION, APP_BUILD_AT } from '../config/appVersion';
 import { formatAppBuildAt } from '../utils/formatAppBuild';
 import { usePhiXRegistration } from '../utils/phixRegistration';
 import { useAuth } from '../store/AuthContext';
-import { DSGVO_SECTIONS } from '../config/dsgvo';
 import { PHIX_COPYRIGHT, PHIX_LICENSE_SPDX, PHIX_LICENSE_TITLE } from '../config/phixLicense';
-import LegalContentSections from '../components/LegalContentSections';
 
 export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
   const { registered, unregister } = usePhiXRegistration();
@@ -97,14 +95,48 @@ export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
         ) : null}
       </section>
 
-      <h3 className="program-view-section-heading">Datenschutz (DSGVO)</h3>
-      <p className="text-muted program-view-intro program-view-intro--tight">
-        PhiX wird nicht als zentraler Online-Dienst betrieben — jede Installation liegt bei Ihnen (Desktop oder
-        eigener Server). Die Informationspflichten nach Art. 13 und 14 DSGVO gegenüber Schülerinnen, Schülern und
-        Eltern erfüllt der <strong>Betreiber Ihrer Instanz</strong>, nicht der Softwarehersteller. Nachfolgend: was
-        relevant ist und welche klassischen Website-Pflichtangaben hier entfallen.
-      </p>
-      <LegalContentSections sections={DSGVO_SECTIONS} />
+      <h3 className="program-view-section-heading">Hinweise zum Datenschutz (DSGVO)</h3>
+      <section className="app-info-section glass-panel" aria-labelledby="app-info-privacy-heading">
+        <h4 id="app-info-privacy-heading" className="visually-hidden">
+          Hinweise zum Datenschutz
+        </h4>
+        <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+          {APP_NAME} ist Software zur Verwaltung von Schülerdaten auf Ihrem eigenen Rechner oder Server. Die
+          Anwendung stellt dafür nur die technische Umgebung bereit — sie hostet keine zentrale Datenbank und hat im
+          Regelbetrieb keinen Zugriff auf die von Ihnen erfassten Inhalte.
+        </p>
+        <h4 className="program-view-panel-heading" style={{ marginTop: '1.25rem' }}>
+          Folgende Daten können in {APP_NAME} gespeichert werden
+        </h4>
+        <p className="program-view-panel-text text-muted">
+          In Ihrer Instanz können u. a. gespeichert werden: Benutzerkonten (Benutzername, Passwort-Hash), Kurs- und
+          Schuljahresdaten, Schülerstammdaten (Name, Klasse, ggf. Nummer), Noten und Leistungsdaten sowie von Ihnen
+          hochgeladene Inhalte (z. B. Fotos). Fachliche Inhalte werden in der Datenbank verschlüsselt abgelegt (siehe
+          technische Dokumentation „Verschlüsselung“ in der Anwendung). Alle Daten verbleiben auf dem von Ihnen
+          gewählten Speicherort (lokale SQLite-Datei oder Ihre PostgreSQL-Instanz).
+        </p>
+        <p className="program-view-panel-text text-muted" style={{ marginBottom: 0 }}>
+          Für alle gespeicherten Daten (Namen, Noten, Fotos usw.) sowie für die datenschutzkonforme Nutzung sind Sie
+          als Anwenderin oder Anwender verantwortlich. {APP_NAME} übernimmt keine Haftung für von Ihnen eingegebene
+          oder importierte Inhalte.
+        </p>
+      </section>
+
+      <h3 className="program-view-section-heading">Disclaimer</h3>
+      <section className="app-info-section glass-panel" aria-labelledby="app-info-disclaimer-heading">
+        <h4 id="app-info-disclaimer-heading" className="visually-hidden">
+          Disclaimer
+        </h4>
+        <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+          {APP_NAME} berechnet Noten automatisch auf Grundlage Ihrer Einstellungen — Gewichtungen, Notenschlüssel und
+          erfasste Leistungen — und macht den Rechenweg nachvollziehbar. Dennoch können Softwarefehler oder eine
+          fehlerhafte Konfiguration zu abweichenden Ergebnissen führen.
+        </p>
+        <p className="program-view-panel-text text-muted" style={{ marginBottom: 0 }}>
+          Bitte prüfen Sie berechnete Noten vor der Verwendung im Unterricht und nutzen Sie {APP_NAME} auf eigenes
+          Ermessen. Für fehlerhafte Berechnungen oder daraus entstehende Folgen übernimmt {APP_NAME} keine Haftung.
+        </p>
+      </section>
     </div>
   );
 }
