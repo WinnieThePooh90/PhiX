@@ -4,8 +4,8 @@
  */
 
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
-import { getFormulaKeyIntercept, gradeFromFormulaPoints, formulaLeftBoundary } from '../data/formulaGradingKey';
-import { gradeFromVorlage1Points, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
+import { getFormulaKeyIntercept, gradeFromFormulaPoints, buildFormulaBands } from '../data/formulaGradingKey';
+import { gradeFromVorlage1Points, isVorlage1KeyFamilyId, buildVorlage1Bands } from '../data/vorlage1GradingKey';
 
 const EXAM_SCORE_META_KEYS = new Set([
   '_counted',
@@ -181,19 +181,31 @@ export const parseExamManualGradeToClassic = (raw, gradeSystem = 'classic') =>
 /**
  * Klausurnote eines Schülers: manuell (wenn aktiv) oder aus Punkten / Schlüssel berechnet.
  */
-export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null) => {
+export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
   const rawScoreData = exam.scores?.[studentId];
   const effN = getStudentEffectiveExamFieldCount(exam, studentId);
   const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
   if (!counted) return null;
 
+  const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isExamManualGradeActive(rawScoreData)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData));
   }
 
   const maxPts = getStudentExamMaxPointsForGrade(exam, studentId);
   const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
-  const calculatedGrade = calculateGradeFromThresholds(total, maxPts, exam.keyType || '1', null, customDef);
+  const keyType = exam.keyType || '1';
+
+  if (gs === 'points') {
+    const np = notenpunkteFromGradingKeyPoints(total, maxPts, keyType, null, customDef);
+    return np !== null ? np : null;
+  }
+
+  const calculatedGrade = calculateGradeFromThresholds(total, maxPts, keyType, null, customDef);
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
 
@@ -207,13 +219,21 @@ export const computeExamClassAverage = (exam, students, customGradingKeys = null
     const effN = getStudentEffectiveExamFieldCount(exam, s.id);
     const { counted } = getNormalizedExamScore(rawSc, effN);
     if (!counted) continue;
-    const grade = getExamGradeForStudent(exam, s.id, customGradingKeys);
-    if (grade === null || !Number.isFinite(grade)) continue;
+    const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
     if (gs === 'points') {
-      const np = thresholdClassicGradeToNotenpunkte(grade);
+      let np = null;
+      if (isExamManualGradeActive(rawSc)) {
+        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawSc), 'points');
+      } else {
+        const { total } = getNormalizedExamScore(rawSc, effN);
+        const maxPts = getStudentExamMaxPointsForGrade(exam, s.id);
+        np = notenpunkteFromGradingKeyPoints(total, maxPts, exam.keyType || '1', null, customDef);
+      }
       if (np === null) continue;
       sum += np;
     } else {
+      const grade = getExamGradeForStudent(exam, s.id, customGradingKeys, gs);
+      if (grade === null || !Number.isFinite(grade)) continue;
       sum += grade;
     }
     count += 1;
@@ -236,13 +256,7 @@ export const computeTestClassAverage = (test, students, customGradingKeys = null
     if (!counted) continue;
     const grade = getTestGradeForStudent(test, s.id, customGradingKeys, gs);
     if (grade === null || !Number.isFinite(grade)) continue;
-    if (gs === 'points') {
-      const np = thresholdClassicGradeToNotenpunkte(grade);
-      if (np === null) continue;
-      sum += np;
-    } else {
-      sum += grade;
-    }
+    sum += grade;
     count += 1;
   }
   if (count === 0) return null;
@@ -823,80 +837,6 @@ export const buildBandsFromAnchorThresholds = (overrideThresholds, refMaxPoints 
   return out;
 };
 
-/** Prozent-Anker für eingebaute Schlüssel 1–6 (Formel: aus Punktgrenzen; Linear: feste Schwellen). */
-export const getBuiltinKeyPercentAnchors = (type, maxPoints, thresholdsOverride = null) => {
-  const max = Number(maxPoints);
-  const formulaIntercept = getFormulaKeyIntercept(type);
-  if (formulaIntercept != null && Number.isFinite(max) && max > 0) {
-    const p2 = (formulaLeftBoundary(2, max, formulaIntercept) / max) * 100;
-    const p4 = (formulaLeftBoundary(4, max, formulaIntercept) / max) * 100;
-    return {
-      percent1: 100,
-      percent2: p2,
-      percent4: p4,
-      goodPlateauMin: null,
-      badPlateauMax: null,
-    };
-  }
-  const th = resolveGradingThresholds(type, thresholdsOverride);
-  return {
-    percent1: th.percent1,
-    percent2: th.percent2,
-    percent4: th.percent4,
-    goodPlateauMin: th.goodPlateauMin ?? null,
-    badPlateauMax: th.badPlateauMax ?? null,
-  };
-};
-
-/** Notenpunkte 0–15 für Anzeige eingebauter Schlüssel im Punktesystem (Ankerlogik wie 1–6). */
-export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) => {
-  const p = Number(percent);
-  if (!Number.isFinite(p)) return null;
-  const anchors = getBuiltinKeyPercentAnchors(type, maxPoints, thresholdsOverride);
-  if (anchors.goodPlateauMin != null && p >= anchors.goodPlateauMin) return 15;
-  if (anchors.badPlateauMax != null && p <= anchors.badPlateauMax) return 0;
-  const g = gradeFromThreeAnchors(p, anchors.percent1, anchors.percent2, anchors.percent4);
-  return classicGradeToGradingKeyNotenpunkte(g);
-};
-
-/**
- * NP-Bänder (0–15) für Plateau/Linear 1–3 — eine Zeile je NP-Stufe, Anker aus Schlüssel 1–6.
- * @returns {{ np: number, g: number, lo: number, hi: number }[]}
- */
-export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride = null) => {
-  const max = Number(maxPoints);
-  if (!Number.isFinite(max) || max <= 0) return [];
-  if (!['1', '2', '3', '4', '5', '6'].includes(String(type ?? ''))) return [];
-
-  const steps = Math.max(200, Math.round(max * 4));
-  const runs = [];
-  let curNp = null;
-  let startPct = 0;
-
-  for (let i = 0; i <= steps; i += 1) {
-    const pct = (i / steps) * 100;
-    const np = notenpunkteFromBuiltinKeyPercent(pct, type, max, thresholdsOverride);
-    if (np === null) continue;
-    if (curNp === null) {
-      curNp = np;
-      startPct = 0;
-    } else if (np !== curNp) {
-      const boundary = ((i - 0.5) / steps) * 100;
-      runs.push({ np: curNp, lo: startPct, hi: boundary });
-      curNp = np;
-      startPct = boundary;
-    }
-  }
-  if (curNp !== null) runs.push({ np: curNp, lo: startPct, hi: 100 });
-
-  return runs.map(({ np, lo, hi }) => ({
-    np,
-    g: notenpunkteToGrade(np) ?? 6,
-    lo,
-    hi,
-  }));
-};
-
 /** Kernlogik Schlüssel 1–3 und Mittelbereich 4–6 (ohne Plateau-Ränder). */
 function gradeFromThreeAnchors(percent, percent1, percent2, percent4) {
   if (percent >= percent1) return 1.0;
@@ -998,7 +938,13 @@ export const getEffectiveTestMaxPoints = (test, scoreData) => {
  * @param {unknown} customGradingKeys
  * @param {unknown} [scoreData] — Rohdaten aus `scores[studentId]` für Nachschreiber-Maximum
  */
-export const calculateTestGradeForStudentEntry = (test, pointsRaw, customGradingKeys, scoreData = undefined) => {
+export const calculateTestGradeForStudentEntry = (
+  test,
+  pointsRaw,
+  customGradingKeys,
+  scoreData = undefined,
+  gradeSystem = 'classic',
+) => {
   if (pointsRaw === null || pointsRaw === undefined || pointsRaw === '') return null;
   const rawKt = String(test?.keyType ?? '1');
   const kt = rawKt === '10' ? '1' : rawKt || '1';
@@ -1007,6 +953,10 @@ export const calculateTestGradeForStudentEntry = (test, pointsRaw, customGrading
   if (!Number.isFinite(p)) return null;
   const pts = Math.min(max, Math.max(0, p));
   const customDef = getCustomKeyDefinition(customGradingKeys, kt);
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (gs === 'points') {
+    return notenpunkteFromGradingKeyPoints(pts, max, kt, null, customDef);
+  }
   const calculated = calculateGradeFromThresholds(pts, max, kt, null, customDef);
   return Number.isFinite(calculated) ? calculated : null;
 };
@@ -1018,13 +968,18 @@ export const getTestGradeForStudent = (test, studentId, customGradingKeys = null
   const { value, counted } = getNormalizedTestScore(raw);
   if (!counted) return null;
 
+  const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isExamManualGradeActive(raw)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(raw), gradeSystem);
   }
 
   const pointsForGrade = value === '' ? '0' : value;
   if (value === '' && test?.active === false) return null;
-  return calculateTestGradeForStudentEntry(test, pointsForGrade, customGradingKeys, raw);
+  return calculateTestGradeForStudentEntry(test, pointsForGrade, customGradingKeys, raw, gs);
 };
 
 /** GFS-Notentext wie mündlich (z. B. 1,25); Komma als Dezimaltrenner erlaubt. */
@@ -1175,15 +1130,26 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isProjectManualGradeMode(project)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
 
   if (isExamManualGradeActive(rawScoreData)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
 
   const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
   const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
+  if (gs === 'points') {
+    return notenpunkteFromGradingKeyPoints(total, maxPts, project.keyType || '1', null, customDef);
+  }
   const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
@@ -1197,10 +1163,18 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isProjectManualGradeMode(project)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
 
   if (isExamManualGradeActive(rawScoreData)) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
 
@@ -1217,6 +1191,9 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
     return sum;
   })();
   const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
+  if (gs === 'points') {
+    return notenpunkteFromGradingKeyPoints(total, maxPts, project.keyType || '1', null, customDef);
+  }
   const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
   return Number.isFinite(calculatedGrade) ? calculatedGrade : null;
 };
@@ -1247,6 +1224,8 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
   if (!item?.active) return null;
   if (halbjahrFilter && item.halbjahr !== halbjahrFilter) return null;
 
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  const failGrade = gs === 'points' ? 0 : 6.0;
   const isProject = item?.projectNumber !== undefined;
   const scoreKey = isProject && isProjectGroupGradeMode(item)
     ? getStudentProjectGroupId(item, studentId)
@@ -1267,13 +1246,13 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
   if (!counted) return null;
 
   if (isProject) {
-    const g = getProjectGradeForStudent(item, studentId, customGradingKeys, gradeSystem);
+    const g = getProjectGradeForStudent(item, studentId, customGradingKeys, gs);
     if (isProjectManualGradeMode(item)) return g;
-    return Number.isFinite(g) ? g : 6.0;
+    return Number.isFinite(g) ? g : failGrade;
   }
 
-  const gManual = getExamGradeForStudent(item, studentId, customGradingKeys);
-  return Number.isFinite(gManual) ? gManual : 6.0;
+  const gManual = getExamGradeForStudent(item, studentId, customGradingKeys, gs);
+  return Number.isFinite(gManual) ? gManual : failGrade;
 };
 
 const NP_FAIL = 0;
@@ -1308,17 +1287,13 @@ const getExamLikeNpContribution = (item, studentId, halbjahrFilter, customGradin
     return np !== null ? np : NP_FAIL;
   }
 
-  const classicG = isProject
-    ? (() => {
-        const maxPts = getStudentProjectMaxPointsForGrade(item, studentId);
-        const customDef = getCustomKeyDefinition(customGradingKeys, item.keyType || '1');
-        const { total } = getNormalizedExamScore(rawScoreData, effN);
-        const calculated = calculateGradeFromThresholds(total, maxPts, item.keyType || '1', null, customDef);
-        return Number.isFinite(calculated) ? calculated : null;
-      })()
-    : getExamGradeForStudent(item, studentId, customGradingKeys);
-
-  const np = thresholdClassicGradeToNotenpunkte(classicG);
+  const g = isProject
+    ? getProjectGradeForStudent(item, studentId, customGradingKeys, gs)
+    : getExamGradeForStudent(item, studentId, customGradingKeys, gs);
+  if (gs === 'points') {
+    return g !== null && Number.isFinite(g) ? g : NP_FAIL;
+  }
+  const np = thresholdClassicGradeToNotenpunkte(g);
   return np !== null ? np : NP_FAIL;
 };
 
@@ -1467,8 +1442,7 @@ function calculateStudentGradesInNotenpunkte(
           if (isExamManualGradeActive(raw)) {
             np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
           } else {
-            const classicG = getTestGradeForStudent(test, studentId, customGradingKeys, 'classic');
-            np = thresholdClassicGradeToNotenpunkte(classicG);
+            np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
           }
           if (np !== null) {
             testNpSum += np;
@@ -1830,6 +1804,207 @@ export const gradeToNotenpunkte = (grade) => {
   return bestNp;
 };
 
+/** Prozent-Bänder des klassischen eingebauten Schlüssels 1–6 (Formel oder lineare Anker). */
+export const buildClassicBuiltinPercentBands = (type, maxPoints, thresholdsOverride = null) => {
+  const max = Number(maxPoints);
+  if (!Number.isFinite(max) || max <= 0) return [];
+  const formulaIntercept = getFormulaKeyIntercept(type);
+  if (formulaIntercept != null) {
+    return buildFormulaBands(max, formulaIntercept);
+  }
+  const th = resolveGradingThresholds(type, thresholdsOverride);
+  return buildBandsFromAnchorThresholds(th, max) ?? [];
+};
+
+function mergeAdjacentNpBands(bands) {
+  if (!bands?.length) return [];
+  const sorted = [...bands].sort((a, b) => Number(a.lo) - Number(b.lo));
+  const merged = [];
+  for (const b of sorted) {
+    const np = Math.round(Number(b.np));
+    const lo = Number(b.lo);
+    const hi = Number(b.hi);
+    if (!Number.isFinite(np) || !Number.isFinite(lo) || !Number.isFinite(hi)) continue;
+    const last = merged[merged.length - 1];
+    if (last && last.np === np && hi >= last.hi - 0.02) {
+      last.hi = Math.max(last.hi, hi);
+    } else {
+      merged.push({ np, lo, hi, g: b.g });
+    }
+  }
+  return merged;
+}
+
+/** Note 1,0 im klassischen Schlüssel: ca. 90–95 % → 14 NP, ab 95 % → 15 NP. */
+function applyTopNotenpunkteSplit(bands) {
+  const TOP_14 = 90;
+  const TOP_15 = 95;
+  const out = [];
+  for (const b of bands) {
+    const g = normalizeQuarterGrade(b.g);
+    const lo = Number(b.lo);
+    const hi = Number(b.hi);
+    const baseNp = gradeToNotenpunkte(g);
+
+    if (g > 1.0 + 1e-9 || hi <= TOP_14 + 1e-9) {
+      out.push({ np: baseNp, lo, hi, g });
+      continue;
+    }
+
+    if (hi <= TOP_15 + 1e-9) {
+      out.push({ np: 14, lo: Math.max(lo, TOP_14), hi, g });
+      continue;
+    }
+    if (lo >= TOP_15 - 1e-9) {
+      out.push({ np: 15, lo, hi, g });
+      continue;
+    }
+    if (lo < TOP_15 && hi > TOP_15) {
+      if (Math.max(lo, TOP_14) < TOP_15 - 1e-9) {
+        out.push({ np: 14, lo: Math.max(lo, TOP_14), hi: TOP_15, g });
+      }
+      out.push({ np: 15, lo: TOP_15, hi, g });
+      continue;
+    }
+    out.push({ np: baseNp ?? 14, lo, hi, g });
+  }
+  return mergeAdjacentNpBands(out);
+}
+
+/**
+ * NP-Bänder aus klassischen Prozent-Bändern: Note je Intervall → NP, oben 90–95/95–100.
+ * @returns {{ np: number, g: number, lo: number, hi: number }[]}
+ */
+export const buildNotenpunkteBandsFromClassicBands = (classicBands) => {
+  if (!classicBands?.length) return [];
+  const mapped = classicBands
+    .map((b) => {
+      const g = normalizeQuarterGrade(b.g);
+      const np = gradeToNotenpunkte(g);
+      if (np === null) return null;
+      return { np, lo: Number(b.lo), hi: Number(b.hi), g };
+    })
+    .filter(Boolean);
+  const merged = mergeAdjacentNpBands(mapped);
+  const split = applyTopNotenpunkteSplit(merged);
+  return split
+    .map(({ np, lo, hi }) => ({
+      np,
+      g: notenpunkteToGrade(np) ?? 6,
+      lo,
+      hi,
+    }))
+    .sort((a, b) => Number(b.np) - Number(a.np));
+};
+
+/**
+ * NP-Bänder für Plateau/Linear 1–6: klassisches %-Intervall → Note → NP, oben 90–95/95–100 angepasst.
+ * @returns {{ np: number, g: number, lo: number, hi: number }[]}
+ */
+export const buildBuiltinNotenpunkteBands = (type, maxPoints, thresholdsOverride = null) => {
+  const max = Number(maxPoints);
+  if (!Number.isFinite(max) || max <= 0) return [];
+  if (!['1', '2', '3', '4', '5', '6'].includes(String(type ?? ''))) return [];
+
+  const classicBands = buildClassicBuiltinPercentBands(type, max, thresholdsOverride);
+  return buildNotenpunkteBandsFromClassicBands(classicBands);
+};
+
+/** Notenpunkte aus Prozent für eingebaute Schlüssel 1–6 (NP-Anzeige). */
+export const notenpunkteFromBuiltinKeyPercent = (percent, type, maxPoints, thresholdsOverride = null) =>
+  notenpunkteFromPercentBands(percent, buildBuiltinNotenpunkteBands(type, maxPoints, thresholdsOverride));
+
+/**
+ * NP-Bänder wie in der Notenschlüssel-Anzeige (Berechnung + Darstellung).
+ * @returns {{ np?: number, g: number, lo: number, hi: number }[]}
+ */
+export const getGradingKeyNotenpunkteBands = (type, maxPoints, overrideThresholds = null, customKey = null) => {
+  const max = Number(maxPoints);
+  const keyType = String(type ?? '1');
+
+  if (customKey?.bands?.length && customKey.bands.some((b) => b.np != null && Number.isFinite(Number(b.np)))) {
+    return customKey.bands;
+  }
+
+  if (customKey && isVorlage1KeyFamilyId(customKey.id) && Number.isFinite(max) && max > 0) {
+    return buildNotenpunkteBandsFromClassicBands(buildVorlage1Bands(max));
+  }
+
+  if (customKey?.bands?.length) {
+    return buildNotenpunkteBandsFromClassicBands(customKey.bands);
+  }
+
+  if (keyType === 'abi') {
+    return ABI_BAWUE_2026_120_BE_BANDS;
+  }
+
+  if (['1', '2', '3', '4', '5', '6'].includes(keyType) && max > 0) {
+    return buildBuiltinNotenpunkteBands(keyType, max, overrideThresholds);
+  }
+
+  return [];
+};
+
+/** Notenpunkte aus Punkten — gleiche Zuordnung wie Notenschlüssel-Tabelle im Punktesystem. */
+export const notenpunkteFromGradingKeyPoints = (
+  points,
+  maxPoints,
+  type,
+  overrideThresholds = null,
+  customKey = null,
+) => {
+  const max = Number(maxPoints);
+  const p = parseLocalizedDecimal(points, NaN);
+  if (!Number.isFinite(p) || !Number.isFinite(max) || max <= 0) return null;
+  const pts = Math.min(max, Math.max(0, p));
+  const percent = (pts / max) * 100;
+  const bands = getGradingKeyNotenpunkteBands(type, max, overrideThresholds, customKey);
+  if (!bands.length) return null;
+  return notenpunkteFromPercentBands(percent, bands);
+};
+
+/** Berechnete Note als Speicher-/Anzeigestring (klassisch oder NP). */
+export const gradingKeyCalculatedStoredString = (
+  points,
+  maxPoints,
+  type,
+  customKey,
+  gradeSystem = 'classic',
+) => {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (gs === 'points') {
+    const np = notenpunkteFromGradingKeyPoints(points, maxPoints, type, null, customKey);
+    return np !== null ? String(np) : '';
+  }
+  const g = calculateGradeFromThresholds(points, maxPoints, type, null, customKey);
+  return Number.isFinite(g) ? g.toFixed(2) : '';
+};
+
+/** Anzeige einer aus dem Notenschlüssel berechneten Note (NP oder Viertelnote). */
+export const formatThresholdCalculatedGrade = (value, gradeSystem = 'classic') => {
+  if (value === null || value === undefined) return '-';
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (gs === 'points') {
+    return formatGrade(value, gs, { inputScale: 'notenpunkte' });
+  }
+  return formatGrade(value, gs);
+};
+
+/** `formatGrade`-Opts für aus Notenschlüsseln berechnete Werte (Punktesystem: bereits NP). */
+export const gradingKeyResultDisplayOpts = (gradeSystem = 'classic') =>
+  normalizeCourseGradeSystem(gradeSystem) === 'points' ? { inputScale: 'notenpunkte' } : undefined;
+
+/** Berechnete Schlüsselnote → Speicherstring (manuell übernehmen). */
+export const gradingKeyResultToStoredString = (value, gradeSystem = 'classic') => {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (value === null || value === undefined) return '';
+  if (gs === 'points') {
+    const n = Math.round(Math.min(15, Math.max(0, Number(value))));
+    return Number.isFinite(n) ? String(n) : '';
+  }
+  return classicGradeToStoredString(value, gs);
+};
+
 /**
  * Klassische Viertelnote → Notenpunkte für die NP-Spalte in Notenschlüsseln.
  * Abweichend von {@link gradeToNotenpunkte}: 1,0 (beste Note im Schlüssel) = 15 NP.
@@ -1874,8 +2049,7 @@ function addWeightedTestsToAggregate(
       if (isExamManualGradeActive(raw)) {
         np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
       } else {
-        const classicG = getTestGradeForStudent(test, studentId, customGradingKeys, 'classic');
-        np = thresholdClassicGradeToNotenpunkte(classicG);
+        np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
       }
       if (np !== null) {
         nextSum += np * unitWeight;
@@ -2140,8 +2314,7 @@ function collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKe
       if (isExamManualGradeActive(raw)) {
         np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), gs);
       } else {
-        const classicG = getTestGradeForStudent(test, studentId, customGradingKeys, 'classic');
-        np = thresholdClassicGradeToNotenpunkte(classicG);
+        np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
       }
       if (np !== null) items.push({ label: test.name || 'Test', grade: np, np });
     } else {

@@ -46,10 +46,17 @@ const BE_ROWS = [
 
 function buildBandsFromBeRows() {
   const EPS = 1e-6;
+  const TOP_14_HI = 95 - EPS;
+  const TOP_15_LO = 95;
   return BE_ROWS.map(([beLo, beHi, np]) => {
     const g = NP_TO_GRADE[np];
-    const lo = (beLo / 120) * 100;
-    const hi = beHi >= 120 ? 100 : ((beHi + 1) / 120) * 100 - EPS;
+    let lo = (beLo / 120) * 100;
+    let hi = beHi >= 120 ? 100 : ((beHi + 1) / 120) * 100 - EPS;
+    if (np === 14) hi = TOP_14_HI;
+    if (np === 15) {
+      lo = TOP_15_LO;
+      hi = 100;
+    }
     return { g, lo, hi, np };
   }).sort((a, b) => a.lo - b.lo);
 }

@@ -25,7 +25,8 @@ import {
   getEffectiveTestMaxPoints,
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
-  classicGradeToStoredString,
+  gradingKeyResultDisplayOpts,
+  gradingKeyResultToStoredString,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import GradingKeyTable from '../components/GradingKeyTable';
@@ -99,6 +100,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
+  const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
   const testNumbers = Object.keys(tests).sort((a, b) => Number(a) - Number(b));
   const [activeTest, setActiveTest] = useState(testNumbers.length > 0 ? testNumbers[0] : null);
   const [showKey, setShowKey] = useState(false);
@@ -675,9 +677,9 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   zIndex: 1,
                                   background:
                                     counted && grade !== null
-                                      ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)')
+                                      ? (getGradeCellBackground(grade, gradeSys, keyGradeOpts) ?? 'var(--surface)')
                                       : 'var(--surface)',
-                                  color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
+                                  color: counted && grade !== null ? getGradeTextColor(grade, gradeSys, keyGradeOpts) : undefined,
                                   borderLeft: '1px solid var(--border)',
                                   verticalAlign: 'middle',
                                 }}
@@ -706,10 +708,10 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   <span
                                     style={{
                                       fontWeight: 'bold',
-                                      color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)',
+                                      color: isGradeWorseThan4(grade, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)',
                                     }}
                                   >
-                                    {formatGrade(grade, gradeSys)}
+                                    {formatGrade(grade, gradeSys, keyGradeOpts)}
                                   </span>
                                 ) : (
                                   '-'
@@ -812,7 +814,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                           }
                                           const { grade: calcGrade } = testRowStats(s.id);
                                           const seed =
-                                            calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                            calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
                                           updateTestStudentManualGrade(activeTest, s.id, true, seed);
                                         }}
                                         aria-label="Manuelle Note"
@@ -871,6 +873,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                       isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                 }
                 titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(sidebarCustomDef?.id, maxPtsDisplay)}
+                showNotenpunkte={gradeSys === 'points'}
               />
             </div>
           )}

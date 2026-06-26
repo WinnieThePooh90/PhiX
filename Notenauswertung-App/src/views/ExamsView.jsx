@@ -28,7 +28,8 @@ import {
   normalizeCourseGradeSystem,
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
-  classicGradeToStoredString,
+  gradingKeyResultDisplayOpts,
+  gradingKeyResultToStoredString,
   parseScorePointsValue,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
@@ -148,6 +149,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   }, [students, studentIdFilterSet]);
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
+  const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
   const examNumbers = Object.keys(exams).sort((a, b) => Number(a) - Number(b));
   
   const [activeKlausur, setActiveKlausur] = useState(examNumbers.length > 0 ? examNumbers[0] : null);
@@ -242,7 +244,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
     const maxPts = getStudentExamMaxPointsForGrade(exam, studentId);
     const isManual = isExamManualGradeActive(rawSc);
-    const grade = counted ? getExamGradeForStudent(exam, studentId, customKeysList) : null;
+    const grade = counted ? getExamGradeForStudent(exam, studentId, customKeysList, gradeSys) : null;
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
@@ -661,9 +663,9 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                               right: 0,
                               zIndex: 1,
                               background: counted && grade !== null
-                                ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)')
+                                ? (getGradeCellBackground(grade, gradeSys, keyGradeOpts) ?? 'var(--surface)')
                                 : 'var(--surface)',
-                              color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
+                              color: counted && grade !== null ? getGradeTextColor(grade, gradeSys, keyGradeOpts) : undefined,
                               borderLeft: '1px solid var(--border)',
                             }}
                           >
@@ -689,8 +691,8 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                 }}
                               />
                             ) : counted && grade !== null ? (
-                              <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>
-                                {formatGrade(grade, gradeSys)}
+                              <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)' }}>
+                                {formatGrade(grade, gradeSys, keyGradeOpts)}
                               </span>
                             ) : (
                               '-'
@@ -767,7 +769,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                       }
                                       const { grade: calcGrade } = examRowStats(s.id);
                                       const seed =
-                                        calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                        calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
                                       updateExamStudentManualGrade(activeKlausur, s.id, true, seed);
                                     }}
                                     aria-label="Manuelle Note"
@@ -827,6 +829,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                       isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                 }
                 titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(sidebarCustomDef?.id, exam.maxPoints)}
+                showNotenpunkte={gradeSys === 'points'}
               />
             </div>
           )}

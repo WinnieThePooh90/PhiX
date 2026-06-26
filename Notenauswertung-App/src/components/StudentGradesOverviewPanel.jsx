@@ -5,6 +5,7 @@ import {
   formatCalculatedGradeValue,
   formatOverviewCalculatedGrade,
   calculatedGradeDisplayOpts,
+  gradingKeyResultDisplayOpts,
   isGradeWorseThan4,
   getExamGradeForStudent,
   getTestGradeForStudent,
@@ -42,6 +43,7 @@ function filterProjectsForSummary(projects, weightingMode, halbjahrFilter) {
 }
 
 function renderProjectListItems(projectEntries, studentId, customGradingKeys, gradeSys, gfmt, listFontSize = '0.85rem') {
+  const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
   return projectEntries.map(([id, p]) => {
     const counted = isProjectScoreCounted(p, studentId);
     const gr = getProjectGradeForStudent(p, studentId, customGradingKeys, gradeSys);
@@ -56,7 +58,7 @@ function renderProjectListItems(projectEntries, studentId, customGradingKeys, gr
     return (
       <li key={`proj-${id}`} className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: listFontSize }}>
         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{label}:</span>
-        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
+        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)') }}>
           {counted && gr !== null ? gfmt(gr) : '-'}
         </strong>
       </li>
@@ -144,6 +146,8 @@ export default function StudentGradesOverviewPanel({
     : GRADE_OVERVIEW_CATEGORIES;
 
   const gfmt = (g) => formatGrade(g, gradeSys);
+  const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
+  const gfmtKey = (g) => formatGrade(g, gradeSys, keyGradeOpts);
   const gradingReferatEntries = referatCountsAsExam ? referatEntries : [];
   const gradingOralReferatEntries = referatCountsAsOral ? referatEntries : [];
   const gradingPartialWrittenReferatEntries = referatCountsAsPartialWritten ? referatEntries : [];
@@ -241,12 +245,12 @@ export default function StudentGradesOverviewPanel({
                       e.scores?.[student.id],
                       getStudentEffectiveExamFieldCount(e, student.id),
                     );
-                    const gr = getExamGradeForStudent(e, student.id, customGradingKeys);
+                    const gr = getExamGradeForStudent(e, student.id, customGradingKeys, gradeSys);
                     return (
                       <li key={id} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                         <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>KA {id}:</span>
-                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                          {counted && gr !== null ? gfmt(gr) : '-'}
+                        <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)') }}>
+                          {counted && gr !== null ? gfmtKey(gr) : '-'}
                         </strong>
                       </li>
                     );
@@ -287,7 +291,7 @@ export default function StudentGradesOverviewPanel({
                   suffix: referatCountsAsPartialWritten ? ` (${Math.round(referatWrittenPercent)} %)` : '',
                   keyPrefix: 'referat-partial-written',
                 })}
-                {renderProjectListItems(writtenProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
+                {renderProjectListItems(writtenProjects, student.id, customGradingKeys, gradeSys, gfmtKey, listFontSize)}
               </ul>
             </div>
 
@@ -329,7 +333,7 @@ export default function StudentGradesOverviewPanel({
                   suffix: referatCountsAsPartialOral ? ` (${Math.round(referatOralPercent)} %)` : '',
                   keyPrefix: 'referat-partial-oral',
                 })}
-                {renderProjectListItems(oralProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
+                {renderProjectListItems(oralProjects, student.id, customGradingKeys, gradeSys, gfmtKey, listFontSize)}
               </ul>
             </div>
 
@@ -346,8 +350,8 @@ export default function StudentGradesOverviewPanel({
                       return (
                         <li key={id} className="text-muted" style={gradeListItemStyle(listFontSize)}>
                           <span style={{ textDecoration: !counted ? 'line-through' : 'none' }}>{t.name}:</span>
-                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys) ? 'var(--danger)' : 'var(--foreground)') }}>
-                            {counted && gr !== null ? gfmt(gr) : '-'}
+                          <strong style={{ color: !counted ? 'var(--text-muted)' : (isGradeWorseThan4(gr, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)') }}>
+                            {counted && gr !== null ? gfmtKey(gr) : '-'}
                           </strong>
                         </li>
                       );
@@ -362,7 +366,7 @@ export default function StudentGradesOverviewPanel({
                   {percentProjects.length > 0 ? 'Projekte (prozentual)' : 'Gesamtnote (prozentual)'}
                 </h4>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {renderProjectListItems(percentProjects, student.id, customGradingKeys, gradeSys, gfmt, listFontSize)}
+                  {renderProjectListItems(percentProjects, student.id, customGradingKeys, gradeSys, gfmtKey, listFontSize)}
                   {showReferate && renderHeldReferatListItems({
                     entries: referatEntries,
                     studentId: student.id,

@@ -6,6 +6,7 @@ import {
   getNormalizedTestScore,
   getTestGradeForStudent,
   normalizeCourseGradeSystem,
+  gradingKeyResultDisplayOpts,
 } from './calculator';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
 
@@ -49,7 +50,7 @@ export function buildTestTableExportAoa({ test, testId, students, config }) {
 
       let note = '-';
       if (counted && grade !== null) {
-        note = formatGrade(grade, gradeSys);
+        note = formatGrade(grade, gradeSys, gradingKeyResultDisplayOpts(gradeSys));
       }
 
       return [s.studentNumber ?? idx + 1, studentNameCell(s), punkte, gesamt, note];

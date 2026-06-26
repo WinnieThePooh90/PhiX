@@ -31,7 +31,8 @@ import {
   normalizeCourseGradeSystem,
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
-  classicGradeToStoredString,
+  gradingKeyResultDisplayOpts,
+  gradingKeyResultToStoredString,
   parseScorePointsValue,
 } from '../utils/calculator';
 import GradingKeyTable from '../components/GradingKeyTable';
@@ -790,6 +791,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       (isAbiBaWue2026KeyFamilyId(sidebarCustomDef.id) ||
                         isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                   }
+                  showNotenpunkte={gradeSys === 'points'}
                 />
               </aside>
             )}
@@ -997,6 +999,7 @@ function ProjectScoresTable({
 }) {
   const detailColSpan = 4 + displayFieldCount;
   const scoreInputScope = `project-${activeProject}`;
+  const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
 
   return (
     <div className="table-container">
@@ -1188,8 +1191,8 @@ function ProjectScoresTable({
                       position: 'sticky',
                       right: 0,
                       zIndex: 1,
-                      background: counted && grade !== null ? (getGradeCellBackground(grade, gradeSys) ?? 'var(--surface)') : 'var(--surface)',
-                      color: counted && grade !== null ? getGradeTextColor(grade, gradeSys) : undefined,
+                      background: counted && grade !== null ? (getGradeCellBackground(grade, gradeSys, keyGradeOpts) ?? 'var(--surface)') : 'var(--surface)',
+                      color: counted && grade !== null ? getGradeTextColor(grade, gradeSys, keyGradeOpts) : undefined,
                       borderLeft: '1px solid var(--border)',
                     }}
                   >
@@ -1204,8 +1207,8 @@ function ProjectScoresTable({
                         style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
                       />
                     ) : counted && grade !== null ? (
-                      <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys) ? 'var(--danger)' : 'var(--foreground)' }}>
-                        {formatGrade(grade, gradeSys)}
+                      <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(grade, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)' }}>
+                        {formatGrade(grade, gradeSys, keyGradeOpts)}
                       </span>
                     ) : (
                       '-'
@@ -1245,7 +1248,7 @@ function ProjectScoresTable({
                                     return;
                                   }
                                   const { grade: calcGrade } = projectScoreRowStats(scoreKey);
-                                  const seed = calcGrade != null ? classicGradeToStoredString(calcGrade, gradeSys) : '';
+                                  const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
                                   updateProjectStudentManualGrade(activeProject, scoreKey, true, seed);
                                 }}
                               />

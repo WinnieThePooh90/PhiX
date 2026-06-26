@@ -98,7 +98,7 @@ function buildProjectItems(projectEntries, studentId, customGradingKeys, gradeSy
     }
     return {
       label: `${p.name || `Projekt ${id}`}${pct}`,
-      grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys) : '-',
+      grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys, gradeSys === 'points') : '-',
       counted,
     };
   });
@@ -192,10 +192,10 @@ export function buildStudentGradesOverviewDetailSections(student, ctx) {
             e.scores?.[student.id],
             getStudentEffectiveExamFieldCount(e, student.id),
           );
-          const gr = getExamGradeForStudent(e, student.id, customGradingKeys);
+          const gr = getExamGradeForStudent(e, student.id, customGradingKeys, gradeSys);
           return {
             label: `KA ${id}`,
-            grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys) : '-',
+            grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys, gradeSys === 'points') : '-',
             counted,
           };
         }),
@@ -270,7 +270,7 @@ export function buildStudentGradesOverviewDetailSections(student, ctx) {
           const gr = counted ? getTestGradeForStudent(t, student.id, customGradingKeys, gradeSys) : null;
           return {
             label: t.name || `Test ${id}`,
-            grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys) : '-',
+            grade: counted && gr !== null ? formatGradeDisplay(gr, gradeSys, gradeSys === 'points') : '-',
             counted,
           };
         })

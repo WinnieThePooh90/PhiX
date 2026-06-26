@@ -7,6 +7,7 @@ import {
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   getStudentExamMaxPointsForGrade,
+  gradingKeyResultDisplayOpts,
   normalizeCourseGradeSystem,
 } from './calculator';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
@@ -71,7 +72,7 @@ export function buildExamTableExport({ exam, examId, students, config }) {
       const effN = getStudentEffectiveExamFieldCount(exam, s.id);
       const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
       const maxPts = getStudentExamMaxPointsForGrade(exam, s.id);
-      const grade = counted ? getExamGradeForStudent(exam, s.id, customGradingKeys) : null;
+      const grade = counted ? getExamGradeForStudent(exam, s.id, customGradingKeys, gradeSys) : null;
 
       const taskCells = Array.from({ length: displayFieldCount }, (_, fieldIndex) => {
         if (fieldIndex >= effN) return '—';
@@ -82,7 +83,7 @@ export function buildExamTableExport({ exam, examId, students, config }) {
       const gesamt = counted ? `${total} / ${maxPts}` : '—';
       let note = '-';
       if (counted && grade !== null) {
-        note = formatGrade(grade, gradeSys);
+        note = formatGrade(grade, gradeSys, gradingKeyResultDisplayOpts(gradeSys));
       }
 
       return [s.studentNumber ?? idx + 1, studentNameCell(s), ...taskCells, gesamt, note];
