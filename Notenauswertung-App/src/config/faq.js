@@ -7,6 +7,12 @@ export const FAQ_ITEMS = [
       'Mein Name ist Karsten Paulokat. Ich unterrichte an einem Gymnasium in Baden-Württemberg Physik, Mathematik, Informatik und NIT.',
   },
   {
+    id: 'other-states',
+    question: 'Ich unterrichte nicht in Baden-Württemberg, kann ich PhiX trotzdem gut nutzen?',
+    answer:
+      'PhiX ist primär für das Schulsystem in Baden-Württemberg konzipiert, einfach deshalb, weil ich dieses gut kenne. In anderen Bundesländern mag PhiX auch funktionieren, ich gebe allerdings keine Garantie darauf. Im Zweifel: Einfach mal ausprobieren! Und wenn Features fehlen oder Anpassungen notwendig wären, schreib mir einfach unverbindlich und ich versuche diese entsprechend zu implementieren.',
+  },
+  {
     id: 'why',
     question: 'Warum die Entwicklung von PhiX?',
     answer:

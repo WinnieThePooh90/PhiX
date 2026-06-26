@@ -39,17 +39,26 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
       if (!el) return;
       const r = el.getBoundingClientRect();
       const spaceBelow = window.innerHeight - r.bottom;
-      const rightOffset = Math.max(0, window.innerWidth - r.right);
-      if (spaceBelow < 140) {
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      const dropdownMinWidth = 152;
+      const margin = 8;
+      const vertical =
+        spaceBelow < 140
+          ? { bottom: window.innerHeight - r.top + 6, top: 'auto' }
+          : { top: r.bottom + 6, bottom: 'auto' };
+
+      if (isMobile) {
+        const left = Math.max(margin, Math.min(r.left, window.innerWidth - dropdownMinWidth - margin));
         setPos({
-          bottom: window.innerHeight - r.top + 6,
-          right: rightOffset,
-          top: 'auto',
+          ...vertical,
+          left,
+          right: 'auto',
         });
       } else {
         setPos({
-          top: r.bottom + 6,
-          right: rightOffset,
+          ...vertical,
+          right: Math.max(0, window.innerWidth - r.right),
+          left: 'auto',
         });
       }
     };
