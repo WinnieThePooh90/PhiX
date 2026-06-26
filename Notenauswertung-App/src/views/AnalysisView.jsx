@@ -36,11 +36,11 @@ function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
   return Number(calculatedFinalGrade);
 }
 
-/** Klassisch: ≥ 4,5 stark gefährdet; Punktesystem: NP ≤ 4 */
-const STARK_GEFAEHRDET_NP_MAX = 4;
-/** Klassisch: 4,0–4,5 gefährdet; Punktesystem: NP 5–7 */
-const GEFAEHRDET_NP_MIN = 5;
-const GEFAEHRDET_NP_MAX = 7;
+/** Klassisch: ≥ 4,5 stark gefährdet; Punktesystem: NP &lt; 4 */
+const STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX = 4;
+/** Klassisch: 4,0–4,5 gefährdet; Punktesystem: NP 4 oder 5 */
+const GEFAEHRDET_NP_A = 4;
+const GEFAEHRDET_NP_B = 5;
 const STARK_GEFAEHRDET_MIN = 4.5;
 const GEFAEHRDET_MIN = 4.0;
 const GEFAEHRDET_MAX_EXCLUSIVE = 4.5;
@@ -58,9 +58,14 @@ function sortStudentsByName(a, b) {
   );
 }
 
-function classAverageBorderColor(avg) {
+function classAverageBorderColor(avg, gradeSys) {
   if (avg === null || Number.isNaN(Number(avg))) return 'var(--border)';
   const g = Number(avg);
+  if (gradeSys === 'points') {
+    if (g >= 8) return 'hsl(var(--success-hsl))';
+    if (g >= 5) return '#f59e0b';
+    return 'var(--danger)';
+  }
   if (g <= 3.0) return 'hsl(var(--success-hsl))';
   if (g <= 3.5) return '#f59e0b';
   return 'var(--danger)';
@@ -282,14 +287,18 @@ export default function AnalysisView() {
     const stark = withGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        return gradeSys === 'points' ? g <= STARK_GEFAEHRDET_NP_MAX : g >= STARK_GEFAEHRDET_MIN;
+        if (gradeSys === 'points') return Math.round(g) < STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX;
+        return g >= STARK_GEFAEHRDET_MIN;
       })
       .sort(sortWorstFirst);
 
     const gef = withGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        if (gradeSys === 'points') return g >= GEFAEHRDET_NP_MIN && g <= GEFAEHRDET_NP_MAX;
+        if (gradeSys === 'points') {
+          const np = Math.round(g);
+          return np === GEFAEHRDET_NP_A || np === GEFAEHRDET_NP_B;
+        }
         return g >= GEFAEHRDET_MIN && g < GEFAEHRDET_MAX_EXCLUSIVE;
       })
       .sort(sortWorstFirst);
@@ -533,7 +542,9 @@ export default function AnalysisView() {
           <>
             <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              Schüler mit berechneter Gesamtnote ≥ 4,5.
+              {gradeSys === 'points'
+                ? 'Schüler mit berechneter Gesamtnote < 4 NP.'
+                : 'Schüler mit berechneter Gesamtnote ≥ 4,5.'}
             </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : starkGefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={starkGefaehrdet} gradeColor="var(--danger)" gradeSystem={gradeSys} {...riskTableProps} />
@@ -543,7 +554,9 @@ export default function AnalysisView() {
 
             <h4 style={{ margin: '1.25rem 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              Schüler mit berechneter Gesamtnote ≥ 4,0 und &lt; 4,5.
+              {gradeSys === 'points'
+                ? 'Schüler mit berechneter Gesamtnote 4 NP oder 5 NP.'
+                : 'Schüler mit berechneter Gesamtnote ≥ 4,0 und < 4,5.'}
             </p>
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 ? null : gefaehrdet.length > 0 ? (
               <RiskStudentsTable rows={gefaehrdet} gradeColor="hsl(28 78% 32%)" gradeSystem={gradeSys} {...riskTableProps} />
@@ -573,7 +586,7 @@ export default function AnalysisView() {
               justifyContent: 'center',
               minWidth: '7rem',
               padding: '0.85rem 1.5rem',
-              border: `2px solid ${classAverageBorderColor(classAverage)}`,
+              border: `2px solid ${classAverageBorderColor(classAverage, gradeSys)}`,
               borderRadius: '10px',
               background: 'hsl(var(--background) / 0.6)',
             }}
