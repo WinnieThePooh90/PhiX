@@ -542,7 +542,7 @@ export default function AlbumView() {
               </div>
               <button
                 type="button"
-                className="album-photo-image-wrap"
+                className="album-photo-image-wrap course-archived-allow"
                 onClick={() => setPreviewPhoto(photo)}
                 aria-label={`${photo.title || 'Albumfoto'} vergrößern`}
               >
