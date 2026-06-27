@@ -223,14 +223,18 @@ export default function ExamsView({ studentIdFilterSet = null }) {
   if (!exam) {
     return (
       <div className="text-center mt-8 text-muted">
-        Keine Klausuren vorhanden. Bitte füge eine neue Klausur hinzu.
-        <br />
-        <button className="mt-4" onClick={async () => {
-          const newNum = await addExam();
-          if (newNum) setActiveKlausur(newNum.toString());
-        }}>
-          + Erste Klausur anlegen
-        </button>
+        Keine Klausuren vorhanden.
+        {!courseArchived ? (
+          <>
+            <br />
+            <button className="mt-4" onClick={async () => {
+              const newNum = await addExam();
+              if (newNum) setActiveKlausur(newNum.toString());
+            }}>
+              + Erste Klausur anlegen
+            </button>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -293,17 +297,19 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                 KA {num}
               </button>
             ))}
-            <button 
-              className="tab secondary"
-              onClick={async () => {
-                const newNum = await addExam();
-                if (newNum) setActiveKlausur(newNum.toString());
-              }}
-              title="Weitere Klausur hinzufügen"
-              style={{ fontWeight: 'bold' }}
-            >
-              +
-            </button>
+            {!courseArchived ? (
+              <button 
+                className="tab secondary"
+                onClick={async () => {
+                  const newNum = await addExam();
+                  if (newNum) setActiveKlausur(newNum.toString());
+                }}
+                title="Weitere Klausur hinzufügen"
+                style={{ fontWeight: 'bold' }}
+              >
+                +
+              </button>
+            ) : null}
           </div>
         </div>
   

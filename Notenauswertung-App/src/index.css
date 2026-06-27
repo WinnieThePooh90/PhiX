@@ -1959,6 +1959,19 @@ button.success:hover {
   cursor: pointer;
 }
 
+.course-archived .gfs-gehalten-label {
+  pointer-events: none;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.course-archived button.tab:disabled,
+.course-archived button.gfs-auswertung-open-btn:disabled {
+  pointer-events: none;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .course-archived .course-archived-allow,
 .course-archived .tab,
 .course-archived .danger,

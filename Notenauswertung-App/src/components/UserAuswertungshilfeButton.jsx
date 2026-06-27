@@ -9,7 +9,7 @@ import {
   uploadUserAuswertungshilfe,
 } from '../utils/userAuswertungshilfeApi';
 
-export default function UserAuswertungshilfeButton() {
+export default function UserAuswertungshilfeButton({ courseArchived = false }) {
   const { currentUser } = useAuth();
   const { showAlert } = useDialog();
   const inputRef = useRef(null);
@@ -37,6 +37,18 @@ export default function UserAuswertungshilfeButton() {
 
   const handleClick = async (e) => {
     if (busy || meta.loading || !currentUser?.username) return;
+    if (courseArchived) {
+      if (!meta.uploaded) return;
+      setBusy(true);
+      try {
+        await openOrDownloadUserAuswertungshilfe(currentUser.username, meta.fileName);
+      } catch (err) {
+        await showAlert(err?.message || 'Datei konnte nicht geöffnet werden.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (!meta.uploaded || e.shiftKey) {
       inputRef.current?.click();
       return;
@@ -66,9 +78,15 @@ export default function UserAuswertungshilfeButton() {
   };
 
   const label = meta.uploaded ? 'Eigene Auswertungshilfe' : 'Eigene Auswertungshilfe hochladen';
-  const title = meta.uploaded
+  const title = courseArchived && meta.uploaded
+    ? 'Auswertungshilfe öffnen'
+    : meta.uploaded
     ? 'Auswertungshilfe öffnen (Umschalttaste + Klick: neue Datei hochladen)'
     : 'Auswertungshilfe hochladen (PDF, DOC, DOCX, TXT, RTF, ODT)';
+
+  if (courseArchived && !meta.loading && !meta.uploaded) {
+    return null;
+  }
 
   return (
     <>

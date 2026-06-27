@@ -319,10 +319,14 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
       <>
         <div className="text-center mt-8 text-muted">
           Noch keine Projekte vorhanden.
-          <br />
-          <button type="button" className="mt-4" onClick={openCreateModal}>
-            + Erstes Projekt anlegen
-          </button>
+          {!courseArchived ? (
+            <>
+              <br />
+              <button type="button" className="mt-4" onClick={openCreateModal}>
+                + Erstes Projekt anlegen
+              </button>
+            </>
+          ) : null}
         </div>
         {createOpen && createPortal(
           <CreateProjectModal
@@ -415,15 +419,17 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   P{num}
                 </button>
               ))}
-              <button
-                type="button"
-                className="tab secondary"
-                onClick={openCreateModal}
-                title="Neues Projekt hinzufügen"
-                style={{ fontWeight: 'bold' }}
-              >
-                +
-              </button>
+              {!courseArchived ? (
+                <button
+                  type="button"
+                  className="tab secondary"
+                  onClick={openCreateModal}
+                  title="Neues Projekt hinzufügen"
+                  style={{ fontWeight: 'bold' }}
+                >
+                  +
+                </button>
+              ) : null}
             </div>
           </div>
 

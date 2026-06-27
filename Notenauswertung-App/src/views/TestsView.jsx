@@ -189,18 +189,22 @@ export default function TestsView({ studentIdFilterSet = null }) {
   if (!test) {
     return (
       <div className="text-center mt-8 text-muted">
-        Keine Tests vorhanden. Bitte füge einen Test hinzu.
-        <br />
-        <button
-          type="button"
-          className="mt-4"
-          onClick={async () => {
-            const newNum = await addTest();
-            if (newNum) setActiveTest(newNum.toString());
-          }}
-        >
-          + Ersten Test anlegen
-        </button>
+        Keine Tests vorhanden.
+        {!courseArchived ? (
+          <>
+            <br />
+            <button
+              type="button"
+              className="mt-4"
+              onClick={async () => {
+                const newNum = await addTest();
+                if (newNum) setActiveTest(newNum.toString());
+              }}
+            >
+              + Ersten Test anlegen
+            </button>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -237,18 +241,20 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 Test {num}
               </button>
             ))}
-            <button
-              type="button"
-              className="tab secondary"
-              onClick={async () => {
-                const newNum = await addTest();
-                if (newNum) setActiveTest(newNum.toString());
-              }}
-              title="Weiteren Test hinzufügen"
-              style={{ fontWeight: 'bold' }}
-            >
-              +
-            </button>
+            {!courseArchived ? (
+              <button
+                type="button"
+                className="tab secondary"
+                onClick={async () => {
+                  const newNum = await addTest();
+                  if (newNum) setActiveTest(newNum.toString());
+                }}
+                title="Weiteren Test hinzufügen"
+                style={{ fontWeight: 'bold' }}
+              >
+                +
+              </button>
+            ) : null}
           </div>
         </div>
 

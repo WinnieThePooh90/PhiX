@@ -33,7 +33,7 @@ function computeReferatPickerAnchor(anchorEl) {
 }
 
 export default function ReferateView({ studentIdFilterSet = null, focusStudentId = null, onFocusConsumed }) {
-  const { students, referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry, config } = useData();
+  const { students, referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry, config, courseArchived } = useData();
   const { showConfirm } = useDialog();
   const isKursstufe = config?.kursstufe === true;
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
@@ -115,6 +115,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
           <h2 style={{ margin: 0 }}>Referate</h2>
         </div>
         <div className="view-toolbar-actions">
+        {!courseArchived ? (
         <div ref={wrapRef} style={{ position: 'relative' }}>
           <button
             type="button"
@@ -191,7 +192,8 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
             </div>
           )}
         </div>
-        <UserAuswertungshilfeButton />
+        ) : null}
+        <UserAuswertungshilfeButton courseArchived={courseArchived} />
         <TableMaximizeToggle
           maximized={tableMaximized}
           onClick={() => setTableMaximized((m) => !m)}
@@ -294,6 +296,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                           type="checkbox"
                           className="gfs-gehalten-checkbox"
                           checked={gehalten}
+                          disabled={courseArchived}
                           onChange={(e) => updateReferatEntry(row.id, 'gehalten', e.target.checked)}
                           aria-label={`Referat gehalten für ${name}`}
                         />
@@ -373,6 +376,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                       <button
                         type="button"
                         className="tab secondary gfs-auswertung-open-btn"
+                        disabled={courseArchived}
                         onClick={() => setAuswertungEntry({ id: row.id, studentName: name, auswertungHilfe: row.auswertungHilfe })}
                         title="Auswertungshilfe öffnen"
                         aria-label={`Auswertungshilfe für ${name}`}

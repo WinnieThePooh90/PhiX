@@ -195,14 +195,18 @@ export default function OralView({ studentIdFilterSet = null }) {
   if (!record) {
     return (
       <div className="text-center mt-8 text-muted">
-        Keine mündlichen Noten vorhanden. Bitte füge einen Bereich hinzu.
-        <br />
-        <button className="mt-4" onClick={async () => {
-          const newNum = await addOral();
-          if (newNum) setActiveOral(newNum.toString());
-        }}>
-          + Erste mündliche Note anlegen
-        </button>
+        Keine mündlichen Noten vorhanden.
+        {!courseArchived ? (
+          <>
+            <br />
+            <button className="mt-4" onClick={async () => {
+              const newNum = await addOral();
+              if (newNum) setActiveOral(newNum.toString());
+            }}>
+              + Erste mündliche Note anlegen
+            </button>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -294,17 +298,19 @@ export default function OralView({ studentIdFilterSet = null }) {
               Mündlich {num}
             </button>
           ))}
-          <button 
-            className="tab secondary"
-            onClick={async () => {
-              const newNum = await addOral();
-              if (newNum) setActiveOral(newNum.toString());
-            }}
-            title="Weitere mündliche Note hinzufügen"
-            style={{ fontWeight: 'bold' }}
-          >
-            +
-          </button>
+          {!courseArchived ? (
+            <button 
+              className="tab secondary"
+              onClick={async () => {
+                const newNum = await addOral();
+                if (newNum) setActiveOral(newNum.toString());
+              }}
+              title="Weitere mündliche Note hinzufügen"
+              style={{ fontWeight: 'bold' }}
+            >
+              +
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -408,34 +414,36 @@ export default function OralView({ studentIdFilterSet = null }) {
                 rowGap: '0.65rem',
               }}
             >
-              <div className="course-meta-field__row" style={{ justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="tab secondary course-meta-inline-btn"
-                  onClick={() => addOralWeekColumn(activeOral)}
-                  disabled={weekCount >= ORAL_WEEK_COL_CAP}
-                  title="Woche hinzufügen"
-                  style={{
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  + Woche
-                </button>
-                <button
-                  type="button"
-                  className="tab secondary course-meta-inline-btn"
-                  onClick={() => removeOralWeekColumn(activeOral)}
-                  disabled={weekCount <= 0}
-                  title="Letzte Woche entfernen"
-                  style={{
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  - Woche
-                </button>
-              </div>
+              {!courseArchived ? (
+                <div className="course-meta-field__row" style={{ justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="tab secondary course-meta-inline-btn"
+                    onClick={() => addOralWeekColumn(activeOral)}
+                    disabled={weekCount >= ORAL_WEEK_COL_CAP}
+                    title="Woche hinzufügen"
+                    style={{
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    + Woche
+                  </button>
+                  <button
+                    type="button"
+                    className="tab secondary course-meta-inline-btn"
+                    onClick={() => removeOralWeekColumn(activeOral)}
+                    disabled={weekCount <= 0}
+                    title="Letzte Woche entfernen"
+                    style={{
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    - Woche
+                  </button>
+                </div>
+              ) : null}
               {isExtendedGradesMode ? (
                 <div className="course-meta-field__row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button
