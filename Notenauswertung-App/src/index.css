@@ -3842,6 +3842,22 @@ a.support-phix-paypal-btn:active {
   min-width: 10rem;
 }
 
+.project-group-member-row {
+  background: hsl(var(--brand-hsl) / 0.02);
+}
+
+.project-group-member-row--expanded {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.project-group-member-row td {
+  border-bottom: 1px solid var(--border);
+}
+
+.project-group-member-detail-row {
+  background: rgba(15, 23, 42, 0.015);
+}
+
 /*
  * Wird per JS auf den Scroll-Parent gelegt (neben MaximizableTableSection).
  * WebKit/Blink: vertikaler Track oben verkürzen, damit Pfeil/Thumb nicht unter dem Max-Button liegt.
