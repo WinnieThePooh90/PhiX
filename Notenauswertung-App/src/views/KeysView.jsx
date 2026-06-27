@@ -117,14 +117,14 @@ export default function KeysView() {
 
   const keys = useMemo(
     () => [
-      { title: 'Plateau 1', type: '1', desc: getPlateauKeyShortDesc('1', maxPoints), titleHelpText: getFormulaKeyHelpText('1') },
-      { title: 'Plateau 2', type: '2', desc: getPlateauKeyShortDesc('2', maxPoints), titleHelpText: getFormulaKeyHelpText('2') },
-      { title: 'Plateau 3', type: '3', desc: getPlateauKeyShortDesc('3', maxPoints), titleHelpText: getFormulaKeyHelpText('3') },
-      { title: 'Linear 1', type: '4', desc: getBuiltinGradingKeyShortDesc('4', maxPoints) },
-      { title: 'Linear 2', type: '5', desc: getBuiltinGradingKeyShortDesc('5', maxPoints) },
-      { title: 'Linear 3', type: '6', desc: getBuiltinGradingKeyShortDesc('6', maxPoints) },
+      { title: 'Plateau 1', type: '1', desc: getPlateauKeyShortDesc('1', maxPoints, showNotenpunkte), titleHelpText: getFormulaKeyHelpText('1') },
+      { title: 'Plateau 2', type: '2', desc: getPlateauKeyShortDesc('2', maxPoints, showNotenpunkte), titleHelpText: getFormulaKeyHelpText('2') },
+      { title: 'Plateau 3', type: '3', desc: getPlateauKeyShortDesc('3', maxPoints, showNotenpunkte), titleHelpText: getFormulaKeyHelpText('3') },
+      { title: 'Linear 1', type: '4', desc: getBuiltinGradingKeyShortDesc('4', maxPoints, showNotenpunkte) },
+      { title: 'Linear 2', type: '5', desc: getBuiltinGradingKeyShortDesc('5', maxPoints, showNotenpunkte) },
+      { title: 'Linear 3', type: '6', desc: getBuiltinGradingKeyShortDesc('6', maxPoints, showNotenpunkte) },
     ],
-    [maxPoints],
+    [maxPoints, showNotenpunkte],
   );
 
   return (
@@ -230,7 +230,7 @@ export default function KeysView() {
             title={k.name}
             desc={
               isVorlage1KeyFamilyId(k.id)
-                ? getPlateauKeyShortDesc('1', maxPoints)
+                ? getPlateauKeyShortDesc('1', maxPoints, showNotenpunkte)
                 : 'Benutzerdefinierter Schlüssel (Intervalle in % der Klausur-Maximalpunkte)'
             }
             titleHelpText={isVorlage1KeyFamilyId(k.id) ? getFormulaKeyHelpText('1') : null}

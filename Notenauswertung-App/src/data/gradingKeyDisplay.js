@@ -4,6 +4,7 @@ import {
   formatFormulaInterceptDe,
 } from './formulaGradingKey';
 import { getThresholds } from '../utils/calculator';
+import { getBuiltinNpPercentAnchors } from './npGradingKeyAnchors';
 
 export const PLATEAU_KEY_TYPES = ['1', '2', '3'];
 export const LINEAR_KEY_TYPES = ['4', '5', '6'];
@@ -40,7 +41,14 @@ function formatPercentDe(pct) {
   return rounded.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
-export function getPlateauKeyShortDesc(type, maxPoints) {
+export function getNpKeyShortDesc(type) {
+  const anchors = getBuiltinNpPercentAnchors(type);
+  if (!anchors) return '';
+  return `11 NP ab ${formatPercentDe(anchors.at11)}% der Punkte, 5 NP ab ${formatPercentDe(anchors.at5)}% der Punkte`;
+}
+
+export function getPlateauKeyShortDesc(type, maxPoints, showNotenpunkte = false) {
+  if (showNotenpunkte) return getNpKeyShortDesc(type);
   const k = getFormulaKeyIntercept(type);
   const max = Number(maxPoints);
   if (k == null || !Number.isFinite(max) || max <= 0) return '';
@@ -49,14 +57,15 @@ export function getPlateauKeyShortDesc(type, maxPoints) {
   return `Note 2 ab ${formatPercentDe(p2)}% der Punkte, Note 4 ab ${formatPercentDe(p4)}% der Punkte`;
 }
 
-export function getLinearKeyShortDesc(type) {
+export function getLinearKeyShortDesc(type, showNotenpunkte = false) {
+  if (showNotenpunkte) return getNpKeyShortDesc(type);
   const th = getThresholds(type);
   return `Note 2 ab ${formatPercentDe(th.percent2)}% der Punkte, Note 4 ab ${formatPercentDe(th.percent4)}% der Punkte`;
 }
 
-export function getBuiltinGradingKeyShortDesc(type, maxPoints) {
-  if (isPlateauGradingKeyType(type)) return getPlateauKeyShortDesc(type, maxPoints);
-  if (isLinearGradingKeyType(type)) return getLinearKeyShortDesc(type);
+export function getBuiltinGradingKeyShortDesc(type, maxPoints, showNotenpunkte = false) {
+  if (isPlateauGradingKeyType(type)) return getPlateauKeyShortDesc(type, maxPoints, showNotenpunkte);
+  if (isLinearGradingKeyType(type)) return getLinearKeyShortDesc(type, showNotenpunkte);
   return '';
 }
 
