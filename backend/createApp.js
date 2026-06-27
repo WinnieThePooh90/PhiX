@@ -696,12 +696,22 @@ app.post('/api/courses', async (req, res) => {
 app.put('/api/courses/:id', async (req, res) => {
   const existing = await assertCourseAccess(req, res, req.params.id);
   if (!existing) return;
-  if (existing.archived === true) {
-    return res.status(403).json({ error: 'Archiviertes Fach kann nicht bearbeitet werden.' });
-  }
   const raw = { ...req.body };
   delete raw.id;
   delete raw.ownerUsername;
+  if (existing.archived === true) {
+    if (raw.archived !== false) {
+      return res.status(403).json({ error: 'Archiviertes Fach kann nicht bearbeitet werden.' });
+    }
+    const course = await prisma.course.update({
+      where: { id: existing.id },
+      data: {
+        archived: false,
+        archivedGradingKeys: [],
+      },
+    });
+    return res.json(course);
+  }
   const course = await prisma.course.update({
     where: { id: existing.id },
     data: raw,

@@ -72,3 +72,19 @@ export function normalizeCourseArchiveFields(course) {
     archivedGradingKeys: parseCustomGradingKeys(course.archivedGradingKeys),
   };
 }
+
+/**
+ * Custom-Schlüssel-IDs in Klausuren/Tests/Projekten, die nach Reaktivierung fehlen
+ * (nur noch in customGradingKeys — archivedGradingKeys-Snapshot entfällt).
+ * @returns {string[]}
+ */
+export function findMissingCustomGradingKeysForReactivation(course, exams, tests, projects) {
+  const usedIds = collectUsedCustomGradingKeyIds(exams, tests, projects);
+  if (!usedIds.size) return [];
+  const activeIds = new Set(
+    parseCustomGradingKeys(course?.customGradingKeys)
+      .filter((k) => k?.id != null)
+      .map((k) => String(k.id)),
+  );
+  return [...usedIds].filter((id) => !activeIds.has(id));
+}

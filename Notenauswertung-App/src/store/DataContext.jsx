@@ -482,6 +482,31 @@ export const DataProvider = ({ children }) => {
     return false;
   };
 
+  const reactivateCourse = async (courseId) => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course || course.archived !== true) return false;
+    const merged = normalizeCourseArchiveFields({
+      ...course,
+      archived: false,
+      archivedGradingKeys: [],
+    });
+    const saved = await fetchWithActing(`/api/courses/${courseId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(merged),
+    }).then(async (res) => {
+      if (!res?.ok) return undefined;
+      const text = await res.text();
+      return text ? JSON.parse(text) : undefined;
+    });
+    if (saved?.id === courseId) {
+      const normalized = normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys(saved));
+      setCourses((prev) => prev.map((c) => (c.id === courseId ? normalized : c)));
+      return true;
+    }
+    return false;
+  };
+
   const toggleCourseFavorite = (courseId) => {
     setCourses((prev) => {
       const course = prev.find((c) => c.id === courseId);
@@ -2000,7 +2025,7 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, archiveCourse, toggleCourseFavorite,
+      courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, archiveCourse, reactivateCourse, toggleCourseFavorite,
       courseArchived,
       config, setConfig: updateConfig, migrateGradingSystem,
       students, addStudent, removeStudent, clearCourseStudents, updateStudentConfig,
