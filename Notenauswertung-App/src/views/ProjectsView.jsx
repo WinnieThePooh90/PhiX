@@ -156,6 +156,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   const {
     projects,
     updateProject,
+    setProjectGradeMode,
     updateProjectFields,
     removeProject,
     updateProjectScore,
@@ -474,7 +475,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     value={project.gradeMode === 'manual' ? 'manual' : 'key'}
                     onChange={(e) => {
                       const mode = e.target.value === 'manual' ? 'manual' : 'key';
-                      updateProject(activeProject, 'gradeMode', mode);
+                      setProjectGradeMode(activeProject, mode);
                       if (mode === 'manual') setShowKey(false);
                     }}
                   >
@@ -716,6 +717,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                             updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
                             nameColumnLabel="GRUPPE"
                             showEmptyFilterHint={false}
+                            courseArchived={courseArchived}
                           />
                         </div>
                       ))}
@@ -748,6 +750,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
                       nameColumnLabel="NAME"
                       showEmptyFilterHint={displayStudents.length === 0 && students.length > 0}
+                      courseArchived={courseArchived}
                     />
                   </MaximizableTableSection>
                 )}
@@ -996,6 +999,7 @@ function ProjectScoresTable({
   updateProjectStudentManualGradeValue,
   nameColumnLabel,
   showEmptyFilterHint,
+  courseArchived = false,
 }) {
   const detailColSpan = 4 + displayFieldCount;
   const scoreInputScope = `project-${activeProject}`;

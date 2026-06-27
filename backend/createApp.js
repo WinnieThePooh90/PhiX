@@ -553,8 +553,15 @@ app.get('/api/user-auswertungshilfe/file', async (req, res) => {
   }
   const safeName = String(row.fileName || 'auswertungshilfe').replace(/[^\wäöüÄÖÜß .()-]+/gi, '_');
   res.setHeader('Content-Type', row.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safeName)}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"`);
   res.send(buf);
+});
+
+app.delete('/api/user-auswertungshilfe', async (req, res) => {
+  const userId = await resolveActingUserId(req, res);
+  if (!userId) return;
+  await prisma.userAuswertungshilfe.deleteMany({ where: { userId } });
+  res.status(204).send();
 });
 
 app.put('/api/user-auswertungshilfe', async (req, res) => {

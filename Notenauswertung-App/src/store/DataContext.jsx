@@ -1363,6 +1363,38 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  /** Notenermittlung umschalten: Manuell → Schlüssel deaktiviert _manualGrade (Werte bleiben für Rückwechsel). */
+  const setProjectGradeMode = (projectId, mode) => {
+    const gMode = mode === 'manual' ? 'manual' : 'key';
+    setProjects((prev) => {
+      const project = prev[projectId];
+      if (!project) return prev;
+      const prevMode = project.gradeMode === 'manual' ? 'manual' : 'key';
+      if (prevMode === gMode) return prev;
+
+      let nextScores = project.scores;
+      if (gMode === 'key' && prevMode === 'manual') {
+        const scoreEntries = project.scores && typeof project.scores === 'object' ? project.scores : {};
+        nextScores = {};
+        for (const [scoreKey, raw] of Object.entries(scoreEntries)) {
+          if (typeof raw === 'object' && raw !== null) {
+            nextScores[scoreKey] = { ...raw, _manualGrade: false };
+          } else {
+            nextScores[scoreKey] = raw;
+          }
+        }
+      }
+
+      const newProject = {
+        ...project,
+        gradeMode: gMode,
+        ...(gMode === 'key' && prevMode === 'manual' ? { scores: nextScores } : {}),
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
   const updateProjectFields = (id, fields) => {
     setProjects((prev) => {
       const nextProject = { ...prev[id], ...fields };
@@ -2035,7 +2067,7 @@ export const DataProvider = ({ children }) => {
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
-      projects, addProject, removeProject, updateProject, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
+      projects, addProject, removeProject, updateProject, setProjectGradeMode, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry,

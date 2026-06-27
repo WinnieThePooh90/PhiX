@@ -112,7 +112,7 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function openOrDownloadUserAuswertungshilfe(username, fallbackName) {
+export async function downloadUserAuswertungshilfe(username, fallbackName) {
   const res = await apiFetch('/api/user-auswertungshilfe/file', { headers: actingHeaders(username) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -123,19 +123,25 @@ export async function openOrDownloadUserAuswertungshilfe(username, fallbackName)
     parseFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
     fallbackName ||
     'auswertungshilfe.pdf';
-  const blobUrl = URL.createObjectURL(blob);
+  downloadBlob(blob, fileName);
+}
 
-  if (isPhiXDesktopApp()) {
-    downloadBlob(blob, fileName);
-    URL.revokeObjectURL(blobUrl);
-    return;
-  }
+/** @deprecated Alias — lädt die Datei herunter (kein neuer Tab). */
+export const openOrDownloadUserAuswertungshilfe = downloadUserAuswertungshilfe;
 
-  const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-  if (!opened) {
-    downloadBlob(blob, fileName);
-    URL.revokeObjectURL(blobUrl);
-    return;
+export async function deleteUserAuswertungshilfe(username) {
+  const res = await apiFetch('/api/user-auswertungshilfe', {
+    method: 'DELETE',
+    headers: actingHeaders(username),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Auswertungshilfe konnte nicht gelöscht werden.');
   }
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+  notify({
+    uploaded: false,
+    fileName: null,
+    mimeType: null,
+    updatedAt: null,
+  });
 }

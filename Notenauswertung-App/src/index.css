@@ -3985,6 +3985,25 @@ a.support-phix-paypal-btn:active {
   flex-shrink: 0;
 }
 
+.user-auswertungshilfe-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+button.user-auswertungshilfe-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .course-meta-settings-row .view-toolbar-actions {
   align-items: flex-end;
 }
