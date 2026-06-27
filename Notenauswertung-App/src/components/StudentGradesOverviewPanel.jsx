@@ -17,6 +17,7 @@ import {
   getProjectScoreKeyForStudent,
   getStudentEffectiveProjectFieldCount,
   getProjectPillarWeightPercent,
+  isProjectScoreCountedForStudent,
   storedGradeStringToClassic,
 } from '../utils/calculator';
 
@@ -25,16 +26,6 @@ const GRADE_OVERVIEW_CATEGORIES = [
   { label: 'Halbjahr 2', filter: '2' },
   { label: 'Gesamt (Durchschnitt)', filter: null },
 ];
-
-function isProjectScoreCounted(project, studentId) {
-  if (!project?.active) return false;
-  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
-  if (scoreKey == null) return false;
-  const raw = project.scores?.[scoreKey];
-  if (raw && typeof raw === 'object' && raw._counted === false) return false;
-  const { counted } = getNormalizedExamScore(raw, getStudentEffectiveProjectFieldCount(project, studentId));
-  return counted;
-}
 
 function filterProjectsForSummary(projects, weightingMode, halbjahrFilter) {
   return Object.entries(projects || {})
@@ -45,7 +36,7 @@ function filterProjectsForSummary(projects, weightingMode, halbjahrFilter) {
 function renderProjectListItems(projectEntries, studentId, customGradingKeys, gradeSys, gfmt, listFontSize = '0.85rem') {
   const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
   return projectEntries.map(([id, p]) => {
-    const counted = isProjectScoreCounted(p, studentId);
+    const counted = isProjectScoreCountedForStudent(p, studentId);
     const gr = getProjectGradeForStudent(p, studentId, customGradingKeys, gradeSys);
     let pct = '';
     if (p.weightingMode === 'percent' && Number.isFinite(Number(p.weightPercent)) && Number(p.weightPercent) > 0) {

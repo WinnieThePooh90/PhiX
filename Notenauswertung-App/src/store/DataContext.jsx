@@ -1378,7 +1378,15 @@ export const DataProvider = ({ children }) => {
         nextScores = {};
         for (const [scoreKey, raw] of Object.entries(scoreEntries)) {
           if (typeof raw === 'object' && raw !== null) {
-            nextScores[scoreKey] = { ...raw, _manualGrade: false };
+            let next = { ...raw, _manualGrade: false };
+            if (next._memberOverrides && typeof next._memberOverrides === 'object') {
+              const mo = {};
+              for (const [mid, ov] of Object.entries(next._memberOverrides)) {
+                mo[mid] = typeof ov === 'object' && ov !== null ? { ...ov, _manualGrade: false } : ov;
+              }
+              next = { ...next, _memberOverrides: mo };
+            }
+            nextScores[scoreKey] = next;
           } else {
             nextScores[scoreKey] = raw;
           }
@@ -1526,6 +1534,76 @@ export const DataProvider = ({ children }) => {
       const newProject = {
         ...project,
         scores: { ...project.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const ensureProjectGroupMemberOverride = (groupScore, memberId) => {
+    const base = ensureProjectStudentScoreObject(groupScore);
+    const mid = String(memberId);
+    const mo = { ...(base._memberOverrides || {}) };
+    mo[mid] = { ...(mo[mid] || {}) };
+    return { base, mo, mid };
+  };
+
+  const updateProjectGroupMemberCounted = (projectId, groupId, memberId, counted) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
+      mo[mid] = { ...mo[mid], _counted: counted };
+      const newGroupScore = { ...base, _memberOverrides: mo };
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [groupId]: newGroupScore },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectGroupMemberManualGrade = (projectId, groupId, memberId, active, seedValue = undefined) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
+      let memberEntry = { ...mo[mid] };
+      if (active) {
+        memberEntry = { ...memberEntry, _manualGrade: true };
+        const hasStored =
+          memberEntry._manualGradeValue !== undefined &&
+          memberEntry._manualGradeValue !== null &&
+          String(memberEntry._manualGradeValue).trim() !== '';
+        if (!hasStored && seedValue !== undefined && seedValue !== null && String(seedValue).trim() !== '') {
+          memberEntry._manualGradeValue = String(seedValue).trim();
+        }
+      } else {
+        memberEntry = { ...memberEntry, _manualGrade: false };
+      }
+      mo[mid] = memberEntry;
+      const newGroupScore = { ...base, _memberOverrides: mo };
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [groupId]: newGroupScore },
+      };
+      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [projectId]: newProject };
+    });
+  };
+
+  const updateProjectGroupMemberManualGradeValue = (projectId, groupId, memberId, value) => {
+    setProjects((prev) => {
+      const project = prev[projectId];
+      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
+      mo[mid] = {
+        ...mo[mid],
+        _manualGrade: true,
+        _manualGradeValue: value,
+      };
+      const newGroupScore = { ...base, _memberOverrides: mo };
+      const newProject = {
+        ...project,
+        scores: { ...project.scores, [groupId]: newGroupScore },
       };
       apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
       return { ...prev, [projectId]: newProject };
@@ -2069,6 +2147,7 @@ export const DataProvider = ({ children }) => {
       updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       projects, addProject, removeProject, updateProject, setProjectGradeMode, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
+      updateProjectGroupMemberCounted, updateProjectGroupMemberManualGrade, updateProjectGroupMemberManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry,
       albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto,

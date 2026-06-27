@@ -25,8 +25,13 @@ import {
   isProjectGroupGradeMode,
   getProjectGroups,
   getProjectGradeForScoreKey,
+  getProjectGradeForStudent,
   getProjectEffectiveFieldCountForScoreKey,
   getProjectMaxPointsForScoreKey,
+  getProjectGroupMemberOverride,
+  isProjectGroupMemberCounted,
+  isProjectGroupMemberManualGradeActive,
+  getProjectMemberManualGradeStoredValue,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
@@ -165,6 +170,9 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     updateProjectCounted,
     updateProjectStudentManualGrade,
     updateProjectStudentManualGradeValue,
+    updateProjectGroupMemberCounted,
+    updateProjectGroupMemberManualGrade,
+    updateProjectGroupMemberManualGradeValue,
     students,
     addProject,
     config,
@@ -370,6 +378,18 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     const grade = counted ? getProjectGradeForScoreKey(project, scoreKey, customKeysList, gradeSys) : null;
     const manualGradeInput = getExamManualGradeStoredValue(rawSc);
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
+  };
+
+  const projectGroupMemberStats = (groupId, memberId) => {
+    const rawGroup = project.scores?.[groupId];
+    const memberOv = getProjectGroupMemberOverride(rawGroup, memberId);
+    const counted = isProjectGroupMemberCounted(project, groupId, memberId);
+    const grade = counted ? getProjectGradeForStudent(project, memberId, customKeysList, gradeSys) : null;
+    const isManual = projectManualGradeMode || isProjectGroupMemberManualGradeActive(rawGroup, memberId);
+    const manualGradeInput = projectManualGradeMode
+      ? getProjectMemberManualGradeStoredValue(rawGroup, memberId)
+      : getExamManualGradeStoredValue(memberOv);
+    return { counted, grade, isManual, manualGradeInput, memberOv };
   };
 
   const handleDeleteProject = async () => {
@@ -715,9 +735,14 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                             updateProjectCounted={updateProjectCounted}
                             updateProjectStudentManualGrade={updateProjectStudentManualGrade}
                             updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
+                            updateProjectGroupMemberCounted={updateProjectGroupMemberCounted}
+                            updateProjectGroupMemberManualGrade={updateProjectGroupMemberManualGrade}
+                            updateProjectGroupMemberManualGradeValue={updateProjectGroupMemberManualGradeValue}
+                            projectGroupMemberStats={projectGroupMemberStats}
                             nameColumnLabel="GRUPPE"
                             showEmptyFilterHint={false}
                             courseArchived={courseArchived}
+                            isGroupMode
                           />
                         </div>
                       ))}
@@ -748,9 +773,14 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       updateProjectCounted={updateProjectCounted}
                       updateProjectStudentManualGrade={updateProjectStudentManualGrade}
                       updateProjectStudentManualGradeValue={updateProjectStudentManualGradeValue}
+                      updateProjectGroupMemberCounted={updateProjectGroupMemberCounted}
+                      updateProjectGroupMemberManualGrade={updateProjectGroupMemberManualGrade}
+                      updateProjectGroupMemberManualGradeValue={updateProjectGroupMemberManualGradeValue}
+                      projectGroupMemberStats={projectGroupMemberStats}
                       nameColumnLabel="NAME"
                       showEmptyFilterHint={displayStudents.length === 0 && students.length > 0}
                       courseArchived={courseArchived}
+                      isGroupMode={false}
                     />
                   </MaximizableTableSection>
                 )}
@@ -997,9 +1027,14 @@ function ProjectScoresTable({
   updateProjectCounted,
   updateProjectStudentManualGrade,
   updateProjectStudentManualGradeValue,
+  updateProjectGroupMemberCounted,
+  updateProjectGroupMemberManualGrade,
+  updateProjectGroupMemberManualGradeValue,
+  projectGroupMemberStats,
   nameColumnLabel,
   showEmptyFilterHint,
   courseArchived = false,
+  isGroupMode = false,
 }) {
   const detailColSpan = 4 + displayFieldCount;
   const scoreInputScope = `project-${activeProject}`;
@@ -1219,7 +1254,93 @@ function ProjectScoresTable({
                     )}
                   </td>
                 </tr>
-                {isExpanded && (
+                {isExpanded && isGroupMode && row.members?.map((member) => {
+                  const {
+                    counted: memberCounted,
+                    grade: memberGrade,
+                    isManual: memberIsManual,
+                    manualGradeInput: memberManualInput,
+                    memberOv,
+                  } = projectGroupMemberStats(scoreKey, member.id);
+                  return (
+                    <tr
+                      key={`${scoreKey}-m-${member.id}`}
+                      className="project-group-member-detail-row"
+                      style={{ background: 'rgba(15, 23, 42, 0.015)' }}
+                    >
+                      <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
+                        <div className="project-group-member-detail">
+                          <span className="project-group-member-detail__name">
+                            {member.lastName}, {member.firstName}
+                          </span>
+                          <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
+                          <label className="switch switch--table-row">
+                            <input
+                              type="checkbox"
+                              checked={!memberCounted}
+                              disabled={courseArchived}
+                              onChange={(e) => updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked)}
+                              aria-label={`Note für ${member.lastName} aussetzen`}
+                            />
+                            <span className="slider" />
+                          </label>
+                          {!projectManualGradeMode && (
+                            <>
+                              <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
+                              <label className="switch switch--table-row">
+                                <input
+                                  type="checkbox"
+                                  checked={memberIsManual}
+                                  disabled={courseArchived}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    if (!checked) {
+                                      updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
+                                      return;
+                                    }
+                                    const stored = getExamManualGradeStoredValue(memberOv);
+                                    if (stored.trim() !== '') {
+                                      updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
+                                      return;
+                                    }
+                                    const { grade: calcGrade } = projectScoreRowStats(scoreKey);
+                                    const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
+                                    updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
+                                  }}
+                                />
+                                <span className="slider" />
+                              </label>
+                            </>
+                          )}
+                          {projectManualGradeMode && (
+                            <>
+                              <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Note:</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                className="exam-manual-grade-input"
+                                value={memberManualInput}
+                                disabled={courseArchived || !memberCounted}
+                                onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
+                                placeholder="-"
+                                style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
+                              />
+                            </>
+                          )}
+                          {!projectManualGradeMode && memberCounted && memberGrade != null && (
+                            <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>
+                              Note:{' '}
+                              <strong style={{ color: isGradeWorseThan4(memberGrade, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)' }}>
+                                {formatGrade(memberGrade, gradeSys, keyGradeOpts)}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {isExpanded && !isGroupMode && (
                   <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
                     <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
                       <div style={{ position: 'sticky', left: 0, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: 'var(--surface)', boxShadow: '4px 0 14px rgba(0, 0, 0, 0.08)' }}>

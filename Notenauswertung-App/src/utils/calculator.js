@@ -20,6 +20,7 @@ const EXAM_SCORE_META_KEYS = new Set([
   '_nachschreiberFields',
   '_manualGrade',
   '_manualGradeValue',
+  '_memberOverrides',
 ]);
 
 /** Obergrenze für Aufgabenfelder (global + Nachschreiber-Erweiterung) */
@@ -103,6 +104,49 @@ export const getStudentProjectGroupId = (project, studentId) => {
     if (ids.some((id) => Number(id) === sid)) return gid;
   }
   return null;
+};
+
+/** Pro-Mitglied-Einstellungen in project.scores[groupId]._memberOverrides[studentId]. */
+export const getProjectGroupMemberOverride = (rawGroupScore, memberId) => {
+  if (!rawGroupScore || typeof rawGroupScore !== 'object') return null;
+  const mo = rawGroupScore._memberOverrides;
+  if (!mo || typeof mo !== 'object') return null;
+  const key = String(memberId);
+  const o = mo[memberId] ?? mo[key];
+  return o && typeof o === 'object' ? o : null;
+};
+
+export const isProjectGroupMemberManualGradeActive = (rawGroupScore, memberId) =>
+  isExamManualGradeActive(getProjectGroupMemberOverride(rawGroupScore, memberId));
+
+export const getProjectMemberManualGradeStoredValue = (rawGroupScore, memberId) => {
+  const memberVal = getExamManualGradeStoredValue(getProjectGroupMemberOverride(rawGroupScore, memberId));
+  if (memberVal.trim() !== '') return memberVal;
+  return getExamManualGradeStoredValue(rawGroupScore);
+};
+
+export const isProjectGroupMemberCounted = (project, groupId, memberId) => {
+  const raw = project?.scores?.[groupId];
+  const memberOv = getProjectGroupMemberOverride(raw, memberId);
+  if (memberOv && memberOv._counted === false) return false;
+  if (memberOv && memberOv._counted === true) return true;
+  if (raw && typeof raw === 'object' && raw._counted === false) return false;
+  const effN = getStudentEffectiveProjectFieldCount(project, memberId);
+  const { counted } = getNormalizedExamScore(raw, effN);
+  return counted;
+};
+
+export const isProjectScoreCountedForStudent = (project, studentId) => {
+  if (!project?.active) return false;
+  const scoreKey = getProjectScoreKeyForStudent(project, studentId);
+  if (scoreKey == null) return false;
+  if (isProjectGroupGradeMode(project)) {
+    return isProjectGroupMemberCounted(project, scoreKey, studentId);
+  }
+  const raw = project.scores?.[scoreKey];
+  if (raw && typeof raw === 'object' && raw._counted === false) return false;
+  const { counted } = getNormalizedExamScore(raw, getStudentEffectiveProjectFieldCount(project, studentId));
+  return counted;
 };
 
 /** Schlüssel in project.scores: bei Gruppennoten die Gruppen-ID, sonst die Schüler-ID. */
@@ -1131,25 +1175,40 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
   const scoreKey = getProjectScoreKeyForStudent(project, studentId);
   if (isProjectGroupGradeMode(project) && !scoreKey) return null;
   const rawScoreData = project.scores?.[scoreKey];
+  const memberOv = isProjectGroupGradeMode(project)
+    ? getProjectGroupMemberOverride(rawScoreData, studentId)
+    : null;
   const effN = getStudentEffectiveProjectFieldCount(project, studentId);
-  const { counted, total } = getNormalizedExamScore(rawScoreData, effN);
-  if (!counted) return null;
 
-  const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (isProjectManualGradeMode(project)) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
-      return np !== null ? np : null;
-    }
-    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+  if (isProjectGroupGradeMode(project)) {
+    if (!isProjectGroupMemberCounted(project, scoreKey, studentId)) return null;
+  } else {
+    const { counted } = getNormalizedExamScore(rawScoreData, effN);
+    if (!counted) return null;
   }
 
-  if (isExamManualGradeActive(rawScoreData)) {
+  const { total } = getNormalizedExamScore(rawScoreData, effN);
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (isProjectManualGradeMode(project)) {
+    const stored = isProjectGroupGradeMode(project)
+      ? getProjectMemberManualGradeStoredValue(rawScoreData, studentId)
+      : getExamManualGradeStoredValue(rawScoreData);
     if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+      const np = storedGradeStringToNotenpunkte(stored, 'points');
       return np !== null ? np : null;
     }
-    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
+    return parseExamManualGradeToClassic(stored, gs);
+  }
+
+  const manualActive = isProjectGroupGradeMode(project)
+    ? isProjectGroupMemberManualGradeActive(rawScoreData, studentId)
+    : isExamManualGradeActive(rawScoreData);
+  if (manualActive) {
+    if (gs === 'points') {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(memberOv ?? rawScoreData), 'points');
+      return np !== null ? np : null;
+    }
+    return parseExamManualGradeToClassic(getExamManualGradeStoredValue(memberOv ?? rawScoreData), gs);
   }
 
   const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
@@ -1240,11 +1299,11 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
   if (isProject && isProjectGroupGradeMode(item) && !scoreKey) return null;
 
   const rawScoreData = item.scores?.[scoreKey];
-  const explicitlyNotCounted =
-    rawScoreData &&
-    typeof rawScoreData === 'object' &&
-    rawScoreData._counted === false;
-  if (explicitlyNotCounted) return null;
+  if (isProject && isProjectGroupGradeMode(item)) {
+    if (!isProjectGroupMemberCounted(item, scoreKey, studentId)) return null;
+  } else if (rawScoreData && typeof rawScoreData === 'object' && rawScoreData._counted === false) {
+    return null;
+  }
 
   const effN = isProject
     ? getStudentEffectiveProjectFieldCount(item, studentId)
@@ -1277,7 +1336,11 @@ const getExamLikeNpContribution = (item, studentId, halbjahrFilter, customGradin
   if (isProject && isProjectGroupGradeMode(item) && !scoreKey) return null;
 
   const rawScoreData = item.scores?.[scoreKey];
-  if (rawScoreData && typeof rawScoreData === 'object' && rawScoreData._counted === false) return null;
+  if (isProject && isProjectGroupGradeMode(item)) {
+    if (!isProjectGroupMemberCounted(item, scoreKey, studentId)) return null;
+  } else if (rawScoreData && typeof rawScoreData === 'object' && rawScoreData._counted === false) {
+    return null;
+  }
 
   const effN = isProject
     ? getStudentEffectiveProjectFieldCount(item, studentId)
@@ -1286,11 +1349,22 @@ const getExamLikeNpContribution = (item, studentId, halbjahrFilter, customGradin
   if (!counted) return null;
 
   if (isProject && isProjectManualGradeMode(item)) {
-    const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), gs);
+    const np = storedGradeStringToNotenpunkte(
+      isProjectGroupGradeMode(item)
+        ? getProjectMemberManualGradeStoredValue(rawScoreData, studentId)
+        : getExamManualGradeStoredValue(rawScoreData),
+      gs,
+    );
     return np !== null ? np : NP_FAIL;
   }
-  if (isExamManualGradeActive(rawScoreData)) {
-    const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), gs);
+  const memberOv = isProject && isProjectGroupGradeMode(item)
+    ? getProjectGroupMemberOverride(rawScoreData, studentId)
+    : null;
+  const manualActive = isProject && isProjectGroupGradeMode(item)
+    ? isProjectGroupMemberManualGradeActive(rawScoreData, studentId)
+    : isExamManualGradeActive(rawScoreData);
+  if (manualActive) {
+    const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(memberOv ?? rawScoreData), gs);
     return np !== null ? np : NP_FAIL;
   }
 
