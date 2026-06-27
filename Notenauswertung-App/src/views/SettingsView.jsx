@@ -11,6 +11,7 @@ import AdvancedWeightingSettings from '../components/AdvancedWeightingSettings';
 import DeferredNumberInput from '../components/DeferredNumberInput';
 import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
+import { isCourseArchived } from '../utils/courseArchive';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -27,6 +28,8 @@ export default function SettingsView() {
     removeStudent,
     clearCourseStudents,
     deleteCourse,
+    archiveCourse,
+    courseArchived,
     migrateGradingSystem,
     exams,
     updateExam,
@@ -57,6 +60,7 @@ export default function SettingsView() {
   const [addingAllRoster, setAddingAllRoster] = useState(false);
   const [clearingCourseStudents, setClearingCourseStudents] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [archivingCourse, setArchivingCourse] = useState(false);
 
   const classFieldForGrade = config?.className || config?.class;
   const parsedClassGrade = useMemo(() => parseGradeFromClassCell(classFieldForGrade), [classFieldForGrade]);
@@ -250,6 +254,23 @@ export default function SettingsView() {
     }
   };
 
+  const handleArchiveCourse = async () => {
+    const ok = await showConfirm(
+      `Das Fach „${config.subject} (${config.className || config.class})“ archivieren?\n\nDanach sind keine Änderungen mehr möglich (Noten, Klausuren, Schüler, Einstellungen). Die Daten bleiben zur Ansicht erhalten.`,
+      { title: 'Fach archivieren', confirmLabel: 'Archivieren' },
+    );
+    if (!ok) return;
+    setArchivingCourse(true);
+    try {
+      const success = await archiveCourse(config.id);
+      if (!success) {
+        await showAlert('Archivieren fehlgeschlagen. Bitte erneut versuchen.', { title: 'Fehler' });
+      }
+    } finally {
+      setArchivingCourse(false);
+    }
+  };
+
   const handleDeleteCourse = async () => {
     const ok = await showConfirm(
       `M\u00F6chtest du das Fach "${config.subject} (${config.className || config.class})" wirklich komplett l\u00F6schen?\n\nAchtung: Alle zugeh\u00F6rigen Noten und Sch\u00FCler werden endg\u00FCltig entfernt!`,
@@ -378,12 +399,33 @@ export default function SettingsView() {
         : null}
       <div className="flex justify-between items-center mb-4 gap-3 flex-wrap">
         <h2 style={{ margin: 0 }}>Allgemeine Einstellungen</h2>
-        <button type="button" className="danger" onClick={() => setDeleteModalOpen(true)}>
-          Löschen
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {!isCourseArchived(config) ? (
+            <button
+              type="button"
+              className="success"
+              disabled={archivingCourse}
+              onClick={handleArchiveCourse}
+            >
+              {archivingCourse ? 'Archiviere…' : 'Archivieren'}
+            </button>
+          ) : (
+            <span className="course-archived-badge">Archiviert</span>
+          )}
+          <button type="button" className="danger" onClick={() => setDeleteModalOpen(true)}>
+            Löschen
+          </button>
+        </div>
       </div>
 
+      {isCourseArchived(config) ? (
+        <p className="course-archived-settings-hint text-muted mb-6" role="status">
+          Dieses Fach ist archiviert. Alle Einträge sind schreibgeschützt; Einstellungen können nicht mehr geändert werden.
+        </p>
+      ) : null}
+
       <div
+        className={isCourseArchived(config) ? 'course-archived-settings-body' : undefined}
         style={{
           width: '100%',
           maxWidth: '100%',

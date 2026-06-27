@@ -16,6 +16,8 @@ import {
 import {
   buildVorlage1Bands,
   isVorlage1KeyFamilyId,
+  VORLAGE_1_KEY,
+  nextVorlage1TemplateCloneIdentity,
 } from '../data/vorlage1GradingKey';
 import {
   getBuiltinGradingKeyShortDesc,
@@ -23,6 +25,8 @@ import {
   getPlateauKeyShortDesc,
 } from '../data/gradingKeyDisplay';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
+import { listSelectableCustomGradingKeys, parseCustomGradingKeys } from '../utils/customGradingKeys';
+import { getCourseGradingKeysLookup, isCourseArchived } from '../utils/courseArchive';
 import { useDialog } from '../components/PhixDialog';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import DeferredNumberInput from '../components/DeferredNumberInput';
@@ -40,8 +44,11 @@ export default function KeysView() {
     setShowNotenpunkte(isKursstufe);
   }, [config?.id, isKursstufe]);
 
-  const customKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
-  const customKeysWithBands = customKeys.filter((k) => k.bands?.length || isVorlage1KeyFamilyId(k.id));
+  const customKeys = isCourseArchived(config)
+    ? listSelectableCustomGradingKeys(getCourseGradingKeysLookup(config))
+    : listSelectableCustomGradingKeys(config?.customGradingKeys);
+  const customKeysWithBands = customKeys;
+  const readOnly = isCourseArchived(config);
 
   useEffect(() => {
     if (!modalOpen) setEditKey(null);
@@ -59,7 +66,7 @@ export default function KeysView() {
 
   const handleSaveKey = (def) => {
     setConfig((c) => {
-      const list = Array.isArray(c.customGradingKeys) ? [...c.customGradingKeys] : [];
+      const list = parseCustomGradingKeys(c.customGradingKeys);
       const idx = list.findIndex((k) => k.id === def.id);
       if (idx >= 0) list[idx] = def;
       else list.push(def);
@@ -79,14 +86,14 @@ export default function KeysView() {
     });
     setConfig((c) => ({
       ...c,
-      customGradingKeys: (c.customGradingKeys || []).filter((k) => k.id !== id),
+      customGradingKeys: parseCustomGradingKeys(c.customGradingKeys).filter((k) => k.id !== id),
     }));
   };
 
   const handleAddAbiBaWu2026_120BE = () => {
     setMaxPoints(120);
     setConfig((c) => {
-      const list = Array.isArray(c.customGradingKeys) ? [...c.customGradingKeys] : [];
+      const list = parseCustomGradingKeys(c.customGradingKeys);
       const { id, name } = nextAbiBaWue2026TemplateCloneIdentity(list);
       const def = {
         ...ABI_BAWUE_2026_120_BE_KEY,
@@ -102,7 +109,7 @@ export default function KeysView() {
   const handleAddAbiBaWu2026Mathematik100Be = () => {
     setMaxPoints(100);
     setConfig((c) => {
-      const list = Array.isArray(c.customGradingKeys) ? [...c.customGradingKeys] : [];
+      const list = parseCustomGradingKeys(c.customGradingKeys);
       const { id, name } = nextAbiBaWue2026Mathematik100BeTemplateCloneIdentity(list);
       const def = {
         ...ABI_BAWUE_2026_100_BE_MATHEMATIK_KEY,
@@ -111,6 +118,19 @@ export default function KeysView() {
         bands: ABI_BAWUE_2026_100_BE_MATHEMATIK_KEY.bands.map((b) => ({ ...b })),
       };
       list.push(def);
+      return { ...c, customGradingKeys: list };
+    });
+  };
+
+  const handleAddVorlage1 = () => {
+    setConfig((c) => {
+      const list = parseCustomGradingKeys(c.customGradingKeys);
+      const { id, name } = nextVorlage1TemplateCloneIdentity(list);
+      list.push({
+        ...VORLAGE_1_KEY,
+        id,
+        name,
+      });
       return { ...c, customGradingKeys: list };
     });
   };
@@ -139,6 +159,7 @@ export default function KeysView() {
       <div className="mb-8">
         <h2 className="mb-4">Notenschlüssel</h2>
 
+        {!readOnly ? (
         <div className="keys-view-toolbar flex flex-wrap gap-4 mb-4" style={{ alignItems: 'stretch' }}>
           <div className="glass-panel keys-view-toolbar-panel" style={{ flex: '0 1 300px', maxWidth: '300px', padding: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.25rem' }} className="text-muted">Simulierte Maximalpunkte:</label>
@@ -217,8 +238,29 @@ export default function KeysView() {
             >
               Vorlage: ABI BaWü 2026 100 BE Mathematik
             </button>
+            <button
+              type="button"
+              className="tab secondary"
+              onClick={handleAddVorlage1}
+              style={{
+                width: '100%',
+                marginTop: '0.5rem',
+                padding: '0.55rem 1rem',
+                fontWeight: 600,
+                whiteSpace: 'normal',
+                textAlign: 'center',
+              }}
+              title="Plateau-Schlüssel 1 (K = 1,05) als eigener Kurs-Schlüssel"
+            >
+              Vorlage: Plateau 1 (Vorlage 1)
+            </button>
           </div>
         </div>
+        ) : (
+          <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+            Archiviertes Fach — Notenschlüssel sind eingefroren (nur Ansicht).
+          </p>
+        )}
       </div>
 
       {customKeysWithBands.map((k) => (
@@ -237,8 +279,8 @@ export default function KeysView() {
             customBands={isVorlage1KeyFamilyId(k.id) ? buildVorlage1Bands(maxPoints) : k.bands}
             pktIntegerDisplay={!!k.pktIntegerDisplay || isAbiBaWue2026KeyFamilyId(k.id) || isAbiBaWue2026Mathematik100BeFamilyId(k.id)}
             titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(k.id, maxPoints)}
-            onEdit={isVorlage1KeyFamilyId(k.id) ? undefined : () => openEdit(k)}
-            onDelete={() => handleDeleteKey(k.id)}
+            onEdit={readOnly || isVorlage1KeyFamilyId(k.id) ? undefined : () => openEdit(k)}
+            onDelete={readOnly ? undefined : () => handleDeleteKey(k.id)}
           />
         </div>
       ))}

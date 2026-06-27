@@ -107,6 +107,10 @@ model Course {
   klassenlehrerEnabled Boolean @default(false)
   albumEnabled Boolean @default(false)
   kursstufe Boolean @default(false)
+  /** Wenn true: Fach ist archiviert — nur noch Lesen, keine Änderungen. */
+  archived Boolean @default(false)
+  /** Eingefrorene Notenschlüssel-Definitionen (Snapshot beim Archivieren). */
+  archivedGradingKeys Json @default("[]")
   ownerUsername String @default("admin")
 
   students   Student[]

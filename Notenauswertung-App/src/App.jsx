@@ -14,6 +14,7 @@ import {
 import MobileAppHeader from './components/MobileAppHeader';
 import CourseHeaderTitle, { formatCourseWeightingRatio } from './components/CourseHeaderTitle';
 import { showTestsInWeightingRatio } from './utils/courseWeightingOptions';
+import { isCourseArchived } from './utils/courseArchive';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
@@ -101,7 +102,7 @@ function App() {
   const navigate = useNavigate();
   const isNewCoursePage = location.pathname === '/courses/new';
 
-  const { config, courses, activeCourseId, setActiveCourseId, toggleCourseFavorite, students } = useData();
+  const { config, courses, activeCourseId, setActiveCourseId, toggleCourseFavorite, students, courseArchived } = useData();
   const { currentUser } = useAuth();
   const { registered: phixRegistered } = usePhiXRegistration();
   const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
@@ -166,6 +167,7 @@ function App() {
   const mobileHeaderRef = useRef(null);
   const [selectedYearFilter, setSelectedYearFilter] = useState('');
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
+  const [sidebarArchiveOpen, setSidebarArchiveOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState('');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPos, setSettingsMenuPos] = useState(null);
@@ -226,11 +228,14 @@ function App() {
     const labelCompare = (a, b) =>
       courseSidebarLabel(a).localeCompare(courseSidebarLabel(b), 'de', { numeric: true, sensitivity: 'base' });
 
-    const favorites = courses.filter((c) => c.isFavorite === true && textMatch(c)).sort(labelCompare);
+    const favorites = courses
+      .filter((c) => !isCourseArchived(c) && c.isFavorite === true && textMatch(c))
+      .sort(labelCompare);
 
     const rest = courses
       .filter(
         (c) =>
+          !isCourseArchived(c) &&
           c.isFavorite !== true &&
           (!selectedYearFilter || c.year === selectedYearFilter) &&
           textMatch(c),
@@ -242,6 +247,26 @@ function App() {
       });
 
     return [...favorites, ...rest];
+  }, [courses, selectedYearFilter, sidebarCourseSearch]);
+
+  const sidebarArchivedCourses = React.useMemo(() => {
+    const q = sidebarCourseSearch;
+    const textMatch = (c) => courseMatchesSidebarSearch(c, q);
+    const labelCompare = (a, b) =>
+      courseSidebarLabel(a).localeCompare(courseSidebarLabel(b), 'de', { numeric: true, sensitivity: 'base' });
+
+    return courses
+      .filter(
+        (c) =>
+          isCourseArchived(c) &&
+          (!selectedYearFilter || c.year === selectedYearFilter) &&
+          textMatch(c),
+      )
+      .sort((a, b) => {
+        const yd = schoolYearStartForSort(b.year) - schoolYearStartForSort(a.year);
+        if (yd !== 0) return yd;
+        return labelCompare(a, b);
+      });
   }, [courses, selectedYearFilter, sidebarCourseSearch]);
 
   const studentIdFilterSet = React.useMemo(
@@ -661,7 +686,10 @@ function App() {
         <div className="app-sidebar-nav">
           {sidebarShowsNav && (
             <>
-              <div className="app-sidebar-nav-scroll">
+              <div
+                className={`app-sidebar-lists${sidebarArchiveOpen && sidebarArchivedCourses.length > 0 ? ' app-sidebar-lists--archive-open' : ''}`}
+              >
+                <div className="app-sidebar-nav-scroll">
                 {uniqueYears.length > 0 && (
                   <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)' }}>
                     <select
@@ -724,6 +752,62 @@ function App() {
                     </div>
                   );
                 })}
+                </div>
+                {sidebarArchivedCourses.length > 0 ? (
+                  <div
+                    className={`app-sidebar-archive${sidebarArchiveOpen ? ' app-sidebar-archive--open' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="app-sidebar-archive-toggle course-archived-allow"
+                      onClick={() => setSidebarArchiveOpen((o) => !o)}
+                      aria-expanded={sidebarArchiveOpen}
+                      aria-controls="app-sidebar-archive-list"
+                    >
+                      <span className="app-sidebar-archive-toggle__label">Archiv</span>
+                      <span className="app-sidebar-archive-toggle__count">{sidebarArchivedCourses.length}</span>
+                      <ChevronDown
+                        size={16}
+                        strokeWidth={2.25}
+                        className={`app-sidebar-archive-toggle__chevron${sidebarArchiveOpen ? ' app-sidebar-archive-toggle__chevron--open' : ''}`}
+                        aria-hidden
+                      />
+                    </button>
+                    {sidebarArchiveOpen ? (
+                      <div id="app-sidebar-archive-list" className="app-sidebar-archive-list">
+                        {sidebarArchivedCourses.map((course) => (
+                          <div
+                            key={course.id}
+                            className={`course-item course-item--archived ${activeCourseId === course.id ? 'active' : ''}`}
+                          >
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              className="course-item-main"
+                              onClick={() => selectCourse(course.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  selectCourse(course.id);
+                                }
+                              }}
+                            >
+                              <div className="course-item-title">
+                                {course.subject} {course.className}
+                              </div>
+                              <div className="course-item-meta">
+                                {course.year}
+                                {course.weighting
+                                  ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
+                                  : ''}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               <div className="app-sidebar-footer">
                 <div className="app-sidebar-course-search-wrap">
@@ -916,7 +1000,14 @@ function App() {
               </div>
             )}
             <div className="app-main-content-wrap">
-              <main className="app-main-views">{renderView()}</main>
+              <main className={`app-main-views${courseArchived ? ' course-archived' : ''}`}>
+                {courseArchived ? (
+                  <div className="course-archived-banner" role="status">
+                    Dieses Fach ist archiviert — alle Einträge sind schreibgeschützt (nur Ansicht und Export).
+                  </div>
+                ) : null}
+                {renderView()}
+              </main>
             </div>
           </>
         ) : (

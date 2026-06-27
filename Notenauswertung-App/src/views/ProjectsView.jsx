@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 import { useData } from '../store/DataContext';
-import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId, LEGACY_BUILTIN_ABI_KEY_TYPE } from '../data/kmBwAbiPhysik2026GradingKey';
+import { ABI_BAWUE_2026_120_BE_KEY, isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
 import { buildVorlage1Bands, isVorlage1KeyFamilyId } from '../data/vorlage1GradingKey';
+import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 import {
   getBuiltinGradingKeyTitle,
   getBuiltinGradingKeyShortDesc,
@@ -36,6 +37,7 @@ import {
   parseScorePointsValue,
 } from '../utils/calculator';
 import GradingKeyTable from '../components/GradingKeyTable';
+import CustomGradingKeySelectOptions from '../components/CustomGradingKeySelectOptions';
 import DeferredNumberInput from '../components/DeferredNumberInput';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
@@ -350,7 +352,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 
   const numFields = getProjectNumFields(project);
   const displayFieldCount = getProjectDisplayFieldCount(project, displayStudents);
-  const customKeysList = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const customKeysList = getCourseGradingKeysLookup(config);
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, project.keyType || '1');
 
   const projectScoreRowStats = (scoreKey) => {
@@ -497,20 +499,10 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                         value={project.keyType || '1'}
                         onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
                       >
-                        <option value="1">Plateau 1</option>
-                        <option value="2">Plateau 2</option>
-                        <option value="3">Plateau 3</option>
-                        <option value="4">Linear 1</option>
-                        <option value="5">Linear 2</option>
-                        <option value="6">Linear 3</option>
-                        {project.keyType === LEGACY_BUILTIN_ABI_KEY_TYPE ? (
-                          <option value={LEGACY_BUILTIN_ABI_KEY_TYPE}>ABI BaWü 2026 120 BE</option>
-                        ) : null}
-                        {customKeysList.map((k) => (
-                          <option key={k.id} value={`custom:${k.id}`}>
-                            {k.name}
-                          </option>
-                        ))}
+                        <CustomGradingKeySelectOptions
+                          course={config}
+                          selectedKeyType={project.keyType}
+                        />
                       </select>
                     </div>
                     <div className="course-meta-field">

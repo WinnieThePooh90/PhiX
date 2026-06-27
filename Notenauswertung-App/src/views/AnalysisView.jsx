@@ -4,6 +4,7 @@ import { useData } from '../store/DataContext';
 import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
 import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent, usesReferatAsExam, usesReferatAsOral, usesReferatWrittenPercent, usesReferatOralPercent, usesReferatFinalPercent } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
+import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 
 /** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
 function barColorForNpBucket(np) {
@@ -176,7 +177,7 @@ function RiskStudentsTable({
 export default function AnalysisView() {
   const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config } = useData();
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
-  const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const customGradingKeys = getCourseGradingKeysLookup(config);
   const testsWritten = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
@@ -261,7 +262,7 @@ export default function AnalysisView() {
           weighting,
           null,
           gfsEntries,
-          Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
+          getCourseGradingKeysLookup(config),
           gradeSys,
           config.testsWritten !== false,
           projects,
@@ -339,7 +340,7 @@ export default function AnalysisView() {
         weighting,
         null,
         gfsEntries,
-        Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [],
+        getCourseGradingKeysLookup(config),
         gradeSys,
         config.testsWritten !== false,
         projects,

@@ -19,6 +19,8 @@ import {
   usesTestsPerKlausurRatio,
   resolveCourseWeighting,
 } from '../utils/courseWeightingOptions';
+import { normalizeCourseCustomGradingKeys, parseCustomGradingKeys } from '../utils/customGradingKeys';
+import { normalizeCourseArchiveFields, collectUsedCustomGradingKeyIds, buildArchivedGradingKeysSnapshot } from '../utils/courseArchive';
 
 const ORAL_WEEK_COL_CAP = 24;
 
@@ -103,6 +105,7 @@ export const DataProvider = ({ children }) => {
 
   // Der aktuelle 'config' entspricht dem aktiven Kurs
   const config = courses.find(c => c.id === activeCourseId) || null;
+  const courseArchived = config?.archived === true;
 
   const [students, setStudents] = useState([]);
   const [schoolRosterYears, setSchoolRosterYears] = useState([]);
@@ -196,7 +199,9 @@ export const DataProvider = ({ children }) => {
           return;
         }
         const coursesRes = await coursesResRaw.json();
-        const list = Array.isArray(coursesRes) ? coursesRes : [];
+        const list = Array.isArray(coursesRes)
+          ? coursesRes.map((c) => normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys(c)))
+          : [];
         setCourses(list);
         setActiveCourseId((prev) => {
           const ids = list.map((c) => c.id);
@@ -387,6 +392,11 @@ export const DataProvider = ({ children }) => {
   }, [refreshMoneyLists, refreshAttendanceLists, refreshCollectionLists, refreshNotesLists]);
 
   const apiCall = useCallback(async (url, method, body) => {
+    const httpMethod = method || 'GET';
+    if (courseArchived && httpMethod !== 'GET') {
+      const allowCourseDelete = httpMethod === 'DELETE' && /^\/api\/courses\/\d+$/.test(String(url));
+      if (!allowCourseDelete) return undefined;
+    }
     try {
       const res = await fetchWithActing(url, {
         method,
@@ -405,26 +415,71 @@ export const DataProvider = ({ children }) => {
     } catch (err) {
       console.error(`API Error: ${method} ${url}`, err);
     }
-  }, [fetchWithActing]);
+  }, [fetchWithActing, courseArchived]);
 
   // Create new course
   const createCourse = async (newConfig) => {
     const created = await apiCall('/api/courses', 'POST', newConfig);
     if (created) {
-      setCourses(prev => [...prev, created]);
-      setActiveCourseId(created.id);
+      const normalized = normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys(created));
+      setCourses(prev => [...prev, normalized]);
+      setActiveCourseId(normalized.id);
     }
-    return created;
+    return created ? normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys(created)) : created;
   };
 
   // Update existing config/course
   const updateConfig = (newConfigUpdater) => {
-    if (!activeCourseId) return;
-    const currentConfig = courses.find(c => c.id === activeCourseId);
-    const nextConfig = typeof newConfigUpdater === 'function' ? newConfigUpdater(currentConfig) : newConfigUpdater;
-    
-    setCourses(prev => prev.map(c => c.id === activeCourseId ? { ...c, ...nextConfig } : c));
-    apiCall(`/api/courses/${activeCourseId}`, 'PUT', nextConfig);
+    if (!activeCourseId || courseArchived) return;
+    setCourses((prev) => {
+      const currentConfig = prev.find((c) => c.id === activeCourseId);
+      if (!currentConfig) return prev;
+      const patch = typeof newConfigUpdater === 'function'
+        ? newConfigUpdater(currentConfig)
+        : newConfigUpdater;
+      const merged = {
+        ...currentConfig,
+        ...(patch && typeof patch === 'object' ? patch : {}),
+      };
+      if ('customGradingKeys' in merged) {
+        merged.customGradingKeys = parseCustomGradingKeys(merged.customGradingKeys);
+      }
+      void apiCall(`/api/courses/${activeCourseId}`, 'PUT', merged).then((saved) => {
+        if (saved?.id === activeCourseId) {
+          setCourses((p) => p.map((c) => (
+            c.id === activeCourseId ? normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys({ ...c, ...saved })) : c
+          )));
+        }
+      });
+      return prev.map((c) => (c.id === activeCourseId ? merged : c));
+    });
+  };
+
+  const archiveCourse = async (courseId) => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course || course.archived === true) return false;
+    const usedIds = collectUsedCustomGradingKeyIds(exams, tests, projects);
+    const snapshot = buildArchivedGradingKeysSnapshot(course.customGradingKeys, usedIds);
+    const merged = normalizeCourseArchiveFields({
+      ...course,
+      archived: true,
+      archivedGradingKeys: snapshot,
+    });
+    const saved = await fetchWithActing(`/api/courses/${courseId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(merged),
+    }).then(async (res) => {
+      if (!res?.ok) return undefined;
+      const text = await res.text();
+      return text ? JSON.parse(text) : undefined;
+    });
+    if (saved?.id === courseId) {
+      const normalized = normalizeCourseArchiveFields(normalizeCourseCustomGradingKeys(saved));
+      setCourses((prev) => prev.map((c) => (c.id === courseId ? normalized : c)));
+      return true;
+    }
+    return false;
   };
 
   const toggleCourseFavorite = (courseId) => {
@@ -439,7 +494,7 @@ export const DataProvider = ({ children }) => {
 
   // Tests-Gewicht bei „x Tests = 1 Klausur“ aus Klausur-/Testanzahl ableiten und speichern.
   useEffect(() => {
-    if (!activeCourseId || !config || !usesTestsPerKlausurRatio(config)) return;
+    if (!activeCourseId || !config || !usesTestsPerKlausurRatio(config) || courseArchived) return;
     const resolved = resolveCourseWeighting(config.weighting, config, exams, tests);
     const nextTests = Number(resolved?.tests);
     const currTests = Number(config.weighting?.tests);
@@ -1945,7 +2000,8 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, toggleCourseFavorite,
+      courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, archiveCourse, toggleCourseFavorite,
+      courseArchived,
       config, setConfig: updateConfig, migrateGradingSystem,
       students, addStudent, removeStudent, clearCourseStudents, updateStudentConfig,
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,

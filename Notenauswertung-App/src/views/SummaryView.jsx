@@ -20,6 +20,7 @@ import MaximizableTableSection, { TableMaximizeToggle } from '../components/Maxi
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
 import { isEnterAsTabKey, focusAdjacentTableField } from '../utils/tableEnterAsTab';
+import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 
 function hasSummaryNotes(student) {
   return String(student?.summaryNotes ?? '').trim() !== '';
@@ -772,7 +773,7 @@ export default function SummaryView({
   const referatCountsAsPartialWritten = usesReferatWrittenPercent(config);
   const referatCountsAsPartialOral = usesReferatOralPercent(config);
   const referatCountsAsFinalPercent = usesReferatFinalPercent(config);
-  const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
+  const customGradingKeys = getCourseGradingKeysLookup(config);
   const hasValidWeighting =
     Number.isFinite(Number(weighting?.written)) &&
     Number.isFinite(Number(weighting?.oral)) &&

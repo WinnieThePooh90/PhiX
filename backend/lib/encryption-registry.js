@@ -3,7 +3,7 @@
  */
 
 const ENCRYPTED_FIELDS = {
-  Course: ['year', 'className', 'subject', 'gradeSystem', 'weighting', 'customGradingKeys'],
+  Course: ['year', 'className', 'subject', 'gradeSystem', 'weighting', 'customGradingKeys', 'archivedGradingKeys'],
   Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note', 'summaryNotes'],
   SchoolRosterYear: ['label'],
   SchoolRosterStudent: ['firstName', 'lastName'],
@@ -29,6 +29,7 @@ const ENCRYPTED_FIELDS = {
 const JSON_FIELDS = new Set([
   'weighting',
   'customGradingKeys',
+  'archivedGradingKeys',
   'fieldMaxPoints',
   'fieldNames',
   'groups',

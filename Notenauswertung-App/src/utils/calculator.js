@@ -6,6 +6,7 @@
 import { ABI_BAWUE_2026_120_BE_BANDS } from '../data/kmBwAbiPhysik2026GradingKey';
 import { getFormulaKeyIntercept, gradeFromFormulaPoints, buildFormulaBands } from '../data/formulaGradingKey';
 import { gradeFromVorlage1Points, isVorlage1KeyFamilyId, buildVorlage1Bands } from '../data/vorlage1GradingKey';
+import { parseCustomGradingKeys } from './customGradingKeys';
 import {
   getBuiltinNpPercentAnchors,
   notenpunkteFromNpAnchors,
@@ -718,7 +719,7 @@ export const CUSTOM_KEY_PREFIX = 'custom:';
 export const getCustomKeyDefinition = (customGradingKeys, keyType) => {
   if (!keyType || typeof keyType !== 'string' || !keyType.startsWith(CUSTOM_KEY_PREFIX)) return null;
   const id = keyType.slice(CUSTOM_KEY_PREFIX.length);
-  const list = Array.isArray(customGradingKeys) ? customGradingKeys : [];
+  const list = parseCustomGradingKeys(customGradingKeys);
   return list.find((k) => String(k?.id) === id) ?? null;
 };
 

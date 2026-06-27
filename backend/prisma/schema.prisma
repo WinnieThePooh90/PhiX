@@ -125,6 +125,10 @@ model Course {
   albumEnabled Boolean @default(false)
   /** Oberstufe / Kursstufe — steuert u. a. Anzahl mündlicher Bereiche bei Neuanlage. */
   kursstufe Boolean @default(false)
+  /** Wenn true: Fach ist archiviert — nur noch Lesen, keine Änderungen. */
+  archived Boolean @default(false)
+  /** Eingefrorene Notenschlüssel-Definitionen (Snapshot beim Archivieren, für Notenberechnung). */
+  archivedGradingKeys Json @default("[]")
   /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
   ownerUsername String @default("admin")
 

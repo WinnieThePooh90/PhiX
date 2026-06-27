@@ -92,7 +92,7 @@ async function assertAdminUser(req, res) {
   return acting;
 }
 
-async function assertCourseAccess(req, res, courseId) {
+async function assertCourseAccess(req, res, courseId, { writable = false } = {}) {
   const acting = await assertActingUser(req, res);
   if (!acting) return null;
   const cid = Number(courseId);
@@ -109,7 +109,23 @@ async function assertCourseAccess(req, res, courseId) {
     res.status(403).json({ error: 'Kein Zugriff auf diesen Kurs' });
     return null;
   }
+  if (writable && course.archived === true) {
+    res.status(403).json({ error: 'Dieses Fach ist archiviert und kann nicht mehr bearbeitet werden.' });
+    return null;
+  }
   return course;
+}
+
+async function assertCourseWritable(req, res, courseId) {
+  return assertCourseAccess(req, res, courseId, { writable: true });
+}
+
+function rejectIfArchivedCourse(res, course) {
+  if (course?.archived === true) {
+    res.status(403).json({ error: 'Dieses Fach ist archiviert und kann nicht mehr bearbeitet werden.' });
+    return true;
+  }
+  return false;
 }
 
 // ——— App-Benutzer (Passwort-Hashes in der DB) ———
@@ -680,7 +696,9 @@ app.post('/api/courses', async (req, res) => {
 app.put('/api/courses/:id', async (req, res) => {
   const existing = await assertCourseAccess(req, res, req.params.id);
   if (!existing) return;
-  const acting = getActingUser(req);
+  if (existing.archived === true) {
+    return res.status(403).json({ error: 'Archiviertes Fach kann nicht bearbeitet werden.' });
+  }
   const raw = { ...req.body };
   delete raw.id;
   delete raw.ownerUsername;
@@ -971,7 +989,7 @@ app.get('/api/students', async (req, res) => {
 app.delete('/api/students', async (req, res) => {
   const courseId = Number(req.query.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
   await prisma.student.deleteMany({ where: { courseId } });
   await syncMoneyListEntriesForCourse(courseId);
@@ -987,7 +1005,7 @@ app.post('/api/students', async (req, res) => {
   if (!Number.isFinite(targetCourseId)) {
     return res.status(400).json({ error: 'courseId required' });
   }
-  const ok = await assertCourseAccess(req, res, targetCourseId);
+  const ok = await assertCourseWritable(req, res, targetCourseId);
   if (!ok) return;
 
   const last = await prisma.student.findFirst({
@@ -1029,6 +1047,7 @@ app.put('/api/students/:id', async (req, res) => {
   if (!existingStudent.course || !canAccessCourse(existingStudent.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existingStudent.course)) return;
   const { frontendId, id, courseId: newCourseIdRaw, ...data } = req.body;
   if (newCourseIdRaw !== undefined && Number(newCourseIdRaw) !== existingStudent.courseId) {
     const nc = await prisma.course.findUnique({ where: { id: Number(newCourseIdRaw) } });
@@ -1069,6 +1088,7 @@ app.delete('/api/students/:id', async (req, res) => {
   if (existing.course && !canAccessCourse(existing.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existing.course)) return;
   const courseId = existing.courseId;
 
   await prisma.student.delete({ where: { id } });
@@ -1102,7 +1122,7 @@ app.put('/api/exams/:id', async (req, res) => {
   if (!Number.isFinite(courseId)) {
     return res.status(400).json({ error: 'courseId required' });
   }
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const existingExam = await prisma.exam.findFirst({ where: { examNumber, courseId } });
@@ -1127,7 +1147,7 @@ app.delete('/api/exams/:id', async (req, res) => {
   const examNumber = Number(req.params.id);
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
   const existing = await prisma.exam.findFirst({ where: { examNumber, courseId } });
   if (!existing) return res.status(404).json({ error: 'not found' });
@@ -1153,7 +1173,7 @@ app.put('/api/orals/:id', async (req, res) => {
   if (!Number.isFinite(courseId)) {
     return res.status(400).json({ error: 'courseId required' });
   }
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const existingOral = await prisma.oral.findFirst({ where: { oralNumber, courseId } });
@@ -1177,7 +1197,7 @@ app.delete('/api/orals/:id', async (req, res) => {
   const oralNumber = Number(req.params.id);
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
   const existing = await prisma.oral.findFirst({ where: { oralNumber, courseId } });
   if (!existing) return res.status(404).json({ error: 'not found' });
@@ -1203,7 +1223,7 @@ app.put('/api/tests/:id', async (req, res) => {
   if (!Number.isFinite(courseId)) {
     return res.status(400).json({ error: 'courseId required' });
   }
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const existingTest = await prisma.test.findFirst({ where: { testNumber, courseId } });
@@ -1241,7 +1261,7 @@ app.put('/api/projects/:id', async (req, res) => {
   if (!Number.isFinite(courseId)) {
     return res.status(400).json({ error: 'courseId required' });
   }
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const existing = await prisma.project.findFirst({ where: { projectNumber, courseId } });
@@ -1265,7 +1285,7 @@ app.delete('/api/projects/:id', async (req, res) => {
   const projectNumber = Number(req.params.id);
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
   const existing = await prisma.project.findFirst({ where: { projectNumber, courseId } });
   if (!existing) return res.status(404).json({ error: 'not found' });
@@ -1291,7 +1311,7 @@ app.post('/api/gfs', async (req, res) => {
   const studentId = Number(req.body.studentId);
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const thema = req.body.thema ?? '';
@@ -1332,6 +1352,7 @@ app.put('/api/gfs/:id', async (req, res) => {
   if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existingEntry.course)) return;
 
   const { thema, art, date, gehalten, halbjahr, note, studentId, courseId: bodyCourseId, auswertungHilfe } = req.body;
   const data = {};
@@ -1372,6 +1393,7 @@ app.delete('/api/gfs/:id', async (req, res) => {
   if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existingEntry.course)) return;
   await prisma.gfsEntry.delete({ where: { id } });
   res.status(204).send();
 });
@@ -1394,7 +1416,7 @@ app.post('/api/referate', async (req, res) => {
   const studentId = Number(req.body.studentId);
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const thema = req.body.thema ?? '';
@@ -1435,6 +1457,7 @@ app.put('/api/referate/:id', async (req, res) => {
   if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existingEntry.course)) return;
 
   const { thema, art, date, gehalten, halbjahr, note, studentId, courseId: bodyCourseId, auswertungHilfe } = req.body;
   const data = {};
@@ -1475,6 +1498,7 @@ app.delete('/api/referate/:id', async (req, res) => {
   if (!existingEntry.course || !canAccessCourse(existingEntry.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existingEntry.course)) return;
   await prisma.referatEntry.delete({ where: { id } });
   res.status(204).send();
 });
@@ -1521,7 +1545,7 @@ app.get('/api/album-photos', async (req, res) => {
 app.post('/api/album-photos', async (req, res) => {
   const courseId = Number(req.body.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
@@ -1563,6 +1587,7 @@ app.put('/api/album-photos/:id', async (req, res) => {
   if (!existing.course || !canAccessCourse(existing.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existing.course)) return;
 
   const data = {};
   if (req.body.title !== undefined) {
@@ -1593,6 +1618,7 @@ app.delete('/api/album-photos/:id', async (req, res) => {
   if (!existing.course || !canAccessCourse(existing.course, acting)) {
     return res.status(403).json({ error: 'Kein Zugriff' });
   }
+  if (rejectIfArchivedCourse(res, existing.course)) return;
   await prisma.albumPhoto.delete({ where: { id } });
   res.status(204).send();
 });
@@ -1845,7 +1871,7 @@ app.get('/api/money-lists', async (req, res) => {
 app.post('/api/money-lists', async (req, res) => {
   const courseId = Number(req.body.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const subject = String(req.body.subject ?? '').trim();
@@ -1906,7 +1932,7 @@ app.put('/api/money-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   const data = {};
@@ -1964,7 +1990,7 @@ app.delete('/api/money-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   await prisma.moneyList.delete({ where: { id } });
@@ -2003,7 +2029,7 @@ app.post('/api/money-lists/:id/external-entries', async (req, res) => {
     include: { course: true },
   });
   if (!list) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, list.courseId);
+  const ok = await assertCourseWritable(req, res, list.courseId);
   if (!ok) return;
   if (!list.includeExternal && !list.externalOnly) {
     return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
@@ -2082,7 +2108,7 @@ app.get('/api/attendance-lists', async (req, res) => {
 app.post('/api/attendance-lists', async (req, res) => {
   const courseId = Number(req.body.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const subject = String(req.body.subject ?? '').trim();
@@ -2135,7 +2161,7 @@ app.put('/api/attendance-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   const data = {};
@@ -2183,7 +2209,7 @@ app.delete('/api/attendance-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   await prisma.attendanceList.delete({ where: { id } });
@@ -2222,7 +2248,7 @@ app.post('/api/attendance-lists/:id/external-entries', async (req, res) => {
     include: { course: true },
   });
   if (!list) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, list.courseId);
+  const ok = await assertCourseWritable(req, res, list.courseId);
   if (!ok) return;
   if (!list.includeExternal && !list.externalOnly) {
     return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
@@ -2301,7 +2327,7 @@ app.get('/api/collection-lists', async (req, res) => {
 app.post('/api/collection-lists', async (req, res) => {
   const courseId = Number(req.body.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const subject = String(req.body.subject ?? '').trim();
@@ -2354,7 +2380,7 @@ app.put('/api/collection-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   const data = {};
@@ -2402,7 +2428,7 @@ app.delete('/api/collection-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   await prisma.collectionList.delete({ where: { id } });
@@ -2441,7 +2467,7 @@ app.post('/api/collection-lists/:id/external-entries', async (req, res) => {
     include: { course: true },
   });
   if (!list) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, list.courseId);
+  const ok = await assertCourseWritable(req, res, list.courseId);
   if (!ok) return;
   if (!list.includeExternal && !list.externalOnly) {
     return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
@@ -2520,7 +2546,7 @@ app.get('/api/notes-lists', async (req, res) => {
 app.post('/api/notes-lists', async (req, res) => {
   const courseId = Number(req.body.courseId);
   if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
-  const ok = await assertCourseAccess(req, res, courseId);
+  const ok = await assertCourseWritable(req, res, courseId);
   if (!ok) return;
 
   const subject = String(req.body.subject ?? '').trim();
@@ -2573,7 +2599,7 @@ app.put('/api/notes-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   const data = {};
@@ -2621,7 +2647,7 @@ app.delete('/api/notes-lists/:id', async (req, res) => {
     include: { course: true },
   });
   if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, existing.courseId);
+  const ok = await assertCourseWritable(req, res, existing.courseId);
   if (!ok) return;
 
   await prisma.notesList.delete({ where: { id } });
@@ -2662,7 +2688,7 @@ app.post('/api/notes-lists/:id/external-entries', async (req, res) => {
     include: { course: true },
   });
   if (!list) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseAccess(req, res, list.courseId);
+  const ok = await assertCourseWritable(req, res, list.courseId);
   if (!ok) return;
   if (!list.includeExternal && !list.externalOnly) {
     return res.status(400).json({ error: 'Externe Personen sind für diese Liste nicht aktiviert' });
