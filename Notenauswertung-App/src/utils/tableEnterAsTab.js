@@ -17,6 +17,30 @@ export function getTableNavFocusables(table) {
   return Array.from(table.querySelectorAll(FOCUSABLE_SEL)).filter(isVisibleFocusable);
 }
 
+/** Nächstes/vorheriges Eingabefeld in derselben Tabellenspalte (data-summary-grade-input). */
+export function focusAdjacentSummaryGradeInput(current, reverse = false) {
+  if (!(current instanceof HTMLInputElement)) return false;
+  const field = current.getAttribute('data-summary-grade-input');
+  if (!field) return false;
+  const table = current.closest('table');
+  if (!table) return false;
+  const list = Array.from(
+    table.querySelectorAll(`input[data-summary-grade-input="${CSS.escape(field)}"]`),
+  ).filter(isVisibleFocusable);
+  const i = list.indexOf(current);
+  if (i === -1) return false;
+  const next = reverse ? i - 1 : i + 1;
+  if (next < 0 || next >= list.length) return false;
+  const target = list[next];
+  target.focus();
+  try {
+    target.select();
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 /** Nächstes/vorheriges Eingabefeld in derselben Tabelle (DOM-Reihenfolge). */
 export function focusAdjacentTableField(current, reverse = false) {
   const table = current.closest('table');

@@ -19,7 +19,7 @@ import {
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
-import { isEnterAsTabKey, focusAdjacentTableField } from '../utils/tableEnterAsTab';
+import { focusAdjacentSummaryGradeInput, isEnterAsTabKey } from '../utils/tableEnterAsTab';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 
 function hasSummaryNotes(student) {
@@ -680,10 +680,16 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
     setDraft(summaryEndNoteInputDisplay(clamped.toFixed(2)));
   };
 
+  const navigateToAdjacentRow = (el, reverse) => {
+    commit();
+    requestAnimationFrame(() => focusAdjacentSummaryGradeInput(el, reverse));
+  };
+
   return (
     <input
       type="text"
       inputMode={gradeSystem === 'points' ? 'numeric' : 'decimal'}
+      data-summary-grade-input={field}
       aria-label={`${label} für ${student.firstName} ${student.lastName}`}
       value={draft}
       placeholder="-"
@@ -697,11 +703,14 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          navigateToAdjacentRow(e.currentTarget, e.shiftKey);
+          return;
+        }
         if (!isEnterAsTabKey(e)) return;
         e.preventDefault();
-        const el = e.currentTarget;
-        el.blur();
-        requestAnimationFrame(() => focusAdjacentTableField(el, false));
+        navigateToAdjacentRow(e.currentTarget, false);
       }}
       style={{
         width: '5.25rem',
@@ -723,7 +732,7 @@ export default function SummaryView({
   onOpenGfs,
   onOpenReferate,
 }) {
-  const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config, setConfig, updateStudentConfig } = useData();
+  const { students, exams, orals, tests, projects, gfsEntries, referatEntries, config, setConfig, updateStudentConfig, courseArchived } = useData();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -736,7 +745,12 @@ export default function SummaryView({
   const [notesModalStudent, setNotesModalStudent] = useState(null);
   const [overviewMaximized, setOverviewMaximized] = useState(false);
   const isKursstufe = config?.kursstufe === true;
-  const showHJ1 = !isKursstufe && config?.summaryShowHJ1 !== false;
+  const showHJ1FromConfig = config?.summaryShowHJ1 !== false;
+  const [showHJ1Local, setShowHJ1Local] = useState(showHJ1FromConfig);
+  useEffect(() => {
+    setShowHJ1Local(showHJ1FromConfig);
+  }, [config?.id, showHJ1FromConfig]);
+  const showHJ1 = !isKursstufe && (courseArchived ? showHJ1Local : showHJ1FromConfig);
   const showTests = config?.testsWritten !== false;
   const testsAsHalfExam = usesTestsAsHalfExam(config);
   const testsAsOral = usesTestsAsOral(config);
@@ -816,8 +830,16 @@ export default function SummaryView({
               <label className="switch" title="Spalte &#x201E;Note HJ1&#x201C; ein-/ausblenden">
                 <input
                   type="checkbox"
+                  data-archived-allow
                   checked={showHJ1}
-                  onChange={(e) => setConfig((c) => ({ ...c, summaryShowHJ1: e.target.checked }))}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (courseArchived) {
+                      setShowHJ1Local(checked);
+                    } else {
+                      setConfig((c) => ({ ...c, summaryShowHJ1: checked }));
+                    }
+                  }}
                 />
                 <span className="slider" />
               </label>

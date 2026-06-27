@@ -1935,7 +1935,7 @@ button.success:hover {
 .course-archived input:not([data-archived-allow]),
 .course-archived select,
 .course-archived textarea,
-.course-archived .switch input,
+.course-archived .switch input:not([data-archived-allow]),
 .course-archived button:not(.course-archived-allow):not(.tab):not(.danger) {
   pointer-events: none;
   opacity: 0.55;
