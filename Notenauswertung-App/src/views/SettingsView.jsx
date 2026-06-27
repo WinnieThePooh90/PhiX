@@ -398,7 +398,7 @@ export default function SettingsView() {
                   <button
                     type="button"
                     className="danger"
-                    disabled={students.length === 0 || clearingCourseStudents}
+                    disabled={students.length === 0 || clearingCourseStudents || courseArchived}
                     onClick={handleClearCourseStudents}
                   >
                     {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
@@ -732,14 +732,16 @@ export default function SettingsView() {
             <h2 id="settings-student-list-heading" style={{ margin: 0 }}>
               Schülerliste ({students.length})
             </h2>
-            <button
-              type="button"
-              className="danger"
-              disabled={students.length === 0 || clearingCourseStudents}
-              onClick={handleClearCourseStudents}
-            >
-              {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
-            </button>
+            {!courseArchived ? (
+              <button
+                type="button"
+                className="danger"
+                disabled={students.length === 0 || clearingCourseStudents}
+                onClick={handleClearCourseStudents}
+              >
+                {clearingCourseStudents ? 'Leere…' : 'Liste leeren'}
+              </button>
+            ) : null}
           </div>
 
           {!addStudentsPanelOpen ? (
@@ -1006,7 +1008,7 @@ export default function SettingsView() {
                   <th style={{ width: '50px' }}>#</th>
                   <th>Nachname</th>
                   <th>Vorname</th>
-                  <th className="text-right">Aktion</th>
+                  {!courseArchived ? <th className="text-right">Aktion</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -1015,9 +1017,11 @@ export default function SettingsView() {
                     <td>{s.studentNumber ?? (idx + 1)}</td>
                     <td>{s.lastName}</td>
                     <td>{s.firstName}</td>
-                    <td className="text-right">
-                      <button type="button" className="danger" onClick={() => handleRemoveStudent(s)}>Löschen</button>
-                    </td>
+                    {!courseArchived ? (
+                      <td className="text-right">
+                        <button type="button" className="danger" onClick={() => handleRemoveStudent(s)}>Löschen</button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

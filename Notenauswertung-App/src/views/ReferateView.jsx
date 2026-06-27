@@ -106,7 +106,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
     setAuswertungEntry((prev) => (prev ? { ...prev, auswertungHilfe: payload } : prev));
   };
 
-  const colCount = isKursstufe ? 10 : 11;
+  const colCount = (isKursstufe ? 10 : 11) - (courseArchived ? 1 : 0);
 
   return (
     <div className="view-generic-scroll view-generic-scroll--referate">
@@ -224,9 +224,11 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                 {!isKursstufe && <th style={{ width: '100px' }}>Halbjahr</th>}
                 <th style={{ width: '120px' }}>Note</th>
                 <th style={{ width: '130px' }} className="text-center">Auswertungshilfe</th>
-                <th style={{ width: '88px' }} className="text-right">
-                  Aktion
-                </th>
+                {!courseArchived ? (
+                  <th style={{ width: '88px' }} className="text-right">
+                    Aktion
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -393,6 +395,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                         )}
                       </button>
                     </td>
+                    {!courseArchived ? (
                     <td className="text-right">
                       <button
                         type="button"
@@ -411,6 +414,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                         <Trash2 size={18} strokeWidth={2} aria-hidden />
                       </button>
                     </td>
+                    ) : null}
                   </tr>
                 );
               })}

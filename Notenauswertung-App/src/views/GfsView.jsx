@@ -110,7 +110,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
     setAuswertungEntry((prev) => (prev ? { ...prev, auswertungHilfe: payload } : prev));
   };
 
-  const colCount = isKursstufe ? 10 : 11;
+  const colCount = (isKursstufe ? 10 : 11) - (courseArchived ? 1 : 0);
 
   return (
     <div className="view-generic-scroll view-generic-scroll--gfs">
@@ -230,9 +230,11 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                 {!isKursstufe && <th style={{ width: '100px' }}>Halbjahr</th>}
                 <th style={{ width: '120px' }}>Note</th>
                 <th style={{ width: '130px' }} className="text-center">Auswertungshilfe</th>
-                <th style={{ width: '88px' }} className="text-right">
-                  Aktion
-                </th>
+                {!courseArchived ? (
+                  <th style={{ width: '88px' }} className="text-right">
+                    Aktion
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -399,6 +401,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                         )}
                       </button>
                     </td>
+                    {!courseArchived ? (
                     <td className="text-right">
                       <button
                         type="button"
@@ -417,6 +420,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                         <Trash2 size={18} strokeWidth={2} aria-hidden />
                       </button>
                     </td>
+                    ) : null}
                   </tr>
                 );
               })}
