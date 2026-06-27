@@ -1899,6 +1899,21 @@ button.danger:hover {
   background: hsl(var(--danger-hsl) / 0.15);
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.danger:disabled {
+  background: hsl(var(--danger-hsl) / 0.06);
+  border-color: hsl(var(--danger-hsl) / 0.22);
+  color: hsl(var(--danger-hsl) / 0.55);
+}
+
+button.danger:disabled:hover {
+  background: hsl(var(--danger-hsl) / 0.06);
+}
+
 button.success {
   background: hsl(142 76% 36% / 0.12);
   border-color: hsl(142 76% 36% / 0.45);
