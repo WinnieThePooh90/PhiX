@@ -142,6 +142,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     students,
     addExam,
     config,
+    courseArchived,
   } = useData();
   const { showConfirm } = useDialog();
 
@@ -314,6 +315,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                 <input
                   type="checkbox"
                   checked={exam.active}
+                  disabled={courseArchived}
                   onChange={(e) => updateExam(activeKlausur, 'active', e.target.checked)}
                 />
                 <span className="slider" />
@@ -410,7 +412,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                   <span className="course-meta-field__label">Schlüssel zeigen</span>
                   <div className="course-meta-field__row">
                     <label className="switch">
-                      <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                      <input type="checkbox" checked={showKey} disabled={courseArchived} onChange={(e) => setShowKey(e.target.checked)} />
                       <span className="slider" />
                     </label>
                   </div>
@@ -713,6 +715,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                   <input
                                     type="checkbox"
                                     checked={counted}
+                                    disabled={courseArchived}
                                     onChange={e => updateExamCounted(activeKlausur, s.id, e.target.checked)}
                                     aria-label="Teilnahme am Ergebnis"
                                   />
@@ -723,6 +726,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                   <input
                                     type="checkbox"
                                     checked={isNach}
+                                    disabled={courseArchived}
                                     onChange={e => updateExamStudentNachschreiber(activeKlausur, s.id, e.target.checked)}
                                     aria-label="Nachschreiber"
                                   />
@@ -748,6 +752,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                   <input
                                     type="checkbox"
                                     checked={isManual}
+                                    disabled={courseArchived}
                                     onChange={(e) => {
                                       const checked = e.target.checked;
                                       if (!checked) {

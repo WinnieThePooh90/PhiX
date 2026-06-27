@@ -1935,11 +1935,28 @@ button.success:hover {
 .course-archived input:not([data-archived-allow]),
 .course-archived select,
 .course-archived textarea,
+.course-archived label.switch:not(:has(input[data-archived-allow])),
 .course-archived .switch input:not([data-archived-allow]),
 .course-archived button:not(.course-archived-allow):not(.tab):not(.danger) {
   pointer-events: none;
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.course-archived label.switch:not(:has(input[data-archived-allow])) .slider {
+  filter: grayscale(0.4);
+}
+
+.course-archived .switch input[data-archived-allow] {
+  pointer-events: auto;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.course-archived label.switch:has(input[data-archived-allow]) {
+  pointer-events: auto;
+  opacity: 1;
+  cursor: pointer;
 }
 
 .course-archived .course-archived-allow,

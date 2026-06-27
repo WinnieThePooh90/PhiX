@@ -168,6 +168,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     addProject,
     config,
     setConfig,
+    courseArchived,
   } = useData();
   const { showConfirm } = useDialog();
 
@@ -436,6 +437,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       <input
                         type="checkbox"
                         checked={project.active}
+                        disabled={courseArchived}
                         onChange={(e) => updateProject(activeProject, 'active', e.target.checked)}
                       />
                       <span className="slider" />
@@ -509,7 +511,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       <span className="course-meta-field__label">Schlüssel zeigen</span>
                       <div className="course-meta-field__row">
                         <label className="switch">
-                          <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                          <input type="checkbox" checked={showKey} disabled={courseArchived} onChange={(e) => setShowKey(e.target.checked)} />
                           <span className="slider" />
                         </label>
                       </div>
@@ -1216,6 +1218,7 @@ function ProjectScoresTable({
                           <input
                             type="checkbox"
                             checked={!counted}
+                            disabled={courseArchived}
                             onChange={(e) => updateProjectCounted(activeProject, scoreKey, !e.target.checked)}
                             aria-label="Note aussetzen"
                           />
@@ -1228,6 +1231,7 @@ function ProjectScoresTable({
                               <input
                                 type="checkbox"
                                 checked={isManual}
+                                disabled={courseArchived}
                                 onChange={(e) => {
                                   const checked = e.target.checked;
                                   if (!checked) {

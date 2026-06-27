@@ -83,7 +83,7 @@ function formatOralDeDecimal(v, fractionDigits) {
 }
 
 export default function OralView({ studentIdFilterSet = null }) {
-  const { orals, updateOral, removeOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn, students, addOral, config } = useData();
+  const { orals, updateOral, removeOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn, students, addOral, config, courseArchived } = useData();
   const { showConfirm } = useDialog();
 
   const displayStudents = useMemo(() => {
@@ -326,6 +326,7 @@ export default function OralView({ studentIdFilterSet = null }) {
               <input
                 type="checkbox"
                 checked={oralIsActive}
+                disabled={courseArchived}
                 onChange={(e) => updateOral(activeOral, 'active', e.target.checked)}
               />
               <span className="slider" />
@@ -1243,6 +1244,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                             <input
                               type="checkbox"
                               checked={counted}
+                              disabled={courseArchived}
                               onChange={e => updateOralCounted(activeOral, s.id, e.target.checked)}
                               aria-label="Mündlich werten"
                             />

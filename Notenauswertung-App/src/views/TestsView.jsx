@@ -94,6 +94,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
     students,
     addTest,
     config,
+    courseArchived,
   } = useData();
 
   const displayStudents = useMemo(() => {
@@ -259,6 +260,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 <input
                   type="checkbox"
                   checked={test.active}
+                  disabled={courseArchived}
                   onChange={(e) => updateTest(activeTest, 'active', e.target.checked)}
                 />
                 <span className="slider" />
@@ -344,7 +346,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   <span className="course-meta-field__label">Schlüssel zeigen</span>
                   <div className="course-meta-field__row">
                     <label className="switch">
-                      <input type="checkbox" checked={showKey} onChange={(e) => setShowKey(e.target.checked)} />
+                      <input type="checkbox" checked={showKey} disabled={courseArchived} onChange={(e) => setShowKey(e.target.checked)} />
                       <span className="slider" />
                     </label>
                   </div>
@@ -741,6 +743,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                       <input
                                         type="checkbox"
                                         checked={counted}
+                                        disabled={courseArchived}
                                         onChange={(e) => updateTestCounted(activeTest, s.id, e.target.checked)}
                                         aria-label="Teilnahme am Ergebnis"
                                       />
@@ -753,6 +756,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                       <input
                                         type="checkbox"
                                         checked={isNach}
+                                        disabled={courseArchived}
                                         onChange={(e) =>
                                           updateTestStudentNachschreiber(activeTest, s.id, e.target.checked)
                                         }
@@ -793,6 +797,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                       <input
                                         type="checkbox"
                                         checked={isManual}
+                                        disabled={courseArchived}
                                         onChange={(e) => {
                                           const checked = e.target.checked;
                                           if (!checked) {
