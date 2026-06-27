@@ -1,7 +1,7 @@
 {
   "name": "phix-app",
   "private": true,
-  "version": "335.0.0",
+  "version": "338.0.0",
   "type": "module",
   "license": "Apache-2.0",
   "author": "Karsten Paulokat",

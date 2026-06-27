@@ -422,7 +422,7 @@ function AlbumUploadModal({ open, onClose, onUpload, uploading }) {
 }
 
 export default function AlbumView() {
-  const { albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto } = useData();
+  const { albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto, courseArchived } = useData();
   const { showAlert, showConfirm } = useDialog();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -517,6 +517,7 @@ export default function AlbumView() {
             <article key={photo.id} className="album-photo-card">
               <div className="album-photo-card-head">
                 <h2 className="album-photo-title">{photo.title || 'Ohne Titel'}</h2>
+                {!courseArchived ? (
                 <div className="album-photo-actions">
                   <button
                     type="button"
@@ -537,6 +538,7 @@ export default function AlbumView() {
                     <Trash2 size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 </div>
+                ) : null}
               </div>
               <button
                 type="button"

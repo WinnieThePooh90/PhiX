@@ -99,7 +99,8 @@ export function canAddExternalPersons(list) {
   return Boolean(list?.includeExternal || list?.externalOnly);
 }
 
-export function ListPanelFooter({ list, onEdit, onDelete }) {
+export function ListPanelFooter({ list, onEdit, onDelete, readOnly = false }) {
+  if (readOnly) return null;
   return (
     <div className="klassenlehrer-money-panel-actions">
       <button type="button" className="tab secondary" onClick={() => onEdit(list)}>

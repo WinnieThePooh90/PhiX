@@ -127,7 +127,7 @@ function KlassenlehrerListTabButton({ tab, isActive, onSelect }) {
   );
 }
 
-function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
+function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
   const entries = list.entries || [];
   const paidCount = entries.filter((e) => e.paid).length;
   const totalCount = entries.length;
@@ -185,6 +185,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
                     {isExternal ? (
                       <>
                         ext.
+                        {!readOnly ? (
                         <button
                           type="button"
                           className="tab secondary klassenlehrer-external-row-remove"
@@ -193,6 +194,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
                         >
                           ×
                         </button>
+                        ) : null}
                       </>
                     ) : (
                       row.studentNumber ?? '—'
@@ -213,6 +215,7 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
                         type="checkbox"
                         className="gfs-gehalten-checkbox"
                         checked={paid}
+                        disabled={readOnly}
                         onChange={(ev) => updateMoneyListEntryPaid(list.id, row.id, ev.target.checked)}
                         aria-label={`Bezahlt für ${name}`}
                       />
@@ -224,13 +227,13 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
           </tbody>
         </table>
       </div>
-      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
+      {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
     </div>
   );
 }
 
-function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
+function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
   const entries = list.entries || [];
   const presentCount = entries.filter((e) => e.present).length;
   const totalCount = entries.length;
@@ -278,6 +281,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
                     {isExternal ? (
                       <>
                         ext.
+                        {!readOnly ? (
                         <button
                           type="button"
                           className="tab secondary klassenlehrer-external-row-remove"
@@ -286,6 +290,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
                         >
                           ×
                         </button>
+                        ) : null}
                       </>
                     ) : (
                       row.studentNumber ?? '—'
@@ -306,6 +311,7 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
                         type="checkbox"
                         className="gfs-gehalten-checkbox"
                         checked={present}
+                        disabled={readOnly}
                         onChange={(ev) =>
                           updateAttendanceListEntryPresent(list.id, row.id, ev.target.checked)
                         }
@@ -319,13 +325,13 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
           </tbody>
         </table>
       </div>
-      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
+      {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
     </div>
   );
 }
 
-function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddExternal, onRemoveExternalEntry, onEdit, onDelete }) {
+function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
   const entries = list.entries || [];
   const collectedCount = entries.filter((e) => e.collected).length;
   const totalCount = entries.length;
@@ -373,6 +379,7 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
                     {isExternal ? (
                       <>
                         ext.
+                        {!readOnly ? (
                         <button
                           type="button"
                           className="tab secondary klassenlehrer-external-row-remove"
@@ -381,6 +388,7 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
                         >
                           ×
                         </button>
+                        ) : null}
                       </>
                     ) : (
                       row.studentNumber ?? '—'
@@ -401,6 +409,7 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
                         type="checkbox"
                         className="gfs-gehalten-checkbox"
                         checked={collected}
+                        disabled={readOnly}
                         onChange={(ev) =>
                           updateCollectionListEntryCollected(list.id, row.id, ev.target.checked)
                         }
@@ -414,8 +423,8 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
           </tbody>
         </table>
       </div>
-      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
+      {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
     </div>
   );
 }
@@ -427,6 +436,7 @@ function NotesListPanel({
   onRemoveExternalEntry,
   onEdit,
   onDelete,
+  readOnly = false,
 }) {
   const entries = list.entries || [];
   const remarkCount = entries.filter((e) => Boolean(String(e.remark ?? '').trim())).length;
@@ -474,6 +484,7 @@ function NotesListPanel({
                     {isExternal ? (
                       <>
                         ext.
+                        {!readOnly ? (
                         <button
                           type="button"
                           className="tab secondary klassenlehrer-external-row-remove"
@@ -482,6 +493,7 @@ function NotesListPanel({
                         >
                           ×
                         </button>
+                        ) : null}
                       </>
                     ) : (
                       row.studentNumber ?? '—'
@@ -497,6 +509,7 @@ function NotesListPanel({
                     <RemarkEntryField
                       value={row.remark ?? ''}
                       onCommit={(remark) => updateNotesListEntryRemark(list.id, row.id, remark)}
+                      disabled={readOnly}
                       ariaLabel={`Bemerkung für ${name}`}
                     />
                   </td>
@@ -506,8 +519,8 @@ function NotesListPanel({
           </tbody>
         </table>
       </div>
-      {canAddExternalPersons(list) ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} />
+      {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
+      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
     </div>
   );
 }
@@ -1003,6 +1016,7 @@ export default function KlassenlehrerView() {
     updateNotesListEntryRemark,
     addNotesListExternalEntry,
     removeNotesListEntry,
+    courseArchived,
   } = useData();
   const { showConfirm, showAlert } = useDialog();
 
@@ -1596,6 +1610,7 @@ export default function KlassenlehrerView() {
         Zusätzliche Werkzeuge und Übersichten für die Klassenführung im aktuellen Fach.
       </p>
 
+      {!courseArchived ? (
       <div className="glass-panel program-view-panel">
         <h3 className="program-view-panel-heading">Neue Liste anlegen</h3>
         <div className="klassenlehrer-create-buttons">
@@ -1613,6 +1628,7 @@ export default function KlassenlehrerView() {
           </button>
         </div>
       </div>
+      ) : null}
 
       <section className="klassenlehrer-geldlisten-section">
         {mergedTabs.length > 0 ? (
@@ -1638,6 +1654,7 @@ export default function KlassenlehrerView() {
                 {activeTab.type === 'money' ? (
                   <MoneyListPanel
                     list={activeTab.list}
+                    readOnly={courseArchived}
                     updateMoneyListEntryPaid={updateMoneyListEntryPaid}
                     onAddExternal={(person) => addMoneyListExternalEntry(activeTab.list.id, person)}
                     onRemoveExternalEntry={removeMoneyListEntry}
@@ -1647,6 +1664,7 @@ export default function KlassenlehrerView() {
                 ) : activeTab.type === 'attendance' ? (
                   <AttendanceListPanel
                     list={activeTab.list}
+                    readOnly={courseArchived}
                     updateAttendanceListEntryPresent={updateAttendanceListEntryPresent}
                     onAddExternal={(person) => addAttendanceListExternalEntry(activeTab.list.id, person)}
                     onRemoveExternalEntry={removeAttendanceListEntry}
@@ -1656,6 +1674,7 @@ export default function KlassenlehrerView() {
                 ) : activeTab.type === 'notes' ? (
                   <NotesListPanel
                     list={activeTab.list}
+                    readOnly={courseArchived}
                     updateNotesListEntryRemark={updateNotesListEntryRemark}
                     onAddExternal={(person) => addNotesListExternalEntry(activeTab.list.id, person)}
                     onRemoveExternalEntry={removeNotesListEntry}
@@ -1665,6 +1684,7 @@ export default function KlassenlehrerView() {
                 ) : (
                   <CollectionListPanel
                     list={activeTab.list}
+                    readOnly={courseArchived}
                     updateCollectionListEntryCollected={updateCollectionListEntryCollected}
                     onAddExternal={(person) => addCollectionListExternalEntry(activeTab.list.id, person)}
                     onRemoveExternalEntry={removeCollectionListEntry}
