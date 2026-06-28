@@ -3,7 +3,6 @@ import {
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
-import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from './gfsAuswertungConfig';
 
 function studentNameById(students, studentId) {
   const st = (students ?? []).find((s) => s.id === studentId);
@@ -21,16 +20,12 @@ export function buildReferatTableExportData({ referatEntries, students, config }
   const isKursstufe = config?.kursstufe === true;
 
   const headers = isKursstufe
-    ? ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', `Note${npSuffix}`, 'Auswertungshilfe']
-    : ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Halbjahr', `Note${npSuffix}`, 'Auswertungshilfe'];
+    ? ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', `Note${npSuffix}`]
+    : ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Halbjahr', `Note${npSuffix}`];
 
   const rows = (referatEntries ?? []).map((row, idx) => {
     const noteNum = storedGradeStringToClassic(row.note, gradeSys);
     const noteDisplay = noteNum !== null ? formatGrade(noteNum, gradeSys) : '';
-    const auswertung = formatGfsAuswertungSummary(
-      parseGfsAuswertungHilfe(row.auswertungHilfe).scores,
-      gradeSys,
-    );
     const base = [
       idx + 1,
       studentNameById(students, row.studentId),
@@ -40,7 +35,7 @@ export function buildReferatTableExportData({ referatEntries, students, config }
       row.gehalten === true ? 'Ja' : 'Nein',
     ];
     if (!isKursstufe) base.push(row.halbjahr === '2' ? 'HJ 2' : 'HJ 1');
-    base.push(noteDisplay, auswertung || '');
+    base.push(noteDisplay);
     return base;
   });
 
@@ -50,8 +45,8 @@ export function buildReferatTableExportData({ referatEntries, students, config }
 export function buildReferatTableExportLayout(config) {
   const isKursstufe = config?.kursstufe === true;
   const colWidths = isKursstufe
-    ? [6, 32, 28, 14, 12, 10, 10, 24]
-    : [6, 32, 28, 14, 12, 10, 10, 10, 24];
+    ? [6, 32, 28, 14, 12, 10, 10]
+    : [6, 32, 28, 14, 12, 10, 10, 10];
   const centerColumnIndexes = isKursstufe ? [0, 5, 6] : [0, 5, 6, 7];
   return { colWidths, centerColumnIndexes, nameColumnIndex: 1 };
 }
