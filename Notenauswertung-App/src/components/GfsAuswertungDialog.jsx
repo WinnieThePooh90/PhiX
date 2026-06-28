@@ -10,6 +10,7 @@ import {
   countGfsAuswertungFilled,
   suggestGradeFromGfsAuswertungPoints,
 } from '../utils/gfsAuswertungConfig';
+import { downloadGfsAuswertungPdf, gfsAuswertungPdfFilename } from '../utils/gfsAuswertungPdfExport';
 import { useDialog } from './PhixDialog';
 
 export default function GfsAuswertungDialog({
@@ -22,6 +23,7 @@ export default function GfsAuswertungDialog({
   onSave,
 }) {
   const { showConfirm } = useDialog();
+  const [exportBusy, setExportBusy] = useState(false);
   const initial = useMemo(() => parseGfsAuswertungHilfe(auswertungHilfe), [auswertungHilfe, open]);
   const [scores, setScores] = useState(initial.scores);
   const [bemerkungen, setBemerkungen] = useState(initial.bemerkungen);
@@ -82,6 +84,23 @@ export default function GfsAuswertungDialog({
     persist({ scores: {}, bemerkungen: '' });
   };
 
+  const handleExportPdf = () => {
+    if (exportBusy) return;
+    setExportBusy(true);
+    try {
+      downloadGfsAuswertungPdf({
+        titleLabel,
+        studentName,
+        gradeSystem,
+        scores,
+        bemerkungen,
+        filename: gfsAuswertungPdfFilename(titleLabel, studentName),
+      });
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
   return createPortal(
     <div className="oral-formula-modal-backdrop gfs-auswertung-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -98,6 +117,14 @@ export default function GfsAuswertungDialog({
           <div className="gfs-auswertung-header-actions">
             <button type="button" className="tab secondary danger" onClick={handleReset}>
               Reset
+            </button>
+            <button
+              type="button"
+              className="tab secondary"
+              onClick={handleExportPdf}
+              disabled={exportBusy}
+            >
+              {exportBusy ? 'Export …' : 'Export als PDF'}
             </button>
             <button type="button" className="tab secondary" onClick={onClose} aria-label="Schließen">
               Schließen

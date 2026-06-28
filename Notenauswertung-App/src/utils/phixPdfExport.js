@@ -89,10 +89,33 @@ function renderGradingKeyBeside(doc, gradingKey, startX, startY, panelWidth) {
 
 /**
  * @param {import('jspdf').jsPDF} doc
+ * @param {string[]} lines
+ * @param {number} startY
+ * @param {number} contentWidth
+ * @returns {number}
+ */
+function renderMetaLines(doc, lines, startY, contentWidth) {
+  if (!lines?.length) return startY;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  let y = startY;
+  for (const line of lines) {
+    const wrapped = doc.splitTextToSize(String(line), contentWidth);
+    doc.text(wrapped, PAGE_MARGIN, y);
+    y += wrapped.length * 4 + 1;
+  }
+  doc.setTextColor(0, 0, 0);
+  return y + 2;
+}
+
+/**
+ * @param {import('jspdf').jsPDF} doc
  * @param {(string|number)[][]} aoa
  * @param {string} [sectionTitle]
  * @param {{ title?: string, desc?: string, aoa?: (string|number)[][] }} [gradingKey]
- * @param {{ startY?: number }} [opts]
+ * @param {{ startY?: number, metaLines?: string[] }} [opts]
  */
 function renderAoaTable(doc, aoa, sectionTitle, gradingKey, opts = {}) {
   const { head, body } = aoaToHeadBody(aoa);
@@ -107,6 +130,10 @@ function renderAoaTable(doc, aoa, sectionTitle, gradingKey, opts = {}) {
     doc.text(sectionTitle, PAGE_MARGIN, startY - 4);
     doc.setFont('helvetica', 'normal');
     startY += 4;
+  }
+
+  if (opts.metaLines?.length) {
+    startY = renderMetaLines(doc, opts.metaLines, startY, pw - PAGE_MARGIN * 2);
   }
 
   const tableStartY = startY;
@@ -165,7 +192,7 @@ export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
     unit: 'mm',
     format: 'a4',
   });
-  renderAoaTable(doc, aoa, sectionTitle, opts.gradingKey);
+  renderAoaTable(doc, aoa, sectionTitle, opts.gradingKey, opts);
   doc.save(ensurePdfFilename(filename));
 }
 
@@ -173,7 +200,7 @@ export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
  * @param {{ headers: string[], rows: (string|number)[][] }} sheetData
  * @param {string} sectionTitle
  * @param {string} filename
- * @param {{ orientation?: 'portrait'|'landscape', gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} [opts]
+ * @param {{ orientation?: 'portrait'|'landscape', metaLines?: string[], gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} [opts]
  */
 export function downloadSheetDataPdf(sheetData, sectionTitle, filename, opts = {}) {
   const aoa = [sheetData.headers, ...(sheetData.rows ?? [])];

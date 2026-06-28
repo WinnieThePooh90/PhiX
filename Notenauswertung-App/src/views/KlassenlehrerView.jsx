@@ -1094,9 +1094,12 @@ export default function KlassenlehrerView() {
     if (exportBusy) return;
     setExportBusy(true);
     try {
-      const { headers, rows, sectionTitle } = buildKlassenlehrerListExportData({ list, type });
+      const { headers, rows, sectionTitle, metaLines } = buildKlassenlehrerListExportData({ list, type });
       const filename = klassenlehrerListExportFilename(config, type, list?.subject, 'pdf');
-      downloadSheetDataPdf({ headers, rows }, sectionTitle, filename, { orientation: 'portrait' });
+      downloadSheetDataPdf({ headers, rows }, sectionTitle, filename, {
+        orientation: 'portrait',
+        metaLines,
+      });
     } catch (err) {
       await showAlert(err?.message || 'PDF-Export fehlgeschlagen.', { title: 'Export' });
     } finally {
