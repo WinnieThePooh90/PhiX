@@ -3862,8 +3862,17 @@ a.support-phix-paypal-btn:active {
   pointer-events: auto;
 }
 
-.project-group-member-inline-controls .switch {
+.project-group-member-inline-controls .switch,
+.project-group-member-detail .switch {
   pointer-events: auto;
+}
+
+.project-group-member-switch {
+  cursor: pointer;
+}
+
+.project-group-member-switch input[type="checkbox"] {
+  pointer-events: none;
 }
 
 .project-group-member-detail-row td {
