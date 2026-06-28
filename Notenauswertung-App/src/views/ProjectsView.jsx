@@ -383,18 +383,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput };
   };
 
-  const projectGroupMemberStats = (groupId, memberId) => {
-    const rawGroup = getProjectGroupScoreData(project, groupId);
-    const memberOv = getProjectGroupMemberOverride(rawGroup, memberId);
-    const counted = isProjectGroupMemberCounted(project, groupId, memberId);
-    const grade = counted ? getProjectGradeForStudent(project, memberId, customKeysList, gradeSys) : null;
-    const isManual = projectManualGradeMode || isProjectGroupMemberManualGradeActive(rawGroup, memberId);
-    const manualGradeInput = projectManualGradeMode
-      ? getProjectMemberManualGradeStoredValue(rawGroup, memberId)
-      : getExamManualGradeStoredValue(memberOv);
-    return { counted, grade, isManual, manualGradeInput, memberOv };
-  };
-
   const handleDeleteProject = async () => {
     const ok = await showConfirm(
       'Dieses Projekt wirklich endgültig löschen? Alle eingetragenen Punktwerte und Einstellungen gehen verloren.',
@@ -718,6 +706,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                           <ProjectScoresTable
                             project={project}
                             activeProject={activeProject}
+                            customGradingKeys={customKeysList}
                             rows={[row]}
                             numFields={numFields}
                             displayFieldCount={displayFieldCount}
@@ -738,7 +727,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                             updateProjectGroupMemberCounted={updateProjectGroupMemberCounted}
                             updateProjectGroupMemberManualGrade={updateProjectGroupMemberManualGrade}
                             updateProjectGroupMemberManualGradeValue={updateProjectGroupMemberManualGradeValue}
-                            projectGroupMemberStats={projectGroupMemberStats}
                             nameColumnLabel="GRUPPE"
                             showEmptyFilterHint={false}
                             courseArchived={courseArchived}
@@ -758,6 +746,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     <ProjectScoresTable
                       project={project}
                       activeProject={activeProject}
+                      customGradingKeys={customKeysList}
                       rows={scoreRows}
                       numFields={numFields}
                       displayFieldCount={displayFieldCount}
@@ -776,7 +765,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       updateProjectGroupMemberCounted={updateProjectGroupMemberCounted}
                       updateProjectGroupMemberManualGrade={updateProjectGroupMemberManualGrade}
                       updateProjectGroupMemberManualGradeValue={updateProjectGroupMemberManualGradeValue}
-                      projectGroupMemberStats={projectGroupMemberStats}
                       nameColumnLabel="NAME"
                       showEmptyFilterHint={displayStudents.length === 0 && students.length > 0}
                       courseArchived={courseArchived}
@@ -1012,6 +1000,7 @@ function CreateProjectModal({ form, setForm, onClose, onCreate, submitting }) {
 function ProjectScoresTable({
   project,
   activeProject,
+  customGradingKeys = null,
   rows,
   numFields,
   displayFieldCount,
@@ -1032,7 +1021,6 @@ function ProjectScoresTable({
   updateProjectGroupMemberCounted,
   updateProjectGroupMemberManualGrade,
   updateProjectGroupMemberManualGradeValue,
-  projectGroupMemberStats,
   nameColumnLabel,
   showEmptyFilterHint,
   courseArchived = false,
@@ -1280,10 +1268,13 @@ function ProjectScoresTable({
                   const memberOv = getProjectGroupMemberOverride(rawGroupScore, member.id);
                   const memberCounted = isProjectGroupMemberCounted(tableProject, scoreKey, member.id);
                   const memberManualActive = isProjectGroupMemberManualGradeActive(rawGroupScore, member.id);
-                  const {
-                    grade: memberGrade,
-                    manualGradeInput: memberManualInput,
-                  } = projectGroupMemberStats(scoreKey, member.id);
+                  const memberIsManual = projectManualGradeMode || memberManualActive;
+                  const memberManualInput = projectManualGradeMode
+                    ? getProjectMemberManualGradeStoredValue(rawGroupScore, member.id)
+                    : getExamManualGradeStoredValue(memberOv);
+                  const memberGrade = memberCounted
+                    ? getProjectGradeForStudent(tableProject, member.id, customGradingKeys, gradeSys)
+                    : null;
                   return (
                     <React.Fragment key={memberKey}>
                       <tr
@@ -1362,8 +1353,17 @@ function ProjectScoresTable({
                             fontSize: '0.9rem',
                           }}
                         >
-                          {projectManualGradeMode && memberCounted ? (
-                            <span className="text-muted">{memberManualInput || '-'}</span>
+                          {memberCounted && memberIsManual ? (
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="exam-manual-grade-input"
+                              value={memberManualInput}
+                              disabled={courseArchived}
+                              onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
+                              placeholder="-"
+                              style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
+                            />
                           ) : memberCounted && memberGrade !== null ? (
                             <span style={{ fontWeight: 'bold', color: isGradeWorseThan4(memberGrade, gradeSys, keyGradeOpts) ? 'var(--danger)' : 'var(--foreground)' }}>
                               {formatGrade(memberGrade, gradeSys, keyGradeOpts)}
@@ -1417,28 +1417,30 @@ function ProjectScoresTable({
                                         updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
                                         return;
                                       }
-                                      const { grade: calcGrade } = projectScoreRowStats(scoreKey);
-                                      const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
+                                      const seed = memberGrade != null
+                                        ? gradingKeyResultToStoredString(memberGrade, gradeSys)
+                                        : '';
                                       updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
                                     }}
                                   >
                                     <span className={`slider${memberManualActive ? ' slider--on' : ''}`} aria-hidden />
                                   </button>
-                                </>
-                              )}
-                              {projectManualGradeMode && (
-                                <>
-                                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note:</span>
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    className="exam-manual-grade-input"
-                                    value={memberManualInput}
-                                    disabled={courseArchived || !memberCounted}
-                                    onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
-                                    placeholder="-"
-                                    style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
-                                  />
+                                  {memberManualActive && (
+                                    <>
+                                      <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note:</span>
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        className="exam-manual-grade-input"
+                                        value={memberManualInput}
+                                        disabled={courseArchived || !memberCounted}
+                                        onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="-"
+                                        style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
+                                      />
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>
