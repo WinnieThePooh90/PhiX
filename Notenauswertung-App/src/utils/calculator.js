@@ -156,8 +156,9 @@ export const getProjectMemberManualGradeStoredValue = (rawGroupScore, memberId) 
 export const isProjectGroupMemberCounted = (project, groupId, memberId) => {
   const raw = getProjectGroupScoreData(project, groupId);
   const memberOv = getProjectGroupMemberOverride(raw, memberId);
-  if (memberOv && memberOv._counted === false) return false;
-  if (memberOv && memberOv._counted === true) return true;
+  if (memberOv && Object.prototype.hasOwnProperty.call(memberOv, '_counted')) {
+    return memberOv._counted !== false;
+  }
   if (raw && typeof raw === 'object' && raw._counted === false) return false;
   const effN = getStudentEffectiveProjectFieldCount(project, memberId);
   const { counted } = getNormalizedExamScore(raw, effN);

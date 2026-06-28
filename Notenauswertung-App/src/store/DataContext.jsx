@@ -1565,9 +1565,11 @@ export const DataProvider = ({ children }) => {
 
       const scores = normalizeProjectScoresMap(project.scores);
       const groupKey = String(groupId);
-      const { base, mo, mid } = ensureProjectGroupMemberOverride(scores[groupKey] ?? scores[groupId]);
-      mo[mid] = patchMember({ ...(mo[mid] || {}) });
-      const newGroupScore = { ...base, _memberOverrides: mo };
+      const groupScore = scores[groupKey] ?? scores[groupId];
+      const { base, mo, mid } = ensureProjectGroupMemberOverride(groupScore);
+      const nextMember = patchMember({ ...(mo[mid] || {}) });
+      const nextMo = { ...mo, [mid]: nextMember };
+      const newGroupScore = { ...base, _memberOverrides: nextMo };
       const newScores = { ...scores, [groupKey]: newGroupScore };
       const newProject = { ...project, scores: newScores };
 

@@ -1272,16 +1272,14 @@ function ProjectScoresTable({
                 {isGroupMode && row.members?.map((member) => {
                   const memberKey = `${scoreKey}:${member.id}`;
                   const isMemberExpanded = expandedGroupMemberKey === memberKey;
+                  const rawGroupScore = getProjectGroupScoreData(project, scoreKey);
+                  const memberOv = getProjectGroupMemberOverride(rawGroupScore, member.id);
+                  const memberCounted = isProjectGroupMemberCounted(project, scoreKey, member.id);
+                  const memberManualActive = isProjectGroupMemberManualGradeActive(rawGroupScore, member.id);
                   const {
-                    counted: memberCounted,
                     grade: memberGrade,
                     manualGradeInput: memberManualInput,
-                    memberOv,
                   } = projectGroupMemberStats(scoreKey, member.id);
-                  const memberManualActive = isProjectGroupMemberManualGradeActive(
-                    getProjectGroupScoreData(project, scoreKey),
-                    member.id,
-                  );
                   return (
                     <React.Fragment key={memberKey}>
                       <tr
@@ -1380,59 +1378,46 @@ function ProjectScoresTable({
                               aria-label={`Einstellungen für ${member.lastName}, ${member.firstName}`}
                             >
                               <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
-                              <label
-                                className="switch switch--table-row project-group-member-switch"
-                                title="Note für diesen Schüler aussetzen"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  if (courseArchived) return;
-                                  updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !memberCounted);
-                                }}
-                              >
+                              <label className="switch switch--table-row project-group-member-switch" title="Note für diesen Schüler aussetzen">
                                 <input
                                   type="checkbox"
                                   checked={!memberCounted}
                                   disabled={courseArchived}
-                                  readOnly
-                                  tabIndex={-1}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked);
+                                  }}
                                   aria-label={`Note für ${member.lastName} aussetzen`}
                                 />
-                                <span className="slider" />
+                                <span className={`slider${!memberCounted ? ' slider--on' : ''}`} aria-hidden />
                               </label>
                               {!projectManualGradeMode && (
                                 <>
                                   <span className="text-muted" style={{ fontSize: '0.875rem' }}>Manuelle Note:</span>
-                                  <label
-                                    className="switch switch--table-row project-group-member-switch"
-                                    title="Note manuell setzen (Berechnung ignorieren)"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      if (courseArchived) return;
-                                      if (memberManualActive) {
-                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
-                                        return;
-                                      }
-                                      const stored = getExamManualGradeStoredValue(memberOv);
-                                      if (stored.trim() !== '') {
-                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
-                                        return;
-                                      }
-                                      const { grade: calcGrade } = projectScoreRowStats(scoreKey);
-                                      const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
-                                      updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
-                                    }}
-                                  >
+                                  <label className="switch switch--table-row project-group-member-switch" title="Note manuell setzen (Berechnung ignorieren)">
                                     <input
                                       type="checkbox"
                                       checked={memberManualActive}
                                       disabled={courseArchived}
-                                      readOnly
-                                      tabIndex={-1}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        const checked = e.target.checked;
+                                        if (!checked) {
+                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
+                                          return;
+                                        }
+                                        const stored = getExamManualGradeStoredValue(memberOv);
+                                        if (stored.trim() !== '') {
+                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
+                                          return;
+                                        }
+                                        const { grade: calcGrade } = projectScoreRowStats(scoreKey);
+                                        const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
+                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
+                                      }}
                                       aria-label={`Manuelle Note für ${member.lastName}`}
                                     />
-                                    <span className="slider" />
+                                    <span className={`slider${memberManualActive ? ' slider--on' : ''}`} aria-hidden />
                                   </label>
                                 </>
                               )}

@@ -2855,12 +2855,14 @@ input:checked + .slider:before {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-.switch.switch--table-row input:checked + .slider {
+.switch.switch--table-row input:checked + .slider,
+.switch.switch--table-row .slider.slider--on {
   background: hsl(var(--success-hsl) / 0.38);
   border-color: hsl(var(--success-hsl) / 0.55);
 }
 
-.switch.switch--table-row input:checked + .slider:before {
+.switch.switch--table-row input:checked + .slider:before,
+.switch.switch--table-row .slider.slider--on:before {
   transform: translateX(0.82rem);
 }
 
@@ -3869,10 +3871,6 @@ a.support-phix-paypal-btn:active {
 
 .project-group-member-switch {
   cursor: pointer;
-}
-
-.project-group-member-switch input[type="checkbox"] {
-  pointer-events: none;
 }
 
 .project-group-member-detail-row td {
