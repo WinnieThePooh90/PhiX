@@ -379,7 +379,14 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                         type="button"
                         className="tab secondary gfs-auswertung-open-btn"
                         disabled={courseArchived}
-                        onClick={() => setAuswertungEntry({ id: row.id, studentName: name, auswertungHilfe: row.auswertungHilfe })}
+                        onClick={() => setAuswertungEntry({
+                          id: row.id,
+                          studentName: name,
+                          thema: row.thema,
+                          art: row.art,
+                          date: row.date,
+                          auswertungHilfe: row.auswertungHilfe,
+                        })}
                         title="Auswertungshilfe öffnen"
                         aria-label={`Auswertungshilfe für ${name}`}
                       >
@@ -429,6 +436,10 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
         onClose={() => setAuswertungEntry(null)}
         studentName={auswertungEntry?.studentName ?? ''}
         titleLabel="Referat-Auswertung"
+        entryKind="Referat"
+        thema={auswertungEntry?.thema ?? ''}
+        art={auswertungEntry?.art ?? ''}
+        date={auswertungEntry?.date ?? ''}
         gradeSystem={gradeSys}
         auswertungHilfe={auswertungEntry?.auswertungHilfe}
         onSave={handleAuswertungSave}

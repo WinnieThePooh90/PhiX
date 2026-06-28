@@ -20,6 +20,28 @@ export function gfsAuswertungPdfFilename(titleLabel, studentName) {
   return buildExportFilename([titleLabel, studentName], 'pdf');
 }
 
+function formatEntryDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).trim();
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
+}
+
+function buildEntryMetaLines({ entryKind, thema, art, date }) {
+  const lines = [];
+  const kind = String(entryKind ?? '').trim();
+  if (kind) lines.push(kind);
+  if (String(thema ?? '').trim()) lines.push(`Thema: ${String(thema).trim()}`);
+  if (String(art ?? '').trim()) lines.push(`Art: ${String(art).trim()}`);
+  const dateLabel = formatEntryDate(date);
+  if (dateLabel) lines.push(`Datum: ${dateLabel}`);
+  return lines;
+}
+
 function buildGradePairs(gradeSystem) {
   const isPointsMode = gradeSystem === 'points';
   return GFS_AUSWERTUNG_POINTS_TO_GRADE.map((row) => ({
@@ -30,7 +52,7 @@ function buildGradePairs(gradeSystem) {
   }));
 }
 
-function buildGradeTableMultiColumn(pairs, columns = 3) {
+function buildGradeTableMultiColumn(pairs, columns = 4) {
   const head = [];
   for (let c = 0; c < columns; c += 1) {
     head.push('Pkt.', 'Note');
@@ -77,6 +99,10 @@ function highlightGradeHitCells(data, gradePairs, total, columns) {
 export function downloadGfsAuswertungPdf({
   titleLabel,
   studentName,
+  entryKind = '',
+  thema = '',
+  art = '',
+  date = '',
   gradeSystem = 'classic',
   scores = {},
   bemerkungen = '',
@@ -100,6 +126,19 @@ export function downloadGfsAuswertungPdf({
   doc.text(titleLines, PAGE_MARGIN, y);
   y += titleLines.length * 5 + 2;
   doc.setFont('helvetica', 'normal');
+
+  const metaLines = buildEntryMetaLines({ entryKind, thema, art, date });
+  if (metaLines.length > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+    for (const line of metaLines) {
+      const wrapped = doc.splitTextToSize(line, contentWidth);
+      doc.text(wrapped, PAGE_MARGIN, y);
+      y += wrapped.length * 4 + 1;
+    }
+    doc.setTextColor(0, 0, 0);
+    y += 2;
+  }
 
   const sumLine = `Summe: ${total} Punkte${
     filled > 0 && filled < GFS_AUSWERTUNG_CRITERIA.length
@@ -160,9 +199,8 @@ export function downloadGfsAuswertungPdf({
   doc.setFont('helvetica', 'normal');
 
   const gradePairs = buildGradePairs(gradeSystem);
-  const gradeColumns = 3;
+  const gradeColumns = 4;
   const { head: gradeHead, body: gradeBody } = buildGradeTableMultiColumn(gradePairs, gradeColumns);
-  const gradeTableWidth = contentWidth * 0.55;
 
   autoTable(doc, {
     head: gradeHead,
@@ -178,30 +216,29 @@ export function downloadGfsAuswertungPdf({
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => highlightGradeHitCells(data, gradePairs, total, gradeColumns),
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-    tableWidth: gradeTableWidth,
+    tableWidth: contentWidth,
   });
 
-  const notesX = PAGE_MARGIN + gradeTableWidth + 4;
-  const notesWidth = Math.max(40, contentWidth - gradeTableWidth - 4);
-  const notesY = y;
+  y = (doc.lastAutoTable?.finalY ?? y) + 5;
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('Bemerkungen', notesX, notesY);
+  doc.text('Bemerkungen', PAGE_MARGIN, y);
+  y += 4;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
 
   const notesText = String(bemerkungen ?? '').trim() || '—';
   const maxNotesBottom = pageH - PAGE_MARGIN;
   const lineHeight = 3.2;
-  const maxLines = Math.max(1, Math.floor((maxNotesBottom - (notesY + 4)) / lineHeight));
-  let notesLines = doc.splitTextToSize(notesText, notesWidth);
+  const maxLines = Math.max(1, Math.floor((maxNotesBottom - y) / lineHeight));
+  let notesLines = doc.splitTextToSize(notesText, contentWidth);
   if (notesLines.length > maxLines) {
     notesLines = notesLines.slice(0, maxLines);
     const last = notesLines[maxLines - 1];
     notesLines[maxLines - 1] = last.length > 1 ? `${last.slice(0, -1)}…` : '…';
   }
-  doc.text(notesLines, notesX, notesY + 4);
+  doc.text(notesLines, PAGE_MARGIN, y);
 
   triggerPdfDownload(doc, filename);
 }

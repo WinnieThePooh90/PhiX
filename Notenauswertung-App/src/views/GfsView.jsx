@@ -385,7 +385,14 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                         type="button"
                         className="tab secondary gfs-auswertung-open-btn"
                         disabled={courseArchived}
-                        onClick={() => setAuswertungEntry({ id: row.id, studentName: name, auswertungHilfe: row.auswertungHilfe })}
+                        onClick={() => setAuswertungEntry({
+                          id: row.id,
+                          studentName: name,
+                          thema: row.thema,
+                          art: row.art,
+                          date: row.date,
+                          auswertungHilfe: row.auswertungHilfe,
+                        })}
                         title="Auswertungshilfe öffnen"
                         aria-label={`Auswertungshilfe für ${name}`}
                       >
@@ -434,6 +441,10 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
         open={auswertungEntry != null}
         onClose={() => setAuswertungEntry(null)}
         studentName={auswertungEntry?.studentName ?? ''}
+        entryKind="GFS"
+        thema={auswertungEntry?.thema ?? ''}
+        art={auswertungEntry?.art ?? ''}
+        date={auswertungEntry?.date ?? ''}
         gradeSystem={gradeSys}
         auswertungHilfe={auswertungEntry?.auswertungHilfe}
         onSave={handleAuswertungSave}
