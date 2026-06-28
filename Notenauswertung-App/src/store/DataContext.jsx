@@ -9,6 +9,8 @@ import {
   migrateOralGradeEntry,
   normalizeCourseGradeSystem,
   parseScorePointsValue,
+  normalizeProjectScoresMap,
+  normalizeProjectMemberOverrides,
 } from '../utils/calculator';
 import { getOralExtendedMode } from '../utils/oralExtendedMode';
 import { sortSchoolYears } from '../utils/schoolYear';
@@ -1543,71 +1545,67 @@ export const DataProvider = ({ children }) => {
   const ensureProjectGroupMemberOverride = (groupScore, memberId) => {
     const base = ensureProjectStudentScoreObject(groupScore);
     const mid = String(memberId);
-    const mo = { ...(base._memberOverrides || {}) };
+    const mo = normalizeProjectMemberOverrides(base._memberOverrides);
     mo[mid] = { ...(mo[mid] || {}) };
     return { base, mo, mid };
   };
 
-  const updateProjectGroupMemberCounted = (projectId, groupId, memberId, counted) => {
+  const resolveStateProject = (prev, projectId) => {
+    if (!prev || projectId == null) return { stateKey: null, project: null };
+    const stateKey = String(projectId);
+    const project = prev[stateKey] ?? prev[projectId];
+    if (!project) return { stateKey: null, project: null };
+    return { stateKey, project };
+  };
+
+  const patchProjectGroupMemberState = (projectId, groupId, memberId, patchMember) => {
     setProjects((prev) => {
-      const project = prev[projectId];
-      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
-      mo[mid] = { ...mo[mid], _counted: counted };
+      const { stateKey, project } = resolveStateProject(prev, projectId);
+      if (!project) return prev;
+
+      const scores = normalizeProjectScoresMap(project.scores);
+      const groupKey = String(groupId);
+      const { base, mo, mid } = ensureProjectGroupMemberOverride(scores[groupKey] ?? scores[groupId]);
+      mo[mid] = patchMember({ ...(mo[mid] || {}) });
       const newGroupScore = { ...base, _memberOverrides: mo };
-      const newProject = {
-        ...project,
-        scores: { ...project.scores, [groupId]: newGroupScore },
-      };
-      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [projectId]: newProject };
+      const newScores = { ...scores, [groupKey]: newGroupScore };
+      const newProject = { ...project, scores: newScores };
+
+      apiCall(`/api/projects/${stateKey}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [stateKey]: newProject };
     });
   };
 
+  const updateProjectGroupMemberCounted = (projectId, groupId, memberId, counted) => {
+    patchProjectGroupMemberState(projectId, groupId, memberId, (entry) => ({
+      ...entry,
+      _counted: counted,
+    }));
+  };
+
   const updateProjectGroupMemberManualGrade = (projectId, groupId, memberId, active, seedValue = undefined) => {
-    setProjects((prev) => {
-      const project = prev[projectId];
-      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
-      let memberEntry = { ...mo[mid] };
+    patchProjectGroupMemberState(projectId, groupId, memberId, (entry) => {
       if (active) {
-        memberEntry = { ...memberEntry, _manualGrade: true };
+        const next = { ...entry, _manualGrade: true };
         const hasStored =
-          memberEntry._manualGradeValue !== undefined &&
-          memberEntry._manualGradeValue !== null &&
-          String(memberEntry._manualGradeValue).trim() !== '';
+          next._manualGradeValue !== undefined &&
+          next._manualGradeValue !== null &&
+          String(next._manualGradeValue).trim() !== '';
         if (!hasStored && seedValue !== undefined && seedValue !== null && String(seedValue).trim() !== '') {
-          memberEntry._manualGradeValue = String(seedValue).trim();
+          next._manualGradeValue = String(seedValue).trim();
         }
-      } else {
-        memberEntry = { ...memberEntry, _manualGrade: false };
+        return next;
       }
-      mo[mid] = memberEntry;
-      const newGroupScore = { ...base, _memberOverrides: mo };
-      const newProject = {
-        ...project,
-        scores: { ...project.scores, [groupId]: newGroupScore },
-      };
-      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [projectId]: newProject };
+      return { ...entry, _manualGrade: false };
     });
   };
 
   const updateProjectGroupMemberManualGradeValue = (projectId, groupId, memberId, value) => {
-    setProjects((prev) => {
-      const project = prev[projectId];
-      const { base, mo, mid } = ensureProjectGroupMemberOverride(project.scores[groupId]);
-      mo[mid] = {
-        ...mo[mid],
-        _manualGrade: true,
-        _manualGradeValue: value,
-      };
-      const newGroupScore = { ...base, _memberOverrides: mo };
-      const newProject = {
-        ...project,
-        scores: { ...project.scores, [groupId]: newGroupScore },
-      };
-      apiCall(`/api/projects/${projectId}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [projectId]: newProject };
-    });
+    patchProjectGroupMemberState(projectId, groupId, memberId, (entry) => ({
+      ...entry,
+      _manualGrade: true,
+      _manualGradeValue: value,
+    }));
   };
 
   const addGfsEntry = async (studentId) => {

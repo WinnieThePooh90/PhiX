@@ -96,6 +96,35 @@ export const getProjectGroups = (project) => {
   return g;
 };
 
+export const normalizeProjectScoresMap = (scores) => {
+  if (scores == null) return {};
+  if (typeof scores === 'string') {
+    try {
+      const parsed = JSON.parse(scores);
+      return typeof parsed === 'object' && parsed && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof scores === 'object' && !Array.isArray(scores) ? scores : {};
+};
+
+export const getProjectGroupScoreData = (project, groupId) => {
+  const scores = normalizeProjectScoresMap(project?.scores);
+  const key = String(groupId);
+  const raw = scores[groupId] ?? scores[key];
+  return raw !== undefined && raw !== null ? raw : null;
+};
+
+export const normalizeProjectMemberOverrides = (raw) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) out[String(k)] = { ...v };
+  }
+  return out;
+};
+
 export const getStudentProjectGroupId = (project, studentId) => {
   if (!isProjectGroupGradeMode(project)) return null;
   const sid = Number(studentId);
@@ -109,8 +138,7 @@ export const getStudentProjectGroupId = (project, studentId) => {
 /** Pro-Mitglied-Einstellungen in project.scores[groupId]._memberOverrides[studentId]. */
 export const getProjectGroupMemberOverride = (rawGroupScore, memberId) => {
   if (!rawGroupScore || typeof rawGroupScore !== 'object') return null;
-  const mo = rawGroupScore._memberOverrides;
-  if (!mo || typeof mo !== 'object') return null;
+  const mo = normalizeProjectMemberOverrides(rawGroupScore._memberOverrides);
   const key = String(memberId);
   const o = mo[memberId] ?? mo[key];
   return o && typeof o === 'object' ? o : null;
@@ -126,7 +154,7 @@ export const getProjectMemberManualGradeStoredValue = (rawGroupScore, memberId) 
 };
 
 export const isProjectGroupMemberCounted = (project, groupId, memberId) => {
-  const raw = project?.scores?.[groupId];
+  const raw = getProjectGroupScoreData(project, groupId);
   const memberOv = getProjectGroupMemberOverride(raw, memberId);
   if (memberOv && memberOv._counted === false) return false;
   if (memberOv && memberOv._counted === true) return true;
@@ -1174,7 +1202,9 @@ export const isProjectManualGradeMode = (project) => project?.gradeMode === 'man
 export const getProjectGradeForStudent = (project, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
   const scoreKey = getProjectScoreKeyForStudent(project, studentId);
   if (isProjectGroupGradeMode(project) && !scoreKey) return null;
-  const rawScoreData = project.scores?.[scoreKey];
+  const rawScoreData = isProjectGroupGradeMode(project)
+    ? getProjectGroupScoreData(project, scoreKey)
+    : normalizeProjectScoresMap(project?.scores)[studentId] ?? project?.scores?.[studentId];
   const memberOv = isProjectGroupGradeMode(project)
     ? getProjectGroupMemberOverride(rawScoreData, studentId)
     : null;

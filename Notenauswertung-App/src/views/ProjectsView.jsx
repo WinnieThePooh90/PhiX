@@ -32,6 +32,7 @@ import {
   isProjectGroupMemberCounted,
   isProjectGroupMemberManualGradeActive,
   getProjectMemberManualGradeStoredValue,
+  getProjectGroupScoreData,
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
@@ -383,7 +384,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
   };
 
   const projectGroupMemberStats = (groupId, memberId) => {
-    const rawGroup = project.scores?.[groupId];
+    const rawGroup = getProjectGroupScoreData(project, groupId);
     const memberOv = getProjectGroupMemberOverride(rawGroup, memberId);
     const counted = isProjectGroupMemberCounted(project, groupId, memberId);
     const grade = counted ? getProjectGradeForStudent(project, memberId, customKeysList, gradeSys) : null;
@@ -1273,7 +1274,10 @@ function ProjectScoresTable({
                     manualGradeInput: memberManualInput,
                     memberOv,
                   } = projectGroupMemberStats(scoreKey, member.id);
-                  const memberManualActive = isProjectGroupMemberManualGradeActive(rawSc, member.id);
+                  const memberManualActive = isProjectGroupMemberManualGradeActive(
+                    getProjectGroupScoreData(project, scoreKey),
+                    member.id,
+                  );
                   return (
                     <React.Fragment key={memberKey}>
                       <tr
@@ -1368,14 +1372,21 @@ function ProjectScoresTable({
                       {isMemberExpanded && (
                         <tr className="project-group-member-detail-row">
                           <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
-                            <div className="project-group-member-detail">
+                            <div
+                              className="project-group-member-detail"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            >
                               <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
-                              <label className="switch switch--table-row">
+                              <label className="switch switch--table-row" onClick={(e) => e.stopPropagation()}>
                                 <input
                                   type="checkbox"
                                   checked={!memberCounted}
                                   disabled={courseArchived}
-                                  onChange={(e) => updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked);
+                                  }}
                                   aria-label={`Note für ${member.lastName} aussetzen`}
                                 />
                                 <span className="slider" />
@@ -1383,12 +1394,13 @@ function ProjectScoresTable({
                               {!projectManualGradeMode && (
                                 <>
                                   <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>Manuelle Note:</span>
-                                  <label className="switch switch--table-row">
+                                  <label className="switch switch--table-row" onClick={(e) => e.stopPropagation()}>
                                     <input
                                       type="checkbox"
                                       checked={memberManualActive}
                                       disabled={courseArchived}
                                       onChange={(e) => {
+                                        e.stopPropagation();
                                         const checked = e.target.checked;
                                         if (!checked) {
                                           updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
@@ -1417,7 +1429,10 @@ function ProjectScoresTable({
                                     className="exam-manual-grade-input"
                                     value={memberManualInput}
                                     disabled={courseArchived || !memberCounted}
-                                    onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value);
+                                    }}
                                     placeholder="-"
                                     style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
                                   />

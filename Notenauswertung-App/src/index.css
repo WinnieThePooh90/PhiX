@@ -3824,6 +3824,11 @@ a.support-phix-paypal-btn:active {
   font-size: 0.875rem;
 }
 
+.project-group-member-detail-row td {
+  position: relative;
+  z-index: 6;
+}
+
 .project-group-member-detail {
   position: sticky;
   left: 0;
