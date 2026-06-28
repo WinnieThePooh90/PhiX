@@ -403,14 +403,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
       onClick={handleDeleteProject}
       title="Projekt löschen"
       aria-label="Projekt löschen"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 0.45rem',
-        minWidth: 'var(--course-meta-control-height)',
-        width: 'var(--course-meta-control-height)',
-      }}
     >
       <Trash2 size={18} strokeWidth={2} aria-hidden />
     </button>

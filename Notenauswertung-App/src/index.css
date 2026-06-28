@@ -4038,8 +4038,21 @@ a.support-phix-paypal-btn:active {
   gap: 0.5rem;
 }
 
+.projects-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 0.45rem;
+  min-width: var(--course-meta-control-height);
+  width: var(--course-meta-control-height);
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+}
+
+/* Nur Smartphone: Löschen neben Projektauswahl (P1, P2, …) */
 .projects-nav-delete-btn {
-  display: none;
+  display: none !important;
   flex: 0 0 auto;
 }
 
@@ -5904,7 +5917,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .app-container--mobile .projects-view-tabs-row {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
     gap: 0.5rem;
     width: 100%;
@@ -5915,12 +5928,31 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     flex: 1 1 auto;
     min-width: 0;
     flex-wrap: nowrap !important;
+    align-items: stretch;
+  }
+
+  .app-container--mobile .projects-view-tabs .tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    min-height: 100%;
   }
 
   .app-container--mobile .projects-nav-delete-btn {
     display: inline-flex !important;
     flex: 0 0 auto;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
     margin-left: auto;
+    width: auto !important;
+    min-width: 2.5rem !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    padding: 0.45rem 0.65rem !important;
+    box-sizing: border-box;
   }
 
   .app-container--mobile .projects-meta-settings__top-left {
