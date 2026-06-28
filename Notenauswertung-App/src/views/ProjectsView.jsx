@@ -446,37 +446,9 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
           </div>
 
           <div className="projects-meta-settings course-meta-settings-row">
-            <div className="projects-meta-settings__row projects-meta-settings__row--split">
-              <div className="projects-meta-settings__group">
-                <div className="course-meta-field">
-                  <span className="course-meta-field__label">Aktiv</span>
-                  <div className="course-meta-field__row">
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={project.active}
-                        disabled={courseArchived}
-                        onChange={(e) => updateProject(activeProject, 'active', e.target.checked)}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-                <div className="course-meta-field" style={{ minWidth: '180px', flex: '1 1 180px' }}>
-                  <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
-                    Name
-                  </label>
-                  <input
-                    id={`project-name-${activeProject}`}
-                    className="course-meta-control"
-                    type="text"
-                    value={project.name || ''}
-                    onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="projects-meta-settings__group projects-meta-settings__group--end">
-                <div className="course-meta-field">
+            <div className="projects-meta-settings__bundle projects-meta-settings__bundle--top">
+              <div className="projects-meta-settings__row projects-meta-settings__row--grade-key">
+                <div className="course-meta-field projects-meta-field--grade-mode">
                   <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
                     Notenermittlung
                   </label>
@@ -494,22 +466,9 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     <option value="manual">Manuell</option>
                   </select>
                 </div>
-                {project.active ? (
-                  <div className="course-meta-field projects-meta-maximize-field">
-                    <span className="course-meta-field__label" aria-hidden="true">
-                      &nbsp;
-                    </span>
-                    <div className="course-meta-field__row">
-                      <TableMaximizeToggle
-                        maximized={tableMaximized}
-                        onClick={() => setTableMaximized((m) => !m)}
-                      />
-                    </div>
-                  </div>
-                ) : null}
                 {!projectManualGradeMode && (
                   <>
-                    <div className="course-meta-field">
+                    <div className="course-meta-field projects-meta-field--key">
                       <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
                         Notenschlüssel
                       </label>
@@ -525,7 +484,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                         />
                       </select>
                     </div>
-                    <div className="course-meta-field">
+                    <div className="course-meta-field projects-meta-field--show-key">
                       <span className="course-meta-field__label">Schlüssel zeigen</span>
                       <div className="course-meta-field__row">
                         <label className="switch">
@@ -536,137 +495,141 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     </div>
                   </>
                 )}
+                {project.active ? (
+                  <div className="course-meta-field projects-meta-maximize-field projects-meta-maximize-field--inline">
+                    <span className="course-meta-field__label" aria-hidden="true">
+                      &nbsp;
+                    </span>
+                    <div className="course-meta-field__row">
+                      <TableMaximizeToggle
+                        maximized={tableMaximized}
+                        onClick={() => setTableMaximized((m) => !m)}
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </div>
 
-            <div className="projects-meta-settings__row projects-meta-settings__row--split">
-              <div className="projects-meta-settings__group">
-              <div className="course-meta-field" style={{ minWidth: '220px' }}>
-                <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
-                  Gewichtung
-                </label>
-                <select
-                  id={`project-weighting-${activeProject}`}
-                  className="course-meta-control"
-                  value={project.weightingMode || 'written'}
-                  onChange={(e) => {
-                    const mode = e.target.value;
-                    if (mode === 'percent') {
-                      updateProjectFields(activeProject, {
-                        weightingMode: mode,
-                        weightPercent: project.weightingMode === 'percent' && Number(project.weightPercent) > 0
-                          ? project.weightPercent
-                          : 20,
-                      });
-                    } else {
-                      updateProjectFields(activeProject, {
-                        weightingMode: mode,
-                        weightPercent: project.weightingMode === mode && Number(project.weightPercent) > 0
-                          ? project.weightPercent
-                          : 100,
-                      });
-                    }
-                  }}
-                >
-                  <option value="written">Zu schriftlich</option>
-                  <option value="oral">Zu mündlich</option>
-                  <option value="percent">Prozentual (Anteil an der Endnote)</option>
-                </select>
-              </div>
-              {(project.weightingMode === 'percent' || project.weightingMode === 'written' || project.weightingMode === 'oral') && (
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
-                    {projectWeightPercentFieldLabel(project.weightingMode)}
+              <div className="projects-meta-settings__row projects-meta-settings__row--core">
+                <div className="course-meta-field projects-meta-field--active">
+                  <span className="course-meta-field__label">Aktiv</span>
+                  <div className="course-meta-field__row">
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={project.active}
+                        disabled={courseArchived}
+                        onChange={(e) => updateProject(activeProject, 'active', e.target.checked)}
+                      />
+                      <span className="slider" />
+                    </label>
+                  </div>
+                </div>
+                <div className="course-meta-field projects-meta-field--name">
+                  <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
+                    Name
+                  </label>
+                  <input
+                    id={`project-name-${activeProject}`}
+                    className="course-meta-control"
+                    type="text"
+                    value={project.name || ''}
+                    onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
+                  />
+                </div>
+                <div className="course-meta-field projects-meta-field--weighting">
+                  <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
+                    Gewichtung
+                  </label>
+                  <select
+                    id={`project-weighting-${activeProject}`}
+                    className="course-meta-control"
+                    value={project.weightingMode || 'written'}
+                    onChange={(e) => {
+                      const mode = e.target.value;
+                      if (mode === 'percent') {
+                        updateProjectFields(activeProject, {
+                          weightingMode: mode,
+                          weightPercent: project.weightingMode === 'percent' && Number(project.weightPercent) > 0
+                            ? project.weightPercent
+                            : 20,
+                        });
+                      } else {
+                        updateProjectFields(activeProject, {
+                          weightingMode: mode,
+                          weightPercent: project.weightingMode === mode && Number(project.weightPercent) > 0
+                            ? project.weightPercent
+                            : 100,
+                        });
+                      }
+                    }}
+                  >
+                    <option value="written">Zu schriftlich</option>
+                    <option value="oral">Zu mündlich</option>
+                    <option value="percent">Prozentual (Anteil an der Endnote)</option>
+                  </select>
+                </div>
+                {(project.weightingMode === 'percent' || project.weightingMode === 'written' || project.weightingMode === 'oral') && (
+                  <div className="course-meta-field projects-meta-field--percent">
+                    <label className="course-meta-field__label" htmlFor={`project-percent-${activeProject}`}>
+                      {projectWeightPercentFieldLabel(project.weightingMode)}
+                    </label>
+                    <DeferredNumberInput
+                      id={`project-percent-${activeProject}`}
+                      className="course-meta-control"
+                      integer
+                      min={0}
+                      max={100}
+                      defaultValue={project.weightingMode === 'percent' ? 0 : 100}
+                      value={project.weightingMode === 'percent'
+                        ? (project.weightPercent ?? 0)
+                        : projectPillarWeightPercentDisplay(project)}
+                      onChange={(v) => updateProject(activeProject, 'weightPercent', v)}
+                    />
+                  </div>
+                )}
+                {!config?.kursstufe && (
+                  <div className="course-meta-field projects-meta-field--halbjahr">
+                    <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
+                      Halbjahr
+                    </label>
+                    <select
+                      id={`project-hj-${activeProject}`}
+                      className="course-meta-control"
+                      value={project.halbjahr || '1'}
+                      onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
+                    >
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                    </select>
+                  </div>
+                )}
+                <div className="course-meta-field projects-meta-field--date">
+                  <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
+                    Datum
+                  </label>
+                  <input
+                    id={`project-date-${activeProject}`}
+                    className="course-meta-control"
+                    type="date"
+                    value={project.date || ''}
+                    onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
+                  />
+                </div>
+                <div className="course-meta-field projects-meta-field--numfields">
+                  <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
+                    Themenfelder
                   </label>
                   <DeferredNumberInput
-                    id={`project-percent-${activeProject}`}
+                    id={`project-numfields-${activeProject}`}
                     className="course-meta-control"
                     integer
                     min={0}
-                    max={100}
-                    defaultValue={project.weightingMode === 'percent' ? 0 : 100}
-                    value={project.weightingMode === 'percent'
-                      ? (project.weightPercent ?? 0)
-                      : projectPillarWeightPercentDisplay(project)}
-                    onChange={(v) => updateProject(activeProject, 'weightPercent', v)}
-                    style={{ width: '5rem' }}
+                    max={EXAM_ABS_MAX_FIELDS}
+                    defaultValue={0}
+                    value={numFields}
+                    onChange={(n) => updateProject(activeProject, 'numFields', n)}
                   />
-                </div>
-              )}
-              {!config?.kursstufe && (
-                <div className="course-meta-field">
-                  <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
-                    Halbjahr
-                  </label>
-                  <select
-                    id={`project-hj-${activeProject}`}
-                    className="course-meta-control"
-                    value={project.halbjahr || '1'}
-                    onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                  </select>
-                </div>
-              )}
-              <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
-                  Datum
-                </label>
-                <input
-                  id={`project-date-${activeProject}`}
-                  className="course-meta-control"
-                  type="date"
-                  value={project.date || ''}
-                  onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
-                />
-              </div>
-              <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
-                  Themenfelder
-                </label>
-                <DeferredNumberInput
-                  id={`project-numfields-${activeProject}`}
-                  className="course-meta-control"
-                  integer
-                  min={0}
-                  max={EXAM_ABS_MAX_FIELDS}
-                  defaultValue={0}
-                  value={numFields}
-                  onChange={(n) => updateProject(activeProject, 'numFields', n)}
-                  style={{ width: '70px' }}
-                />
-              </div>
-              </div>
-              <div className="projects-meta-settings__group projects-meta-settings__group--end">
-                <div className="course-meta-field">
-                  <span className="course-meta-field__label">Aktion</span>
-                  <div className="course-meta-field__row" style={{ gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      className="tab secondary course-meta-inline-btn"
-                      onClick={() => setMetaBarHidden(true)}
-                    >
-                      Menüleiste verbergen
-                    </button>
-                    <button
-                      type="button"
-                      className="danger course-meta-inline-btn"
-                      onClick={handleDeleteProject}
-                      title="Projekt löschen"
-                      aria-label="Projekt löschen"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 0.45rem',
-                        minWidth: 'var(--course-meta-control-height)',
-                        width: 'var(--course-meta-control-height)',
-                      }}
-                    >
-                      <Trash2 size={18} strokeWidth={2} aria-hidden />
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -683,6 +646,38 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                   value={project.description || ''}
                   onChange={(e) => updateProject(activeProject, 'description', e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div className="projects-meta-settings__row projects-meta-settings__row--actions">
+              <div className="course-meta-field">
+                <span className="course-meta-field__label">Aktion</span>
+                <div className="course-meta-field__row" style={{ gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="tab secondary course-meta-inline-btn"
+                    onClick={() => setMetaBarHidden(true)}
+                  >
+                    Menüleiste verbergen
+                  </button>
+                  <button
+                    type="button"
+                    className="danger course-meta-inline-btn"
+                    onClick={handleDeleteProject}
+                    title="Projekt löschen"
+                    aria-label="Projekt löschen"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 0.45rem',
+                      minWidth: 'var(--course-meta-control-height)',
+                      width: 'var(--course-meta-control-height)',
+                    }}
+                  >
+                    <Trash2 size={18} strokeWidth={2} aria-hidden />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1085,7 +1080,7 @@ function ProjectScoresTable({
             <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
           </tr>
           <tr className="exam-thead-max-row" style={{ background: 'var(--bg-color)', fontWeight: 'bold' }}>
-            <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
+            <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>{isGroupMode ? '' : 'Max'}</th>
             <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
             {[...Array(displayFieldCount)].map((_, i) => (
               <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
@@ -1154,7 +1149,7 @@ function ProjectScoresTable({
                           <ProjectRowBookmark variant="absent" />
                         </span>
                       )}
-                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{isGroupMode ? '' : idx + 1}</span>
                     </div>
                   </td>
                   <td
@@ -1287,8 +1282,14 @@ function ProjectScoresTable({
                             borderRight: '1px solid var(--border)',
                             width: `${PROJECT_INDEX_COL_PX}px`,
                             minWidth: `${PROJECT_INDEX_COL_PX}px`,
+                            verticalAlign: 'middle',
+                            textAlign: 'center',
                           }}
-                        />
+                        >
+                          <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '0.9rem' }}>
+                            {member.studentNumber ?? ''}
+                          </span>
+                        </td>
                         <td
                           style={{
                             ...(isGroupMode ? {} : { position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1 }),
