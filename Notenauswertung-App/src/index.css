@@ -3835,6 +3835,17 @@ a.support-phix-paypal-btn:active {
   z-index: auto;
 }
 
+/* Höhere Spezifität als .exam-table-scroll thead … — sonst klebt der Kopf wieder und blockiert Schalter */
+.exam-table-scroll .projects-group-table-container thead th.exam-th-r1,
+.exam-table-scroll .projects-group-table-container thead th.exam-th-r2,
+.exam-table-scroll .projects-group-table-container thead th.exam-th-sticky-left,
+.exam-table-scroll .projects-group-table-container thead th.exam-th-sticky-right {
+  position: static;
+  top: auto;
+  z-index: auto;
+  box-shadow: none;
+}
+
 .projects-group-table-block__members {
   margin: 0 0 0.75rem;
   font-size: 0.875rem;
