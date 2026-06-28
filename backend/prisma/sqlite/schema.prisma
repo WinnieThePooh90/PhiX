@@ -90,6 +90,7 @@ model Course {
   testsPerKlausur Int @default(10)
   advancedWeightingStash Json?
   gfsAccepted Boolean @default(true)
+  gfsGehaltenStash Json?
   projectsAccepted Boolean @default(false)
   /** Wenn true: Tab „Referate“; gehaltene Referate optional schriftlich wie Klausuren. */
   referateAccepted Boolean @default(false)
@@ -101,6 +102,7 @@ model Course {
   referatOralPercent Int @default(100)
   referatFinalPercentEnabled Boolean @default(false)
   referatFinalPercent Int @default(100)
+  referatGehaltenStash Json?
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   projectsMetaBarHidden Boolean @default(false)

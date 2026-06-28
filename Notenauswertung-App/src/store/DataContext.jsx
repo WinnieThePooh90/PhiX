@@ -433,19 +433,96 @@ export const DataProvider = ({ children }) => {
   // Update existing config/course
   const updateConfig = (newConfigUpdater) => {
     if (!activeCourseId || courseArchived) return;
-    setCourses((prev) => {
-      const currentConfig = prev.find((c) => c.id === activeCourseId);
-      if (!currentConfig) return prev;
-      const patch = typeof newConfigUpdater === 'function'
-        ? newConfigUpdater(currentConfig)
-        : newConfigUpdater;
-      const merged = {
-        ...currentConfig,
-        ...(patch && typeof patch === 'object' ? patch : {}),
-      };
-      if ('customGradingKeys' in merged) {
-        merged.customGradingKeys = parseCustomGradingKeys(merged.customGradingKeys);
+    const currentConfig = courses.find((c) => c.id === activeCourseId);
+    if (!currentConfig) return;
+
+    const patch = typeof newConfigUpdater === 'function'
+      ? newConfigUpdater(currentConfig)
+      : newConfigUpdater;
+    let merged = {
+      ...currentConfig,
+      ...(patch && typeof patch === 'object' ? patch : {}),
+    };
+    if ('customGradingKeys' in merged) {
+      merged.customGradingKeys = parseCustomGradingKeys(merged.customGradingKeys);
+    }
+
+    if (patch && typeof patch === 'object' && 'testsWritten' in patch) {
+      const wasOn = currentConfig.testsWritten !== false;
+      const nowOn = merged.testsWritten !== false;
+      if (wasOn !== nowOn) {
+        setTests((prev) => {
+          const next = { ...prev };
+          for (const id of Object.keys(next)) {
+            next[id] = { ...next[id], active: nowOn };
+            void apiCall(`/api/tests/${id}`, 'PUT', { ...next[id], courseId: activeCourseId });
+          }
+          return next;
+        });
       }
+    }
+
+    if (patch && typeof patch === 'object' && 'gfsAccepted' in patch) {
+      const wasOn = currentConfig.gfsAccepted !== false;
+      const nowOn = merged.gfsAccepted !== false;
+      if (wasOn !== nowOn) {
+        if (!nowOn) {
+          const stash = {};
+          setGfsEntries((prev) => prev.map((entry) => {
+            stash[String(entry.id)] = entry.gehalten === true;
+            if (!entry.gehalten) return entry;
+            const next = { ...entry, gehalten: false };
+            void apiCall(`/api/gfs/${entry.id}`, 'PUT', { ...next, courseId: activeCourseId });
+            return next;
+          }));
+          merged = { ...merged, gfsGehaltenStash: stash };
+        } else {
+          const stash = currentConfig.gfsGehaltenStash && typeof currentConfig.gfsGehaltenStash === 'object'
+            ? currentConfig.gfsGehaltenStash
+            : {};
+          setGfsEntries((prev) => prev.map((entry) => {
+            const restored = stash[String(entry.id)] === true;
+            if (entry.gehalten === restored) return entry;
+            const next = { ...entry, gehalten: restored };
+            void apiCall(`/api/gfs/${entry.id}`, 'PUT', { ...next, courseId: activeCourseId });
+            return next;
+          }));
+          merged = { ...merged, gfsGehaltenStash: null };
+        }
+      }
+    }
+
+    if (patch && typeof patch === 'object' && 'referateAccepted' in patch) {
+      const wasOn = currentConfig.referateAccepted === true;
+      const nowOn = merged.referateAccepted === true;
+      if (wasOn !== nowOn) {
+        if (!nowOn) {
+          const stash = {};
+          setReferatEntries((prev) => prev.map((entry) => {
+            stash[String(entry.id)] = entry.gehalten === true;
+            if (!entry.gehalten) return entry;
+            const next = { ...entry, gehalten: false };
+            void apiCall(`/api/referate/${entry.id}`, 'PUT', { ...next, courseId: activeCourseId });
+            return next;
+          }));
+          merged = { ...merged, referatGehaltenStash: stash };
+        } else {
+          const stash = currentConfig.referatGehaltenStash && typeof currentConfig.referatGehaltenStash === 'object'
+            ? currentConfig.referatGehaltenStash
+            : {};
+          setReferatEntries((prev) => prev.map((entry) => {
+            const restored = stash[String(entry.id)] === true;
+            if (entry.gehalten === restored) return entry;
+            const next = { ...entry, gehalten: restored };
+            void apiCall(`/api/referate/${entry.id}`, 'PUT', { ...next, courseId: activeCourseId });
+            return next;
+          }));
+          merged = { ...merged, referatGehaltenStash: null };
+        }
+      }
+    }
+
+    setCourses((prev) => {
       void apiCall(`/api/courses/${activeCourseId}`, 'PUT', merged).then((saved) => {
         if (saved?.id === activeCourseId) {
           setCourses((p) => p.map((c) => (

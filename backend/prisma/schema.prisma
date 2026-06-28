@@ -98,6 +98,8 @@ model Course {
   advancedWeightingStash Json?
   /** Wenn false: Tab „GFS“ im Kurs ausblenden (keine GFS im Fach). */
   gfsAccepted Boolean @default(true)
+  /** Gehalten-Zustand der GFS-Einträge beim Deaktivieren von gfsAccepted (Wiederherstellung). */
+  gfsGehaltenStash Json?
   /** Wenn false: Tab „Projekte“ ausblenden, keine Projekte anlegbar. */
   projectsAccepted Boolean @default(false)
   /** Wenn true: Tab „Referate“ im Kurs. */
@@ -115,6 +117,8 @@ model Course {
   /** Gehaltene Referate zählen anteilig direkt in die Gesamtnote. */
   referatFinalPercentEnabled Boolean @default(false)
   referatFinalPercent Int @default(100)
+  /** Gehalten-Zustand der Referat-Einträge beim Deaktivieren von referateAccepted (Wiederherstellung). */
+  referatGehaltenStash Json?
   /** Wenn false: Spalte „Note HJ1“ in der Übersicht ausblenden. */
   summaryShowHJ1 Boolean @default(true)
   /** Wenn true: Menüleiste im Tab Projekte eingeklappt (nur Tabellen sichtbar). */
