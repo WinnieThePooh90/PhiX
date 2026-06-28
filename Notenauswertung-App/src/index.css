@@ -5925,9 +5925,44 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     max-width: 100%;
   }
 
+  .app-container--mobile .projects-meta-settings .projects-meta-field--key {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: min(100%, 9.5rem);
+  }
+
   .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) select.course-meta-control {
     width: 100% !important;
     max-width: 100%;
+  }
+
+  .app-container--mobile .projects-meta-settings .projects-meta-field--key select.course-meta-control {
+    width: 9.5rem !important;
+    min-width: 7.5rem;
+    max-width: min(100%, 9.5rem);
+  }
+
+  .app-container--mobile .projects-meta-settings .projects-meta-field--numfields .course-meta-control {
+    width: 3rem !important;
+    min-width: 3rem;
+    max-width: 3.25rem;
+  }
+
+  .app-container--mobile .projects-meta-settings .projects-meta-field--weighting {
+    flex: 0 1 auto;
+    max-width: min(100%, 8.75rem);
+  }
+
+  .app-container--mobile .projects-meta-settings .projects-meta-field--weighting select.course-meta-control {
+    width: 8.75rem !important;
+    min-width: 7rem;
+    max-width: min(100%, 8.75rem);
+  }
+
+  .app-container--mobile .projects-meta-settings .projects-meta-field--percent .course-meta-control {
+    width: 3.25rem !important;
+    min-width: 3.25rem;
+    max-width: 3.5rem;
   }
 
   .app-container--mobile .projects-meta-settings .course-meta-field:has(input[id*='-name-']) {
