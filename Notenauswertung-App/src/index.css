@@ -3819,6 +3819,22 @@ a.support-phix-paypal-btn:active {
   gap: 1.25rem;
 }
 
+/* Gruppentabellen: kein sticky thead — sonst überdeckt z-index 61 die Mitglieder-Schalter */
+.projects-group-table-container thead th.exam-th-r1,
+.projects-group-table-container thead th.exam-th-r2 {
+  position: static;
+  top: auto;
+  z-index: auto;
+  box-shadow: none;
+}
+
+.projects-group-table-container thead tr:first-child th.exam-th-sticky-left,
+.projects-group-table-container thead tr:first-child th.exam-th-sticky-right,
+.projects-group-table-container thead tr:nth-child(2) th.exam-th-sticky-left,
+.projects-group-table-container thead tr:nth-child(2) th.exam-th-sticky-right {
+  z-index: auto;
+}
+
 .projects-group-table-block__members {
   margin: 0 0 0.75rem;
   font-size: 0.875rem;
@@ -3841,13 +3857,13 @@ a.support-phix-paypal-btn:active {
 
 .project-group-member-detail-row td {
   position: relative;
-  z-index: 6;
+  z-index: 62;
 }
 
 .project-group-member-detail {
   position: sticky;
   left: 0;
-  z-index: 4;
+  z-index: 62;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -3855,6 +3871,11 @@ a.support-phix-paypal-btn:active {
   padding: 0.55rem 1rem 0.55rem 2rem;
   background: var(--surface);
   box-shadow: 4px 0 14px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+}
+
+.project-group-member-detail .switch {
+  pointer-events: auto;
 }
 
 .project-group-member-detail__name {
@@ -3876,6 +3897,8 @@ a.support-phix-paypal-btn:active {
 
 .project-group-member-detail-row {
   background: rgba(15, 23, 42, 0.015);
+  position: relative;
+  z-index: 62;
 }
 
 /*

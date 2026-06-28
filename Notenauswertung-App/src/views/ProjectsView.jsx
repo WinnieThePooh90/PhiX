@@ -1041,9 +1041,17 @@ function ProjectScoresTable({
   const detailColSpan = 4 + displayFieldCount;
   const scoreInputScope = `project-${activeProject}`;
   const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
+  const stickyHeadTopR1 = isGroupMode ? undefined : 'calc(var(--header-height) + 105px)';
+  const stickyHeadTopR2 = isGroupMode ? undefined : 'calc(var(--header-height) + 146px)';
+  const stickyHeadSideR1 = isGroupMode
+    ? {}
+    : { position: 'sticky', top: stickyHeadTopR1, zIndex: 61 };
+  const stickyHeadSideR2 = isGroupMode
+    ? {}
+    : { position: 'sticky', top: stickyHeadTopR2, zIndex: 61 };
 
   return (
-    <div className="table-container">
+    <div className={`table-container${isGroupMode ? ' projects-group-table-container' : ''}`}>
       <table>
         <thead>
           <tr>
@@ -1081,8 +1089,8 @@ function ProjectScoresTable({
                 />
               </th>
             ))}
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, top: 'calc(var(--header-height) + 105px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
           </tr>
           <tr className="exam-thead-max-row" style={{ background: 'var(--bg-color)', fontWeight: 'bold' }}>
             <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>Max</th>
@@ -1100,10 +1108,10 @@ function ProjectScoresTable({
                 />
               </th>
             ))}
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', position: 'sticky', right: '100px', top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
+            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR2, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
               {project.maxPoints}
             </th>
-            <th style={{ position: 'sticky', right: 0, top: 'calc(var(--header-height) + 146px)', zIndex: 61, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
+            <th style={{ ...stickyHeadSideR2, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
           </tr>
         </thead>
         <tbody>
@@ -1285,9 +1293,7 @@ function ProjectScoresTable({
                       >
                         <td
                           style={{
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 1,
+                            ...(isGroupMode ? {} : { position: 'sticky', left: 0, zIndex: 1 }),
                             background: 'var(--surface)',
                             borderRight: '1px solid var(--border)',
                             width: `${PROJECT_INDEX_COL_PX}px`,
@@ -1296,9 +1302,7 @@ function ProjectScoresTable({
                         />
                         <td
                           style={{
-                            position: 'sticky',
-                            left: `${PROJECT_INDEX_COL_PX}px`,
-                            zIndex: isMemberExpanded ? 8 : 1,
+                            ...(isGroupMode ? {} : { position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1 }),
                             background: 'var(--surface)',
                             borderRight: '1px solid var(--border)',
                             verticalAlign: 'middle',
@@ -1325,66 +1329,6 @@ function ProjectScoresTable({
                           >
                             {member.lastName}, {member.firstName}
                           </div>
-                          {isMemberExpanded && (
-                            <div className="project-group-member-inline-controls">
-                              <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
-                              <label className="switch switch--table-row">
-                                <input
-                                  type="checkbox"
-                                  checked={!memberCounted}
-                                  disabled={courseArchived}
-                                  onChange={(e) => {
-                                    updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked);
-                                  }}
-                                  aria-label={`Note für ${member.lastName} aussetzen`}
-                                />
-                                <span className="slider" />
-                              </label>
-                              {!projectManualGradeMode && (
-                                <>
-                                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>Manuelle Note:</span>
-                                  <label className="switch switch--table-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={memberManualActive}
-                                      disabled={courseArchived}
-                                      onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        if (!checked) {
-                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
-                                          return;
-                                        }
-                                        const stored = getExamManualGradeStoredValue(memberOv);
-                                        if (stored.trim() !== '') {
-                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
-                                          return;
-                                        }
-                                        const { grade: calcGrade } = projectScoreRowStats(scoreKey);
-                                        const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
-                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
-                                      }}
-                                    />
-                                    <span className="slider" />
-                                  </label>
-                                </>
-                              )}
-                              {projectManualGradeMode && (
-                                <>
-                                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note:</span>
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    className="exam-manual-grade-input"
-                                    value={memberManualInput}
-                                    disabled={courseArchived || !memberCounted}
-                                    onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
-                                    placeholder="-"
-                                    style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
-                                  />
-                                </>
-                              )}
-                            </div>
-                          )}
                         </td>
                         {[...Array(displayFieldCount)].map((_, fieldIndex) => (
                           <td
@@ -1398,9 +1342,7 @@ function ProjectScoresTable({
                           style={{
                             width: '100px',
                             minWidth: '100px',
-                            position: 'sticky',
-                            right: '100px',
-                            zIndex: 1,
+                            ...(isGroupMode ? {} : { position: 'sticky', right: '100px', zIndex: 1 }),
                             background: 'var(--surface)',
                             borderLeft: '1px solid var(--border)',
                             borderRight: '1px solid var(--border)',
@@ -1411,9 +1353,7 @@ function ProjectScoresTable({
                           style={{
                             width: '100px',
                             minWidth: '100px',
-                            position: 'sticky',
-                            right: 0,
-                            zIndex: 1,
+                            ...(isGroupMode ? {} : { position: 'sticky', right: 0, zIndex: 1 }),
                             background: memberCounted && memberGrade !== null
                               ? (getGradeCellBackground(memberGrade, gradeSys, keyGradeOpts) ?? 'var(--surface)')
                               : 'var(--surface)',
@@ -1435,6 +1375,84 @@ function ProjectScoresTable({
                           )}
                         </td>
                       </tr>
+                      {isMemberExpanded && (
+                        <tr className="project-group-member-detail-row">
+                          <td colSpan={detailColSpan} style={{ padding: 0, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
+                            <div
+                              className="project-group-member-detail"
+                              role="group"
+                              aria-label={`Einstellungen für ${member.lastName}, ${member.firstName}`}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="project-group-member-detail__name">
+                                {member.lastName}, {member.firstName}
+                              </span>
+                              <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
+                              <label className="switch switch--table-row">
+                                <input
+                                  type="checkbox"
+                                  checked={!memberCounted}
+                                  disabled={courseArchived}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  aria-label={`Note für ${member.lastName} aussetzen`}
+                                />
+                                <span className="slider" />
+                              </label>
+                              {!projectManualGradeMode && (
+                                <>
+                                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>Manuelle Note:</span>
+                                  <label className="switch switch--table-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={memberManualActive}
+                                      disabled={courseArchived}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        const checked = e.target.checked;
+                                        if (!checked) {
+                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
+                                          return;
+                                        }
+                                        const stored = getExamManualGradeStoredValue(memberOv);
+                                        if (stored.trim() !== '') {
+                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
+                                          return;
+                                        }
+                                        const { grade: calcGrade } = projectScoreRowStats(scoreKey);
+                                        const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
+                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <span className="slider" />
+                                  </label>
+                                </>
+                              )}
+                              {projectManualGradeMode && (
+                                <>
+                                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note:</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    className="exam-manual-grade-input"
+                                    value={memberManualInput}
+                                    disabled={courseArchived || !memberCounted}
+                                    onChange={(e) => updateProjectGroupMemberManualGradeValue(activeProject, scoreKey, member.id, e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder="-"
+                                    style={{ textAlign: 'center', width: '4.5rem', minWidth: 'auto', fontWeight: 'bold', borderRadius: 0 }}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </React.Fragment>
                   );
                 })}
