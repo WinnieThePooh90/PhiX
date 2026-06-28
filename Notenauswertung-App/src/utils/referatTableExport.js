@@ -3,6 +3,7 @@ import {
   normalizeCourseGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
+import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from './gfsAuswertungConfig';
 
 function studentNameById(students, studentId) {
   const st = (students ?? []).find((s) => s.id === studentId);
@@ -11,21 +12,25 @@ function studentNameById(students, studentId) {
 }
 
 /**
- * GFS-Tabelle als AOA (ohne Aktion-Spalte).
- * @returns {{ headers: string[], rows: (string|number)[][] }}
+ * Referat-Tabelle als Sheet-Daten (ohne Aktion-Spalte).
+ * @returns {{ headers: string[], rows: (string|number)[][], layout: ReturnType<typeof buildReferatTableExportLayout> }}
  */
-export function buildGfsTableExportData({ gfsEntries, students, config }) {
+export function buildReferatTableExportData({ referatEntries, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
   const isKursstufe = config?.kursstufe === true;
 
   const headers = isKursstufe
-    ? ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', `Note${npSuffix}`]
-    : ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Halbjahr', `Note${npSuffix}`];
+    ? ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', `Note${npSuffix}`, 'Auswertungshilfe']
+    : ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Halbjahr', `Note${npSuffix}`, 'Auswertungshilfe'];
 
-  const rows = (gfsEntries ?? []).map((row, idx) => {
+  const rows = (referatEntries ?? []).map((row, idx) => {
     const noteNum = storedGradeStringToClassic(row.note, gradeSys);
     const noteDisplay = noteNum !== null ? formatGrade(noteNum, gradeSys) : '';
+    const auswertung = formatGfsAuswertungSummary(
+      parseGfsAuswertungHilfe(row.auswertungHilfe).scores,
+      gradeSys,
+    );
     const base = [
       idx + 1,
       studentNameById(students, row.studentId),
@@ -35,25 +40,22 @@ export function buildGfsTableExportData({ gfsEntries, students, config }) {
       row.gehalten === true ? 'Ja' : 'Nein',
     ];
     if (!isKursstufe) base.push(row.halbjahr === '2' ? 'HJ 2' : 'HJ 1');
-    base.push(noteDisplay);
+    base.push(noteDisplay, auswertung || '');
     return base;
   });
 
-  return { headers, rows, layout: buildGfsTableExportLayout(config) };
+  return { headers, rows, layout: buildReferatTableExportLayout(config) };
 }
 
-export function buildGfsTableExportLayout(config) {
+export function buildReferatTableExportLayout(config) {
   const isKursstufe = config?.kursstufe === true;
-  const headers = isKursstufe
-    ? ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Note']
-    : ['Nr.', 'Name', 'Thema', 'Art', 'Datum', 'Gehalten', 'Halbjahr', 'Note'];
   const colWidths = isKursstufe
-    ? [6, 32, 28, 14, 12, 10, 10]
-    : [6, 32, 28, 14, 12, 10, 10, 10];
+    ? [6, 32, 28, 14, 12, 10, 10, 24]
+    : [6, 32, 28, 14, 12, 10, 10, 10, 24];
   const centerColumnIndexes = isKursstufe ? [0, 5, 6] : [0, 5, 6, 7];
-  return { colWidths, centerColumnIndexes, nameColumnIndex: 1, colCount: headers.length };
+  return { colWidths, centerColumnIndexes, nameColumnIndex: 1 };
 }
 
-export function gfsExportSheetName() {
-  return 'GFS';
+export function referatExportSheetName() {
+  return 'Referate';
 }

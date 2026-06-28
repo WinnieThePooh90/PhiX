@@ -5,8 +5,11 @@ import { buildSummaryOverviewExportData, buildSummaryOverviewWithDetailsExportDa
 import {
   courseFullExportFilename,
   examExportFilename,
+  gfsExportFilename,
   oralExportFilename,
   oralExtendedExportFilename,
+  projectExportFilename,
+  referatExportFilename,
   summaryOverviewExportFilename,
   summaryOverviewDetailsExportFilename,
   testExportFilename,
@@ -15,12 +18,15 @@ import {
 } from '../utils/exportFilenames';
 import { buildCourseFullExportSheets } from '../utils/courseFullExport';
 import { buildExamTableExport, examExportSheetName } from '../utils/examTableExport';
+import { buildGfsTableExportData, gfsExportSheetName } from '../utils/gfsTableExport';
 import {
   buildOralExtendedTableExportData,
   buildOralStandardTableExportData,
   oralExportSheetName,
   oralExtendedExportSheetName,
 } from '../utils/oralTableExport';
+import { buildProjectTableExport, projectExportSheetName } from '../utils/projectTableExport';
+import { buildReferatTableExportData, referatExportSheetName } from '../utils/referatTableExport';
 import { isOralExtendedActive } from '../utils/oralExtendedMode';
 import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
@@ -139,6 +145,10 @@ export default function ExportView() {
   const oralExtendedNumbers = useMemo(
     () => oralNumbers.filter((id) => isOralExtendedActive(orals[id])),
     [oralNumbers, orals],
+  );
+  const projectNumbers = useMemo(
+    () => Object.keys(projects ?? {}).sort((a, b) => Number(a) - Number(b)),
+    [projects],
   );
 
   const gradingKeyEntries = useMemo(
@@ -271,6 +281,53 @@ export default function ExportView() {
       return filename;
     });
 
+  const exportGfs = (format) =>
+    runExport(`gfs-${format}`, async () => {
+      const { headers, rows, layout } = buildGfsTableExportData({ gfsEntries, students, config });
+      const sheetName = gfsExportSheetName();
+      const filename = gfsExportFilename(config, format);
+      if (format === 'pdf') {
+        downloadSheetDataPdf({ headers, rows }, sheetName, filename);
+      } else {
+        downloadSheetDataXlsx({ headers, rows }, sheetName, filename, layout);
+      }
+      return filename;
+    });
+
+  const exportReferat = (format) =>
+    runExport(`referat-${format}`, async () => {
+      const { headers, rows, layout } = buildReferatTableExportData({ referatEntries, students, config });
+      const sheetName = referatExportSheetName();
+      const filename = referatExportFilename(config, format);
+      if (format === 'pdf') {
+        downloadSheetDataPdf({ headers, rows }, sheetName, filename);
+      } else {
+        downloadSheetDataXlsx({ headers, rows }, sheetName, filename, layout);
+      }
+      return filename;
+    });
+
+  const exportProject = (projectId, format) =>
+    runExport(`project-${projectId}-${format}`, async () => {
+      const project = projects[projectId];
+      if (!project) throw new Error('missing project');
+      if (project.active === false) return null;
+      const { aoa, layout, gradingKey } = buildProjectTableExport({
+        project,
+        projectId,
+        students,
+        config,
+      });
+      const sheetName = projectExportSheetName(projectId, project.name);
+      const filename = projectExportFilename(config, projectId, project.name, format);
+      if (format === 'pdf') {
+        downloadAoaPdf(aoa, sheetName, filename, { gradingKey });
+      } else {
+        downloadAoaXlsx(aoa, sheetName, filename, layout, gradingKey);
+      }
+      return filename;
+    });
+
   const exportGradingKey = (entry, format) =>
     runExport(`grading-key-${entry.id}-${format}`, async () => {
       await exportSingleGradingKey(config, entry, format);
@@ -307,9 +364,9 @@ export default function ExportView() {
           className="export-course-full-panel"
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            Alle Tabellen des aktuellen Kurses: <strong>Übersicht</strong>, alle <strong>Klausuren</strong>{' '}
-            und <strong>Tests</strong>, mündliche Bereiche im <strong>Standardmodus</strong> (ohne Erweitert)
-            sowie <strong>GFS</strong>.
+            Alle Tabellen des aktuellen Kurses: <strong>Übersicht</strong>, alle aktiven <strong>Klausuren</strong>{' '}
+            und <strong>Tests</strong>, mündliche Bereiche im <strong>Standardmodus</strong> (ohne Erweitert),
+            aktive <strong>Projekte</strong> sowie — falls vorhanden — <strong>GFS</strong> und <strong>Referate</strong>.
           </p>
           <div className="export-item-row__actions export-course-full-actions">
             <button
@@ -521,6 +578,95 @@ export default function ExportView() {
                     exportKey={`oral-ext-${id}`}
                     onExcel={() => exportOralExtended(id, 'xlsx')}
                     onPdf={() => exportOralExtended(id, 'pdf')}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </ExportSection>
+
+        <ExportSection
+          sectionId="gfs"
+          title="GFS"
+          expanded={isSectionOpen('gfs')}
+          onToggle={() => toggleSection('gfs')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
+            Tabelle aus dem Reiter <strong>GFS</strong> (Nr., Name, Thema, Art, Datum, Gehalten, Halbjahr, Note).
+          </p>
+          <div className="export-item-list">
+            <ExportFormatButtons
+              label="GFS exportieren"
+              disabled={anyBusy || !config}
+              busyKey={busyKey}
+              exportKey="gfs"
+              onExcel={() => exportGfs('xlsx')}
+              onPdf={() => exportGfs('pdf')}
+            />
+          </div>
+        </ExportSection>
+
+        <ExportSection
+          sectionId="referate"
+          title="Referate"
+          expanded={isSectionOpen('referate')}
+          onToggle={() => toggleSection('referate')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
+            Tabelle aus dem Reiter <strong>Referate</strong> inkl. Auswertungshilfe (ohne Aktion-Spalte).
+          </p>
+          <div className="export-item-list">
+            <ExportFormatButtons
+              label="Referate exportieren"
+              disabled={anyBusy || !config || config?.referateAccepted !== true}
+              busyKey={busyKey}
+              exportKey="referat"
+              onExcel={() => exportReferat('xlsx')}
+              onPdf={() => exportReferat('pdf')}
+              sublabel={config?.referateAccepted !== true ? 'Referate im Kurs nicht aktiviert' : undefined}
+            />
+          </div>
+        </ExportSection>
+
+        <ExportSection
+          sectionId="projects"
+          title="Projekte"
+          expanded={isSectionOpen('projects')}
+          onToggle={() => toggleSection('projects')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
+            Je Projekt eine Datei mit Themenfeldern, Gesamt- und Notenspalte inkl. Maximalpunkte-Zeile.
+            Im Gruppenmodus mit Gruppenzeilen und Mitgliedern.
+          </p>
+          {projectNumbers.length === 0 ? (
+            <p className="program-view-panel-text text-muted" style={{ margin: '0.75rem 0 0' }}>
+              Keine Projekte angelegt.
+            </p>
+          ) : (
+            <div className="export-item-list">
+              {projectNumbers.map((id) => {
+                const project = projects[id];
+                const inactive = project?.active === false;
+                return (
+                  <ExportFormatButtons
+                    key={id}
+                    label={project?.name?.trim() ? project.name : `Projekt P${id}`}
+                    sublabel={
+                      inactive
+                        ? 'inaktiv'
+                        : [
+                            project?.gradeScope === 'group' ? 'Gruppennoten' : null,
+                            project?.halbjahr ? `HJ ${project.halbjahr}` : null,
+                            project?.date,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || undefined
+                    }
+                    disabled={anyBusy || !config || inactive}
+                    busyKey={busyKey}
+                    exportKey={`project-${id}`}
+                    onExcel={() => exportProject(id, 'xlsx')}
+                    onPdf={() => exportProject(id, 'pdf')}
                   />
                 );
               })}

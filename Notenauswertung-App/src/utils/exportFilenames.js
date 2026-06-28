@@ -57,3 +57,16 @@ export function gradingKeyExportFilename(course, keyName, ext = 'xlsx') {
 export function gradingKeysAllExportFilename(course, ext = 'xlsx') {
   return buildExportFilename(['Notenschluessel-alle', course?.subject, course?.className, course?.year], ext);
 }
+
+export function gfsExportFilename(course, ext = 'xlsx') {
+  return buildExportFilename(['GFS', course?.subject, course?.className, course?.year], ext);
+}
+
+export function referatExportFilename(course, ext = 'xlsx') {
+  return buildExportFilename(['Referate', course?.subject, course?.className, course?.year], ext);
+}
+
+export function projectExportFilename(course, projectId, projectName, ext = 'xlsx') {
+  const label = projectName?.trim() ? projectName.trim() : `P-${projectId}`;
+  return buildExportFilename(['Projekt', label, course?.subject, course?.className, course?.year], ext);
+}

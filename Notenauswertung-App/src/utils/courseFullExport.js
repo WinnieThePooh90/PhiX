@@ -3,6 +3,8 @@ import { buildExamTableExport, examExportSheetName } from './examTableExport';
 import { buildTestTableExportAoa, testExportSheetName } from './testTableExport';
 import { buildOralStandardTableExportData, oralExportSheetName } from './oralTableExport';
 import { buildGfsTableExportData, gfsExportSheetName } from './gfsTableExport';
+import { buildReferatTableExportData, referatExportSheetName } from './referatTableExport';
+import { buildProjectTableExport, projectExportSheetName } from './projectTableExport';
 import { isOralExtendedActive } from './oralExtendedMode';
 
 /**
@@ -75,11 +77,33 @@ export function buildCourseFullExportSheets({
     });
   }
 
-  const gfsData = buildGfsTableExportData({ gfsEntries, students, config });
-  sheets.push({
-    name: gfsExportSheetName(),
-    aoa: [gfsData.headers, ...gfsData.rows],
-  });
+  const projectIds = Object.keys(projects ?? {}).sort((a, b) => Number(a) - Number(b));
+  for (const id of projectIds) {
+    const project = projects[id];
+    if (!project || project.active === false) continue;
+    sheets.push({
+      name: projectExportSheetName(id, project.name),
+      ...buildProjectTableExport({ project, projectId: id, students, config }),
+    });
+  }
+
+  if (Array.isArray(gfsEntries) && gfsEntries.length > 0) {
+    const gfsData = buildGfsTableExportData({ gfsEntries, students, config });
+    sheets.push({
+      name: gfsExportSheetName(),
+      aoa: [gfsData.headers, ...gfsData.rows],
+      layout: gfsData.layout,
+    });
+  }
+
+  if (config?.referateAccepted === true && Array.isArray(referatEntries) && referatEntries.length > 0) {
+    const referatData = buildReferatTableExportData({ referatEntries, students, config });
+    sheets.push({
+      name: referatExportSheetName(),
+      aoa: [referatData.headers, ...referatData.rows],
+      layout: referatData.layout,
+    });
+  }
 
   return sheets;
 }
