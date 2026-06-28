@@ -3824,6 +3824,21 @@ a.support-phix-paypal-btn:active {
   font-size: 0.875rem;
 }
 
+.project-group-member-inline-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.55rem;
+  padding: 0.55rem 0 0.35rem 1.25rem;
+  border-top: 1px solid var(--border);
+  pointer-events: auto;
+}
+
+.project-group-member-inline-controls .switch {
+  pointer-events: auto;
+}
+
 .project-group-member-detail-row td {
   position: relative;
   z-index: 6;
