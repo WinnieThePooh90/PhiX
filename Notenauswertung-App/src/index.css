@@ -5848,7 +5848,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -5858,43 +5858,55 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     display: flex;
     flex-wrap: nowrap;
     align-items: flex-end;
-    gap: 0.45rem 0.55rem;
+    gap: 0.35rem;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0.45rem 0.55rem;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
 
-  .app-container--mobile .projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
-    flex: 1 1 auto;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow: visible;
-  }
-
   .app-container--mobile .projects-meta-field--actions-slot {
-    margin-left: auto !important;
     flex: 0 0 auto;
+    flex-shrink: 0;
+    margin-left: 0 !important;
     width: auto;
     max-width: none;
   }
 
   .app-container--mobile .projects-meta-settings__row--core {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
 
   .app-container--mobile .projects-meta-weighting-end {
-    flex: 0 0 auto;
-    margin-left: 0;
+    display: flex;
     flex-wrap: nowrap;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 0.45rem 0.55rem;
+    margin-left: 0;
   }
 
   .app-container--mobile .projects-meta-settings__row--description {
@@ -5911,64 +5923,69 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .projects-meta-settings .course-meta-field {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
+    flex-shrink: 0;
     margin-left: 0 !important;
     text-align: left;
   }
 
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+  }
+
   .app-container--mobile .projects-meta-settings .course-meta-field__label {
     text-align: left;
+    white-space: nowrap;
   }
 
   .app-container--mobile .projects-meta-field--grade-mode select.course-meta-control {
     width: auto !important;
     min-width: 7.5rem;
-    max-width: 9.5rem;
-  }
-
-  .app-container--mobile .projects-meta-settings .projects-meta-field--key {
-    flex: 0 1 auto !important;
-    min-width: 0 !important;
-    max-width: min(100%, 8.75rem);
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-settings .projects-meta-field--key select.course-meta-control {
     width: 8.75rem !important;
     min-width: 7rem;
-    max-width: 8.75rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--name {
-    min-width: 0;
-    flex: 1 1 9rem;
-    max-width: min(100%, 11rem);
+    flex: 0 0 auto;
+    min-width: 9rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--name .course-meta-control {
-    width: 100% !important;
-    max-width: 11rem;
+    width: 9rem !important;
+    min-width: 9rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--weighting {
-    min-width: 0;
-    max-width: min(100%, 10.5rem);
+    flex: 0 0 auto;
+    min-width: 8.5rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--weighting select.course-meta-control {
-    width: 100% !important;
-    max-width: 10.5rem;
+    width: 8.5rem !important;
+    min-width: 8.5rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--percent .course-meta-control {
     width: 3.75rem !important;
     min-width: 3.75rem;
-    max-width: 4.25rem;
+    max-width: none;
   }
 
   .app-container--mobile .projects-meta-field--numfields .course-meta-control {
     width: 3.25rem !important;
     min-width: 3.25rem;
-    max-width: 3.75rem;
+    max-width: none;
   }
 
   .app-container--mobile .oral-meta-panel > .flex.items-end {
