@@ -396,6 +396,44 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     await removeProject(id);
   };
 
+  const projectMetaActions = (extraClass = '') => (
+    <div className={`course-meta-field projects-meta-field--actions${extraClass ? ` ${extraClass}` : ''}`}>
+      <span className="course-meta-field__label">Aktion</span>
+      <div className="course-meta-field__row projects-meta-actions__buttons">
+        <button
+          type="button"
+          className="danger course-meta-inline-btn"
+          onClick={handleDeleteProject}
+          title="Projekt löschen"
+          aria-label="Projekt löschen"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 0.45rem',
+            minWidth: 'var(--course-meta-control-height)',
+            width: 'var(--course-meta-control-height)',
+          }}
+        >
+          <Trash2 size={18} strokeWidth={2} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="tab secondary course-meta-inline-btn"
+          onClick={() => setMetaBarHidden(true)}
+        >
+          Menüleiste verbergen
+        </button>
+        {project.active ? (
+          <TableMaximizeToggle
+            maximized={tableMaximized}
+            onClick={() => setTableMaximized((m) => !m)}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="view-page-scroll">
@@ -446,71 +484,58 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
           </div>
 
           <div className="projects-meta-settings course-meta-settings-row">
-            <div className="projects-meta-settings__bundle projects-meta-settings__bundle--top">
-              <div className="projects-meta-settings__row projects-meta-settings__row--grade-key">
-                <div className="course-meta-field projects-meta-field--grade-mode">
-                  <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
-                    Notenermittlung
-                  </label>
-                  <select
-                    id={`project-grade-mode-${activeProject}`}
-                    className="course-meta-control"
-                    value={project.gradeMode === 'manual' ? 'manual' : 'key'}
-                    onChange={(e) => {
-                      const mode = e.target.value === 'manual' ? 'manual' : 'key';
-                      setProjectGradeMode(activeProject, mode);
-                      if (mode === 'manual') setShowKey(false);
-                    }}
-                  >
-                    <option value="key">Notenschlüssel</option>
-                    <option value="manual">Manuell</option>
-                  </select>
-                </div>
-                {!projectManualGradeMode && (
-                  <>
-                    <div className="course-meta-field projects-meta-field--key">
-                      <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
-                        Notenschlüssel
-                      </label>
-                      <select
-                        id={`project-key-${activeProject}`}
-                        className="course-meta-control"
-                        value={project.keyType || '1'}
-                        onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
-                      >
-                        <CustomGradingKeySelectOptions
-                          course={config}
-                          selectedKeyType={project.keyType}
-                        />
-                      </select>
-                    </div>
-                    <div className="course-meta-field projects-meta-field--show-key">
-                      <span className="course-meta-field__label">Schlüssel zeigen</span>
-                      <div className="course-meta-field__row">
-                        <label className="switch">
-                          <input type="checkbox" checked={showKey} disabled={courseArchived} onChange={(e) => setShowKey(e.target.checked)} />
-                          <span className="slider" />
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                )}
-                {project.active ? (
-                  <div className="course-meta-field projects-meta-maximize-field projects-meta-maximize-field--inline">
-                    <span className="course-meta-field__label" aria-hidden="true">
-                      &nbsp;
-                    </span>
-                    <div className="course-meta-field__row">
-                      <TableMaximizeToggle
-                        maximized={tableMaximized}
-                        onClick={() => setTableMaximized((m) => !m)}
+            <div className="projects-meta-settings__row projects-meta-settings__row--grade-key">
+              <div className="course-meta-field projects-meta-field--grade-mode">
+                <label className="course-meta-field__label" htmlFor={`project-grade-mode-${activeProject}`}>
+                  Notenermittlung
+                </label>
+                <select
+                  id={`project-grade-mode-${activeProject}`}
+                  className="course-meta-control"
+                  value={project.gradeMode === 'manual' ? 'manual' : 'key'}
+                  onChange={(e) => {
+                    const mode = e.target.value === 'manual' ? 'manual' : 'key';
+                    setProjectGradeMode(activeProject, mode);
+                    if (mode === 'manual') setShowKey(false);
+                  }}
+                >
+                  <option value="key">Notenschlüssel</option>
+                  <option value="manual">Manuell</option>
+                </select>
+              </div>
+              {!projectManualGradeMode && (
+                <>
+                  <div className="course-meta-field projects-meta-field--key">
+                    <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
+                      Notenschlüssel
+                    </label>
+                    <select
+                      id={`project-key-${activeProject}`}
+                      className="course-meta-control"
+                      value={project.keyType || '1'}
+                      onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
+                    >
+                      <CustomGradingKeySelectOptions
+                        course={config}
+                        selectedKeyType={project.keyType}
                       />
+                    </select>
+                  </div>
+                  <div className="course-meta-field projects-meta-field--show-key">
+                    <span className="course-meta-field__label">Schlüssel zeigen</span>
+                    <div className="course-meta-field__row">
+                      <label className="switch">
+                        <input type="checkbox" checked={showKey} disabled={courseArchived} onChange={(e) => setShowKey(e.target.checked)} />
+                        <span className="slider" />
+                      </label>
                     </div>
                   </div>
-                ) : null}
-              </div>
+                </>
+              )}
+              {projectMetaActions('projects-meta-field--actions-desktop')}
+            </div>
 
-              <div className="projects-meta-settings__row projects-meta-settings__row--core">
+            <div className="projects-meta-settings__row projects-meta-settings__row--core">
                 <div className="course-meta-field projects-meta-field--active">
                   <span className="course-meta-field__label">Aktiv</span>
                   <div className="course-meta-field__row">
@@ -631,7 +656,6 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                     onChange={(n) => updateProject(activeProject, 'numFields', n)}
                   />
                 </div>
-              </div>
             </div>
 
             <div className="projects-meta-settings__row projects-meta-settings__row--description">
@@ -649,36 +673,8 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
               </div>
             </div>
 
-            <div className="projects-meta-settings__row projects-meta-settings__row--actions">
-              <div className="course-meta-field">
-                <span className="course-meta-field__label">Aktion</span>
-                <div className="course-meta-field__row" style={{ gap: '0.5rem' }}>
-                  <button
-                    type="button"
-                    className="tab secondary course-meta-inline-btn"
-                    onClick={() => setMetaBarHidden(true)}
-                  >
-                    Menüleiste verbergen
-                  </button>
-                  <button
-                    type="button"
-                    className="danger course-meta-inline-btn"
-                    onClick={handleDeleteProject}
-                    title="Projekt löschen"
-                    aria-label="Projekt löschen"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 0.45rem',
-                      minWidth: 'var(--course-meta-control-height)',
-                      width: 'var(--course-meta-control-height)',
-                    }}
-                  >
-                    <Trash2 size={18} strokeWidth={2} aria-hidden />
-                  </button>
-                </div>
-              </div>
+            <div className="projects-meta-settings__row projects-meta-settings__row--actions-mobile">
+              {projectMetaActions()}
             </div>
           </div>
         </div>

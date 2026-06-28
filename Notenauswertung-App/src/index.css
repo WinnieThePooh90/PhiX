@@ -3980,33 +3980,31 @@ a.support-phix-paypal-btn:active {
   width: 100%;
 }
 
-.projects-meta-settings__bundle--top {
-  display: flex;
-  flex-direction: row-reverse;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  width: 100%;
-}
-
 .projects-meta-settings__row--grade-key,
 .projects-meta-settings__row--core,
-.projects-meta-settings__row--actions {
+.projects-meta-settings__row--actions-mobile {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
   min-width: 0;
-}
-
-.projects-meta-settings__row--core {
-  flex: 1 1 320px;
+  width: 100%;
 }
 
 .projects-meta-settings__row--grade-key {
-  flex: 0 1 auto;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.projects-meta-field--actions-desktop {
+  margin-left: auto;
+}
+
+.projects-meta-actions__buttons {
+  gap: 0.5rem;
+}
+
+.projects-meta-settings__row--actions-mobile {
+  display: none;
 }
 
 .projects-meta-field--name {
@@ -5824,24 +5822,26 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   /* Projekte: kompakte Einstellungszeilen auf dem Smartphone */
   .app-container--mobile .projects-meta-settings {
-    gap: 0.55rem;
+    gap: 0.35rem;
     align-items: flex-start;
-  }
-
-  .app-container--mobile .projects-meta-settings__bundle--top {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
   }
 
   .app-container--mobile .projects-meta-settings__row--grade-key,
   .app-container--mobile .projects-meta-settings__row--core,
-  .app-container--mobile .projects-meta-settings__row--actions,
+  .app-container--mobile .projects-meta-settings__row--actions-mobile,
   .app-container--mobile .projects-meta-settings__row--description {
     justify-content: flex-start;
     align-items: flex-end;
     gap: 0.45rem 0.55rem;
     width: 100%;
+  }
+
+  .app-container--mobile .projects-meta-field--actions-desktop {
+    display: none;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--actions-mobile {
+    display: flex;
   }
 
   .app-container--mobile .projects-meta-settings .course-meta-field {
@@ -5903,10 +5903,6 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     width: 3.25rem !important;
     min-width: 3.25rem;
     max-width: 3.75rem;
-  }
-
-  .app-container--mobile .projects-meta-maximize-field--inline {
-    display: none;
   }
 
   .app-container--mobile .oral-meta-panel > .flex.items-end {
