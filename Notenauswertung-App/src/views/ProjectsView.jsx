@@ -485,7 +485,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
 
           <div className="projects-meta-settings course-meta-settings-row">
             <div className="projects-meta-settings__row projects-meta-settings__row--top">
-              <div className="projects-meta-settings__row projects-meta-settings__row--grade-key">
+              <div className="projects-meta-settings__top-left">
                 <div className="course-meta-field projects-meta-field--active">
                   <span className="course-meta-field__label">Aktiv</span>
                   <div className="course-meta-field__row">

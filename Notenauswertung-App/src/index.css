@@ -3984,25 +3984,27 @@ a.support-phix-paypal-btn:active {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-end;
+  justify-content: flex-start;
   gap: 1rem;
   width: 100%;
 }
 
-.projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
+.projects-meta-settings__top-left {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 1rem;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.projects-meta-settings__row--grade-key,
 .projects-meta-settings__row--core {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
   min-width: 0;
-}
-
-.projects-meta-settings__row--core {
   width: 100%;
 }
 
@@ -5525,6 +5527,10 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     overflow: visible;
   }
 
+  .app-container--mobile .projects-meta-settings.course-meta-settings-row {
+    overflow: visible;
+  }
+
   .app-container--mobile .view-page-scroll > .exams-active-body,
   .app-container--mobile .view-root-fill > .exams-active-body {
     flex: 1 1 0%;
@@ -5843,149 +5849,102 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     max-width: 100%;
   }
 
-  /* Projekte: kompakte Einstellungszeilen auf dem Smartphone */
+  /* Projekte: wie Klausuren/Mündlich – Felder umbrechen, nur vertikal scrollen */
   .app-container--mobile .projects-meta-settings {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    align-items: stretch;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem 0.65rem;
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    overflow: visible;
   }
 
-  .app-container--mobile .projects-meta-settings__row--top {
+  .app-container--mobile .projects-meta-settings__row--top,
+  .app-container--mobile .projects-meta-settings__row--core,
+  .app-container--mobile .projects-meta-settings__row--description {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-end;
-    gap: 0.35rem;
+    justify-content: flex-start;
+    gap: 0.5rem 0.65rem;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
-  .app-container--mobile .projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
-    flex: 1 1 0;
-    min-width: 0;
+  .app-container--mobile .projects-meta-settings__top-left {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: flex-end;
-    gap: 0.45rem 0.55rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    justify-content: flex-start;
+    gap: 0.5rem 0.65rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
   }
 
   .app-container--mobile .projects-meta-field--actions-slot {
-    flex: 0 0 auto;
-    flex-shrink: 0;
-    margin-left: 0 !important;
-    width: auto;
-    max-width: none;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--core {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: flex-end;
-    width: 100%;
+    flex: 0 1 auto;
     max-width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    margin-left: auto !important;
   }
 
   .app-container--mobile .projects-meta-weighting-end {
     display: flex;
-    flex-wrap: nowrap;
-    flex: 0 0 auto;
-    flex-shrink: 0;
+    flex-wrap: wrap;
     align-items: flex-end;
-    gap: 0.45rem 0.55rem;
-    margin-left: 0;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--description {
+    gap: 0.5rem 0.65rem;
+    flex: 1 1 100%;
     width: 100%;
     max-width: 100%;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--grade-key,
-  .app-container--mobile .projects-meta-settings__row--core,
-  .app-container--mobile .projects-meta-settings__row--description {
-    justify-content: flex-start;
-    align-items: flex-end;
-    gap: 0.45rem 0.55rem;
+    margin-left: 0;
+    overflow: visible;
   }
 
   .app-container--mobile .projects-meta-settings .course-meta-field {
-    flex: 0 0 auto;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    width: auto;
+    max-width: 100%;
     margin-left: 0 !important;
     text-align: left;
   }
 
-  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) {
-    flex: 0 0 auto !important;
-    min-width: auto !important;
-    max-width: none !important;
-  }
-
   .app-container--mobile .projects-meta-settings .course-meta-field__label {
     text-align: left;
-    white-space: nowrap;
   }
 
-  .app-container--mobile .projects-meta-field--grade-mode select.course-meta-control {
-    width: auto !important;
-    min-width: 7.5rem;
-    max-width: none;
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) {
+    flex: 1 1 100%;
+    min-width: min(100%, 14rem);
+    max-width: 100%;
   }
 
-  .app-container--mobile .projects-meta-settings .projects-meta-field--key select.course-meta-control {
-    width: 8.75rem !important;
-    min-width: 7rem;
-    max-width: none;
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) select.course-meta-control {
+    width: 100% !important;
+    max-width: 100%;
   }
 
-  .app-container--mobile .projects-meta-field--name {
-    flex: 0 0 auto;
-    min-width: 9rem;
-    max-width: none;
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(input[id*='-name-']) {
+    flex: 1 1 100%;
+    min-width: min(100%, 14rem);
+    max-width: 100%;
   }
 
-  .app-container--mobile .projects-meta-field--name .course-meta-control {
-    width: 9rem !important;
-    min-width: 9rem;
-    max-width: none;
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(input[id*='-name-']) .course-meta-control {
+    width: 100% !important;
+    max-width: 100%;
   }
 
-  .app-container--mobile .projects-meta-field--weighting {
-    flex: 0 0 auto;
-    min-width: 8.5rem;
-    max-width: none;
-  }
-
-  .app-container--mobile .projects-meta-field--weighting select.course-meta-control {
-    width: 8.5rem !important;
-    min-width: 8.5rem;
-    max-width: none;
-  }
-
-  .app-container--mobile .projects-meta-field--percent .course-meta-control {
-    width: 3.75rem !important;
-    min-width: 3.75rem;
-    max-width: none;
-  }
-
-  .app-container--mobile .projects-meta-field--numfields .course-meta-control {
-    width: 3.25rem !important;
-    min-width: 3.25rem;
-    max-width: none;
+  .app-container--mobile .projects-meta-settings__row--description .course-meta-field {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
   }
 
   .app-container--mobile .oral-meta-panel > .flex.items-end {
