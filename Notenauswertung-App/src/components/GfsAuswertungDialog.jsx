@@ -123,7 +123,10 @@ export default function GfsAuswertungDialog({
             <button
               type="button"
               className="tab secondary"
-              onClick={handleExportPdf}
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleExportPdf();
+              }}
               disabled={exportBusy}
             >
               {exportBusy ? 'Export …' : 'Export als PDF'}

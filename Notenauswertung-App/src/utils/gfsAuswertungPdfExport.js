@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 import { buildExportFilename } from './exportFilenames';
+import { triggerPdfDownload } from './phixPdfExport';
 import {
   GFS_AUSWERTUNG_CRITERIA,
   GFS_AUSWERTUNG_POINT_LEVELS,
@@ -14,11 +15,6 @@ import {
 const PAGE_MARGIN = 10;
 const SELECTED_FILL = [191, 219, 254];
 const GRADE_HIT_FILL = [254, 243, 199];
-
-function ensurePdfFilename(filename) {
-  const name = String(filename || 'Auswertung.pdf');
-  return name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
-}
 
 export function gfsAuswertungPdfFilename(titleLabel, studentName) {
   return buildExportFilename([titleLabel, studentName], 'pdf');
@@ -52,7 +48,7 @@ function buildGradeTableMultiColumn(pairs, columns = 3) {
 }
 
 function highlightSelectedCriteriaCells(data, scores) {
-  if (data.section !== 'body' || data.column.index === 0) return;
+  if (data.section !== 'body' || data.column.index === 0 || !data.cell?.styles) return;
   const colIdx = data.column.index - 1;
   if (colIdx < 0 || colIdx >= GFS_AUSWERTUNG_POINT_LEVELS.length) return;
   const criterion = GFS_AUSWERTUNG_CRITERIA[data.row.index];
@@ -65,7 +61,7 @@ function highlightSelectedCriteriaCells(data, scores) {
 }
 
 function highlightGradeHitCells(data, gradePairs, total, columns) {
-  if (data.section !== 'body') return;
+  if (data.section !== 'body' || !data.cell?.styles) return;
   const colPair = Math.floor(data.column.index / 2);
   const pairIdx = data.row.index * columns + colPair;
   const pair = gradePairs[pairIdx];
@@ -82,7 +78,7 @@ export function downloadGfsAuswertungPdf({
   titleLabel,
   studentName,
   gradeSystem = 'classic',
-  scores,
+  scores = {},
   bemerkungen = '',
   filename,
 }) {
@@ -207,5 +203,5 @@ export function downloadGfsAuswertungPdf({
   }
   doc.text(notesLines, notesX, notesY + 4);
 
-  doc.save(ensurePdfFilename(filename));
+  triggerPdfDownload(doc, filename);
 }

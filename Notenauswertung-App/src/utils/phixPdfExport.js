@@ -1,5 +1,7 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { applyPlugin } from 'jspdf-autotable';
+
+applyPlugin(jsPDF);
 
 const PAGE_MARGIN = 10;
 const KEY_GAP = 2;
@@ -11,6 +13,30 @@ const KEY_WIDTH_MAX = 36;
 function ensurePdfFilename(filename) {
   const name = String(filename || 'Export.pdf');
   return name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
+}
+
+/** PDF im Browser/Electron zuverlässig herunterladen (Fallback: jsPDF save). */
+export function triggerPdfDownload(doc, filename) {
+  const name = ensurePdfFilename(filename);
+  if (typeof document === 'undefined') {
+    doc.save(name);
+    return;
+  }
+  try {
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch {
+    doc.save(name);
+  }
 }
 
 function cellStr(value) {
@@ -193,7 +219,7 @@ export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
     format: 'a4',
   });
   renderAoaTable(doc, aoa, sectionTitle, opts.gradingKey, opts);
-  doc.save(ensurePdfFilename(filename));
+  triggerPdfDownload(doc, filename);
 }
 
 /**
@@ -217,7 +243,7 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
   if (!list.length) {
     const doc = new jsPDF();
     doc.text('Keine Daten', 14, 20);
-    doc.save(ensurePdfFilename(filename));
+    triggerPdfDownload(doc, filename);
     return;
   }
 
@@ -244,7 +270,7 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
     renderAoaTable(doc, section.aoa, section.name, section.gradingKey, { startY });
   });
 
-  doc.save(ensurePdfFilename(filename));
+  triggerPdfDownload(doc, filename);
 }
 
 /**
@@ -256,7 +282,7 @@ export function downloadMultiSectionPdf(sections, filename, documentTitle) {
 export function downloadGradingKeyPdf(gradingKey, filename, chartPngDataUrl = null) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   renderGradingKeyFullPage(doc, gradingKey, chartPngDataUrl);
-  doc.save(ensurePdfFilename(filename));
+  triggerPdfDownload(doc, filename);
 }
 
 /**
@@ -269,7 +295,7 @@ export function downloadGradingKeysMultiPagePdf(entries, filename, chartPngByEnt
   if (!list.length) {
     const doc = new jsPDF();
     doc.text('Keine Notenschlüssel', 14, 20);
-    doc.save(ensurePdfFilename(filename));
+    triggerPdfDownload(doc, filename);
     return;
   }
 
@@ -281,7 +307,7 @@ export function downloadGradingKeysMultiPagePdf(entries, filename, chartPngByEnt
       : chartPngByEntryId?.[entry.id];
     renderGradingKeyFullPage(doc, entry.gradingKey, chartPng ?? null);
   });
-  doc.save(ensurePdfFilename(filename));
+  triggerPdfDownload(doc, filename);
 }
 
 /**
