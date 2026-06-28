@@ -3982,7 +3982,7 @@ a.support-phix-paypal-btn:active {
 
 .projects-meta-settings__row--top {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
   gap: 1rem;
   width: 100%;
@@ -3994,30 +3994,23 @@ a.support-phix-paypal-btn:active {
 }
 
 .projects-meta-settings__row--grade-key,
-.projects-meta-settings__row--core,
-.projects-meta-settings__row--weighting {
+.projects-meta-settings__row--core {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
   min-width: 0;
-}
-
-.projects-meta-settings__row--details {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 1rem;
-  width: 100%;
 }
 
 .projects-meta-settings__row--core {
-  flex: 1 1 auto;
-  min-width: 0;
+  width: 100%;
 }
 
-.projects-meta-settings__row--weighting {
-  flex: 0 1 auto;
+.projects-meta-weighting-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
   margin-left: auto;
 }
 
@@ -5862,63 +5855,55 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .projects-meta-settings__row--top {
-    display: contents;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--details {
-    display: contents;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--grade-key {
-    order: 1;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0.45rem 0.55rem;
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
-    flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
 
-  .app-container--mobile .projects-meta-settings__row--core {
-    order: 2;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+  .app-container--mobile .projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
+    flex: 1 1 auto;
+    min-width: 0;
     flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--weighting {
-    order: 3;
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--description {
-    order: 4;
-    width: 100%;
-    max-width: 100%;
+    overflow: visible;
   }
 
   .app-container--mobile .projects-meta-field--actions-slot {
-    order: 5;
-    margin-left: 0 !important;
+    margin-left: auto !important;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--core {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .app-container--mobile .projects-meta-weighting-end {
+    flex: 0 0 auto;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--description {
     width: 100%;
     max-width: 100%;
   }
 
   .app-container--mobile .projects-meta-settings__row--grade-key,
   .app-container--mobile .projects-meta-settings__row--core,
-  .app-container--mobile .projects-meta-settings__row--weighting,
   .app-container--mobile .projects-meta-settings__row--description {
     justify-content: flex-start;
     align-items: flex-end;

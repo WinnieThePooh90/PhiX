@@ -551,65 +551,63 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
               {projectMetaActions('projects-meta-field--actions-slot')}
             </div>
 
-            <div className="projects-meta-settings__row projects-meta-settings__row--details">
-              <div className="projects-meta-settings__row projects-meta-settings__row--core">
-                <div className="course-meta-field projects-meta-field--name">
-                  <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
-                    Name
-                  </label>
-                  <input
-                    id={`project-name-${activeProject}`}
-                    className="course-meta-control"
-                    type="text"
-                    value={project.name || ''}
-                    onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
-                  />
-                </div>
-                {!config?.kursstufe && (
-                  <div className="course-meta-field projects-meta-field--halbjahr">
-                    <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
-                      Halbjahr
-                    </label>
-                    <select
-                      id={`project-hj-${activeProject}`}
-                      className="course-meta-control"
-                      value={project.halbjahr || '1'}
-                      onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
-                    >
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                    </select>
-                  </div>
-                )}
-                <div className="course-meta-field projects-meta-field--date">
-                  <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
-                    Datum
-                  </label>
-                  <input
-                    id={`project-date-${activeProject}`}
-                    className="course-meta-control"
-                    type="date"
-                    value={project.date || ''}
-                    onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
-                  />
-                </div>
-                <div className="course-meta-field projects-meta-field--numfields">
-                  <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
-                    Themenfelder
-                  </label>
-                  <DeferredNumberInput
-                    id={`project-numfields-${activeProject}`}
-                    className="course-meta-control"
-                    integer
-                    min={0}
-                    max={EXAM_ABS_MAX_FIELDS}
-                    defaultValue={0}
-                    value={numFields}
-                    onChange={(n) => updateProject(activeProject, 'numFields', n)}
-                  />
-                </div>
+            <div className="projects-meta-settings__row projects-meta-settings__row--core">
+              <div className="course-meta-field projects-meta-field--name">
+                <label className="course-meta-field__label" htmlFor={`project-name-${activeProject}`}>
+                  Name
+                </label>
+                <input
+                  id={`project-name-${activeProject}`}
+                  className="course-meta-control"
+                  type="text"
+                  value={project.name || ''}
+                  onChange={(e) => updateProject(activeProject, 'name', e.target.value)}
+                />
               </div>
-              <div className="projects-meta-settings__row projects-meta-settings__row--weighting">
+              {!config?.kursstufe && (
+                <div className="course-meta-field projects-meta-field--halbjahr">
+                  <label className="course-meta-field__label" htmlFor={`project-hj-${activeProject}`}>
+                    Halbjahr
+                  </label>
+                  <select
+                    id={`project-hj-${activeProject}`}
+                    className="course-meta-control"
+                    value={project.halbjahr || '1'}
+                    onChange={(e) => updateProject(activeProject, 'halbjahr', e.target.value)}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select>
+                </div>
+              )}
+              <div className="course-meta-field projects-meta-field--date">
+                <label className="course-meta-field__label" htmlFor={`project-date-${activeProject}`}>
+                  Datum
+                </label>
+                <input
+                  id={`project-date-${activeProject}`}
+                  className="course-meta-control"
+                  type="date"
+                  value={project.date || ''}
+                  onChange={(e) => updateProject(activeProject, 'date', e.target.value)}
+                />
+              </div>
+              <div className="course-meta-field projects-meta-field--numfields">
+                <label className="course-meta-field__label" htmlFor={`project-numfields-${activeProject}`}>
+                  Themenfelder
+                </label>
+                <DeferredNumberInput
+                  id={`project-numfields-${activeProject}`}
+                  className="course-meta-control"
+                  integer
+                  min={0}
+                  max={EXAM_ABS_MAX_FIELDS}
+                  defaultValue={0}
+                  value={numFields}
+                  onChange={(n) => updateProject(activeProject, 'numFields', n)}
+                />
+              </div>
+              <div className="projects-meta-weighting-end">
                 <div className="course-meta-field projects-meta-field--weighting">
                   <label className="course-meta-field__label" htmlFor={`project-weighting-${activeProject}`}>
                     Gewichtung
