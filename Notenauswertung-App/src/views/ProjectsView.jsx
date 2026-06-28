@@ -396,30 +396,34 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
     await removeProject(id);
   };
 
+  const renderProjectDeleteButton = (extraClass = '') => (
+    <button
+      type="button"
+      className={`danger course-meta-inline-btn projects-delete-btn${extraClass ? ` ${extraClass}` : ''}`}
+      onClick={handleDeleteProject}
+      title="Projekt löschen"
+      aria-label="Projekt löschen"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 0.45rem',
+        minWidth: 'var(--course-meta-control-height)',
+        width: 'var(--course-meta-control-height)',
+      }}
+    >
+      <Trash2 size={18} strokeWidth={2} aria-hidden />
+    </button>
+  );
+
   const projectMetaActions = (extraClass = '') => (
     <div className={`course-meta-field projects-meta-field--actions${extraClass ? ` ${extraClass}` : ''}`}>
       <span className="course-meta-field__label">Aktion</span>
       <div className="course-meta-field__row projects-meta-actions__buttons">
+        {renderProjectDeleteButton()}
         <button
           type="button"
-          className="danger course-meta-inline-btn"
-          onClick={handleDeleteProject}
-          title="Projekt löschen"
-          aria-label="Projekt löschen"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0 0.45rem',
-            minWidth: 'var(--course-meta-control-height)',
-            width: 'var(--course-meta-control-height)',
-          }}
-        >
-          <Trash2 size={18} strokeWidth={2} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="tab secondary course-meta-inline-btn"
+          className="tab secondary course-meta-inline-btn projects-meta-actions__hide-menu"
           onClick={() => setMetaBarHidden(true)}
         >
           Menüleiste verbergen
@@ -455,31 +459,34 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
           </div>
         ) : (
         <div className="view-toolbar-block exams-toolbar">
-          <div className="flex justify-between items-center mb-4 pt-2 view-page-nav">
+          <div className="projects-view-page-nav flex justify-between items-center mb-4 pt-2 view-page-nav">
             <h2 style={{ margin: 0 }}>Projekte</h2>
-            <div className="flex gap-2" style={{ overflowX: 'auto', paddingBottom: '4px', flexWrap: 'wrap' }}>
-              {projectNumbers.map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  className={`tab ${activeProject === num ? 'active' : 'secondary'}`}
-                  onClick={() => setActiveProject(num)}
-                  title={projects[num]?.name || `Projekt ${num}`}
-                >
-                  P{num}
-                </button>
-              ))}
-              {!courseArchived ? (
-                <button
-                  type="button"
-                  className="tab secondary"
-                  onClick={openCreateModal}
-                  title="Neues Projekt hinzufügen"
-                  style={{ fontWeight: 'bold' }}
-                >
-                  +
-                </button>
-              ) : null}
+            <div className="projects-view-tabs-row flex items-center gap-2">
+              <div className="projects-view-tabs flex gap-2" style={{ overflowX: 'auto', paddingBottom: '4px', flexWrap: 'wrap' }}>
+                {projectNumbers.map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    className={`tab ${activeProject === num ? 'active' : 'secondary'}`}
+                    onClick={() => setActiveProject(num)}
+                    title={projects[num]?.name || `Projekt ${num}`}
+                  >
+                    P{num}
+                  </button>
+                ))}
+                {!courseArchived ? (
+                  <button
+                    type="button"
+                    className="tab secondary"
+                    onClick={openCreateModal}
+                    title="Neues Projekt hinzufügen"
+                    style={{ fontWeight: 'bold' }}
+                  >
+                    +
+                  </button>
+                ) : null}
+              </div>
+              {renderProjectDeleteButton('projects-nav-delete-btn')}
             </div>
           </div>
 
@@ -1032,14 +1039,18 @@ function ProjectScoresTable({
   const stickyHeadSideR2 = isGroupMode
     ? {}
     : { position: 'sticky', top: stickyHeadTopR2, zIndex: 61 };
+  const groupColIndex = isGroupMode ? ' projects-col-index' : '';
+  const groupColName = isGroupMode ? ' projects-col-name' : '';
+  const groupColTotal = isGroupMode ? ' projects-col-total' : '';
+  const groupColGrade = isGroupMode ? ' projects-col-grade' : '';
 
   return (
     <div className={`table-container${isGroupMode ? ' projects-group-table-container' : ''}`}>
       <table>
         <thead>
           <tr>
-            <th className="exam-th-sticky-left exam-th-r1" style={{ width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, left: 0 }}>#</th>
-            <th className="exam-th-sticky-left exam-th-r1" style={{ left: `${PROJECT_INDEX_COL_PX}px` }}>{nameColumnLabel}</th>
+            <th className={`exam-th-sticky-left exam-th-r1${groupColIndex}`} style={{ width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, left: 0 }}>#</th>
+            <th className={`exam-th-sticky-left exam-th-r1${groupColName}`} style={{ left: `${PROJECT_INDEX_COL_PX}px` }}>{nameColumnLabel}</th>
             {[...Array(displayFieldCount)].map((_, i) => (
               <th
                 key={i}
@@ -1072,12 +1083,12 @@ function ProjectScoresTable({
                 />
               </th>
             ))}
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
+            <th className={`text-center${groupColTotal}`} style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>GESAMT</th>
+            <th className={`text-center${groupColGrade}`} style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR1, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }}>NOTE</th>
           </tr>
           <tr className="exam-thead-max-row" style={{ background: 'var(--bg-color)', fontWeight: 'bold' }}>
-            <th className="exam-th-sticky-left exam-th-r2" style={{ left: 0, textTransform: 'none' }}>{isGroupMode ? '' : 'Max'}</th>
-            <th className="exam-th-sticky-left exam-th-r2" style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
+            <th className={`exam-th-sticky-left exam-th-r2${groupColIndex}`} style={{ left: 0, textTransform: 'none' }}>{isGroupMode ? '' : 'Max'}</th>
+            <th className={`exam-th-sticky-left exam-th-r2${groupColName}`} style={{ left: `${PROJECT_INDEX_COL_PX}px`, textTransform: 'none' }}>Maximalpunkte</th>
             {[...Array(displayFieldCount)].map((_, i) => (
               <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
                 <DeferredNumberInput
@@ -1091,10 +1102,10 @@ function ProjectScoresTable({
                 />
               </th>
             ))}
-            <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR2, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
+            <th className={`text-center${groupColTotal}`} style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR2, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
               {tableProject.maxPoints}
             </th>
-            <th style={{ ...stickyHeadSideR2, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
+            <th className={`${groupColGrade.trim() || ''}`} style={{ ...stickyHeadSideR2, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
           </tr>
         </thead>
         <tbody>
@@ -1125,7 +1136,7 @@ function ProjectScoresTable({
             return (
               <React.Fragment key={String(scoreKey)}>
                 <tr style={{ transition: 'background 0.2s', background: isExpanded ? 'rgba(79, 70, 229, 0.05)' : '' }}>
-                  <td style={{ ...(isGroupMode ? {} : { position: 'sticky', left: 0, zIndex: 1 }), background: 'var(--surface)', borderRight: '1px solid var(--border)', width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, verticalAlign: 'middle', textAlign: 'center', padding: 0 }}>
+                  <td className={groupColIndex.trim() || undefined} style={{ ...(isGroupMode ? {} : { position: 'sticky', left: 0, zIndex: 1 }), background: 'var(--surface)', borderRight: '1px solid var(--border)', width: `${PROJECT_INDEX_COL_PX}px`, minWidth: `${PROJECT_INDEX_COL_PX}px`, verticalAlign: 'middle', textAlign: 'center', padding: 0 }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: showIndexFlag ? 34 : undefined, paddingTop: showIndexFlag ? 2 : 0 }}>
                       {showIndexFlag && (
                         <span
@@ -1149,6 +1160,7 @@ function ProjectScoresTable({
                     </div>
                   </td>
                   <td
+                    className={groupColName.trim() || undefined}
                     {...(!isGroupMode ? {
                       role: 'button',
                       tabIndex: -1,
@@ -1218,12 +1230,12 @@ function ProjectScoresTable({
                       </td>
                     );
                   })}
-                  <td className="text-center" style={{ width: '100px', minWidth: '100px', ...(isGroupMode ? {} : { position: 'sticky', right: '100px', zIndex: 1 }), background: 'var(--surface)', fontWeight: 'bold', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                  <td className={`text-center${groupColTotal}`} style={{ width: '100px', minWidth: '100px', ...(isGroupMode ? {} : { position: 'sticky', right: '100px', zIndex: 1 }), background: 'var(--surface)', fontWeight: 'bold', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
                     {totalPoints}
                     <span className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.8rem' }}> / {maxPts}</span>
                   </td>
                   <td
-                    className="text-center"
+                    className={`text-center${groupColGrade}`}
                     style={{
                       width: '100px',
                       minWidth: '100px',
@@ -1272,6 +1284,7 @@ function ProjectScoresTable({
                         className={`project-group-member-row${isMemberExpanded ? ' project-group-member-row--expanded' : ''}`}
                       >
                         <td
+                          className={groupColIndex.trim() || undefined}
                           style={{
                             ...(isGroupMode ? {} : { position: 'sticky', left: 0, zIndex: 1 }),
                             background: 'var(--surface)',
@@ -1287,6 +1300,7 @@ function ProjectScoresTable({
                           </span>
                         </td>
                         <td
+                          className={groupColName.trim() || undefined}
                           style={{
                             ...(isGroupMode ? {} : { position: 'sticky', left: `${PROJECT_INDEX_COL_PX}px`, zIndex: 1 }),
                             background: 'var(--surface)',
@@ -1324,7 +1338,7 @@ function ProjectScoresTable({
                           />
                         ))}
                         <td
-                          className="text-center project-group-member-row__total"
+                          className={`text-center project-group-member-row__total${groupColTotal}`}
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -1335,7 +1349,7 @@ function ProjectScoresTable({
                           }}
                         />
                         <td
-                          className="text-center"
+                          className={`text-center${groupColGrade}`}
                           style={{
                             width: '100px',
                             minWidth: '100px',

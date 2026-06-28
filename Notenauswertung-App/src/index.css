@@ -4038,6 +4038,19 @@ a.support-phix-paypal-btn:active {
   gap: 0.5rem;
 }
 
+.projects-nav-delete-btn {
+  display: none;
+  flex: 0 0 auto;
+}
+
+.projects-view-tabs-row {
+  min-width: 0;
+}
+
+.projects-view-tabs {
+  min-width: 0;
+}
+
 .projects-meta-field--name {
   min-width: 180px;
   flex: 1 1 180px;
@@ -5880,15 +5893,37 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   }
 
   .app-container--mobile .projects-meta-field--actions-slot {
-    order: 1;
-    flex: 0 1 auto;
-    max-width: 100%;
+    display: none !important;
+  }
+
+  .app-container--mobile .projects-view-page-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .app-container--mobile .projects-view-tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     width: 100%;
-    margin-left: 0 !important;
+    min-width: 0;
+  }
+
+  .app-container--mobile .projects-view-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap !important;
+  }
+
+  .app-container--mobile .projects-nav-delete-btn {
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .app-container--mobile .projects-meta-settings__top-left {
-    order: 2;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
@@ -6140,6 +6175,103 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     max-width: 100% !important;
     padding: 0.28rem 0.08rem !important;
     font-size: 0.8125rem;
+    box-sizing: border-box;
+  }
+
+  /* Gruppenprojekte: einheitliche Spaltenbreiten über alle Gruppentabellen */
+  .app-container--mobile .exam-table-scroll .projects-group-tables-stack {
+    width: max-content;
+    min-width: 100%;
+    align-items: stretch;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-tables-stack .projects-group-table-block,
+  .app-container--mobile .exam-table-scroll .projects-group-tables-stack .projects-group-table-container {
+    width: 100%;
+    min-width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container table {
+    table-layout: fixed !important;
+    width: max-content !important;
+    min-width: 100% !important;
+    max-width: none !important;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-index {
+    width: 2.25rem !important;
+    min-width: 2.25rem !important;
+    max-width: 2.25rem !important;
+    padding-left: 0.15rem !important;
+    padding-right: 0.15rem !important;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-name {
+    width: 8.5rem !important;
+    min-width: 8.5rem !important;
+    max-width: 8.5rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-name > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container th.exam-task-col,
+  .app-container--mobile .exam-table-scroll .projects-group-table-container td.exam-task-col {
+    width: 3rem !important;
+    min-width: 3rem !important;
+    max-width: 3rem !important;
+    padding-left: 0.15rem !important;
+    padding-right: 0.15rem !important;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container th.exam-task-col input,
+  .app-container--mobile .exam-table-scroll .projects-group-table-container td.exam-task-col input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0.28rem 0.08rem !important;
+    font-size: 0.8125rem;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-total {
+    width: 5.5rem !important;
+    min-width: 5.5rem !important;
+    max-width: 5.5rem !important;
+    padding-left: 0.15rem !important;
+    padding-right: 0.15rem !important;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-grade {
+    width: 5rem !important;
+    min-width: 5rem !important;
+    max-width: 5rem !important;
+    padding-left: 0.15rem !important;
+    padding-right: 0.15rem !important;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .app-container--mobile .exam-table-scroll .projects-group-table-container .projects-col-grade .exam-manual-grade-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     box-sizing: border-box;
   }
 
