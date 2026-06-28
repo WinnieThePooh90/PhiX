@@ -99,23 +99,46 @@ export function canAddExternalPersons(list) {
   return Boolean(list?.includeExternal || list?.externalOnly);
 }
 
-export function ListPanelFooter({ list, onEdit, onDelete, readOnly = false }) {
-  if (readOnly) return null;
+export function ListPanelFooter({
+  list,
+  listType,
+  onEdit,
+  onDelete,
+  onExportPdf,
+  readOnly = false,
+  exportBusy = false,
+}) {
+  if (!onExportPdf && readOnly) return null;
+
   return (
     <div className="klassenlehrer-money-panel-actions">
-      <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
-        Bearbeiten
-      </button>
-      <button
-        type="button"
-        className="danger klassenlehrer-list-delete-btn"
-        onClick={() => onDelete(list)}
-        title="Liste löschen"
-        aria-label="Liste löschen"
-      >
-        <Trash2 size={18} strokeWidth={2} aria-hidden />
-        Löschen
-      </button>
+      {!readOnly ? (
+        <button type="button" className="tab secondary" onClick={() => onEdit(list)}>
+          Bearbeiten
+        </button>
+      ) : null}
+      {onExportPdf ? (
+        <button
+          type="button"
+          className="tab secondary"
+          onClick={() => onExportPdf(list, listType)}
+          disabled={exportBusy}
+        >
+          {exportBusy ? 'Export …' : 'Export als PDF'}
+        </button>
+      ) : null}
+      {!readOnly ? (
+        <button
+          type="button"
+          className="danger klassenlehrer-list-delete-btn"
+          onClick={() => onDelete(list)}
+          title="Liste löschen"
+          aria-label="Liste löschen"
+        >
+          <Trash2 size={18} strokeWidth={2} aria-hidden />
+          Löschen
+        </button>
+      ) : null}
     </div>
   );
 }

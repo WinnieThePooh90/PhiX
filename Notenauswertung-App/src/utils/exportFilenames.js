@@ -70,3 +70,16 @@ export function projectExportFilename(course, projectId, projectName, ext = 'xls
   const label = projectName?.trim() ? projectName.trim() : `P-${projectId}`;
   return buildExportFilename(['Projekt', label, course?.subject, course?.className, course?.year], ext);
 }
+
+const KL_LIST_TYPE_SEGMENTS = {
+  money: 'Geldliste',
+  attendance: 'Anwesenheit',
+  collection: 'Sammelliste',
+  notes: 'Notizenliste',
+};
+
+export function klassenlehrerListExportFilename(course, type, subject, ext = 'pdf') {
+  const typeLabel = KL_LIST_TYPE_SEGMENTS[type] || 'Liste';
+  const subjectPart = subject?.trim() || typeLabel;
+  return buildExportFilename(['KL', typeLabel, subjectPart, course?.subject, course?.className, course?.year], ext);
+}

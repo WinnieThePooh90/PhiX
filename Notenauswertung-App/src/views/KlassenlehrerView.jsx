@@ -9,6 +9,9 @@ import {
 } from '../components/KlassenlehrerListShared';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
+import { buildKlassenlehrerListExportData } from '../utils/klassenlehrerListExport';
+import { klassenlehrerListExportFilename } from '../utils/exportFilenames';
+import { downloadSheetDataPdf } from '../utils/phixPdfExport';
 
 function formatEuro(amount) {
   if (!Number.isFinite(amount)) return '—';
@@ -127,7 +130,17 @@ function KlassenlehrerListTabButton({ tab, isActive, onSelect }) {
   );
 }
 
-function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
+function MoneyListPanel({
+  list,
+  updateMoneyListEntryPaid,
+  onAddExternal,
+  onRemoveExternalEntry,
+  onEdit,
+  onDelete,
+  onExportPdf,
+  exportBusy = false,
+  readOnly = false,
+}) {
   const entries = list.entries || [];
   const paidCount = entries.filter((e) => e.paid).length;
   const totalCount = entries.length;
@@ -228,12 +241,30 @@ function MoneyListPanel({ list, updateMoneyListEntryPaid, onAddExternal, onRemov
         </table>
       </div>
       {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
+      <ListPanelFooter
+        list={list}
+        listType="money"
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onExportPdf={onExportPdf}
+        exportBusy={exportBusy}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
 
-function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
+function AttendanceListPanel({
+  list,
+  updateAttendanceListEntryPresent,
+  onAddExternal,
+  onRemoveExternalEntry,
+  onEdit,
+  onDelete,
+  onExportPdf,
+  exportBusy = false,
+  readOnly = false,
+}) {
   const entries = list.entries || [];
   const presentCount = entries.filter((e) => e.present).length;
   const totalCount = entries.length;
@@ -326,12 +357,30 @@ function AttendanceListPanel({ list, updateAttendanceListEntryPresent, onAddExte
         </table>
       </div>
       {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
+      <ListPanelFooter
+        list={list}
+        listType="attendance"
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onExportPdf={onExportPdf}
+        exportBusy={exportBusy}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
 
-function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddExternal, onRemoveExternalEntry, onEdit, onDelete, readOnly = false }) {
+function CollectionListPanel({
+  list,
+  updateCollectionListEntryCollected,
+  onAddExternal,
+  onRemoveExternalEntry,
+  onEdit,
+  onDelete,
+  onExportPdf,
+  exportBusy = false,
+  readOnly = false,
+}) {
   const entries = list.entries || [];
   const collectedCount = entries.filter((e) => e.collected).length;
   const totalCount = entries.length;
@@ -424,7 +473,15 @@ function CollectionListPanel({ list, updateCollectionListEntryCollected, onAddEx
         </table>
       </div>
       {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
+      <ListPanelFooter
+        list={list}
+        listType="collection"
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onExportPdf={onExportPdf}
+        exportBusy={exportBusy}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
@@ -436,6 +493,8 @@ function NotesListPanel({
   onRemoveExternalEntry,
   onEdit,
   onDelete,
+  onExportPdf,
+  exportBusy = false,
   readOnly = false,
 }) {
   const entries = list.entries || [];
@@ -520,7 +579,15 @@ function NotesListPanel({
         </table>
       </div>
       {canAddExternalPersons(list) && !readOnly ? <ExternalPersonAddBlock onAdd={onAddExternal} /> : null}
-      <ListPanelFooter list={list} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly} />
+      <ListPanelFooter
+        list={list}
+        listType="notes"
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onExportPdf={onExportPdf}
+        exportBusy={exportBusy}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
@@ -1017,8 +1084,25 @@ export default function KlassenlehrerView() {
     addNotesListExternalEntry,
     removeNotesListEntry,
     courseArchived,
+    config,
   } = useData();
   const { showConfirm, showAlert } = useDialog();
+
+  const [exportBusy, setExportBusy] = useState(false);
+
+  const handleExportListPdf = useCallback(async (list, type) => {
+    if (exportBusy) return;
+    setExportBusy(true);
+    try {
+      const { headers, rows, sectionTitle } = buildKlassenlehrerListExportData({ list, type });
+      const filename = klassenlehrerListExportFilename(config, type, list?.subject, 'pdf');
+      downloadSheetDataPdf({ headers, rows }, sectionTitle, filename, { orientation: 'portrait' });
+    } catch (err) {
+      await showAlert(err?.message || 'PDF-Export fehlgeschlagen.', { title: 'Export' });
+    } finally {
+      setExportBusy(false);
+    }
+  }, [config, exportBusy, showAlert]);
 
   const mergedTabs = useMemo(
     () => buildMergedTabs(moneyLists, attendanceLists, collectionLists, notesLists),
@@ -1660,6 +1744,8 @@ export default function KlassenlehrerView() {
                     onRemoveExternalEntry={removeMoneyListEntry}
                     onEdit={openEditMoneyModal}
                     onDelete={handleDeleteMoney}
+                    onExportPdf={handleExportListPdf}
+                    exportBusy={exportBusy}
                   />
                 ) : activeTab.type === 'attendance' ? (
                   <AttendanceListPanel
@@ -1670,6 +1756,8 @@ export default function KlassenlehrerView() {
                     onRemoveExternalEntry={removeAttendanceListEntry}
                     onEdit={openEditAttendanceModal}
                     onDelete={handleDeleteAttendance}
+                    onExportPdf={handleExportListPdf}
+                    exportBusy={exportBusy}
                   />
                 ) : activeTab.type === 'notes' ? (
                   <NotesListPanel
@@ -1680,6 +1768,8 @@ export default function KlassenlehrerView() {
                     onRemoveExternalEntry={removeNotesListEntry}
                     onEdit={openEditNotesModal}
                     onDelete={handleDeleteNotes}
+                    onExportPdf={handleExportListPdf}
+                    exportBusy={exportBusy}
                   />
                 ) : (
                   <CollectionListPanel
@@ -1690,6 +1780,8 @@ export default function KlassenlehrerView() {
                     onRemoveExternalEntry={removeCollectionListEntry}
                     onEdit={openEditCollectionModal}
                     onDelete={handleDeleteCollection}
+                    onExportPdf={handleExportListPdf}
+                    exportBusy={exportBusy}
                   />
                 )}
               </div>

@@ -159,8 +159,9 @@ function sectionOrientation(section) {
 export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
   const colCount = aoa?.[0]?.length ?? 1;
   const hasKey = !!opts.gradingKey?.aoa?.length;
+  const orientation = opts.orientation ?? (hasKey ? 'landscape' : pickOrientation(colCount));
   const doc = new jsPDF({
-    orientation: hasKey ? 'landscape' : pickOrientation(colCount),
+    orientation,
     unit: 'mm',
     format: 'a4',
   });
@@ -172,10 +173,11 @@ export function downloadAoaPdf(aoa, sectionTitle, filename, opts = {}) {
  * @param {{ headers: string[], rows: (string|number)[][] }} sheetData
  * @param {string} sectionTitle
  * @param {string} filename
+ * @param {{ orientation?: 'portrait'|'landscape', gradingKey?: { title?: string, desc?: string, aoa?: (string|number)[][] } }} [opts]
  */
-export function downloadSheetDataPdf(sheetData, sectionTitle, filename) {
+export function downloadSheetDataPdf(sheetData, sectionTitle, filename, opts = {}) {
   const aoa = [sheetData.headers, ...(sheetData.rows ?? [])];
-  downloadAoaPdf(aoa, sectionTitle, filename);
+  downloadAoaPdf(aoa, sectionTitle, filename, opts);
 }
 
 /**

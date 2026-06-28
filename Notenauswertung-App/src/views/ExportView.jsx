@@ -613,7 +613,7 @@ export default function ExportView() {
           onToggle={() => toggleSection('referate')}
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            Tabelle aus dem Reiter <strong>Referate</strong> (ohne Aktion-Spalte).
+            Tabelle aus dem Reiter <strong>Referate</strong>.
           </p>
           <div className="export-item-list">
             <ExportFormatButtons
