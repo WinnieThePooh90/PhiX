@@ -3980,31 +3980,54 @@ a.support-phix-paypal-btn:active {
   width: 100%;
 }
 
+.projects-meta-settings__row--top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  width: 100%;
+}
+
+.projects-meta-settings__row--top .projects-meta-settings__row--grade-key {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .projects-meta-settings__row--grade-key,
 .projects-meta-settings__row--core,
-.projects-meta-settings__row--actions-mobile {
+.projects-meta-settings__row--weighting {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
   min-width: 0;
+}
+
+.projects-meta-settings__row--details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
   width: 100%;
 }
 
-.projects-meta-settings__row--grade-key {
-  justify-content: flex-start;
+.projects-meta-settings__row--core {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.projects-meta-field--actions-desktop {
+.projects-meta-settings__row--weighting {
+  flex: 0 1 auto;
   margin-left: auto;
+}
+
+.projects-meta-field--actions-slot {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .projects-meta-actions__buttons {
   gap: 0.5rem;
-}
-
-.projects-meta-settings__row--actions-mobile {
-  display: none;
 }
 
 .projects-meta-field--name {
@@ -5487,18 +5510,25 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   .app-container--mobile .view-page-scroll > .view-toolbar-block,
   .app-container--mobile .view-root-fill > .view-toolbar-block {
     max-height: min(42dvh, 320px);
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  .app-container--mobile .view-toolbar-block .course-meta-settings-row {
+  .app-container--mobile .view-toolbar-block .course-meta-settings-row:not(.projects-meta-settings) {
     width: max-content;
     max-width: none;
     min-width: min(100%, max-content);
   }
 
-  .app-container--mobile .course-meta-settings-row:not(.oral-meta-panel) {
+  .app-container--mobile .projects-meta-settings.course-meta-settings-row {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .app-container--mobile .course-meta-settings-row:not(.oral-meta-panel):not(.projects-meta-settings) {
     overflow: visible;
   }
 
@@ -5822,26 +5852,77 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   /* Projekte: kompakte Einstellungszeilen auf dem Smartphone */
   .app-container--mobile .projects-meta-settings {
+    display: flex;
+    flex-direction: column;
     gap: 0.35rem;
     align-items: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--top {
+    display: contents;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--details {
+    display: contents;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--grade-key {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--core {
+    order: 2;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--weighting {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .app-container--mobile .projects-meta-settings__row--description {
+    order: 4;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-container--mobile .projects-meta-field--actions-slot {
+    order: 5;
+    margin-left: 0 !important;
+    width: 100%;
+    max-width: 100%;
   }
 
   .app-container--mobile .projects-meta-settings__row--grade-key,
   .app-container--mobile .projects-meta-settings__row--core,
-  .app-container--mobile .projects-meta-settings__row--actions-mobile,
+  .app-container--mobile .projects-meta-settings__row--weighting,
   .app-container--mobile .projects-meta-settings__row--description {
     justify-content: flex-start;
     align-items: flex-end;
     gap: 0.45rem 0.55rem;
-    width: 100%;
-  }
-
-  .app-container--mobile .projects-meta-field--actions-desktop {
-    display: none;
-  }
-
-  .app-container--mobile .projects-meta-settings__row--actions-mobile {
-    display: flex;
   }
 
   .app-container--mobile .projects-meta-settings .course-meta-field {
