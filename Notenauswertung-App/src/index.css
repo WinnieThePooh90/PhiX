@@ -3819,33 +3819,46 @@ a.support-phix-paypal-btn:active {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  overflow: visible;
 }
 
-/* Gruppentabellen: kein sticky thead — sonst überdeckt z-index 61 die Mitglieder-Schalter */
+.projects-group-table-block {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* Gruppentabellen: kein sticky thead/tfoot — alle Tabellen scrollen gemeinsam im äußeren Container */
+.projects-group-table-container thead,
+.exam-table-scroll .projects-group-table-container thead {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+.projects-group-table-container tfoot,
+.exam-table-scroll .projects-group-table-container tfoot {
+  position: static !important;
+  bottom: auto !important;
+  z-index: auto !important;
+}
+
+/* Gruppentabellen: kein sticky th — sonst überdeckt der Kopf der ersten Tabelle die folgenden */
+.projects-group-table-container thead th,
 .projects-group-table-container thead th.exam-th-r1,
-.projects-group-table-container thead th.exam-th-r2 {
-  position: static;
-  top: auto;
-  z-index: auto;
-  box-shadow: none;
-}
-
+.projects-group-table-container thead th.exam-th-r2,
 .projects-group-table-container thead tr:first-child th.exam-th-sticky-left,
 .projects-group-table-container thead tr:first-child th.exam-th-sticky-right,
 .projects-group-table-container thead tr:nth-child(2) th.exam-th-sticky-left,
-.projects-group-table-container thead tr:nth-child(2) th.exam-th-sticky-right {
-  z-index: auto;
-}
-
-/* Höhere Spezifität als .exam-table-scroll thead … — sonst klebt der Kopf wieder und blockiert Schalter */
+.projects-group-table-container thead tr:nth-child(2) th.exam-th-sticky-right,
+.exam-table-scroll .projects-group-table-container thead th,
 .exam-table-scroll .projects-group-table-container thead th.exam-th-r1,
 .exam-table-scroll .projects-group-table-container thead th.exam-th-r2,
 .exam-table-scroll .projects-group-table-container thead th.exam-th-sticky-left,
 .exam-table-scroll .projects-group-table-container thead th.exam-th-sticky-right {
-  position: static;
-  top: auto;
-  z-index: auto;
-  box-shadow: none;
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  box-shadow: none !important;
 }
 
 .projects-group-table-block__members {
@@ -5862,7 +5875,31 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     overflow: visible;
   }
 
-  .app-container--mobile .projects-meta-settings__row--top,
+  .app-container--mobile .projects-meta-settings__row--top {
+    display: contents;
+  }
+
+  .app-container--mobile .projects-meta-field--actions-slot {
+    order: 1;
+    flex: 0 1 auto;
+    max-width: 100%;
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .app-container--mobile .projects-meta-settings__top-left {
+    order: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 0.5rem 0.65rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
   .app-container--mobile .projects-meta-settings__row--core,
   .app-container--mobile .projects-meta-settings__row--description {
     display: flex;
@@ -5877,22 +5914,12 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     overflow: visible;
   }
 
-  .app-container--mobile .projects-meta-settings__top-left {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: flex-start;
-    gap: 0.5rem 0.65rem;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    overflow: visible;
+  .app-container--mobile .projects-meta-settings__row--core {
+    order: 3;
   }
 
-  .app-container--mobile .projects-meta-field--actions-slot {
-    flex: 0 1 auto;
-    max-width: 100%;
-    margin-left: auto !important;
+  .app-container--mobile .projects-meta-settings__row--description {
+    order: 4;
   }
 
   .app-container--mobile .projects-meta-weighting-end {
