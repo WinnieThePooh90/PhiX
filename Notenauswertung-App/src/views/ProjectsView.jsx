@@ -1038,6 +1038,10 @@ function ProjectScoresTable({
   courseArchived = false,
   isGroupMode = false,
 }) {
+  const { projects } = useData();
+  const tableProject = activeProject != null
+    ? (projects[activeProject] ?? projects[String(activeProject)] ?? project)
+    : project;
   const detailColSpan = 4 + displayFieldCount;
   const scoreInputScope = `project-${activeProject}`;
   const keyGradeOpts = gradingKeyResultDisplayOpts(gradeSys);
@@ -1072,7 +1076,7 @@ function ProjectScoresTable({
               >
                 <input
                   type="text"
-                  value={getProjectFieldNameStored(project, i)}
+                  value={getProjectFieldNameStored(tableProject, i)}
                   onChange={(e) => updateProjectFieldNames(activeProject, i, e.target.value)}
                   placeholder={getProjectFieldNamePlaceholder(i)}
                   title="Spaltenname des Themenfelds bearbeiten"
@@ -1098,7 +1102,7 @@ function ProjectScoresTable({
             {[...Array(displayFieldCount)].map((_, i) => (
               <th key={i} className="text-center exam-th-r2 exam-task-col" style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}>
                 <DeferredNumberInput
-                  value={parseScorePointsValue(project.fieldMaxPoints?.[i])}
+                  value={parseScorePointsValue(tableProject.fieldMaxPoints?.[i])}
                   defaultValue={0}
                   min={0}
                   onChange={(n) => updateProjectFieldMaxPoints(activeProject, i, n)}
@@ -1109,7 +1113,7 @@ function ProjectScoresTable({
               </th>
             ))}
             <th className="text-center" style={{ width: '100px', minWidth: '100px', ...stickyHeadSideR2, right: isGroupMode ? undefined : '100px', background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textTransform: 'none' }}>
-              {project.maxPoints}
+              {tableProject.maxPoints}
             </th>
             <th style={{ ...stickyHeadSideR2, right: isGroupMode ? undefined : 0, background: 'var(--surface-muted)', borderLeft: '1px solid var(--border)' }} />
           </tr>
@@ -1134,7 +1138,7 @@ function ProjectScoresTable({
               isManual,
               manualGradeInput,
             } = projectScoreRowStats(scoreKey);
-            const rawSc = project.scores?.[scoreKey];
+            const rawSc = tableProject.scores?.[scoreKey];
             const showAbsentFlag = !counted;
             const showIndexFlag = showAbsentFlag;
             const isExpanded = !isGroupMode && expandedScoreKey === scoreKey;
@@ -1190,7 +1194,7 @@ function ProjectScoresTable({
                   {[...Array(displayFieldCount)].map((_, fieldIndex) => {
                     const beyond = fieldIndex >= effN;
                     const val = fields[fieldIndex] !== undefined ? fields[fieldIndex] : '';
-                    const maxRule = getExamTaskMaxRule(project, fieldIndex);
+                    const maxRule = getExamTaskMaxRule(tableProject, fieldIndex);
                     const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
                     return (
                       <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
@@ -1212,7 +1216,7 @@ function ProjectScoresTable({
                                 const rowIdx = rows.findIndex((row) => row.scoreKey === scoreKey);
                                 const nextRow = rows[rowIdx + 1];
                                 if (!nextRow) return;
-                                const nextEffN = getProjectEffectiveFieldCountForScoreKey(project, nextRow.scoreKey);
+                                const nextEffN = getProjectEffectiveFieldCountForScoreKey(tableProject, nextRow.scoreKey);
                                 if (nextEffN > 0) {
                                   focusScoreTaskInput(scoreInputScope, nextRow.scoreKey, 0);
                                 }
@@ -1221,7 +1225,7 @@ function ProjectScoresTable({
                                 const rowIdx = rows.findIndex((row) => row.scoreKey === scoreKey);
                                 const prevRow = rows[rowIdx - 1];
                                 if (!prevRow) return;
-                                const prevEffN = getProjectEffectiveFieldCountForScoreKey(project, prevRow.scoreKey);
+                                const prevEffN = getProjectEffectiveFieldCountForScoreKey(tableProject, prevRow.scoreKey);
                                 if (prevEffN > 0) {
                                   focusScoreTaskInput(scoreInputScope, prevRow.scoreKey, prevEffN - 1);
                                 }
@@ -1272,9 +1276,9 @@ function ProjectScoresTable({
                 {isGroupMode && row.members?.map((member) => {
                   const memberKey = `${scoreKey}:${member.id}`;
                   const isMemberExpanded = expandedGroupMemberKey === memberKey;
-                  const rawGroupScore = getProjectGroupScoreData(project, scoreKey);
+                  const rawGroupScore = getProjectGroupScoreData(tableProject, scoreKey);
                   const memberOv = getProjectGroupMemberOverride(rawGroupScore, member.id);
-                  const memberCounted = isProjectGroupMemberCounted(project, scoreKey, member.id);
+                  const memberCounted = isProjectGroupMemberCounted(tableProject, scoreKey, member.id);
                   const memberManualActive = isProjectGroupMemberManualGradeActive(rawGroupScore, member.id);
                   const {
                     grade: memberGrade,
@@ -1378,47 +1382,48 @@ function ProjectScoresTable({
                               aria-label={`Einstellungen für ${member.lastName}, ${member.firstName}`}
                             >
                               <span className="text-muted" style={{ fontSize: '0.875rem' }}>Note aussetzen:</span>
-                              <label className="switch switch--table-row project-group-member-switch" title="Note für diesen Schüler aussetzen">
-                                <input
-                                  type="checkbox"
-                                  checked={!memberCounted}
-                                  disabled={courseArchived}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !e.target.checked);
-                                  }}
-                                  aria-label={`Note für ${member.lastName} aussetzen`}
-                                />
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={!memberCounted}
+                                disabled={courseArchived}
+                                className="switch switch--table-row project-group-member-switch"
+                                title="Note für diesen Schüler aussetzen"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateProjectGroupMemberCounted(activeProject, scoreKey, member.id, !memberCounted);
+                                }}
+                              >
                                 <span className={`slider${!memberCounted ? ' slider--on' : ''}`} aria-hidden />
-                              </label>
+                              </button>
                               {!projectManualGradeMode && (
                                 <>
                                   <span className="text-muted" style={{ fontSize: '0.875rem' }}>Manuelle Note:</span>
-                                  <label className="switch switch--table-row project-group-member-switch" title="Note manuell setzen (Berechnung ignorieren)">
-                                    <input
-                                      type="checkbox"
-                                      checked={memberManualActive}
-                                      disabled={courseArchived}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        const checked = e.target.checked;
-                                        if (!checked) {
-                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
-                                          return;
-                                        }
-                                        const stored = getExamManualGradeStoredValue(memberOv);
-                                        if (stored.trim() !== '') {
-                                          updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
-                                          return;
-                                        }
-                                        const { grade: calcGrade } = projectScoreRowStats(scoreKey);
-                                        const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
-                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
-                                      }}
-                                      aria-label={`Manuelle Note für ${member.lastName}`}
-                                    />
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={memberManualActive}
+                                    disabled={courseArchived}
+                                    className="switch switch--table-row project-group-member-switch"
+                                    title="Note manuell setzen (Berechnung ignorieren)"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (memberManualActive) {
+                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, false);
+                                        return;
+                                      }
+                                      const stored = getExamManualGradeStoredValue(memberOv);
+                                      if (stored.trim() !== '') {
+                                        updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true);
+                                        return;
+                                      }
+                                      const { grade: calcGrade } = projectScoreRowStats(scoreKey);
+                                      const seed = calcGrade != null ? gradingKeyResultToStoredString(calcGrade, gradeSys) : '';
+                                      updateProjectGroupMemberManualGrade(activeProject, scoreKey, member.id, true, seed);
+                                    }}
+                                  >
                                     <span className={`slider${memberManualActive ? ' slider--on' : ''}`} aria-hidden />
-                                  </label>
+                                  </button>
                                 </>
                               )}
                               {projectManualGradeMode && (

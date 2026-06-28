@@ -1542,39 +1542,34 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const ensureProjectGroupMemberOverride = (groupScore, memberId) => {
+  const ensureProjectGroupMemberOverride = (groupScore) => {
     const base = ensureProjectStudentScoreObject(groupScore);
-    const mid = String(memberId);
     const mo = normalizeProjectMemberOverrides(base._memberOverrides);
-    mo[mid] = { ...(mo[mid] || {}) };
-    return { base, mo, mid };
-  };
-
-  const resolveStateProject = (prev, projectId) => {
-    if (!prev || projectId == null) return { stateKey: null, project: null };
-    const stateKey = String(projectId);
-    const project = prev[stateKey] ?? prev[projectId];
-    if (!project) return { stateKey: null, project: null };
-    return { stateKey, project };
+    return { base, mo };
   };
 
   const patchProjectGroupMemberState = (projectId, groupId, memberId, patchMember) => {
     setProjects((prev) => {
-      const { stateKey, project } = resolveStateProject(prev, projectId);
+      const pid = String(projectId);
+      const project = prev[pid] ?? prev[projectId];
       if (!project) return prev;
 
-      const scores = normalizeProjectScoresMap(project.scores);
-      const groupKey = String(groupId);
-      const groupScore = scores[groupKey] ?? scores[groupId];
-      const { base, mo, mid } = ensureProjectGroupMemberOverride(groupScore);
+      const scores = { ...normalizeProjectScoresMap(project.scores) };
+      const gid = String(groupId);
+      const mid = String(memberId);
+      const { base, mo } = ensureProjectGroupMemberOverride(scores[gid] ?? scores[groupId]);
       const nextMember = patchMember({ ...(mo[mid] || {}) });
-      const nextMo = { ...mo, [mid]: nextMember };
-      const newGroupScore = { ...base, _memberOverrides: nextMo };
-      const newScores = { ...scores, [groupKey]: newGroupScore };
-      const newProject = { ...project, scores: newScores };
+      const newGroupScore = {
+        ...base,
+        _memberOverrides: { ...mo, [mid]: nextMember },
+      };
+      const newProject = {
+        ...project,
+        scores: { ...scores, [gid]: newGroupScore },
+      };
 
-      apiCall(`/api/projects/${stateKey}`, 'PUT', { ...newProject, courseId: activeCourseId });
-      return { ...prev, [stateKey]: newProject };
+      apiCall(`/api/projects/${pid}`, 'PUT', { ...newProject, courseId: activeCourseId });
+      return { ...prev, [pid]: newProject };
     });
   };
 

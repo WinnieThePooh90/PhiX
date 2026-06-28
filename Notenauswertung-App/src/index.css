@@ -3871,6 +3871,16 @@ a.support-phix-paypal-btn:active {
 
 .project-group-member-switch {
   cursor: pointer;
+  border: none;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  line-height: 0;
+}
+
+.project-group-member-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .project-group-member-detail-row td {
