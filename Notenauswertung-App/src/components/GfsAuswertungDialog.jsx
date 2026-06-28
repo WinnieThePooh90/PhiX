@@ -22,7 +22,7 @@ export default function GfsAuswertungDialog({
   auswertungHilfe,
   onSave,
 }) {
-  const { showConfirm } = useDialog();
+  const { showConfirm, showAlert } = useDialog();
   const [exportBusy, setExportBusy] = useState(false);
   const initial = useMemo(() => parseGfsAuswertungHilfe(auswertungHilfe), [auswertungHilfe, open]);
   const [scores, setScores] = useState(initial.scores);
@@ -84,7 +84,7 @@ export default function GfsAuswertungDialog({
     persist({ scores: {}, bemerkungen: '' });
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (exportBusy) return;
     setExportBusy(true);
     try {
@@ -96,6 +96,8 @@ export default function GfsAuswertungDialog({
         bemerkungen,
         filename: gfsAuswertungPdfFilename(titleLabel, studentName),
       });
+    } catch (err) {
+      await showAlert(err?.message || 'PDF-Export fehlgeschlagen.', { title: 'Export' });
     } finally {
       setExportBusy(false);
     }

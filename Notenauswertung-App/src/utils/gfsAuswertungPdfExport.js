@@ -56,6 +56,7 @@ function highlightSelectedCriteriaCells(data, scores) {
   const colIdx = data.column.index - 1;
   if (colIdx < 0 || colIdx >= GFS_AUSWERTUNG_POINT_LEVELS.length) return;
   const criterion = GFS_AUSWERTUNG_CRITERIA[data.row.index];
+  if (!criterion) return;
   const gridPoint = GFS_AUSWERTUNG_POINT_LEVELS[colIdx];
   if (scores[criterion.id] === gridPoint) {
     data.cell.styles.fillColor = SELECTED_FILL;
@@ -128,7 +129,7 @@ export function downloadGfsAuswertungPdf({
     return row;
   });
 
-  const criteriaResult = autoTable(doc, {
+  autoTable(doc, {
     head: criteriaHead,
     body: criteriaBody,
     startY: y,
@@ -153,7 +154,7 @@ export function downloadGfsAuswertungPdf({
     tableWidth: contentWidth,
   });
 
-  y = (criteriaResult.lastAutoTable?.finalY ?? y) + 5;
+  y = (doc.lastAutoTable?.finalY ?? y) + 5;
 
   const gradeTableTitle = isPointsMode ? 'Punkte-Notenpunkte-Tabelle' : 'Punkte-Noten-Tabelle';
   doc.setFontSize(8);
@@ -167,7 +168,7 @@ export function downloadGfsAuswertungPdf({
   const { head: gradeHead, body: gradeBody } = buildGradeTableMultiColumn(gradePairs, gradeColumns);
   const gradeTableWidth = contentWidth * 0.55;
 
-  const gradeResult = autoTable(doc, {
+  autoTable(doc, {
     head: gradeHead,
     body: gradeBody,
     startY: y,
@@ -195,7 +196,6 @@ export function downloadGfsAuswertungPdf({
   doc.setFontSize(7);
 
   const notesText = String(bemerkungen ?? '').trim() || '—';
-  const gradeEndY = gradeResult.lastAutoTable?.finalY ?? notesY;
   const maxNotesBottom = pageH - PAGE_MARGIN;
   const lineHeight = 3.2;
   const maxLines = Math.max(1, Math.floor((maxNotesBottom - (notesY + 4)) / lineHeight));
