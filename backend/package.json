@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "369.0.0",
+  "version": "370.0.0",
   "description": "PhiX API server — Notenauswertung",
   "main": "index.js",
   "scripts": {

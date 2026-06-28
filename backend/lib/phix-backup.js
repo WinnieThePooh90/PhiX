@@ -15,6 +15,7 @@ const BACKUP_SCOPE_USER = 'user';
 
 const DATE_FIELDS_BY_MODEL = {
   AppUser: ['createdAt'],
+  AppRegistration: ['registeredAt'],
   SchoolRosterYear: ['createdAt'],
   SchoolRosterStudent: ['createdAt'],
   MoneyList: ['createdAt'],
@@ -27,7 +28,9 @@ const DATE_FIELDS_BY_MODEL = {
 
 const PG_SEQUENCE_TABLES = [
   'AppUser',
+  'UserSettings',
   'UserCrypto',
+  'AppRegistration',
   'Config',
   'Course',
   'SchoolRosterYear',
@@ -53,7 +56,9 @@ const PG_SEQUENCE_TABLES = [
 
 const EMPTY_DATA = {
   appUsers: [],
+  userSettings: [],
   userCrypto: [],
+  appRegistration: [],
   config: [],
   courses: [],
   students: [],
@@ -219,10 +224,22 @@ async function fetchUserRoster(prisma, ownerUsername) {
   return { schoolRosterYears, schoolRosterStudents };
 }
 
+async function fetchUserSettings(prisma, ownerUsername) {
+  const userRow = await prisma.appUser.findFirst({
+    where: { username: ownerUsername },
+    select: { id: true },
+  });
+  if (!userRow) return [];
+  const row = await prisma.userSettings.findUnique({ where: { userId: userRow.id } });
+  return row ? [row] : [];
+}
+
 async function exportPhixDatabase(prisma, meta = {}) {
   const [
     appUsers,
+    userSettings,
     userCrypto,
+    appRegistration,
     config,
     courses,
     students,
@@ -246,7 +263,9 @@ async function exportPhixDatabase(prisma, meta = {}) {
     userAuswertungshilfe,
   ] = await Promise.all([
     prisma.appUser.findMany(),
+    prisma.userSettings.findMany(),
     prisma.userCrypto.findMany(),
+    prisma.appRegistration.findMany(),
     prisma.config.findMany(),
     prisma.course.findMany(),
     prisma.student.findMany(),
@@ -275,7 +294,9 @@ async function exportPhixDatabase(prisma, meta = {}) {
     null,
     {
       appUsers,
+      userSettings,
       userCrypto,
+      appRegistration,
       config,
       courses,
       students,
@@ -327,6 +348,7 @@ async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) 
     select: { id: true, username: true },
   });
   const userAuswertungshilfe = await fetchUserAuswertungshilfe(prisma, ownerUsername);
+  const userSettings = await fetchUserSettings(prisma, ownerUsername);
 
   return buildBackupEnvelope(
     BACKUP_SCOPE_USER,
@@ -334,6 +356,7 @@ async function exportPhixUserDatabaseRaw(prisma, ownerUsernameInput, meta = {}) 
     {
       ...EMPTY_DATA,
       appUsers: userRow ? [{ id: userRow.id, username: userRow.username }] : [],
+      userSettings,
       courses,
       ...scoped,
       ...roster,
@@ -413,7 +436,9 @@ async function clearAllPhixData(tx) {
   await tx.schoolRosterStudent.deleteMany();
   await tx.schoolRosterYear.deleteMany();
   await tx.config.deleteMany();
+  await tx.userSettings.deleteMany();
   await tx.userCrypto.deleteMany();
+  await tx.appRegistration.deleteMany();
   await tx.appUser.deleteMany();
 }
 
@@ -500,6 +525,7 @@ async function resetPostgresSequences(prisma) {
 function countDataSummary(d) {
   return {
     appUsers: d.appUsers?.length ?? 0,
+    userSettings: d.userSettings?.length ?? 0,
     courses: d.courses?.length ?? 0,
     students: d.students?.length ?? 0,
     exams: d.exams?.length ?? 0,
@@ -528,14 +554,16 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await clearAllPhixData(tx);
 
       await insertMany(tx, 'AppUser', d.appUsers);
+      await insertMany(tx, 'UserSettings', d.userSettings ?? []);
       await insertMany(tx, 'UserCrypto', d.userCrypto);
+      await insertMany(tx, 'AppRegistration', d.appRegistration ?? []);
       await insertMany(tx, 'Config', d.config);
       await insertMany(tx, 'Course', d.courses);
       await insertMany(tx, 'SchoolRosterYear', d.schoolRosterYears);
       await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents);
       await insertMany(tx, 'Student', d.students);
       await insertMany(tx, 'Exam', d.exams);
-      await insertMany(tx, 'Project', d.projects);
+      await insertMany(tx, 'Project', d.projects ?? []);
       await insertMany(tx, 'Oral', d.orals);
       await insertMany(tx, 'Test', d.tests);
       await insertMany(tx, 'GfsEntry', d.gfsEntries);
@@ -548,7 +576,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries);
       await insertMany(tx, 'NotesList', d.notesLists);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries);
-      await insertMany(tx, 'AlbumPhoto', d.albumPhotos);
+      await insertMany(tx, 'AlbumPhoto', d.albumPhotos ?? []);
       await insertMany(tx, 'UserAuswertungshilfe', d.userAuswertungshilfe ?? []);
     },
     { maxWait: 60_000, timeout: 300_000 },
@@ -603,7 +631,7 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents, insertOpts);
       await insertMany(tx, 'Student', d.students, insertOpts);
       await insertMany(tx, 'Exam', d.exams, insertOpts);
-      await insertMany(tx, 'Project', d.projects, insertOpts);
+      await insertMany(tx, 'Project', d.projects ?? [], insertOpts);
       await insertMany(tx, 'Oral', d.orals, insertOpts);
       await insertMany(tx, 'Test', d.tests, insertOpts);
       await insertMany(tx, 'GfsEntry', d.gfsEntries, insertOpts);
@@ -616,7 +644,16 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries, insertOpts);
       await insertMany(tx, 'NotesList', d.notesLists, insertOpts);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries, insertOpts);
-      await insertMany(tx, 'AlbumPhoto', d.albumPhotos, insertOpts);
+      await insertMany(tx, 'AlbumPhoto', d.albumPhotos ?? [], insertOpts);
+      if (targetUser && Array.isArray(d.userSettings) && d.userSettings.length) {
+        await tx.userSettings.deleteMany({ where: { userId: targetUser.id } });
+        const settingsRows = d.userSettings.map((row) => ({
+          ...row,
+          id: undefined,
+          userId: targetUser.id,
+        }));
+        await insertMany(tx, 'UserSettings', settingsRows, insertOpts);
+      }
       if (targetUser && Array.isArray(d.userAuswertungshilfe) && d.userAuswertungshilfe.length) {
         await tx.userAuswertungshilfe.deleteMany({ where: { userId: targetUser.id } });
         const rows = d.userAuswertungshilfe.map((row) => ({

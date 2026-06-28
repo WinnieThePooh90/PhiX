@@ -314,7 +314,7 @@ export default function BackupView() {
         <BackupRestoreBlock
           sectionId="me"
           title="Mein Backup"
-          description="Verschlüsseltes Backup mit allen Ihren Kursen, Schülern, Noten, Klassenlehrer-Listen und Ihrer Schülerverwaltung. Keine anderen Benutzer, keine Passwörter."
+          description="Verschlüsseltes Backup mit allen Ihren Kursen, Schülern, Noten (Klausuren, Tests, Mündlich, Projekte, GFS, Referate), Klassenlehrer-Listen, Album-Fotos, Auswertungshilfe und Schülerverwaltung. Persönliche Anzeige-Einstellungen (Dark Mode, Farbschema) sind enthalten. Keine anderen Benutzer, keine Passwörter."
           warning={
             <>
               <strong>Achtung:</strong> Beim Aufspielen werden <strong>alle Ihre Kurse</strong> gelöscht und
@@ -341,7 +341,7 @@ export default function BackupView() {
             <BackupRestoreBlock
               sectionId="full"
               title="Vollständiges Datenbank-Backup"
-              description="Gesamte Installation als verschlüsseltes Backup (wie in der Datenbank). Enthält UserCrypto-Hüllen; Klartext fremder Nutzer ist ohne deren Passwort/Recovery nicht lesbar."
+              description="Gesamte Installation als verschlüsseltes Backup (wie in der Datenbank): alle Benutzer, Kurse, Noten inkl. Projekte, GFS, Referate und Album, Klassenlehrer-Listen sowie UserCrypto-Hüllen. Klartext fremder Nutzer ist ohne deren Passwort/Recovery nicht lesbar."
               warning={
                 <>
                   <strong>Achtung:</strong> Ersetzt die <strong>komplette Datenbank</strong> aller Benutzer.
