@@ -1,10 +1,10 @@
 # PhiX
 
-**Notenauswertung für Lehrkräfte** — Klausuren, Tests, mündliche Noten, Projekte, GFS, Referate und Gesamtübersicht in einer Anwendung. Entwickelt für den Schulalltag (u. a. Gymnasium in Baden-Württemberg), als Web-App, Docker-Server oder Windows-Desktop nutzbar.
+**Notenauswertung für Lehrkräfte** — Klausuren, Tests, mündliche Noten, Projekte, GFS, Referate und Gesamtübersicht in einer Anwendung. Entwickelt für den Schulalltag (insbesondere Gymnasium in Baden-Württemberg), als Docker-Server oder Windows-Desktop nutzbar.
 
 | | |
 |---|---|
-| **Aktueller Build** | `378` (siehe [`docs/APP_VERSION.md`](docs/APP_VERSION.md)) |
+| **Aktueller Build** | siehe [`docs/APP_VERSION.md`](docs/APP_VERSION.md) |
 | **Lizenz** | [Apache License 2.0](LICENSE) |
 | **Autor** | Karsten Paulokat |
 
@@ -30,9 +30,9 @@
 
 - **Klausuren** — Aufgabenfelder, Notenschlüssel (Plateau/Linear, eigene Schlüssel, ABI-Vorlagen), Nachschreiber, manuelle Noten, Auswertungsdiagramme
 - **Tests** — analog zu Klausuren, optional pro Kurs (ein-/ausschaltbar in den Kurseinstellungen)
-- **Mündlich** — einfache und erweiterte Erfassung (Wochenpunkte), Berechnung aus Klassenspitze
+- **Mündlich** — einfache und erweiterte Erfassung (Wochenpunkte mit Berücksichtigung der gesamten Klassenleistung oder Wochennoten pro Schüler)
 - **Projekte** — schriftlich/mündlich/prozentual gewichtet, Einzel- oder Gruppennoten
-- **GFS** — Großes Fachgespräch mit Thema, Art, Halbjahr und Note; **Auswertungshilfe** pro Schüler (Kriterienbogen mit Punktesumme und Notenvorschlag)
+- **GFS** — Gleichwertige Feststellung von Schülerleistungen (Pflicht in Baden-Württemberg) mit Thema, Art, Halbjahr und Note; **Auswertungshilfe** pro Schüler (Kriterienbogen mit Punktesumme und Notenvorschlag)
 - **Referate** — Thema, Art, Halbjahr, Note; optional als Klausur- oder mündliche Leistung gewichtet; gleiche **Auswertungshilfe** wie bei GFS
 - **Übersicht** — Gesamtnote, Schriftlich/Mündlich, optional Halbjahresnote; nachvollziehbare Berechnung pro Schüler
 
@@ -85,7 +85,7 @@ Prisma nutzt **zwei Schema-Dateien** (PostgreSQL und SQLite), die manuell synchr
 
 | Ordner | Beschreibung |
 |--------|----------------|
-| [`Notenauswertung-App/`](Notenauswertung-App/) | React/Vite-Web-UI |
+| [`Notenauswertung-App/`](Notenauswertung-App/) | React/Vite-Frontend (Docker + Desktop) |
 | [`backend/`](backend/) | Node.js/Express-API, Prisma, Verschlüsselung |
 | [`desktop/`](desktop/) | Electron-Desktop-Hülle (Windows) |
 | [`docs/`](docs/) | Installation, Builds, ADRs, Version |
@@ -96,8 +96,8 @@ Prisma nutzt **zwei Schema-Dateien** (PostgreSQL und SQLite), die manuell synchr
 
 ### Voraussetzungen
 
-- [Node.js](https://nodejs.org/) LTS (20+)
-- PostgreSQL (lokal oder per Docker) **oder** SQLite nur für Desktop-Dev
+- [Node.js](https://nodejs.org/) LTS (20+) für Desktop-Entwicklung und -Builds
+- [Docker](https://www.docker.com/) für die Server-Variante (empfohlen)
 
 ### Abhängigkeiten & Prisma
 
@@ -120,24 +120,11 @@ Browser: **http://localhost:1990** (Frontend; API intern auf Port 3000).
 
 Unter Windows alternativ: `start_docker.bat` / `stop_docker.bat`.
 
-### Variante B — Web-Entwicklung (Frontend + Backend)
-
-1. `backend/.env` aus `backend/.env.example` konfigurieren (PostgreSQL, z. B. per Docker Compose)
-2. Zwei Terminals:
+### Variante B — Electron-Desktop (Dev)
 
 ```bash
-cd backend && npm run dev
-cd Notenauswertung-App && npm run dev
-```
-
-Browser: **http://localhost:5173** (Vite-Proxy zur API).
-
-### Variante C — Electron-Desktop (Dev)
-
-```bash
-cd backend && npm run dev          # Terminal 1
-cd Notenauswertung-App && npm run dev   # Terminal 2
-cd desktop && npm run dev          # Terminal 3 — Electron-Fenster
+cd Notenauswertung-App && npm run dev   # Terminal 1 — Vite
+cd desktop && npm run dev               # Terminal 2 — Backend + Electron-Fenster
 ```
 
 Details: [`desktop/README.md`](desktop/README.md), [`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md).
@@ -150,16 +137,16 @@ PhiX kann auf unterschiedliche Weise verteilt werden. Ausführliche Tabellen: [`
 
 | Variante | Typisch für | Datenbank | Start |
 |----------|-------------|-----------|--------|
-| **Docker Compose** | Schulserver, mehrere Clients | PostgreSQL (Volume) | Browser → Port 1990 |
+| **Docker Compose** | Schulserver, mehrere Clients im Browser | PostgreSQL (Volume) | Browser → Port 1990 |
 | **Electron Desktop** | Einzelplatz, USB-tauglich | SQLite neben `PhiX.exe` | `PhiX.exe` (ZIP oder Portable-EXE) |
-| **Entwicklung** | Mitwirkende | Postgres oder SQLite | siehe oben |
+
+Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Docker oder Electron).
 
 ### Build-Befehle (Kurzreferenz)
 
 | Ziel | Befehl | Artefakt |
 |------|--------|----------|
 | Docker-Stack | `docker compose up -d --build` | Container-Images |
-| Frontend-Produktion | `cd Notenauswertung-App && npm run build` | `dist/` |
 | Windows Electron | `cd desktop && npm run dist` | `desktop/dist-pack/*.zip` und `*.exe` |
 
 **Plattformen:** Windows ist für Desktop-Builds vorgesehen. Ein fertiges **Linux-/macOS-Desktop-Paket** ist derzeit nicht vorkonfiguriert. Apple-Geräte (Mac/iPad) werden nicht unterstützt.
@@ -200,8 +187,10 @@ Hauptabhängigkeiten (Auszug): React (MIT), Express (MIT), Prisma (Apache-2.0), 
 
 | Thema | Datei |
 |-------|--------|
-| Windows Installation (Docker + Standalone) | [`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
+| **Übersicht (`docs/`)** | [`docs/README.md`](docs/README.md) |
+| Windows Installation (Docker + Desktop) | [`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
 | Build-Varianten & Artefakte | [`docs/BUILD_VERSIONEN.md`](docs/BUILD_VERSIONEN.md) |
+| Smoke-Tests | [`docs/SMOKE_WEB_BASELINE.md`](docs/SMOKE_WEB_BASELINE.md) |
 | Windows-Übersicht | [`WINDOWS.md`](WINDOWS.md) |
 | Electron Desktop | [`desktop/README.md`](desktop/README.md) |
 | SQLite Desktop / Backup | [`docs/SQLITE_DESKTOP.md`](docs/SQLITE_DESKTOP.md) |

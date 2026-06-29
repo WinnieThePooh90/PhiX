@@ -6,8 +6,14 @@ Akzeptiert (2026-05-20)
 
 ## Kontext
 
-Die Web-App soll parallel als **Desktop-Standalone** laufen (lokales Fenster, später SQLite).  
-Dafür braucht es eine dünne „Shell“, die das gebündelte oder lokale Backend startet und die UI anzeigt.
+PhiX wird in **zwei Varianten** verteilt:
+
+1. **Docker-Server** — React-UI im Browser, PostgreSQL.
+2. **Electron-Desktop** — eigenes Fenster, SQLite, ohne Docker.
+
+Es gibt **keinen** dritten Weg als eigenständige Web-App (Frontend + Backend ohne Docker).
+
+Für Variante 2 braucht es eine dünne „Shell“, die das gebündelte Backend startet und die UI anzeigt.
 
 ## Entscheidung
 
@@ -27,10 +33,12 @@ Wir setzen auf **Electron** (Main-Prozess: Node.js, Renderer: Chromium).
 ## Konsequenzen
 
 - Desktop-Code lebt unter `desktop/` (Main-Prozess, Packaging).
-- Renderer bleibt das **bestehende React-Frontend**; keine UI-Duplikation.
+- Renderer bleibt das **bestehende React-Frontend** (`Notenauswertung-App/`); keine UI-Duplikation.
+- Frontend-Auslieferung im Release nur über `PHIX_STANDALONE=1` im Backend (gesetzt von `desktop/main.cjs`).
 - Tauri bleibt für spätere Re-Evaluierung möglich (ADR superseded), ist aber **nicht** Ziel der ersten Umsetzung.
 
 ## Referenzen
 
-- `desktop/README.md`
-- `docs/BUILD_VERSIONEN.md`
+- [`desktop/README.md`](../desktop/README.md)
+- [`docs/BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md)
+- [`docs/README.md`](README.md)

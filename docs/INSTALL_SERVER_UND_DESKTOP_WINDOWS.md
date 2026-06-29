@@ -1,11 +1,13 @@
 # PhiX unter Windows: Docker-Server und Electron-Desktop
 
-Diese Anleitung beschreibt, wie Sie
+Diese Anleitung beschreibt die **einzigen beiden** Verteilungswege von PhiX:
 
-1. die **Server-Variante mit Docker Compose** installieren und starten, und  
-2. eine **Electron-Standalone-Version** erzeugen und **testweise wie ein Endbenutzer** ausprobieren.
+1. **Server-Variante mit Docker Compose** (Browser, PostgreSQL), und  
+2. **Electron-Desktop** (eigenes Fenster, SQLite) — Build und Test als Endbenutzer.
 
-Weitere Übersicht: `WINDOWS.md`, `docs/BUILD_VERSIONEN.md`.
+Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Docker oder Electron).
+
+Weitere Übersicht: [`WINDOWS.md`](../WINDOWS.md), [`docs/BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md), [`docs/README.md`](README.md).
 
 ---
 
@@ -26,11 +28,11 @@ Docker Compose startet drei Dienste (siehe `docker-compose.yml` im Projektroot, 
 
 | Dienst    | Rolle                         | Host-Port (Standard) |
 |-----------|-------------------------------|----------------------|
-| `frontend` | gebautes Web-UI (nginx o. Ä.) | **1990** → Container 80 |
+| `frontend` | React-UI (nginx)              | **1990** → Container 80 |
 | `backend`  | Node-API (Prisma/Postgres)    | **3000** → Container 3000 |
 | `db`       | PostgreSQL 15                 | **5432** → Container 5432 |
 
-Die Web-Oberfläche erreichen Sie im Browser über **`http://localhost:1990`** (oder den von Ihnen gewählten `FRONTEND_PORT`).
+Die Oberfläche erreichen Sie im **System-Browser** über **`http://localhost:1990`** (oder den von Ihnen gewählten `FRONTEND_PORT`).
 
 ### 1.2 Voraussetzungen
 
@@ -85,7 +87,7 @@ Browser: **`http://localhost:<FRONTEND_PORT>`** (Standard **1990**).
 Eine der folgenden Optionen:
 
 - **`stop_docker.bat`** im Projektroot, oder  
-- In der Web-App: Menü **„Herunterfahren“** (das Backend im Container kann dabei `docker compose down` auslösen — Details `WINDOWS.md`), oder  
+- In der App: Menü **„Herunterfahren“** (das Backend im Container kann dabei `docker compose down` auslösen — Details [`WINDOWS.md`](../WINDOWS.md)), oder  
 - Manuell im Projektroot: `docker compose down`
 
 **Hinweis:** Im `docker-compose.yml` hat der **Backend**-Service `restart: "no"`, damit nach einem kontrollierten Herunterfahren nicht sofort ein neuer Container hochfährt. Datenbank und Frontend können weiter `unless-stopped` nutzen — bei Bedarf separat stoppen (`docker compose stop` / Docker Desktop).
@@ -102,9 +104,9 @@ Eine der folgenden Optionen:
 
 ## Teil 2: Electron-Desktop-App
 
-**Ziel:** Eine **Desktop-Anwendung** (Electron), die das **Node-Backend** als eigenen Prozess startet und die Web-Oberfläche im **Programmfenster** anzeigt. **SQLite** unter `<Installationsordner>/data/phix.db` — ohne separaten Postgres auf dem Zielrechner.
+**Ziel:** Eine **Desktop-Anwendung** (Electron), die das **Node-Backend** als eigenen Prozess startet und die React-Oberfläche im **Programmfenster** anzeigt. **SQLite** unter `<Installationsordner>/data/phix.db` — ohne separaten Postgres auf dem Zielrechner.
 
-**Doku:** `desktop/README.md`, `desktop/main.cjs`, SQLite: `docs/SQLITE_DESKTOP.md`
+**Doku:** [`desktop/README.md`](../desktop/README.md), `desktop/main.cjs`, SQLite: [`docs/SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md)
 
 ### 2.1 Voraussetzungen zum Bauen
 
@@ -119,11 +121,11 @@ Eine der folgenden Optionen:
 |--------|--------|--------|--------|
 | 1 | **`backend\`** | `npm install` | API-Abhängigkeiten; **`postinstall`** → `prisma:generate-all` |
 | 2 | **`Notenauswertung-App\`** | `npm install` | Frontend-Abhängigkeiten |
-| 3 | **`Notenauswertung-App\`** | `npm run build` | Erzeugt **`dist\`** |
+| 3 | **`Notenauswertung-App\`** | `npm run build` | Erzeugt **`dist\`** (intern für Electron; kein separater Web-Release) |
 | 4 | **`desktop\`** | `npm install` | Electron + electron-builder |
 | 5 | **`desktop\`** | `npm run dist` | Packt alles (siehe **2.3**) |
 
-**Schema-Änderungen:** immer **beide** Prisma-Schemas pflegen — `backend/prisma/schema.prisma` (PostgreSQL) **und** `backend/prisma/sqlite/schema.prisma` (SQLite). Details: `docs/ADR-002-prisma-postgres-sqlite.md`.
+**Schema-Änderungen:** immer **beide** Prisma-Schemas pflegen — `backend/prisma/schema.prisma` (PostgreSQL) **und** `backend/prisma/sqlite/schema.prisma` (SQLite). Details: [`docs/ADR-002-prisma-postgres-sqlite.md`](ADR-002-prisma-postgres-sqlite.md).
 
 **Kurz als Batch** (Pfade anpassen):
 
@@ -144,6 +146,8 @@ npm install
 npm run dist
 ```
 
+Alternativ ab Schritt 4: `npm run dist` im Ordner `desktop` führt `prepare-pack` aus und baut das Frontend automatisch mit.
+
 ### 2.3 Was passiert beim Packen? (`npm run dist`)
 
 ```text
@@ -162,7 +166,7 @@ npm run dist
 1. **Release:** User-Data und SQLite unter **`<Installationsordner>\data\`**. **Dev (`npm run dev`):** `%APPDATA%\PhiX`.
 2. Backend startet mit **`ELECTRON_RUN_AS_NODE`** und `server.js`, Arbeitsverzeichnis = `resources\backend`.
 3. Ohne `DATABASE_URL` → **`file:…/phix.db`** (SQLite). Ordner muss beschreibbar sein.
-4. Fenster lädt **`http://127.0.0.1:3000`** (oder Vite im Dev-Modus).
+4. **Release:** Fenster lädt **`http://127.0.0.1:3000`** (Backend liefert Frontend via `PHIX_STANDALONE=1`). **Dev:** Vite auf Port **5173** im Electron-Fenster.
 
 ### 2.4 Befehle zum Packen / Fehlerbehebung
 
@@ -184,7 +188,14 @@ npm run dist
 
 ### 2.6 Entwicklung statt Installer-Paket
 
-Drei Terminals: `backend` → `npm run dev`; `Notenauswertung-App` → `npm run dev`; `desktop` → `npm run dev` — siehe `desktop/README.md`.
+Zwei Terminals:
+
+```bash
+cd Notenauswertung-App && npm run dev   # Vite (nur für Electron-Dev)
+cd desktop && npm run dev             # startet Backend + Electron-Fenster
+```
+
+Siehe [`desktop/README.md`](../desktop/README.md). Kein Browser-Dev-Modus ohne Electron.
 
 ---
 
@@ -204,14 +215,16 @@ Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werde
 
 | Thema | Datei |
 |-------|--------|
-| Windows-Übersicht | `WINDOWS.md` |
-| Build-Varianten & Artefakte | `docs/BUILD_VERSIONEN.md` |
-| Manuelle Smoke-Checkliste | `docs/SMOKE_WEB_BASELINE.md` |
-| SQLite-Pfad, Backup | `docs/SQLITE_DESKTOP.md` |
-| Optional Postgres → SQLite | `docs/SQLITE_IMPORT.md` |
-| Electron Desktop | `desktop/README.md` |
-| Compose-Ports (Vorlage) | `.env.example` |
+| Dokumentations-Übersicht | [`docs/README.md`](README.md) |
+| Windows-Übersicht | [`WINDOWS.md`](../WINDOWS.md) |
+| Build-Varianten & Artefakte | [`docs/BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md) |
+| Manuelle Smoke-Checkliste | [`docs/SMOKE_WEB_BASELINE.md`](SMOKE_WEB_BASELINE.md) |
+| SQLite-Pfad, Backup | [`docs/SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md) |
+| Optional Postgres → SQLite | [`docs/SQLITE_IMPORT.md`](SQLITE_IMPORT.md) |
+| Verschlüsselung | [`docs/ENCRYPTION.md`](ENCRYPTION.md) |
+| Electron Desktop | [`desktop/README.md`](../desktop/README.md) |
+| Compose-Ports (Vorlage) | [`.env.example`](../.env.example) |
 
 ---
 
-*Diese Datei beschreibt den intendierten Ablauf laut Repository.*
+*Diese Datei beschreibt den intendierten Ablauf laut Repository (Stand 2026-06-28).*

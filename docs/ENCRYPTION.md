@@ -1,4 +1,13 @@
-# PhiX – Verschlüsselung (Build 47+)
+# PhiX – Verschlüsselung
+
+Gilt für **beide Produktvarianten** (Docker-Server mit PostgreSQL und Electron-Desktop mit SQLite).
+
+| Stand | Wert |
+|-------|------|
+| Eingeführt ab Build | 47 (siehe [`APP_VERSION.md`](APP_VERSION.md) für aktuellen Stand) |
+| Letzte inhaltliche Aktualisierung | 2026-06-28 |
+
+---
 
 ## Überblick
 
@@ -6,10 +15,14 @@ Sensible fachliche Daten (Kurse, Schüler, Noten, Listen, Schülerverwaltung) we
 
 Nach dem Login hält der Server den DEK nur **im RAM** (Krypto-Session, TTL **5 Minuten** Inaktivität, bei jeder API-Anfrage verlängert). Das Frontend sendet `X-Phix-Crypto-Token` (sessionStorage) zusätzlich zu `X-Acting-User` und meldet nach **5 Minuten** ohne Nutzeraktivität automatisch ab.
 
+---
+
 ## Speicherformat
 
 - Feldwert: `enc:v1:` + Base64(IV 12 B + Auth-Tag 16 B + Ciphertext)
 - JSON-Felder: `JSON.stringify` → Verschlüsselung → String
+
+---
 
 ## KDF (Argon2id)
 
@@ -18,9 +31,13 @@ Nach dem Login hält der Server den DEK nur **im RAM** (Krypto-Session, TTL **5 
 - parallelism: 4  
 - hashLength: 32  
 
+---
+
 ## Unverschlüsselt (Allowlist)
 
 Primär-/Fremdschlüssel, `ownerUsername`, Booleans, Struktur-Zahlen (`examNumber`, `maxPoints`, …), `createdAt`, `AppUser` / `UserCrypto` Metadaten.
+
+---
 
 ## API
 
@@ -36,6 +53,8 @@ Primär-/Fremdschlüssel, `ownerUsername`, Booleans, Struktur-Zahlen (`examNumbe
 
 Ohne gültige Krypto-Session: **HTTP 423** (außer Login/Setup/Session).
 
+---
+
 ## Backup (Format v2)
 
 - **Mein Backup** `?mode=decrypted` (Standard): lesbares JSON  
@@ -45,10 +64,28 @@ Ohne gültige Krypto-Session: **HTTP 423** (außer Login/Setup/Session).
 
 Format v1-Backups werden beim Restore weiterhin als Klartext behandelt.
 
+Backups sind **variantenübergreifend** nutzbar (Docker ↔ Desktop), sofern Schema und App-Version kompatibel sind.
+
+---
+
 ## Grenzen
 
-Schutz vor **DB-Diebstahl** und Backup-Leaks ohne Server-Passwort. **Kein** E2E-Modell: ein kompromittierter Server kann während laufender Sessions Klartext sehen. TLS in Produktion weiterhin Pflicht.
+Schutz vor **DB-Diebstahl** und Backup-Leaks ohne Server-Passwort. **Kein** E2E-Modell: ein kompromittierter Server kann während laufender Sessions Klartext sehen.
+
+- **Docker-Server:** TLS/HTTPS vor dem Schulnetz empfohlen (Reverse-Proxy vor Port 1990).
+- **Desktop:** Daten lokal auf dem Rechner/USB — physischer Zugriff auf `data/phix.db` schützt die Verschlüsselung nur mit Passwort/Recovery-Key.
+
+---
 
 ## Migration
 
 Bestehende Installationen: nach Deploy beim ersten Login **Setup** (DEK anlegen), danach werden vorhandene Klartext-Daten des Benutzers einmalig verschlüsselt. Schülerverwaltung erhält `ownerUsername` (Bestand → `admin`).
+
+---
+
+## Verwandte Dokumentation
+
+| Thema | Datei |
+|-------|--------|
+| SQLite Desktop / Backup | [`SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md) |
+| Docker & Desktop Übersicht | [`BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md) |

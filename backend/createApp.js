@@ -3011,11 +3011,9 @@ app.post('/api/shutdown', async (req, res) => {
   });
 });
 
-/** Standalone-Windows: gebautes Frontend vom Backend ausliefern (ein Prozess, Port 3000). */
+/** Electron-Desktop: gebautes Frontend vom Backend ausliefern (ein Prozess, Port 3000). */
 function setupStandaloneFrontend() {
-  const standalone =
-    process.env.PHIX_STANDALONE === '1' || process.env.NODE_ENV === 'production';
-  if (!standalone) return;
+  if (process.env.PHIX_STANDALONE !== '1') return;
 
   const distCandidates = [
     process.env.PHIX_FRONTEND_DIST,

@@ -1,4 +1,4 @@
-# ADR-002: Prisma — PostgreSQL (Web/Server) und SQLite (Desktop)
+# ADR-002: Prisma — PostgreSQL (Docker-Server) und SQLite (Desktop)
 
 ## Status
 
@@ -6,8 +6,10 @@ Akzeptiert und **umgesetzt** (Backend: dualer Prisma-Client, SQLite-Schema, Star
 
 ## Kontext
 
-- **Web/Server (Docker):** PostgreSQL ist die Produktions-Datenbank.
-- **Desktop (Electron):** **Eingebettete SQLite-Datei** unter dem Benutzerdatenordner (kein separater DB-Server).
+- **Docker-Server:** PostgreSQL ist die Produktions-Datenbank (Container `db` in `docker-compose.yml`).
+- **Electron-Desktop:** **Eingebettete SQLite-Datei** unter dem Benutzerdatenordner (kein separater DB-Server).
+
+Es gibt keine dritte Datenbank-Variante für einen eigenständigen Web-App-Release.
 
 Prisma erlaubt pro `schema.prisma` genau **einen** `datasource`-Provider.
 
@@ -24,19 +26,21 @@ Prisma erlaubt pro `schema.prisma` genau **einen** `datasource`-Provider.
 ## Alternativen (verworfen)
 
 - **Ein Schema, Provider per Env:** von Prisma so nicht unterstützt.
-- **Nur SQLite für alles:** verworfen — Server-Version soll Postgres behalten.
+- **Nur SQLite für alles:** verworfen — Docker-Server soll Postgres behalten.
+- **Eigenständige Web-App ohne Docker:** verworfen — nur Docker-Server und Electron-Desktop.
 
 ## Risiken / Regeln
 
 - **Schema-Drift:** Jede Modelländerung muss in **beiden** Schemas nachgezogen werden.
-- **CI:** Zwei Jobs (`prisma migrate` Postgres + `prisma db push`/migrate SQLite Smoke) — siehe `docs/SMOKE_WEB_BASELINE.md`.
+- **CI:** Zwei Jobs (`prisma migrate` Postgres + `prisma db push`/migrate SQLite Smoke) — siehe [`docs/SMOKE_WEB_BASELINE.md`](SMOKE_WEB_BASELINE.md).
 
 ## Nächste Schritte (optional)
 
-- Import Postgres → SQLite + Validierung (`docs/SQLITE_IMPORT.md`).
+- Import Postgres → SQLite + Validierung ([`docs/SQLITE_IMPORT.md`](SQLITE_IMPORT.md)).
 - CI-Jobs für Postgres- und SQLite-Smoke.
 
 ## Referenzen
 
-- `docs/SQLITE_DESKTOP.md`
-- Cursor-Regel `.cursor/rules/prisma-dual-schema.mdc`
+- [`docs/SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md)
+- [`docs/BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md)
+- Cursor-Regel [`.cursor/rules/prisma-dual-schema.mdc`](../.cursor/rules/prisma-dual-schema.mdc)

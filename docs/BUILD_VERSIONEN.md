@@ -4,17 +4,21 @@
 
 | Stand | Wert |
 |-------|------|
-| Zuletzt abgestimmt mit Repo | `desktop/package.json`, `docker-compose.yml` |
-| Letzte inhaltliche Aktualisierung | 2026-06-22 |
+| Zuletzt abgestimmt mit Repo | `desktop/package.json`, `docker-compose.yml`, `backend/createApp.js` |
+| Letzte inhaltliche Aktualisierung | 2026-06-28 |
 
 ---
 
 ## Kurzüberblick: zwei Produktvarianten
 
+PhiX wird **nur** in diesen beiden Formen verteilt:
+
 | Variante | Build-Befehl | Haupt-Artefakt | Datenbank |
 |----------|--------------|----------------|-----------|
 | **Docker Compose** | `docker compose up -d --build` | Container-Images, Browser :1990 | PostgreSQL (Volume `phix_pgdata`) |
 | **Electron Desktop** | `cd desktop && npm run dist` | `desktop/dist-pack/` (ZIP + Portable-EXE) | SQLite `<Installationsordner>/data/phix.db` |
+
+**Nicht vorgesehen:** eigenständiger Web-App-Betrieb (gebautes Frontend + `npm start` im Backend ohne Docker). Das Frontend wird intern nur für das **Docker-Image** (nginx) und das **Electron-Paket** gebaut (`Notenauswertung-App/npm run build`).
 
 **Electron:** `npm run dist` erzeugt **ZIP** und **Portable-EXE** (electron-builder-Target `portable`) — dieselbe App, unterschiedlich verpackt.
 
@@ -25,11 +29,12 @@
 | Kriterium | **Docker Compose** | **Electron (ZIP + Portable-EXE)** |
 |-----------|-------------------|-----------------------------------|
 | **Oberfläche** | System-Browser | Eigenes Fenster (Electron) |
-| **URL / UI** | `http://localhost:1990` (Standard) | Fenster lädt Web-UI vom lokalen Backend |
+| **URL / UI** | `http://localhost:1990` (Standard) | Release: lokales Backend :3000; Dev: Vite :5173 im Electron-Fenster |
 | **Datenbank** | PostgreSQL im Docker-Volume | SQLite `data/phix.db` neben `PhiX.exe` |
 | **Datenpfad** | Docker-Volume (nicht im Projektordner) | Installationsordner `data/` (USB-tauglich) |
 | **Backend** | Container | Child-Prozess (Electron als Node) |
 | **Frontend** | Container (nginx) | `resources/frontend-dist/` im Paket |
+| **Frontend-Auslieferung (Backend)** | nein (nginx) | ja, `PHIX_STANDALONE=1` (nur Electron) |
 | **Build-Rechner** | Windows, Linux, macOS (Docker) | **Windows** empfohlen für Release |
 | **Prisma / Schema** | `prisma migrate deploy` (Postgres) | SQLite, `db push` vor Start in Electron |
 | **Zielgruppe** | Schulserver, mehrere Clients | Einzelplatz, USB, ohne Docker |
@@ -76,12 +81,14 @@ Browser: **http://localhost:1990** (oder `FRONTEND_PORT` aus `.env`).
 
 Unter Windows: `start_docker.bat` / `stop_docker.bat`.
 
+Services: `frontend` (nginx), `backend` (API), `db` (PostgreSQL 15) — siehe `docker-compose.yml`.
+
 ### Electron (`npm run dist`)
 
 ```text
 npm run dist
   → npm run build-icon
-  → npm run prepare-pack
+  → npm run prepare-pack      (inkl. Notenauswertung-App/npm run build)
   → npm run stage-backend
   → npm run check-backend
   → electron-builder --config electron-builder.config.cjs --win zip portable
@@ -103,9 +110,10 @@ Voraussetzungen: `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` (Teil 2), `desktop
 
 | Szenario | Start |
 |----------|--------|
-| Docker | `docker compose up -d --build` |
-| Web-Dev (Vite) | `backend`: `npm run dev`; `Notenauswertung-App`: `npm run dev` → Browser :5173 |
-| Electron-Dev | zusätzlich `desktop`: `npm run dev` |
+| Docker (Server) | `docker compose up -d --build` → Browser :1990 |
+| Electron-Dev | `Notenauswertung-App`: `npm run dev`; `desktop`: `npm run dev` (Backend startet Electron) |
+
+`npm run dev` im Frontend allein (Browser auf Port 5173 **ohne** Electron) ist **kein** unterstützter Produktweg.
 
 ---
 
@@ -113,9 +121,11 @@ Voraussetzungen: `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` (Teil 2), `desktop
 
 | Thema | Datei |
 |-------|--------|
+| Dokumentations-Übersicht | `docs/README.md` |
 | Installation Windows (Schritt-für-Schritt) | `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` |
 | Electron Desktop | `desktop/README.md` |
 | SQLite Desktop-Pfad / Backup | `docs/SQLITE_DESKTOP.md` |
+| Smoke-Tests | `docs/SMOKE_WEB_BASELINE.md` |
 | Windows-Übersicht | `WINDOWS.md` |
 
 ---

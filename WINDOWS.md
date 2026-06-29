@@ -68,24 +68,22 @@ Details: **`desktop/README.md`**, **`docs/SQLITE_DESKTOP.md`**.
 
 Smoke-Tests: **`docs/SMOKE_WEB_BASELINE.md`**
 
-### Docker (empfohlen für Server-Test)
+### Docker (Server-Test)
 
 ```bash
 docker compose up -d --build
 ```
 
-### Web-Frontend + Backend (Vite)
-
-```bash
-cd backend && npm install && npm run dev
-cd Notenauswertung-App && npm install && npm run dev
-```
-
-Browser: **http://localhost:5173** (Vite leitet `/api` an Port 3000 weiter). PostgreSQL per Docker Compose oder eigene `DATABASE_URL` in `backend/.env`.
+Browser: **http://localhost:1990**
 
 ### Electron-Desktop (Dev)
 
-Zusätzlich drittes Terminal: `cd desktop && npm run dev` — siehe **`desktop/README.md`**.
+```bash
+cd Notenauswertung-App && npm install && npm run dev
+cd desktop && npm install && npm run dev
+```
+
+Siehe **`desktop/README.md`**. Es gibt keinen eigenständigen Browser-Dev-Modus ohne Electron.
 
 ---
 

@@ -555,34 +555,6 @@ export default function AnalysisView() {
           alignItems: 'stretch',
         }}
       >
-      <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--success-hsl))', minWidth: 0, width: '100%' }}>
-        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Besonders gute Schüler und Schülerinnen</h3>
-
-        {students.length === 0 ? (
-          <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
-        ) : (
-          <>
-            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              {gradeSys === 'points'
-                ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP (entspricht Note 1,25 oder besser).'
-                : 'Schüler mit berechneter Gesamtnote 1,25 oder besser.'}
-            </p>
-            {besondersGut.length > 0 ? (
-              <RiskStudentsTable
-                rows={besondersGut}
-                gradeColor="hsl(var(--success-hsl))"
-                gradeSystem={gradeSys}
-                {...riskTableProps}
-              />
-            ) : (
-              <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
-                Keine Schüler in dieser Kategorie.
-              </p>
-            )}
-          </>
-        )}
-      </div>
-
       <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--danger-hsl))', minWidth: 0, width: '100%' }}>
         <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Gefährdete Schüler und Schülerinnen</h3>
 
@@ -617,6 +589,34 @@ export default function AnalysisView() {
             {starkGefaehrdet.length === 0 && gefaehrdet.length === 0 && (
               <p style={{ margin: '1rem 0 0', color: 'hsl(var(--success-hsl))', fontWeight: 500 }}>
                 In beiden Kategorien ist aktuell niemand erfasst — nach diesen Kriterien kein besonderer Hinweis auf Förderbedarf.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--success-hsl))', minWidth: 0, width: '100%' }}>
+        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Besonders gute Schüler und Schülerinnen</h3>
+
+        {students.length === 0 ? (
+          <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
+        ) : (
+          <>
+            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+              {gradeSys === 'points'
+                ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP (entspricht Note 1,25 oder besser).'
+                : 'Schüler mit berechneter Gesamtnote 1,25 oder besser.'}
+            </p>
+            {besondersGut.length > 0 ? (
+              <RiskStudentsTable
+                rows={besondersGut}
+                gradeColor="hsl(var(--success-hsl))"
+                gradeSystem={gradeSys}
+                {...riskTableProps}
+              />
+            ) : (
+              <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+                Keine Schüler in dieser Kategorie.
               </p>
             )}
           </>
