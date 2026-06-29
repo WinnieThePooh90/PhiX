@@ -2389,6 +2389,11 @@ tfoot td {
   margin-bottom: 1rem;
 }
 
+.phix-recovery-actions .app-login-submit {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .phix-recovery-continue {
   width: 100%;
 }
@@ -2476,6 +2481,10 @@ tfoot td {
   margin: 0.35rem 0 1.25rem;
   font-size: 0.875rem;
   color: var(--text-muted);
+}
+
+.app-login-subtitle--center {
+  text-align: center;
 }
 
 .app-login-form {

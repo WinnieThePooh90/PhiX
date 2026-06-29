@@ -431,6 +431,16 @@ app.delete('/api/users/:id', async (req, res) => {
 
   const target = await prisma.appUser.findUnique({ where: { id } });
   if (!target) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+
+  const actingRow = await prisma.appUser.findFirst({
+    where: usernameWhere(acting),
+    select: { id: true },
+  });
+  const isSelfDelete = actingRow?.id === target.id;
+  if (!(await resolveAdminRights(prisma, acting)) && !isSelfDelete) {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen andere Benutzer löschen.' });
+  }
+
   if (isReservedAdminUsername(target.username)) {
     return res.status(400).json({ error: 'Der Benutzer „admin“ kann nicht gelöscht werden.' });
   }

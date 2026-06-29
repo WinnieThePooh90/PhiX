@@ -89,15 +89,26 @@ export default function ProgramUserManagement() {
     }
   };
 
+  const canDeleteUser = (u) =>
+    (actingIsAdmin || isSelfUser(u)) &&
+    !isReservedAdminUsername(u.username) &&
+    sortedUsers.length > 1;
+
   const onDeleteUser = async (u) => {
     setListErr('');
+    if (!actingIsAdmin && !isSelfUser(u)) {
+      setListErr('Nur Administratoren dürfen andere Benutzer löschen.');
+      return;
+    }
     if (isReservedAdminUsername(u.username)) {
       setListErr('Der Benutzer „admin“ kann nicht gelöscht werden.');
       return;
     }
     const ok = await showConfirm(
-      `Benutzer „${u.username}“ wirklich löschen?\n\nAlle Klassen, Schülerdaten und Noten dieses Benutzers werden unwiderruflich gelöscht. Eine Anmeldung mit diesem Namen ist danach nicht mehr möglich.`,
-      { title: 'Benutzer löschen', danger: true },
+      isSelfUser(u)
+        ? `Eigenen Benutzer „${u.username}“ wirklich löschen?\n\nAlle Ihre Klassen, Schülerdaten und Noten werden unwiderruflich gelöscht. Sie werden abgemeldet.`
+        : `Benutzer „${u.username}“ wirklich löschen?\n\nAlle Klassen, Schülerdaten und Noten dieses Benutzers werden unwiderruflich gelöscht. Eine Anmeldung mit diesem Namen ist danach nicht mehr möglich.`,
+      { title: isSelfUser(u) ? 'Eigenen Benutzer löschen' : 'Benutzer löschen', danger: true },
     );
     if (!ok) return;
     const r = await deleteUser(u.id);
@@ -275,21 +286,20 @@ export default function ProgramUserManagement() {
                     Passwort ändern
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  className="program-user-mgmt-delete-btn program-user-mgmt-action-btn"
-                  disabled={sortedUsers.length <= 1 || isReservedAdminUsername(u.username)}
-                  title={
-                    isReservedAdminUsername(u.username)
-                      ? 'Der Benutzer „admin“ kann nicht gelöscht werden.'
-                      : sortedUsers.length <= 1
-                        ? 'Mindestens ein Benutzer muss bleiben.'
+                {canDeleteUser(u) ? (
+                  <button
+                    type="button"
+                    className="program-user-mgmt-delete-btn program-user-mgmt-action-btn"
+                    title={
+                      isSelfUser(u)
+                        ? 'Eigenen Benutzer löschen'
                         : 'Benutzer löschen'
-                  }
-                  onClick={() => onDeleteUser(u)}
-                >
-                  Löschen
-                </button>
+                    }
+                    onClick={() => onDeleteUser(u)}
+                  >
+                    Löschen
+                  </button>
+                ) : null}
               </span>
             </li>
           ))}
