@@ -7,11 +7,10 @@ import { isReservedAdminUsername, userHasAdminRights } from '../utils/userAdmin'
 
 export default function ProgramUserManagement() {
   const { usersList, addUser, setPasswordForUser, setUserAdmin, deleteUser, currentUser } = useAuth();
-  const { showConfirm } = useDialog();
+  const { showConfirm, showAlert } = useDialog();
 
   const [newUsername, setNewUsername] = useState('');
   const [formErr, setFormErr] = useState('');
-  const [formMsg, setFormMsg] = useState('');
 
   const [passwordUserId, setPasswordUserId] = useState(null);
   const [pwdOld, setPwdOld] = useState('');
@@ -116,7 +115,6 @@ export default function ProgramUserManagement() {
   const onCreateUser = async (e) => {
     e.preventDefault();
     setFormErr('');
-    setFormMsg('');
     setListErr('');
     const r = await addUser(newUsername);
     if (!r.ok) {
@@ -124,10 +122,11 @@ export default function ProgramUserManagement() {
       return;
     }
     const createdName = newUsername.trim();
-    setFormMsg(
-      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er selbst ein Passwort fest, richtet die Verschlüsselung ein und erhält einen Recovery-Key.`,
-    );
     setNewUsername('');
+    await showAlert(
+      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er selbst ein Passwort fest, richtet die Verschlüsselung ein und erhält einen Recovery-Key.`,
+      { title: 'Benutzer angelegt' },
+    );
   };
 
   const onSubmitPassword = async (e) => {
@@ -250,7 +249,7 @@ export default function ProgramUserManagement() {
               <span className="program-user-mgmt-row-actions">
                 {actingIsAdmin ? (
                   <PhixCheckboxOption
-                    className="program-user-mgmt-admin-check"
+                    className="program-user-mgmt-admin-check program-user-mgmt-action-btn"
                     checked={userHasAdminRights(u)}
                     disabled={
                       isReservedAdminUsername(u.username) || adminToggleUserId === u.id
@@ -269,7 +268,7 @@ export default function ProgramUserManagement() {
                 {isSelfUser(u) ? (
                   <button
                     type="button"
-                    className="program-user-mgmt-link-btn"
+                    className="program-user-mgmt-link-btn program-user-mgmt-action-btn"
                     title="Eigenes Passwort ändern"
                     onClick={() => openPasswordModal(u)}
                   >
@@ -278,7 +277,7 @@ export default function ProgramUserManagement() {
                 ) : null}
                 <button
                   type="button"
-                  className="program-user-mgmt-delete-btn"
+                  className="program-user-mgmt-delete-btn program-user-mgmt-action-btn"
                   disabled={sortedUsers.length <= 1 || isReservedAdminUsername(u.username)}
                   title={
                     isReservedAdminUsername(u.username)
@@ -313,14 +312,13 @@ export default function ProgramUserManagement() {
             />
           </label>
           <p className="program-user-mgmt-create-hint">
-            Das Passwort legt der neue Benutzer beim ersten Login selbst fest („Erstes Passwort festlegen“).
+            Das Passwort legt der neue Benutzer beim ersten Login selbst fest.
           </p>
           {formErr ? (
             <p className="program-user-mgmt-error" role="alert">
               {formErr}
             </p>
           ) : null}
-          {formMsg ? <p className="program-user-mgmt-success">{formMsg}</p> : null}
           <button type="submit" className="program-user-mgmt-submit">
             Benutzer anlegen
           </button>
