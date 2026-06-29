@@ -6,6 +6,7 @@ import {
   getStudentEffectiveExamFieldCount,
   gradeToNotenpunkte,
   barColorForNotenpunkte,
+  classicGradeColorTier,
   normalizeCourseGradeSystem,
   normalizeQuarterGrade,
   parseScorePointsValue,
@@ -16,10 +17,10 @@ function formatQuarterAxisLabel(g) {
 }
 
 function barColorForClassicQuarterGrade(grade) {
-  const g = normalizeQuarterGrade(grade);
-  if (g >= 4.25) return 'var(--danger)';
-  if (g >= 3.25) return '#f59e0b';
-  return 'var(--success)';
+  const tier = classicGradeColorTier(normalizeQuarterGrade(grade));
+  if (tier === 'red') return 'var(--danger)';
+  if (tier === 'orange') return '#facc15';
+  return 'hsl(var(--success-hsl))';
 }
 
 /** Mittelpunkt eines Kreissegments (Prozent auf dem Ring) — Winkel wie SVG stroke nach rotate(-90deg). */
@@ -34,7 +35,7 @@ function pieSegmentLabelPos(startPercent, sweepPercent) {
 
 const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
 
-/** Farbe für NP-Säule (0–4 rot, 5–7 gelb wie klassisch 3,25–4, 8–15 grün) */
+/** Farbe für NP-Säule (drei Stufen wie Übersicht) */
 function barColorForNpBucket(np) {
   return barColorForNotenpunkte(np);
 }

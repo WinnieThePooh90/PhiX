@@ -2896,83 +2896,73 @@ export const isGradeWorseThan4 = (grade, gradeSystem = 'classic', opts) => {
   return g > 4;
 };
 
-/** Notenpunkte-Farbstufe: 0–4 rot, 5–7 gelb (wie klassisch 3,25–4), 8–15 grün. */
+/** Drei Stufen ohne Abstufung: grün (&lt; 3,0), orange (3,0–4,0), rot (&gt; 4,0). */
+export function classicGradeColorTier(grade) {
+  const g = typeof grade === 'number' ? grade : parseFloat(grade);
+  if (!Number.isFinite(g)) return null;
+  if (g > 4) return 'red';
+  if (g >= 3) return 'orange';
+  if (g >= 1) return 'green';
+  return null;
+}
+
+/** Notenpunkte-Farbstufe über äquivalente Viertelnote (gleiche drei Stufen wie klassisch). */
 export function notenpunkteColorTier(np) {
-  const n = Math.round(Number(np));
-  if (!Number.isFinite(n) || n < 0 || n > 15) return null;
-  if (n >= 8) return 'green';
-  if (n >= 5) return 'yellow';
-  return 'red';
+  const g = notenpunkteToGrade(np);
+  return classicGradeColorTier(g);
 }
 
-function notenpunkteToCellBackground(np) {
-  const tier = notenpunkteColorTier(np);
-  if (!tier) return undefined;
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (isDark) return undefined;
-  if (tier === 'green') return '#dcfce7';
-  if (tier === 'yellow') return '#fef9c3';
-  return '#fee2e2';
+const GRADE_CELL_BG = {
+  green: '#dcfce7',
+  orange: '#fef9c3',
+  red: '#fee2e2',
+};
+
+const GRADE_CELL_TEXT = {
+  green: '#4ade80',
+  orange: '#facc15',
+  red: '#f87171',
+};
+
+function gradeColorTier(grade, gradeSystem = 'classic', opts) {
+  const g = typeof grade === 'number' ? grade : parseFloat(grade);
+  if (Number.isNaN(g)) return null;
+  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
+    const np = opts?.inputScale === 'notenpunkte'
+      ? Math.round(Math.min(15, Math.max(0, g)))
+      : gradeToNotenpunkte(g);
+    if (np === null) return null;
+    return notenpunkteColorTier(np);
+  }
+  return classicGradeColorTier(g);
 }
 
-function notenpunkteToTextColor(np) {
-  const tier = notenpunkteColorTier(np);
-  if (!tier) return undefined;
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (!isDark) return undefined;
-  if (tier === 'green') return '#4ade80';
-  if (tier === 'yellow') return '#facc15';
-  return '#f87171';
-}
-
-/** Balkenfarbe für NP-Verteilungsdiagramme (0–4 rot, 5–7 gelb, 8–15 grün). */
+/** Balkenfarbe für NP-Verteilungsdiagramme (drei Stufen wie Übersicht). */
 export function barColorForNotenpunkte(np) {
   const tier = notenpunkteColorTier(np);
   if (!tier) return 'hsl(var(--muted))';
   if (tier === 'green') return 'hsl(var(--success-hsl))';
-  if (tier === 'yellow') return '#facc15';
+  if (tier === 'orange') return '#facc15';
   return 'var(--danger)';
 }
 
-/** Undurchsichtige Pastell-Hintergründe für Notenzellen (klassisch: 1–3 grün, 3,25–4 gelb, &gt;4 rot; Punktesystem: NP-Stufen). */
+/** Undurchsichtige Pastell-Hintergründe für Notenzellen (klassisch/Punkte: grün, orange, rot). */
 export const getGradeCellBackground = (grade, gradeSystem = 'classic', opts) => {
   if (grade === null || grade === undefined) return undefined;
-  const g = typeof grade === 'number' ? grade : parseFloat(grade);
-  if (Number.isNaN(g)) return undefined;
-  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
-    const np = opts?.inputScale === 'notenpunkte'
-      ? Math.round(Math.min(15, Math.max(0, g)))
-      : gradeToNotenpunkte(g);
-    if (np === null) return undefined;
-    return notenpunkteToCellBackground(np);
-  }
+  const tier = gradeColorTier(grade, gradeSystem, opts);
+  if (!tier) return undefined;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   if (isDark) return undefined;
-  if (g >= 1 && g <= 3) return '#dcfce7';
-  if (g > 4) return '#fee2e2';
-  if (g >= 3.25 && g <= 4) return '#fef9c3';
-  if (g > 3 && g < 3.25) return '#fefce8';
-  return undefined;
+  return GRADE_CELL_BG[tier];
 };
 
 export const getGradeTextColor = (grade, gradeSystem = 'classic', opts) => {
   if (grade === null || grade === undefined) return undefined;
-  const g = typeof grade === 'number' ? grade : parseFloat(grade);
-  if (Number.isNaN(g)) return undefined;
-  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
-    const np = opts?.inputScale === 'notenpunkte'
-      ? Math.round(Math.min(15, Math.max(0, g)))
-      : gradeToNotenpunkte(g);
-    if (np === null) return undefined;
-    return notenpunkteToTextColor(np);
-  }
+  const tier = gradeColorTier(grade, gradeSystem, opts);
+  if (!tier) return undefined;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   if (!isDark) return undefined;
-  if (g >= 1 && g <= 3) return '#4ade80';
-  if (g > 4) return '#f87171';
-  if (g >= 3.25 && g <= 4) return '#facc15';
-  if (g > 3 && g < 3.25) return '#fde047';
-  return undefined;
+  return GRADE_CELL_TEXT[tier];
 };
 
 /**
