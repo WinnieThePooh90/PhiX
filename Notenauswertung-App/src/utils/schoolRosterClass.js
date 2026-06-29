@@ -1,4 +1,4 @@
-/** Kleinbuchstaben a–z als Teilklassen-Optionen. */
+/** Kleinbuchstaben a–z für manuelles Anlegen/Bearbeiten. */
 export const CLASS_SECTION_OPTIONS = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 export function normalizeClassSection(raw) {
@@ -22,4 +22,19 @@ export function parseClassSectionFromClassCell(raw) {
   const withoutGrade = s.replace(/^.*?(\d{1,2})/, '').trim();
   const m = withoutGrade.match(/^([a-z]+)/i);
   return m ? m[1].toLowerCase() : '';
+}
+
+/**
+ * Eindeutige Teilklassen aus Schülerzeilen (z. B. nach Import), optional nur einer Stufe.
+ * @param {Array<{ gradeLevel?: number, classSection?: string }>} rows
+ * @param {{ gradeLevel?: number | null }} [opts]
+ */
+export function distinctClassSections(rows, { gradeLevel = null } = {}) {
+  const set = new Set();
+  for (const row of rows || []) {
+    if (gradeLevel !== null && row.gradeLevel !== gradeLevel) continue;
+    const sec = normalizeClassSection(row.classSection);
+    if (sec) set.add(sec);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
 }

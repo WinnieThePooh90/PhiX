@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import { parseSchoolRosterImportFile, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
-import { CLASS_SECTION_OPTIONS, formatRosterClassLabel } from '../utils/schoolRosterClass';
+import { CLASS_SECTION_OPTIONS, distinctClassSections, formatRosterClassLabel } from '../utils/schoolRosterClass';
 import GradingKeyHelpButton from '../components/GradingKeyHelpButton';
 import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear';
 
@@ -52,6 +52,17 @@ export default function SchoolRosterView() {
   const [rosterGradeFilter, setRosterGradeFilter] = useState(null);
   /** leer = alle Teilklassen der gewählten Stufe */
   const [rosterSectionFilter, setRosterSectionFilter] = useState('');
+
+  const rosterSectionFilterOptions = useMemo(
+    () => distinctClassSections(schoolRosterStudents, { gradeLevel: rosterGradeFilter }),
+    [schoolRosterStudents, rosterGradeFilter],
+  );
+
+  useEffect(() => {
+    if (rosterSectionFilter && !rosterSectionFilterOptions.includes(rosterSectionFilter)) {
+      setRosterSectionFilter('');
+    }
+  }, [rosterSectionFilter, rosterSectionFilterOptions]);
 
   const filteredSchoolRoster = useMemo(() => {
     let rows = schoolRosterStudents;
@@ -584,9 +595,10 @@ export default function SchoolRosterView() {
                   onChange={(e) => setRosterSectionFilter(e.target.value)}
                   style={{ minWidth: '5rem' }}
                   aria-label="Teilklasse filtern"
+                  disabled={rosterSectionFilterOptions.length === 0}
                 >
                   <option value="">—</option>
-                  {CLASS_SECTION_OPTIONS.map((s) => (
+                  {rosterSectionFilterOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>

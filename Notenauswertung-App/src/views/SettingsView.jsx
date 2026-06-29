@@ -4,7 +4,7 @@ import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import { normalizeCourseGradeSystem } from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
-import { CLASS_SECTION_OPTIONS, formatRosterClassLabel, parseClassSectionFromClassCell } from '../utils/schoolRosterClass';
+import { distinctClassSections, formatRosterClassLabel, parseClassSectionFromClassCell } from '../utils/schoolRosterClass';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
@@ -85,8 +85,13 @@ export default function SettingsView() {
   }, [parsedClassGrade, classFieldForGrade]);
 
   useEffect(() => {
-    setRosterSectionFilter(parsedClassSection ?? '');
-  }, [parsedClassSection, classFieldForGrade]);
+    const sec = parsedClassSection ?? '';
+    if (sec && rosterSectionFilterOptions.includes(sec)) {
+      setRosterSectionFilter(sec);
+    } else if (!sec) {
+      setRosterSectionFilter('');
+    }
+  }, [parsedClassSection, classFieldForGrade, rosterSectionFilterOptions]);
 
   useEffect(() => {
     const courseYear = String(config?.year ?? '').trim();
@@ -96,6 +101,17 @@ export default function SettingsView() {
   }, [config?.year, config?.id, schoolRosterYears, setActiveSchoolRosterYearId]);
 
   const activeRosterYear = schoolRosterYears.find((y) => y.id === activeSchoolRosterYearId) ?? null;
+
+  const rosterSectionFilterOptions = useMemo(
+    () => distinctClassSections(schoolRosterStudents, { gradeLevel: rosterGradeFilter }),
+    [schoolRosterStudents, rosterGradeFilter],
+  );
+
+  useEffect(() => {
+    if (rosterSectionFilter && !rosterSectionFilterOptions.includes(rosterSectionFilter)) {
+      setRosterSectionFilter('');
+    }
+  }, [rosterSectionFilter, rosterSectionFilterOptions]);
 
   const rosterCandidates = useMemo(() => {
     const inCourse = new Set(students.map((s) => rosterStudentKey(s.firstName, s.lastName)));
@@ -942,10 +958,10 @@ export default function SettingsView() {
                   onChange={(e) => setRosterSectionFilter(e.target.value)}
                   style={{ minWidth: '5rem', width: 'auto' }}
                   aria-label="Teilklasse Schülerverwaltung"
-                  disabled={addingAllRoster}
+                  disabled={addingAllRoster || rosterSectionFilterOptions.length === 0}
                 >
                   <option value="">—</option>
-                  {CLASS_SECTION_OPTIONS.map((s) => (
+                  {rosterSectionFilterOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
