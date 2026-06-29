@@ -37,6 +37,9 @@ function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
   return Number(calculatedFinalGrade);
 }
 
+/** Klassisch: ≤ 1,25 besonders gut; Punktesystem: NP ≥ 13 (entspricht Note 1,25) */
+const BESONDERS_GUT_MAX_CLASSIC = 1.25;
+const BESONDERS_GUT_MIN_NP = 13;
 /** Klassisch: ≥ 4,5 stark gefährdet; Punktesystem: NP &lt; 4 */
 const STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX = 4;
 /** Klassisch: 4,0–4,5 gefährdet; Punktesystem: NP 4 oder 5 */
@@ -250,9 +253,9 @@ export default function AnalysisView() {
     kursstufe: config?.kursstufe === true,
   };
 
-  const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
-    if (!weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
-    const withGrade = students
+  const studentsWithCalculatedGrade = useMemo(() => {
+    if (!weighting) return [];
+    return students
       .map((s) => {
         const { finalGrade } = calculateStudentGrades(
           s.id,
@@ -280,12 +283,30 @@ export default function AnalysisView() {
         return { student: s, finalGrade };
       })
       .filter(({ finalGrade }) => finalGrade !== null && !Number.isNaN(Number(finalGrade)));
+  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, gradingOralReferatEntries, gradingPartialWrittenReferatEntries, referatWrittenUnitWeight, gradingPartialOralReferatEntries, referatOralUnitWeight, gradingFinalPercentReferatEntries, referatFinalPercent, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+
+  const besondersGut = useMemo(() => {
+    const sortBestFirst =
+      gradeSys === 'points'
+        ? (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0)
+        : (a, b) => (a.finalGrade ?? 9) - (b.finalGrade ?? 9);
+    return studentsWithCalculatedGrade
+      .filter(({ finalGrade }) => {
+        const g = Number(finalGrade);
+        if (gradeSys === 'points') return Math.round(g) >= BESONDERS_GUT_MIN_NP;
+        return g <= BESONDERS_GUT_MAX_CLASSIC;
+      })
+      .sort(sortBestFirst);
+  }, [studentsWithCalculatedGrade, gradeSys]);
+
+  const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
+    if (!weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
 
     const sortWorstFirst = gradeSys === 'points'
       ? (a, b) => (a.finalGrade ?? 16) - (b.finalGrade ?? 16)
       : (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0);
 
-    const stark = withGrade
+    const stark = studentsWithCalculatedGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
         if (gradeSys === 'points') return Math.round(g) < STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX;
@@ -293,7 +314,7 @@ export default function AnalysisView() {
       })
       .sort(sortWorstFirst);
 
-    const gef = withGrade
+    const gef = studentsWithCalculatedGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
         if (gradeSys === 'points') {
@@ -305,7 +326,7 @@ export default function AnalysisView() {
       .sort(sortWorstFirst);
 
     return { starkGefaehrdet: stark, gefaehrdet: gef };
-  }, [students, exams, orals, tests, projects, gfsEntries, gradingReferatEntries, gradingOralReferatEntries, gradingPartialWrittenReferatEntries, referatWrittenUnitWeight, gradingPartialOralReferatEntries, referatOralUnitWeight, gradingFinalPercentReferatEntries, referatFinalPercent, config, gradeSys, weighting, testsAsHalfExam, testsAsOral]);
+  }, [studentsWithCalculatedGrade, gradeSys, weighting]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
     const isPoints = gradeSys === 'points';
@@ -534,8 +555,36 @@ export default function AnalysisView() {
           alignItems: 'stretch',
         }}
       >
+      <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--success-hsl))', minWidth: 0, width: '100%' }}>
+        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Besonders gute Schüler und Schülerinnen</h3>
+
+        {students.length === 0 ? (
+          <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
+        ) : (
+          <>
+            <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
+              {gradeSys === 'points'
+                ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP (entspricht Note 1,25 oder besser).'
+                : 'Schüler mit berechneter Gesamtnote 1,25 oder besser.'}
+            </p>
+            {besondersGut.length > 0 ? (
+              <RiskStudentsTable
+                rows={besondersGut}
+                gradeColor="hsl(var(--success-hsl))"
+                gradeSystem={gradeSys}
+                {...riskTableProps}
+              />
+            ) : (
+              <p className="text-muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+                Keine Schüler in dieser Kategorie.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="glass-panel" style={{ borderTop: '4px solid hsl(var(--danger-hsl))', minWidth: 0, width: '100%' }}>
-        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Gefährdete Schüler</h3>
+        <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.05rem' }}>Gefährdete Schüler und Schülerinnen</h3>
 
         {students.length === 0 ? (
           <p className="text-muted" style={{ margin: 0 }}>Noch keine Schüler angelegt.</p>
