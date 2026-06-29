@@ -434,7 +434,6 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                           <DeferredNumberInput
                             value={parseScorePointsValue(exam.fieldMaxPoints?.[i])}
                             defaultValue={0}
-                            min={0}
                             onChange={(n) => handleMaxPointsChange(i, n)}
                             onKeyDown={handleTableEnterAsTab}
                             placeholder="0"
@@ -591,7 +590,6 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                 ) : isNach ? (
                                   <div className="exam-nach-task-cell">
                                     <DeferredNumberInput
-                                      min={0}
                                       defaultValue={0}
                                       value={nachMaxVal}
                                       disabled={courseArchived}
