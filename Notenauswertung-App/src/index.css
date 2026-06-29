@@ -1399,6 +1399,13 @@ p {
   color: var(--success);
 }
 
+.program-user-mgmt-password-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .program-user-mgmt-list {
   list-style: none;
   margin: 0;
@@ -1432,31 +1439,14 @@ p {
 
 .program-user-mgmt-admin-check.phix-checkbox-option {
   margin: 0;
-  padding: 0.35rem 0.55rem;
-  gap: 0.35rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  border-radius: calc(var(--radius) - 2px);
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-main);
+  cursor: pointer;
 }
 
 .program-user-mgmt-admin-check.phix-checkbox-option:hover {
   background: hsl(var(--muted));
-}
-
-.program-user-mgmt-admin-check.phix-checkbox-option span {
-  font-size: 0.8125rem;
-  line-height: 1.25;
-  color: var(--text-main);
-}
-
-.program-user-mgmt-admin-check.phix-checkbox-option input[type="checkbox"] {
-  width: 0.875rem;
-  height: 0.875rem;
-  min-width: 0.875rem;
-  min-height: 0.875rem;
 }
 
 .program-user-mgmt-name {
@@ -1471,12 +1461,34 @@ p {
 }
 
 .program-user-mgmt-row-actions {
-  display: flex;
+  --program-user-mgmt-action-h: 1.75rem;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.4rem;
   margin-left: auto;
+}
+
+.program-user-mgmt-row-actions .program-user-mgmt-admin-check.phix-checkbox-option,
+.program-user-mgmt-row-actions .program-user-mgmt-link-btn,
+.program-user-mgmt-row-actions .program-user-mgmt-delete-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: var(--program-user-mgmt-action-h);
+  min-height: var(--program-user-mgmt-action-h);
+  padding: 0 0.55rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: calc(var(--radius) - 2px);
+  white-space: nowrap;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .program-user-mgmt-delete-btn {
@@ -1622,6 +1634,34 @@ label:has(> input[type="radio"]):not(.phix-checkbox-option--wrap) > span {
   line-height: 1.35;
   color: var(--text-main);
   user-select: none;
+}
+
+/* Benutzerverwaltung: Admin-Checkbox an Aktions-Buttons ausrichten (nach globalen PhiX-Checkbox-Regeln) */
+.program-user-mgmt-row-actions .program-user-mgmt-admin-check.phix-checkbox-option {
+  margin-top: 0;
+  width: fit-content;
+  max-width: none;
+  padding: 0 0.55rem;
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.program-user-mgmt-row-actions .program-user-mgmt-admin-check.phix-checkbox-option:hover {
+  background: hsl(var(--muted));
+  border-color: var(--border);
+}
+
+.program-user-mgmt-row-actions .program-user-mgmt-admin-check.phix-checkbox-option span {
+  font-size: 0.8125rem;
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.program-user-mgmt-row-actions .program-user-mgmt-admin-check.phix-checkbox-option input[type="checkbox"] {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  min-width: 0.8125rem;
+  min-height: 0.8125rem;
 }
 
 /* Mehrzeiliger Labeltext (z. B. Recovery-Key-Bestätigung) */

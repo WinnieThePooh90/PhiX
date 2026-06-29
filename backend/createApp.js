@@ -344,12 +344,17 @@ app.patch('/api/users/:id/password', async (req, res) => {
   const oldPassword = String(req.body?.oldPassword ?? '');
   if (!newPassword) return res.status(400).json({ error: 'Neues Passwort eingeben.' });
 
+  const actingRow = await prisma.appUser.findFirst({
+    where: usernameWhere(acting),
+    select: { id: true },
+  });
+  if (!actingRow) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+
   const target = await prisma.appUser.findUnique({ where: { id } });
   if (!target) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
 
-  const actingIsAdmin = await resolveAdminRights(prisma, acting);
-  if (hasAdminRights(target) && !actingIsAdmin) {
-    return res.status(403).json({ error: 'Nur Administratoren dürfen das Passwort dieses Benutzers ändern.' });
+  if (target.id !== actingRow.id) {
+    return res.status(403).json({ error: 'Sie dürfen nur Ihr eigenes Passwort ändern.' });
   }
 
   const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: target.id } });

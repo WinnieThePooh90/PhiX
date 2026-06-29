@@ -33,8 +33,7 @@ export default function ProgramUserManagement() {
 
   const actingIsAdmin = userHasAdminRights(currentUser);
 
-  const canChangePasswordForUser = (u) =>
-    !userHasAdminRights(u) || actingIsAdmin;
+  const isSelfUser = (u) => String(u?.id) === String(currentUser?.id);
 
   const resetPasswordForm = useCallback(() => {
     setPasswordUserId(null);
@@ -47,10 +46,7 @@ export default function ProgramUserManagement() {
 
   const openPasswordModal = useCallback(
     (u) => {
-      if (userHasAdminRights(u) && !actingIsAdmin) {
-        setListErr('Nur Administratoren dürfen das Passwort dieses Benutzers ändern.');
-        return;
-      }
+      if (!isSelfUser(u)) return;
       setListErr('');
       setPasswordUserId(u.id);
       setPwdOld('');
@@ -59,7 +55,7 @@ export default function ProgramUserManagement() {
       setPwdMsg('');
       setPwdErr('');
     },
-    [actingIsAdmin],
+    [currentUser?.id],
   );
 
   useEffect(() => {
@@ -146,6 +142,10 @@ export default function ProgramUserManagement() {
     e.preventDefault();
     setPwdErr('');
     setPwdMsg('');
+    if (!pwdOld.trim()) {
+      setPwdErr('Aktuelles Passwort eingeben.');
+      return;
+    }
     if (pwdNew !== pwdNew2) {
       setPwdErr('Die Passwort-Wiederholung stimmt nicht überein.');
       return;
@@ -156,11 +156,10 @@ export default function ProgramUserManagement() {
       return;
     }
     setPwdMsg('Passwort wurde geändert.');
+    setPwdOld('');
     setPwdNew('');
     setPwdNew2('');
   };
-
-  const pwdModalUsername = sortedUsers.find((x) => x.id === passwordUserId)?.username ?? '—';
 
   const passwordModal =
     passwordUserId &&
@@ -180,13 +179,23 @@ export default function ProgramUserManagement() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <h2 id="program-user-mgmt-pwd-title" className="program-user-mgmt-modal-title">
-            Passwort ändern für <strong>{pwdModalUsername}</strong>
+            Eigenes Passwort ändern
           </h2>
           <form className="program-user-mgmt-form" onSubmit={onSubmitPassword}>
             <label className="program-user-mgmt-label">
-              Neues Passwort
+              Aktuelles Passwort
               <input
                 ref={pwdFirstInputRef}
+                className="program-user-mgmt-input"
+                type="password"
+                autoComplete="current-password"
+                value={pwdOld}
+                onChange={(e) => setPwdOld(e.target.value)}
+              />
+            </label>
+            <label className="program-user-mgmt-label">
+              Neues Passwort
+              <input
                 className="program-user-mgmt-input"
                 type="password"
                 autoComplete="new-password"
@@ -265,19 +274,16 @@ export default function ProgramUserManagement() {
                     Admin
                   </PhixCheckboxOption>
                 ) : null}
-                <button
-                  type="button"
-                  className="program-user-mgmt-link-btn"
-                  disabled={!canChangePasswordForUser(u)}
-                  title={
-                    !canChangePasswordForUser(u)
-                      ? 'Nur Administratoren dürfen das Passwort dieses Benutzers ändern.'
-                      : 'Passwort ändern'
-                  }
-                  onClick={() => openPasswordModal(u)}
-                >
-                  Passwort ändern
-                </button>
+                {isSelfUser(u) ? (
+                  <button
+                    type="button"
+                    className="program-user-mgmt-link-btn"
+                    title="Eigenes Passwort ändern"
+                    onClick={() => openPasswordModal(u)}
+                  >
+                    Passwort ändern
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="program-user-mgmt-delete-btn"
