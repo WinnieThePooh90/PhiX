@@ -5303,6 +5303,13 @@ button.school-roster-control-btn.danger {
   color: var(--danger);
 }
 
+.exam-nach-task-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 /* GFS: „Gehalten“ — Zelle einfärben (unchecked: accent-color wirkt im Browser oft kaum) */
 .gfs-gehalten-td {
   padding: 0.4rem 0.5rem !important;

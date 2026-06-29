@@ -31,6 +31,9 @@ import {
   gradingKeyResultDisplayOpts,
   gradingKeyResultToStoredString,
   parseScorePointsValue,
+  getExamTaskMaxRuleForStudent,
+  isExamScoreFieldOutOfRange,
+  getNachschreiberFieldMaxPoints,
 } from '../utils/calculator';
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
@@ -60,45 +63,6 @@ const getSum = (scoreData) => {
 
 /** Breite der #-Spalte; NAME klebt bei `left` gleich diesem Wert */
 const EXAM_INDEX_COL_PX = 52;
-
-/**
- * Regel für Schülerpunkte pro Task-Spalte:
- * - `configured`: in `fieldMaxPoints` existiert ein gültiger Max-Wert (auch 0).
- * - `max`: nur relevant wenn `configured`; sonst `null`.
- * Ohne konfiguriertes Maximum: im Schülerfeld nur 0 erlaubt (sonst rot).
- */
-function getExamTaskMaxRule(exam, fieldIndex) {
-  const fmp = exam.fieldMaxPoints;
-  if (!fmp || typeof fmp !== 'object') {
-    return { configured: false, max: null };
-  }
-  const keyStr = String(fieldIndex);
-  const has =
-    Object.prototype.hasOwnProperty.call(fmp, fieldIndex) ||
-    Object.prototype.hasOwnProperty.call(fmp, keyStr);
-  if (!has) {
-    return { configured: false, max: null };
-  }
-  const raw = fmp[fieldIndex] ?? fmp[keyStr];
-  if (raw === '' || raw === undefined || raw === null) {
-    return { configured: false, max: null };
-  }
-  const maxN = parseFloat(String(raw).replace(',', '.'));
-  if (Number.isNaN(maxN)) {
-    return { configured: false, max: null };
-  }
-  return { configured: true, max: maxN };
-}
-
-/** Eingabe rot: kleiner 0; ohne Task-Max nur 0; mit Task-Max über eingetragenem Maximum. */
-function isExamScoreFieldOutOfRange(rawValue, rule) {
-  if (rawValue === '' || rawValue === undefined || rawValue === null) return false;
-  const n = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue).replace(',', '.'));
-  if (Number.isNaN(n)) return false;
-  if (n < 0) return true;
-  if (!rule.configured) return n !== 0;
-  return n > rule.max;
-}
 
 /** variant: 'nach' = Nachschreiber (gelb), 'absent' = nicht teilgenommen / „Teilgenommen“ aus (rot) */
 function ExamRowBookmark({ variant }) {
@@ -137,6 +101,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
     updateExamCounted,
     updateExamStudentNachschreiber,
     updateExamStudentNachschreiberFields,
+    updateExamStudentNachschreiberFieldMaxPoints,
     updateExamStudentManualGrade,
     updateExamStudentManualGradeValue,
     students,
@@ -598,12 +563,91 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                           {[...Array(displayFieldCount)].map((_, fieldIndex) => {
                             const beyond = fieldIndex >= effN;
                             const val = fields[fieldIndex] !== undefined ? fields[fieldIndex] : '';
-                            const maxRule = getExamTaskMaxRule(exam, fieldIndex);
+                            const maxRule = getExamTaskMaxRuleForStudent(exam, s.id, fieldIndex);
                             const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
+                            const nachFieldMax = getNachschreiberFieldMaxPoints(rawSc);
+                            const nachMaxKeyStr = String(fieldIndex);
+                            const hasNachMaxKey =
+                              Object.prototype.hasOwnProperty.call(nachFieldMax, fieldIndex) ||
+                              Object.prototype.hasOwnProperty.call(nachFieldMax, nachMaxKeyStr);
+                            const nachMaxVal = parseScorePointsValue(
+                              hasNachMaxKey
+                                ? nachFieldMax[fieldIndex] ?? nachFieldMax[nachMaxKeyStr]
+                                : exam.fieldMaxPoints?.[fieldIndex] ?? exam.fieldMaxPoints?.[nachMaxKeyStr],
+                            );
                             return (
                               <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
                                 {beyond ? (
                                   <span className="text-muted" title="Für diesen Schüler nicht gewertet">—</span>
+                                ) : isNach ? (
+                                  <div className="exam-nach-task-cell">
+                                    <DeferredNumberInput
+                                      min={0}
+                                      defaultValue={0}
+                                      value={nachMaxVal}
+                                      disabled={courseArchived}
+                                      onChange={(n) =>
+                                        updateExamStudentNachschreiberFieldMaxPoints(
+                                          activeKlausur,
+                                          s.id,
+                                          fieldIndex,
+                                          n,
+                                        )
+                                      }
+                                      onKeyDown={handleTableEnterAsTab}
+                                      style={{
+                                        width: '70px',
+                                        textAlign: 'center',
+                                        padding: '0.15rem',
+                                        fontSize: '0.75rem',
+                                        borderRadius: 0,
+                                        marginBottom: '0.2rem',
+                                      }}
+                                      title={`Maximalpunkte A${fieldIndex + 1} (Nachschreiber)`}
+                                      aria-label={`Maximalpunkte A${fieldIndex + 1} für ${s.lastName}, ${s.firstName}`}
+                                    />
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, fieldIndex)}
+                                      value={val}
+                                      onChange={e => handleScoreChange(s.id, fieldIndex, e.target.value)}
+                                      onKeyDown={createScoreTaskTabHandler({
+                                        scopeKey: scoreInputScope,
+                                        rowKey: s.id,
+                                        fieldIndex,
+                                        effectiveFieldCount: effN,
+                                        onTabForwardFromLastField: () => {
+                                          const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                          const nextStudent = displayStudents[rowIdx + 1];
+                                          if (!nextStudent) return;
+                                          const nextEffN = getStudentEffectiveExamFieldCount(exam, nextStudent.id);
+                                          if (nextEffN > 0) {
+                                            focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
+                                          }
+                                        },
+                                        onShiftTabFromFirstField: () => {
+                                          const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                          const prevStudent = displayStudents[rowIdx - 1];
+                                          if (!prevStudent) return;
+                                          const prevEffN = getStudentEffectiveExamFieldCount(exam, prevStudent.id);
+                                          if (prevEffN > 0) {
+                                            focusScoreTaskInput(scoreInputScope, prevStudent.id, prevEffN - 1);
+                                          }
+                                        },
+                                      })}
+                                      placeholder="0"
+                                      className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
+                                      title={
+                                        scoreOutOfRange
+                                          ? maxRule.configured
+                                            ? 'Wert muss zwischen 0 und den Maximalpunkten dieser Aufgabe liegen.'
+                                            : 'Bitte zuerst Maximalpunkte eintragen oder hier 0 Punkte eintragen.'
+                                          : undefined
+                                      }
+                                      style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}
+                                    />
+                                  </div>
                                 ) : (
                                   <input
                                     type="text"
@@ -749,7 +793,7 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                                       value={effN}
                                       onChange={(n) => updateExamStudentNachschreiberFields(activeKlausur, s.id, n)}
                                       style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
-                                      title={`1–${EXAM_ABS_MAX_FIELDS}; Standard ist die Klausur (${numFields} Felder). Zusatzspalten: Max-Punkte oben in den violett markierten Spalten eintragen.`}
+                                      title={`1–${EXAM_ABS_MAX_FIELDS}; Standard ist die Klausur (${numFields} Felder). Maximalpunkte pro Aufgabe in der Zeile darüber eintragen.`}
                                     />
                                   </>
                                 )}

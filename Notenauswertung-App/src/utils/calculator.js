@@ -18,6 +18,7 @@ const EXAM_SCORE_META_KEYS = new Set([
   '_counted',
   '_nachschreiber',
   '_nachschreiberFields',
+  '_nachschreiberFieldMaxPoints',
   '_manualGrade',
   '_manualGradeValue',
   '_memberOverrides',
@@ -82,6 +83,76 @@ export const getExamDisplayFieldCount = (exam, studentsList) => {
     m = Math.max(m, getStudentEffectiveExamFieldCount(exam, s.id));
   });
   return Math.min(EXAM_ABS_MAX_FIELDS, m);
+};
+
+/** Maximalpunkte-Map eines Nachschreibers (`_nachschreiberFieldMaxPoints`). */
+export const getNachschreiberFieldMaxPoints = (scoreData) => {
+  const raw = scoreData?._nachschreiberFieldMaxPoints;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return raw;
+};
+
+/** Max-Regel für eine Aufgabenspalte aus einer Punkte-Map (Klausur oder Nachschreiber). */
+export const getExamFieldMaxRuleFromMap = (fieldMaxMap, fieldIndex) => {
+  const fmp = fieldMaxMap;
+  if (!fmp || typeof fmp !== 'object') {
+    return { configured: false, max: null };
+  }
+  const keyStr = String(fieldIndex);
+  const has =
+    Object.prototype.hasOwnProperty.call(fmp, fieldIndex) ||
+    Object.prototype.hasOwnProperty.call(fmp, keyStr);
+  if (!has) {
+    return { configured: false, max: null };
+  }
+  const raw = fmp[fieldIndex] ?? fmp[keyStr];
+  if (raw === '' || raw === undefined || raw === null) {
+    return { configured: false, max: null };
+  }
+  const maxN = parseFloat(String(raw).replace(',', '.'));
+  if (Number.isNaN(maxN)) {
+    return { configured: false, max: null };
+  }
+  return { configured: true, max: maxN };
+};
+
+export const getExamTaskMaxRule = (exam, fieldIndex) =>
+  getExamFieldMaxRuleFromMap(exam?.fieldMaxPoints, fieldIndex);
+
+export const getExamTaskMaxRuleForStudent = (exam, studentId, fieldIndex) => {
+  const sc = exam?.scores?.[studentId];
+  if (sc && typeof sc === 'object' && sc._nachschreiber) {
+    const fmp = getNachschreiberFieldMaxPoints(sc);
+    const keyStr = String(fieldIndex);
+    const hasNach =
+      Object.prototype.hasOwnProperty.call(fmp, fieldIndex) ||
+      Object.prototype.hasOwnProperty.call(fmp, keyStr);
+    if (hasNach) {
+      return getExamFieldMaxRuleFromMap(fmp, fieldIndex);
+    }
+  }
+  return getExamTaskMaxRule(exam, fieldIndex);
+};
+
+export const buildInitialNachschreiberFieldMaxPoints = (exam, fieldCount) => {
+  const out = {};
+  const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, fieldCount || 1));
+  const fmp = exam?.fieldMaxPoints;
+  for (let i = 0; i < n; i += 1) {
+    const v = fmp?.[i] ?? fmp?.[String(i)];
+    out[i] = v !== undefined && v !== null ? v : '';
+  }
+  return out;
+};
+
+/** Eingabe rot: kleiner 0; ohne Task-Max nur 0; mit Task-Max über eingetragenem Maximum. */
+export const isExamScoreFieldOutOfRange = (rawValue, rule) => {
+  if (rawValue === '' || rawValue === undefined || rawValue === null) return false;
+  const n = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue).replace(',', '.'));
+  if (Number.isNaN(n)) return false;
+  if (n < 0) return true;
+  if (!rule.configured) return n !== 0;
+  return n > rule.max;
 };
 
 /** Projekt-Themenfelder: 0 … EXAM_ABS_MAX_FIELDS (im Gegensatz zu Klausuren mindestens 1). */
@@ -232,8 +303,28 @@ export const getProjectMaxPointsForScoreKey = (project, scoreKey) => {
 /** Summe der Maximalpunkte nur für die für diesen Schüler gültigen Aufgabenfelder */
 export const getStudentExamMaxPointsForGrade = (exam, studentId) => {
   const n = getStudentEffectiveExamFieldCount(exam, studentId);
+  const sc = exam.scores?.[studentId];
   const baseN = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam.numFields || 1));
   let sum = 0;
+  if (sc && typeof sc === 'object' && sc._nachschreiber) {
+    const fmp = getNachschreiberFieldMaxPoints(sc);
+    for (let i = 0; i < n; i += 1) {
+      const keyStr = String(i);
+      const hasNach =
+        Object.prototype.hasOwnProperty.call(fmp, i) ||
+        Object.prototype.hasOwnProperty.call(fmp, keyStr);
+      if (hasNach) {
+        sum += parseScorePointsValue(fmp[i] ?? fmp[keyStr]);
+      } else {
+        sum += parseScorePointsValue(exam.fieldMaxPoints?.[i]);
+      }
+    }
+    if (sum <= 0) {
+      if (n <= baseN) return parseScorePointsValue(exam.maxPoints);
+      return 0;
+    }
+    return sum;
+  }
   for (let i = 0; i < n; i += 1) {
     sum += parseScorePointsValue(exam.fieldMaxPoints?.[i]);
   }

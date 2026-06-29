@@ -11,6 +11,8 @@ import {
   parseScorePointsValue,
   normalizeProjectScoresMap,
   normalizeProjectMemberOverrides,
+  buildInitialNachschreiberFieldMaxPoints,
+  getNachschreiberFieldMaxPoints,
 } from '../utils/calculator';
 import { getOralExtendedMode } from '../utils/oralExtendedMode';
 import { sortSchoolYears } from '../utils/schoolYear';
@@ -877,19 +879,38 @@ export const DataProvider = ({ children }) => {
       let newScores;
       if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
         if (active) {
+          const fieldCount = Math.max(
+            1,
+            Math.min(
+              EXAM_ABS_MAX_FIELDS,
+              parseInt(prevStudentScores._nachschreiberFields, 10) || cap,
+            ),
+          );
+          const existingMax = getNachschreiberFieldMaxPoints(prevStudentScores);
           newScores = {
             ...prevStudentScores,
             _nachschreiber: true,
-            _nachschreiberFields: cap,
+            _nachschreiberFields: fieldCount,
+            _nachschreiberFieldMaxPoints:
+              Object.keys(existingMax).length > 0
+                ? existingMax
+                : buildInitialNachschreiberFieldMaxPoints(exam, fieldCount),
           };
         } else {
-          const { _nachschreiber, _nachschreiberFields, ...rest } = prevStudentScores;
+          const { _nachschreiber, _nachschreiberFields, _nachschreiberFieldMaxPoints, ...rest } = prevStudentScores;
           newScores = rest;
         }
       } else if (active) {
-        newScores = prevStudentScores !== undefined && prevStudentScores !== null
-          ? { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: cap }
-          : { _counted: true, _nachschreiber: true, _nachschreiberFields: cap };
+        const base =
+          prevStudentScores !== undefined && prevStudentScores !== null
+            ? { 0: prevStudentScores, _counted: true }
+            : { _counted: true };
+        newScores = {
+          ...base,
+          _nachschreiber: true,
+          _nachschreiberFields: cap,
+          _nachschreiberFieldMaxPoints: buildInitialNachschreiberFieldMaxPoints(exam, cap),
+        };
       } else {
         newScores = prevStudentScores !== undefined && prevStudentScores !== null
           ? { 0: prevStudentScores }
@@ -973,6 +994,45 @@ export const DataProvider = ({ children }) => {
         if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete newScores[k];
       });
 
+      const prevMax = { ...getNachschreiberFieldMaxPoints(newScores) };
+      for (let i = 0; i < n; i += 1) {
+        const keyStr = String(i);
+        if (
+          !Object.prototype.hasOwnProperty.call(prevMax, i) &&
+          !Object.prototype.hasOwnProperty.call(prevMax, keyStr)
+        ) {
+          const fromExam = exam.fieldMaxPoints?.[i] ?? exam.fieldMaxPoints?.[keyStr];
+          prevMax[i] = fromExam !== undefined && fromExam !== null ? fromExam : '';
+        }
+      }
+      Object.keys(prevMax).forEach((k) => {
+        if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete prevMax[k];
+      });
+      newScores._nachschreiberFieldMaxPoints = prevMax;
+
+      const newExam = {
+        ...exam,
+        scores: { ...exam.scores, [studentId]: newScores },
+      };
+      apiCall(`/api/exams/${examId}`, 'PUT', { ...newExam, courseId: activeCourseId });
+      return { ...prev, [examId]: newExam };
+    });
+  };
+
+  const updateExamStudentNachschreiberFieldMaxPoints = (examId, studentId, fieldIndex, points) => {
+    setExams((prev) => {
+      const exam = prev[examId];
+      const prevStudentScores = exam.scores[studentId];
+      const base =
+        typeof prevStudentScores === 'object' && prevStudentScores !== null
+          ? { ...prevStudentScores, _nachschreiber: true }
+          : { 0: prevStudentScores, _counted: true, _nachschreiber: true };
+      const prevMax = { ...getNachschreiberFieldMaxPoints(base) };
+      prevMax[fieldIndex] = points;
+      const newScores = {
+        ...base,
+        _nachschreiberFieldMaxPoints: prevMax,
+      };
       const newExam = {
         ...exam,
         scores: { ...exam.scores, [studentId]: newScores },
@@ -2199,6 +2259,7 @@ export const DataProvider = ({ children }) => {
       students, addStudent, removeStudent, clearCourseStudents, updateStudentConfig,
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,
       updateExamStudentNachschreiber, updateExamStudentNachschreiberFields,
+      updateExamStudentNachschreiberFieldMaxPoints,
       updateExamStudentManualGrade, updateExamStudentManualGradeValue,
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
       tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
