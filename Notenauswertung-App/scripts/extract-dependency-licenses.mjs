@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Liest LICENSE-Dateien aus node_modules und schreibt src/data/dependencyPackageLicenses.js.
+ * Paketliste: package.json (Frontend), backend-package.snapshot.json, desktop-package.snapshot.json.
  * Ausführen nach npm install (Frontend + Backend), wenn sich Abhängigkeiten ändern:
  *   node scripts/extract-dependency-licenses.mjs
  */
@@ -9,22 +10,25 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import appPkg from '../package.json' with { type: 'json' };
 import backendPkg from '../src/data/backend-package.snapshot.json' with { type: 'json' };
+import desktopPkg from '../src/data/desktop-package.snapshot.json' with { type: 'json' };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(appRoot, '..');
 const feModules = path.join(appRoot, 'node_modules');
 const beModules = path.join(repoRoot, 'backend', 'node_modules');
+const desktopModules = path.join(repoRoot, 'desktop', 'node_modules');
 
 const PACKAGE_NAMES = [
   ...Object.keys(appPkg.dependencies ?? {}),
   ...Object.keys(appPkg.devDependencies ?? {}),
   ...Object.keys(backendPkg.dependencies ?? {}),
   ...Object.keys(backendPkg.devDependencies ?? {}),
+  ...Object.keys(desktopPkg.devDependencies ?? {}),
 ].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
 
 function resolvePkgDir(name) {
-  for (const root of [feModules, beModules]) {
+  for (const root of [feModules, beModules, desktopModules]) {
     const dir = path.join(root, name);
     if (fs.existsSync(path.join(dir, 'package.json'))) return dir;
   }
@@ -56,7 +60,7 @@ function extractLicenseText(name, dir) {
 
 async function fetchUnpkgLicense(name) {
   let version = 'latest';
-  for (const root of [feModules, beModules]) {
+  for (const root of [feModules, beModules, desktopModules]) {
     try {
       const pkgJson = JSON.parse(await fs.promises.readFile(path.join(root, name, 'package.json'), 'utf8'));
       if (pkgJson.version) {

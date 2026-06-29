@@ -1,10 +1,13 @@
 import appPkg from '../../package.json';
 /** Snapshot der Backend-Abhängigkeiten (gleicher Inhalt wie ../backend/package.json); bei Backend-Updates hier mitpflegen — im Docker-Build liegt kein ../backend/. */
 import backendPkg from './backend-package.snapshot.json';
+/** Snapshot der Desktop-Build-Abhängigkeiten (gleicher Inhalt wie ../desktop/package.json); nur für Windows-Desktop-Packaging. */
+import desktopPkg from './desktop-package.snapshot.json';
 
 /** Kurzbeschreibung je Paket (Deutsch). */
 const PURPOSE = {
   // Frontend Laufzeit
+  exceljs: 'Excel-Export mit mehreren Tabellenblättern und Formatierung (Notenschlüssel, Gesamtexport).',
   jspdf: 'PDF-Erzeugung im Browser (Export von Tabellen und Kursübersichten).',
   'jspdf-autotable': 'Tabellen-Plugin für jsPDF (formatierte PDF-Tabellen beim Export).',
   'lucide-react': 'SVG-Icon-Bibliothek für Schaltflächen, Suche, Einstellungen u. a.',
@@ -17,6 +20,7 @@ const PURPOSE = {
   '@prisma/client': 'Typisierter Datenbankzugriff (PostgreSQL/SQLite) aus dem Node-Server.',
   argon2: 'Argon2id-KDF zum Schutz des Datenverschlüsselungsschlüssels (DEK-Hülle).',
   bcryptjs: 'Sicheres Hashen und Prüfen von Benutzerpasswörtern (bcrypt-Algorithmus).',
+  cookie: 'Parsen und Setzen des HttpOnly-Session-Cookies (phix_session) für die Anmeldung.',
   cors: 'Cross-Origin Resource Sharing: erlaubt Anfragen der Web-App an den API-Server.',
   dotenv: 'Lädt Umgebungsvariablen (z. B. DATABASE_URL) aus einer .env-Datei.',
   express: 'HTTP-Server und REST-API-Routen für Kurse, Schüler, Benutzer usw.',
@@ -33,10 +37,16 @@ const PURPOSE = {
   vite: 'Dev-Server und Bundler für die React-Anwendung.',
   // Backend Entwicklung
   nodemon: 'Startet den Server bei Dateiänderungen neu (nur Entwicklung).',
+  // Desktop Build (Electron)
+  '@resvg/resvg-js': 'SVG → PNG für das Desktop-App-Icon (Build-Skript).',
+  'cross-env': 'Plattformunabhängige Umgebungsvariablen in npm-Skripten (Windows/Linux).',
+  electron: 'Desktop-Hülle: eingebetteter Chromium-Browser und Node-Integration für PhiX.',
+  'electron-builder': 'Erzeugt das Windows-Desktop-Paket (portable/zip) inkl. gebündeltem Backend.',
 };
 
 /** SPDX-ähnliche Kurzbezeichnung; bei Abweichung im Paket siehe Registry. */
 const LICENSE = {
+  exceljs: 'MIT',
   jspdf: 'MIT',
   'jspdf-autotable': 'MIT',
   'lucide-react': 'ISC',
@@ -48,6 +58,7 @@ const LICENSE = {
   '@prisma/client': 'Apache-2.0',
   argon2: 'MIT',
   bcryptjs: 'BSD-3-Clause',
+  cookie: 'MIT',
   cors: 'MIT',
   dotenv: 'BSD-2-Clause',
   express: 'MIT',
@@ -62,6 +73,10 @@ const LICENSE = {
   globals: 'MIT',
   vite: 'MIT',
   nodemon: 'MIT',
+  '@resvg/resvg-js': 'MPL-2.0',
+  'cross-env': 'MIT',
+  electron: 'MIT',
+  'electron-builder': 'MIT',
 };
 
 function depRows(deps, scope, purposeMap, licenseMap) {
@@ -83,6 +98,7 @@ export function getDependencySections() {
     frontendDev: depRows(appPkg.devDependencies, 'Frontend (Entwicklung)', PURPOSE, LICENSE),
     backendRuntime: depRows(backendPkg.dependencies, 'Backend (Laufzeit)', PURPOSE, LICENSE),
     backendDev: depRows(backendPkg.devDependencies, 'Backend (Entwicklung)', PURPOSE, LICENSE),
+    desktopBuild: depRows(desktopPkg.devDependencies, 'Desktop (Build)', PURPOSE, LICENSE),
   };
 }
 
@@ -117,5 +133,11 @@ export const LICENSE_EXPLANATIONS = [
     title: 'BSD 3-Clause',
     text:
       'Permissive Lizenz mit drei zentralen Klauseln: Namensnennung der Urheber, Verbot der Namensnennung zur Werbung ohne Erlaubnis, sowie Haftungs-/Gewährleistungsausschluss. Nutzung in Open-Source und kommerziellen Projekten ist üblich.',
+  },
+  {
+    id: 'MPL-2.0',
+    title: 'Mozilla Public License 2.0',
+    text:
+      'Schwache Copyleft-Lizenz: Änderungen an den lizenzierten Dateien selbst müssen unter MPL-2.0 weitergegeben werden; größere Werke, die die Dateien nur einbinden, können unter anderen Lizenzen stehen. Typisch für Bibliotheken mit klaren Modul-Grenzen.',
   },
 ];

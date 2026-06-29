@@ -91,6 +91,7 @@ export default function DependenciesView({ onOpenLicense }) {
       ...sections.frontendDev,
       ...sections.backendRuntime,
       ...sections.backendDev,
+      ...sections.desktopBuild,
     ],
     [sections],
   );
@@ -113,9 +114,11 @@ export default function DependenciesView({ onOpenLicense }) {
       <p className="text-muted program-view-intro">
         Übersicht der eingebundenen npm-Pakete (Laufzeit und Entwicklung). {APP_NAME} selbst steht unter der{' '}
         <strong>Apache License 2.0</strong> ({PHIX_LICENSE_SPDX}, {PHIX_COPYRIGHT}). Frontend-Versionen stammen aus
-        der <code className="app-info-code">package.json</code> der Web-App; Backend-Versionen aus{' '}
-        <code className="app-info-code">src/data/backend-package.snapshot.json</code> (Kopie der Backend-Abhängigkeiten
-        für den Build, z. B. Docker — bei Backend-Änderungen bitte mitpflegen).
+        der <code className="app-info-code">package.json</code> der Web-App; Backend- und Desktop-Versionen aus{' '}
+        <code className="app-info-code">src/data/backend-package.snapshot.json</code> bzw.{' '}
+        <code className="app-info-code">desktop-package.snapshot.json</code> (Kopien für den Build, z. B. Docker —
+        bei Änderungen in <code className="app-info-code">backend/</code> oder <code className="app-info-code">desktop/</code>{' '}
+        bitte mitpflegen).
       </p>
 
       <LicenseTextModal modal={licenseModal} onClose={() => setLicenseModal(null)} />
@@ -160,6 +163,11 @@ export default function DependenciesView({ onOpenLicense }) {
         <DependencyTable
           title="Backend — Entwicklung"
           rows={sections.backendDev}
+          onShowLicense={setLicenseModal}
+        />
+        <DependencyTable
+          title="Desktop — Build (Electron)"
+          rows={sections.desktopBuild}
           onShowLicense={setLicenseModal}
         />
 
