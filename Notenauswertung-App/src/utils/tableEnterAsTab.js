@@ -94,8 +94,8 @@ export function scrollTableFieldIntoView(fieldEl) {
     bottom: cr.bottom - pad,
   };
   const fr = cell.getBoundingClientRect();
-  // Früher scrollen: Puffer vor fixen Spalten (≈ eine Aufgabenspalte), nicht erst bei Überlappung.
-  const earlyScrollX = Math.max(72, fr.width + pad * 4);
+  // Früher scrollen: großzügiger Puffer vor fixen Spalten (≈ zwei Aufgabenspalten).
+  const earlyScrollX = Math.max(112, fr.width * 2 + pad * 6);
   const earlyScrollY = Math.max(28, fr.height + pad * 2);
   const targetRight = visible.right - earlyScrollX;
   const targetLeft = visible.left + earlyScrollX;

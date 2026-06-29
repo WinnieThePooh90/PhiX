@@ -110,6 +110,7 @@ function App() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') || null;
   const userTabKey = currentUser?.username ? `phix_last_tab_${currentUser.username}` : null;
+  const userYearFilterKey = currentUser?.username ? `phix_sidebar_year_filter_${currentUser.username}` : null;
   const [activeTab, setActiveTabRaw] = useState(() => {
     if (tabFromUrl) return tabFromUrl;
     try {
@@ -166,7 +167,16 @@ function App() {
   const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(true);
   const [mobilePageSettingsExpanded, setMobilePageSettingsExpanded] = useState(false);
   const mobileHeaderRef = useRef(null);
-  const [selectedYearFilter, setSelectedYearFilter] = useState('');
+  const [selectedYearFilter, setSelectedYearFilterRaw] = useState('');
+  const setSelectedYearFilter = useCallback((year) => {
+    const value = String(year ?? '');
+    setSelectedYearFilterRaw(value);
+    try {
+      if (userYearFilterKey) localStorage.setItem(userYearFilterKey, value);
+    } catch {
+      /* ignore */
+    }
+  }, [userYearFilterKey]);
   const [sidebarCourseSearch, setSidebarCourseSearch] = useState('');
   const [sidebarArchiveOpen, setSidebarArchiveOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState('');
@@ -222,6 +232,26 @@ function App() {
   }, [activeTab, isNewCoursePage]);
 
   const uniqueYears = [...new Set(courses.map((c) => c.year))].sort().reverse();
+
+  useEffect(() => {
+    if (!userYearFilterKey) {
+      setSelectedYearFilterRaw('');
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(userYearFilterKey);
+      setSelectedYearFilterRaw(stored ?? '');
+    } catch {
+      setSelectedYearFilterRaw('');
+    }
+  }, [userYearFilterKey]);
+
+  useEffect(() => {
+    if (!selectedYearFilter || uniqueYears.length === 0) return;
+    if (!uniqueYears.includes(selectedYearFilter)) {
+      setSelectedYearFilter('');
+    }
+  }, [uniqueYears, selectedYearFilter, setSelectedYearFilter]);
 
   const sidebarCourses = React.useMemo(() => {
     const q = sidebarCourseSearch;
