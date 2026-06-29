@@ -135,22 +135,105 @@ function getActivePercentProjects(projects) {
     }));
 }
 
+function hasActiveProjectsWithMode(projects, mode) {
+  return Object.values(projects || {}).some((p) => p.active && p.weightingMode === mode);
+}
+
+function buildWrittenPartialParts(config, projects) {
+  const parts = ['zählenden Klausur-Noten'];
+  if (config?.gfsAccepted !== false) {
+    parts.push('gehaltener GFS-Noten (jede GFS zählt wie eine Klausur)');
+  }
+  if (usesReferatAsExam(config)) {
+    parts.push('gehaltener Referate (jeweils wie eine Klausur)');
+  }
+  if (usesReferatWrittenPercent(config)) {
+    const pct = getReferatWrittenPercent(config);
+    parts.push(
+      `gehaltener Referate (anteilig ${pct} % einer Klausur)`,
+    );
+  }
+  if (config?.projectsAccepted !== false && hasActiveProjectsWithMode(projects, 'written')) {
+    parts.push('aktiver Projekte mit Gewichtung „zu schriftlich“');
+  }
+  if (usesTestsAsHalfExam(config)) {
+    parts.push('jeder Test zählt mit 50 % (wie eine halbe Klausur)');
+  }
+  return parts;
+}
+
+function buildOralPartialParts(config, projects) {
+  const parts = ['aller aktiven mündlichen Bereiche'];
+  if (usesReferatAsOral(config)) {
+    parts.push('gehaltener Referate (jeweils wie eine mündliche Note)');
+  }
+  if (usesReferatOralPercent(config)) {
+    const pct = getReferatOralPercent(config);
+    parts.push(
+      `gehaltener Referate (anteilig ${pct} % einer mündlichen Note)`,
+    );
+  }
+  if (config?.projectsAccepted !== false && hasActiveProjectsWithMode(projects, 'oral')) {
+    parts.push('aktiver Projekte mit Gewichtung „zu mündlich“');
+  }
+  if (usesTestsAsOral(config)) {
+    parts.push('jeder Test zählt wie eine mündliche Note');
+  }
+  return parts;
+}
+
+function joinGermanList(parts) {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} und ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} und ${parts[parts.length - 1]}`;
+}
+
+function formatPartialAverageDescription(symbol, label, parts) {
+  return (
+    <>
+      <strong>{symbol}</strong> ({label}): arithmetisches Mittel {parts.length > 1 ? 'aus ' : 'von '}
+      {joinGermanList(parts)}.
+    </>
+  );
+}
+
 function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams, tests }) {
   if (!open) return null;
 
   const weights = resolveSummaryWeighting(resolveCourseWeighting(config?.weighting, config, exams, tests));
-  const testsWritten = config?.testsWritten !== false;
-  const testsAsHalfExam = usesTestsAsHalfExam(config);
-  const testsAsOral = usesTestsAsOral(config);
   const showTestsInFinal = includeTestsInFinalWeight(config);
   const percentProjects = getActivePercentProjects(projects);
   const totalPercent = percentProjects.reduce((s, p) => s + p.percent, 0);
   const remainingFactor = Math.max(0, (100 - totalPercent) / 100);
   const wSum = weights.written + weights.oral + (showTestsInFinal ? weights.tests : 0);
+  const showWrittenPartial = (wSum > 0 && weights.written > 0) || usesTestsAsHalfExam(config);
+  const showOralPartial = (wSum > 0 && weights.oral > 0) || usesTestsAsOral(config);
+  const writtenPartialParts = buildWrittenPartialParts(config, projects);
+  const oralPartialParts = buildOralPartialParts(config, projects);
+  const usesReferatFinal = usesReferatFinalPercent(config);
+  const referatFinalPct = getReferatFinalPercent(config);
 
-  const weightLine = showTestsInFinal
-    ? <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong>, <strong>w<sub>T</sub> = {weights.tests}</strong></>
-    : <>Gewichte (Einstellungen): <strong>w<sub>S</sub> = {weights.written}</strong>, <strong>w<sub>M</sub> = {weights.oral}</strong></>;
+  const partialLabels = [
+    showWrittenPartial && 'Schriftlich',
+    showOralPartial && 'Mündlich',
+    showTestsInFinal && 'Tests',
+    percentProjects.length > 0 && 'prozentualen Projektanteilen',
+    usesReferatFinal && 'einem anteiligen Referatanteil an der Gesamtnote',
+  ].filter(Boolean);
+
+  const partialIntro =
+    partialLabels.length === 0
+      ? 'den gewichteten Teildurchschnitten'
+      : partialLabels.length === 1
+        ? `dem Teildurchschnitt ${partialLabels[0]}`
+        : `den gewichteten Teildurchschnitten ${joinGermanList(partialLabels)}`;
+
+  const weightParts = [
+    weights.written > 0 && wSum > 0 ? <>w<sub>S</sub> = {weights.written}</> : null,
+    weights.oral > 0 && wSum > 0 ? <>w<sub>M</sub> = {weights.oral}</> : null,
+    showTestsInFinal && weights.tests > 0 ? <>w<sub>T</sub> = {weights.tests}</> : null,
+  ].filter(Boolean);
 
   const standardClassicNumerator = showTestsInFinal
     ? <>w<sub>S</sub>·S + w<sub>M</sub>·M + w<sub>T</sub>·T</>
@@ -188,40 +271,57 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams,
         </div>
         <div className="oral-formula-modal-body text-muted" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
           <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
-            Die Spalte <strong>Endnote (Exakt)</strong> ist das gewichtete Mittel der Teildurchschnitte Schriftlich, Mündlich und Tests
-            {percentProjects.length > 0 ? ' sowie prozentualer Projektanteile' : ''}.
+            Die Spalte <strong>Endnote (Exakt)</strong> ist das gewichtete Mittel aus {partialIntro}.
           </p>
 
           <p style={{ margin: '0 0 0.5rem', color: 'var(--text-main)', fontWeight: 600 }}>Teildurchschnitte</p>
           <ul style={{ margin: '0 0 1rem', paddingLeft: '1.25rem' }}>
-            <li style={{ marginBottom: '0.45rem' }}>
-              <strong>S</strong> (Schriftlich): arithmetisches Mittel aller zählenden Klausur-Noten, gehaltener GFS-Noten
-              (jede GFS zählt wie eine Klausur) und aktiver Projekte mit Gewichtung „zu schriftlich“
-              {testsAsHalfExam ? '; jeder Test zählt mit 50 % (wie eine halbe Klausur)' : ''}.
-            </li>
-            <li style={{ marginBottom: '0.45rem' }}>
-              <strong>M</strong> (Mündlich): arithmetisches Mittel aller aktiven mündlichen Bereiche und Projekte mit Gewichtung „zu mündlich“
-              {testsAsOral ? '; jeder Test zählt wie eine mündliche Note' : ''}.
-            </li>
+            {showWrittenPartial && (
+              <li style={{ marginBottom: '0.45rem' }}>
+                {formatPartialAverageDescription('S', 'Schriftlich', writtenPartialParts)}
+              </li>
+            )}
+            {showOralPartial && (
+              <li style={{ marginBottom: '0.45rem' }}>
+                {formatPartialAverageDescription('M', 'Mündlich', oralPartialParts)}
+              </li>
+            )}
             {showTestsInFinal && (
               <li style={{ marginBottom: '0.45rem' }}>
                 <strong>T</strong> (Tests): arithmetisches Mittel aller aktiven, zählenden Test-Noten.
               </li>
             )}
             {percentProjects.length > 0 && (
-              <li>
-                <strong>g<sub>i</sub></strong>, <strong>p<sub>i</sub></strong>: Note bzw. Prozentanteil (0–100) pro aktivem Projekt mit Gewichtung „prozentual“
+              <li style={{ marginBottom: usesReferatFinal ? '0.45rem' : 0 }}>
+                <strong>g<sub>i</sub></strong> (Note des Projekts <em>i</em>), <strong>p<sub>i</sub></strong> (Prozentanteil 0–100 an der Gesamtnote)
                 {percentProjects.map((p) => (
                   <span key={p.id}>
                     {' '}
-                    (<em>{p.name}</em>: p = {p.percent} %)
+                    — <em>{p.name}</em>: p = {p.percent} %
                   </span>
-                ))}.
+                ))}
+                .
+              </li>
+            )}
+            {usesReferatFinal && (
+              <li>
+                Gehaltene Referate fließen mit <strong>{referatFinalPct} %</strong> direkt in die Gesamtnote ein
+                (analog zu einem prozentualen Projektanteil).
               </li>
             )}
           </ul>
 
-          <p style={{ margin: '0 0 0.35rem', color: 'var(--text-main)', fontWeight: 600 }}>{weightLine}</p>
+          {weightParts.length > 0 && (
+            <p style={{ margin: '0 0 0.35rem', color: 'var(--text-main)', fontWeight: 600 }}>
+              In dieser Klasse eingestellte Gewichte:{' '}
+              {weightParts.map((part, idx) => (
+                <span key={idx}>
+                  {idx > 0 ? ', ' : ''}
+                  <strong>{part}</strong>
+                </span>
+              ))}
+            </p>
+          )}
           {percentProjects.length > 0 && (
             <p style={{ margin: '0 0 0.75rem' }}>
               Restfaktor für die drei Säulen:{' '}
@@ -293,40 +393,18 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams,
               </div>
               <p style={{ margin: '0.75rem 0 0' }}>
                 Noten liegen kontinuierlich auf der Skala 1–6 (wie in den Spalten Schriftlich/Mündlich/Tests angezeigt).
-                Gibt es nur prozentuale Projektanteile ohne die drei Säulen, ist die Endnote allein die Summe Σ(g<sub>i</sub>·p<sub>i</sub>/100).
+                {wSum === 0 && percentProjects.length > 0 && (
+                  <>
+                    <br />
+                    <br />
+                    Gibt es nur prozentuale Projektanteile ohne die drei Säulen, ist die Endnote allein die Summe
+                    {' '}
+                    Σ(g<sub>i</sub>·p<sub>i</sub>/100). Dabei ist <strong>g<sub>i</sub></strong> die berechnete Note des
+                    Projekts <em>i</em>, <strong>p<sub>i</sub></strong> der dafür eingestellte Prozentanteil (0–100) an der Gesamtnote.
+                  </>
+                )}
               </p>
             </>
-          )}
-
-          {wSum > 0 && (
-            <p style={{ margin: '0.75rem 0 0', fontSize: '0.82rem' }}>
-              Mit den aktuellen Gewichten{percentProjects.length > 0 ? ' und f' : ''} numerisch:{' '}
-              {gradeSys === 'points' ? (
-                percentProjects.length > 0 ? (
-                  <>
-                    NP<sub>end</sub> = round(f · ({weights.written}·NP(S) + {weights.oral}·NP(M)
-                    {showTestsInFinal ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum}
-                    {percentProjects.map((p) => ` + ${p.percent}%·NP(g${p.id})`).join('')})
-                  </>
-                ) : (
-                  <>
-                    NP<sub>end</sub> = round(({weights.written}·NP(S) + {weights.oral}·NP(M)
-                    {showTestsInFinal ? ` + ${weights.tests}·NP(T)` : ''}) / {wSum})
-                  </>
-                )
-              ) : percentProjects.length > 0 ? (
-                <>
-                  Endnote = {remainingFactor.toLocaleString('de-DE', { maximumFractionDigits: 4 })} · ({weights.written}·S + {weights.oral}·M
-                  {showTestsInFinal ? ` + ${weights.tests}·T` : ''}) / {wSum}
-                  {percentProjects.map((p) => ` + ${(p.percent / 100).toLocaleString('de-DE', { maximumFractionDigits: 4 })}·g${p.id}`).join('')}
-                </>
-              ) : (
-                <>
-                  Endnote = ({weights.written}·S + {weights.oral}·M
-                  {showTestsInFinal ? ` + ${weights.tests}·T` : ''}) / {wSum}
-                </>
-              )}
-            </p>
           )}
         </div>
       </div>
