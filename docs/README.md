@@ -38,6 +38,7 @@
 
 | Thema | Datei |
 |-------|--------|
+| **Sicherheit & Datenschutz (Übersicht, Audit)** | [`SECURITY.md`](SECURITY.md) |
 | Desktop-Hülle mit Electron (ADR) | [`ADR-001-desktop-electron.md`](ADR-001-desktop-electron.md) |
 | Verschlüsselung (AES-256-GCM, Backup) | [`ENCRYPTION.md`](ENCRYPTION.md) |
 

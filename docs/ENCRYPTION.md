@@ -105,6 +105,7 @@ Datenbank-Migration `20260628190000_app_user_initial_setup_token`: Spalte `initi
 
 | Thema | Datei |
 |-------|--------|
+| Sicherheit & Datenschutz (Übersicht) | [`SECURITY.md`](SECURITY.md) |
 | SQLite Desktop / Backup | [`SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md) |
 | Docker & Desktop Übersicht | [`BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md) |
 | Server-Installation & TLS | [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |

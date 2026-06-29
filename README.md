@@ -56,7 +56,7 @@
 
 ### Sicherheit & Verwaltung
 
-- Verschlüsselte Speicherung sensibler Daten (**AES-256-GCM**), siehe [`docs/ENCRYPTION.md`](docs/ENCRYPTION.md)
+- Verschlüsselte Speicherung sensibler Daten (**AES-256-GCM**), siehe [`docs/ENCRYPTION.md`](docs/ENCRYPTION.md) und [`docs/SECURITY.md`](docs/SECURITY.md)
 - Benutzerkonten mit **Recovery-Key** bei Passwortverlust
 - **Backup/Import** — verschlüsseltes Backup inkl. Kurse, Noten, Klassenlehrer-Listen, Album-Fotos, Auswertungshilfe und persönlicher Anzeige-Einstellungen
 - Benutzerverwaltung (Admin)
@@ -195,6 +195,7 @@ Hauptabhängigkeiten (Auszug): React (MIT), Express (MIT), Prisma (Apache-2.0), 
 | Electron Desktop | [`desktop/README.md`](desktop/README.md) |
 | SQLite Desktop / Backup | [`docs/SQLITE_DESKTOP.md`](docs/SQLITE_DESKTOP.md) |
 | Verschlüsselung | [`docs/ENCRYPTION.md`](docs/ENCRYPTION.md) |
+| Sicherheit & Datenschutz | [`docs/SECURITY.md`](docs/SECURITY.md) |
 | Prisma Dual-Schema (ADR) | [`docs/ADR-002-prisma-postgres-sqlite.md`](docs/ADR-002-prisma-postgres-sqlite.md) |
 | Aktueller Build | [`docs/APP_VERSION.md`](docs/APP_VERSION.md) |
 
