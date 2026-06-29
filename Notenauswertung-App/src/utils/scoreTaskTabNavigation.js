@@ -49,13 +49,22 @@ export function createScoreTaskTabHandler({
     }
 
     if (e.shiftKey) {
-      if (fieldIndex !== 0) return;
+      if (fieldIndex > 0) {
+        e.preventDefault();
+        focusScoreTaskInput(scopeKey, rowKey, fieldIndex - 1);
+        return;
+      }
       if (!onShiftTabFromFirstField) return;
       e.preventDefault();
       onShiftTabFromFirstField();
       return;
     }
-    if (fieldIndex !== effectiveFieldCount - 1) return;
+
+    if (fieldIndex < effectiveFieldCount - 1) {
+      e.preventDefault();
+      focusScoreTaskInput(scopeKey, rowKey, fieldIndex + 1);
+      return;
+    }
     if (!onTabForwardFromLastField) return;
     e.preventDefault();
     onTabForwardFromLastField();

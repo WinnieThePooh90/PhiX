@@ -10,26 +10,33 @@ function isScrollableOverflow(value) {
   return value === 'auto' || value === 'scroll' || value === 'overlay';
 }
 
-function findTableScrollContainer(el) {
-  const marked = el.closest(TABLE_SCROLL_ROOT_SEL);
-  if (marked instanceof HTMLElement) return marked;
+function elementScrollAxes(node) {
+  if (!(node instanceof HTMLElement)) return { x: false, y: false };
+  const style = getComputedStyle(node);
+  const canScrollX =
+    isScrollableOverflow(style.overflowX) || isScrollableOverflow(style.overflow);
+  const canScrollY =
+    isScrollableOverflow(style.overflowY) || isScrollableOverflow(style.overflow);
+  return {
+    x: canScrollX && node.scrollWidth > node.clientWidth + 1,
+    y: canScrollY && node.scrollHeight > node.clientHeight + 1,
+  };
+}
 
-  let node = el.parentElement;
+function findTableScrollContainer(fieldEl) {
+  let node = fieldEl.parentElement;
+  let markedFallback = null;
+
   while (node && node !== document.documentElement) {
-    const style = getComputedStyle(node);
-    const canScrollX =
-      isScrollableOverflow(style.overflowX) || isScrollableOverflow(style.overflow);
-    const canScrollY =
-      isScrollableOverflow(style.overflowY) || isScrollableOverflow(style.overflow);
-    if (
-      (canScrollX && node.scrollWidth > node.clientWidth + 1) ||
-      (canScrollY && node.scrollHeight > node.clientHeight + 1)
-    ) {
-      return node;
+    if (!markedFallback && node.matches?.(TABLE_SCROLL_ROOT_SEL)) {
+      markedFallback = node;
     }
+    const { x, y } = elementScrollAxes(node);
+    if (x || y) return node;
     node = node.parentElement;
   }
-  return null;
+
+  return markedFallback;
 }
 
 /** Sticky thead/-spalten verringern den sichtbaren Bereich im Scroll-Container. */
