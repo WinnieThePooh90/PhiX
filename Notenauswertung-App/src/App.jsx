@@ -48,6 +48,7 @@ import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
 import { installTableEnterAsTab } from './utils/tableEnterAsTab';
 import { userHasAdminRights } from './utils/userAdmin';
+import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
 
 const MOBILE_MEDIA = '(max-width: 768px)';
