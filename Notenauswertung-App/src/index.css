@@ -1422,6 +1422,20 @@ p {
   border-bottom: none;
 }
 
+.program-user-mgmt-name-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  min-width: 0;
+}
+
+.program-user-mgmt-admin-check {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
 .program-user-mgmt-name {
   font-weight: 500;
   font-size: 0.9rem;
@@ -4191,6 +4205,48 @@ a.support-phix-paypal-btn:active {
   flex-shrink: 0;
 }
 
+.user-auswertungshilfe-group {
+  display: inline-flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.user-auswertungshilfe-group .user-auswertungshilfe-btn {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+.user-auswertungshilfe-sep {
+  width: 1px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: var(--border);
+}
+
+.user-auswertungshilfe-group .user-auswertungshilfe-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: auto;
+  min-height: 2.5rem;
+  padding: 0;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+/* Legacy-Alias (falls noch referenziert) */
 .user-auswertungshilfe-actions {
   display: inline-flex;
   align-items: center;

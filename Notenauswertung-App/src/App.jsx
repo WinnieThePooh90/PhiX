@@ -47,7 +47,7 @@ import SettingsNavMenu from './components/SettingsNavMenu';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
 import { installTableEnterAsTab } from './utils/tableEnterAsTab';
-import { APP_NAME } from './config/app';
+import { userHasAdminRights } from './utils/userAdmin';
 import { usePhiXRegistration } from './utils/phixRegistration';
 
 const MOBILE_MEDIA = '(max-width: 768px)';
@@ -105,7 +105,7 @@ function App() {
   const { config, courses, activeCourseId, setActiveCourseId, toggleCourseFavorite, students, courseArchived } = useData();
   const { currentUser } = useAuth();
   const { registered: phixRegistered } = usePhiXRegistration();
-  const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
+  const isAdminUser = userHasAdminRights(currentUser);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') || null;
   const userTabKey = currentUser?.username ? `phix_last_tab_${currentUser.username}` : null;

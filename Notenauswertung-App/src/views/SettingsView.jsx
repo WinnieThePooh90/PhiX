@@ -263,16 +263,10 @@ export default function SettingsView() {
 
   const handleAddAllRosterCandidates = async () => {
     if (!rosterCandidates.length) return;
-    const stageHint =
-      rosterGradeFilter === null
-        ? 'allen gew\u00E4hlten Stufen'
-        : rosterSectionFilter
-          ? `der Klasse ${rosterGradeFilter}${rosterSectionFilter}`
-          : `der Stufe ${rosterGradeFilter}`;
     let ok = true;
     if (rosterCandidates.length > 8) {
       ok = await showConfirm(
-        `${rosterCandidates.length} Sch\u00FCler (${stageHint}, evtl. eingeschr\u00E4nkt durch die Suche) aus der Sch\u00FClerverwaltung in diesen Kurs \u00FCbernehmen?`,
+        `${rosterCandidates.length} Sch\u00FCler aus der Sch\u00FClerverwaltung in diesen Kurs \u00FCbernehmen?`,
         { title: 'Sch\u00FCler \u00FCbernehmen' },
       );
     }

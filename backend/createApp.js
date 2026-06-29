@@ -48,6 +48,13 @@ app.use(
 
 const BCRYPT_ROUNDS = 10;
 
+const {
+  hasAdminRights,
+  isReservedAdminUsername,
+  resolveAdminRights,
+  toPublicAppUser,
+} = require('./lib/user-admin');
+
 /** Systemadministrator (Benutzerverwaltung, Backup, Dependencies) — kein Zugriff auf fremde Kurse. */
 const ADMIN_USERNAME = 'admin';
 
@@ -55,8 +62,9 @@ function getActingUser(req) {
   return String(req.get('X-Acting-User') || '').trim();
 }
 
+/** @deprecated Nutze resolveAdminRights / hasAdminRights. */
 function isAdminUser(username) {
-  return String(username || '').toLowerCase() === ADMIN_USERNAME;
+  return isReservedAdminUsername(username);
 }
 
 function canAccessCourse(course, actingUser) {
@@ -85,8 +93,8 @@ async function assertActingUser(req, res) {
 async function assertAdminUser(req, res) {
   const acting = await assertActingUser(req, res);
   if (!acting) return null;
-  if (!isAdminUser(acting)) {
-    res.status(403).json({ error: 'Nur der Administrator darf diese Aktion ausführen.' });
+  if (!(await resolveAdminRights(prisma, acting))) {
+    res.status(403).json({ error: 'Nur Administratoren dürfen diese Aktion ausführen.' });
     return null;
   }
   return acting;
@@ -164,8 +172,7 @@ app.post('/api/auth/login', async (req, res) => {
   const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
 
   res.json({
-    id: String(user.id),
-    username: user.username,
+    ...toPublicAppUser(user),
     cryptoSessionToken,
     requiresCryptoSetup,
     settings: settings || { inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' },
@@ -230,7 +237,7 @@ app.post('/api/auth/crypto/unlock-recovery', async (req, res) => {
       await tx.appUser.update({ where: { id: user.id }, data: { passwordHash } });
     });
     const cryptoSessionToken = createCryptoSession(user.id, dek);
-    res.json({ id: String(user.id), username: user.username, cryptoSessionToken });
+    res.json({ ...toPublicAppUser(user), cryptoSessionToken });
   } catch (err) {
     console.error('[crypto] Recovery-Unlock fehlgeschlagen:', err);
     res.status(401).json({ error: 'Recovery-Key oder Daten ungültig.' });
@@ -242,10 +249,10 @@ app.get('/api/auth/session', async (req, res) => {
   if (!acting) return res.status(401).json({ error: 'Nicht angemeldet' });
   const user = await prisma.appUser.findFirst({
     where: usernameWhere(acting),
-    select: { id: true, username: true },
+    select: { id: true, username: true, isAdmin: true },
   });
   if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
-  res.json({ id: String(user.id), username: user.username });
+  res.json(toPublicAppUser(user));
 });
 
 /** Krypto-Status ohne gültige DEK-Session (für App-Start / Token-Prüfung). */
@@ -303,9 +310,9 @@ app.get('/api/users', async (req, res) => {
   if (!acting) return;
   const users = await prisma.appUser.findMany({
     orderBy: { username: 'asc' },
-    select: { id: true, username: true },
+    select: { id: true, username: true, isAdmin: true },
   });
-  res.json(users.map((u) => ({ id: String(u.id), username: u.username })));
+  res.json(users.map((u) => toPublicAppUser(u)));
 });
 
 app.post('/api/users', async (req, res) => {
@@ -322,10 +329,10 @@ app.post('/api/users', async (req, res) => {
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const user = await prisma.appUser.create({
     data: { username, passwordHash },
-    select: { id: true, username: true },
+    select: { id: true, username: true, isAdmin: true },
   });
   // Verschlüsselung + Recovery-Key erst beim ersten Login des neuen Benutzers (POST /api/auth/crypto/setup).
-  res.status(201).json({ id: String(user.id), username: user.username });
+  res.status(201).json(toPublicAppUser(user));
 });
 
 app.patch('/api/users/:id/password', async (req, res) => {
@@ -340,8 +347,9 @@ app.patch('/api/users/:id/password', async (req, res) => {
   const target = await prisma.appUser.findUnique({ where: { id } });
   if (!target) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
 
-  if (isAdminUser(target.username) && !isAdminUser(acting)) {
-    return res.status(403).json({ error: 'Nur der Administrator darf das Passwort von „admin“ ändern.' });
+  const actingIsAdmin = await resolveAdminRights(prisma, acting);
+  if (hasAdminRights(target) && !actingIsAdmin) {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen das Passwort dieses Benutzers ändern.' });
   }
 
   const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: target.id } });
@@ -378,7 +386,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
   const target = await prisma.appUser.findUnique({ where: { id } });
   if (!target) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-  if (isAdminUser(target.username)) {
+  if (isReservedAdminUsername(target.username)) {
     return res.status(400).json({ error: 'Der Benutzer „admin“ kann nicht gelöscht werden.' });
   }
 
@@ -391,6 +399,31 @@ app.delete('/api/users/:id', async (req, res) => {
   res.status(204).send();
 });
 
+app.patch('/api/users/:id/admin', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Ungültige Benutzer-ID' });
+
+  const target = await prisma.appUser.findUnique({
+    where: { id },
+    select: { id: true, username: true, isAdmin: true },
+  });
+  if (!target) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+
+  if (isReservedAdminUsername(target.username)) {
+    return res.status(400).json({ error: 'Dem Benutzer „admin“ können Admin-Rechte nicht entzogen werden.' });
+  }
+
+  const wantAdmin = req.body?.isAdmin === true;
+  const updated = await prisma.appUser.update({
+    where: { id },
+    data: { isAdmin: wantAdmin },
+    select: { id: true, username: true, isAdmin: true },
+  });
+  res.json(toPublicAppUser(updated));
+});
+
 async function ensureAppUsers() {
   const n = await prisma.appUser.count();
   if (n > 0) {
@@ -400,7 +433,7 @@ async function ensureAppUsers() {
   const bootstrapPwd = String(process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '').trim() || 'admin';
   const passwordHash = await bcrypt.hash(bootstrapPwd, BCRYPT_ROUNDS);
   await prisma.appUser.create({
-    data: { username: 'admin', passwordHash },
+    data: { username: 'admin', passwordHash, isAdmin: true },
   });
   const src = process.env.BOOTSTRAP_ADMIN_PASSWORD ? 'BOOTSTRAP_ADMIN_PASSWORD' : 'Standard';
   console.log(

@@ -2,9 +2,11 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from './PhixDialog';
+import PhixCheckboxOption from './PhixCheckboxOption';
+import { isReservedAdminUsername, userHasAdminRights } from '../utils/userAdmin';
 
 export default function ProgramUserManagement() {
-  const { usersList, addUser, setPasswordForUser, deleteUser, currentUser } = useAuth();
+  const { usersList, addUser, setPasswordForUser, setUserAdmin, deleteUser, currentUser } = useAuth();
   const { showConfirm } = useDialog();
 
   const [newUsername, setNewUsername] = useState('');
@@ -20,6 +22,7 @@ export default function ProgramUserManagement() {
   const [pwdMsg, setPwdMsg] = useState('');
   const [pwdErr, setPwdErr] = useState('');
   const [listErr, setListErr] = useState('');
+  const [adminToggleUserId, setAdminToggleUserId] = useState(null);
 
   const pwdFirstInputRef = useRef(null);
 
@@ -28,13 +31,10 @@ export default function ProgramUserManagement() {
     [usersList],
   );
 
-  const isReservedAdminUser = (username) =>
-    String(username ?? '').toLowerCase() === 'admin';
-
-  const isActingAdmin = () => String(currentUser?.username ?? '').toLowerCase() === 'admin';
+  const actingIsAdmin = userHasAdminRights(currentUser);
 
   const canChangePasswordForUser = (u) =>
-    !isReservedAdminUser(u.username) || isActingAdmin();
+    !userHasAdminRights(u) || actingIsAdmin;
 
   const resetPasswordForm = useCallback(() => {
     setPasswordUserId(null);
@@ -47,8 +47,8 @@ export default function ProgramUserManagement() {
 
   const openPasswordModal = useCallback(
     (u) => {
-      if (isReservedAdminUser(u.username) && String(currentUser?.username ?? '').toLowerCase() !== 'admin') {
-        setListErr('Nur der Administrator darf das Passwort von „admin“ ändern.');
+      if (userHasAdminRights(u) && !actingIsAdmin) {
+        setListErr('Nur Administratoren dürfen das Passwort dieses Benutzers ändern.');
         return;
       }
       setListErr('');
@@ -59,7 +59,7 @@ export default function ProgramUserManagement() {
       setPwdMsg('');
       setPwdErr('');
     },
-    [currentUser?.username],
+    [actingIsAdmin],
   );
 
   useEffect(() => {
@@ -78,9 +78,27 @@ export default function ProgramUserManagement() {
     };
   }, [passwordUserId, resetPasswordForm]);
 
+  const onToggleAdmin = async (u, checked) => {
+    setListErr('');
+    if (!actingIsAdmin) {
+      setListErr('Nur Administratoren dürfen Admin-Rechte vergeben oder entziehen.');
+      return;
+    }
+    if (isReservedAdminUsername(u.username)) return;
+    setAdminToggleUserId(u.id);
+    try {
+      const r = await setUserAdmin(u.id, checked);
+      if (!r.ok) {
+        setListErr(r.error || 'Admin-Rechte konnten nicht gespeichert werden.');
+      }
+    } finally {
+      setAdminToggleUserId(null);
+    }
+  };
+
   const onDeleteUser = async (u) => {
     setListErr('');
-    if (isReservedAdminUser(u.username)) {
+    if (isReservedAdminUsername(u.username)) {
       setListErr('Der Benutzer „admin“ kann nicht gelöscht werden.');
       return;
     }
@@ -222,10 +240,30 @@ export default function ProgramUserManagement() {
         <ul className="program-user-mgmt-list program-user-mgmt-list--wide">
           {sortedUsers.map((u) => (
             <li key={u.id} className="program-user-mgmt-list-item">
-              <span className="program-user-mgmt-name">
-                {u.username}
-                {currentUser?.username === u.username ? (
-                  <span className="program-user-mgmt-you"> (Sie)</span>
+              <span className="program-user-mgmt-name-row">
+                <span className="program-user-mgmt-name">
+                  {u.username}
+                  {currentUser?.username === u.username ? (
+                    <span className="program-user-mgmt-you"> (Sie)</span>
+                  ) : null}
+                </span>
+                {actingIsAdmin ? (
+                  <PhixCheckboxOption
+                    className="program-user-mgmt-admin-check phix-checkbox-option--compact"
+                    checked={userHasAdminRights(u)}
+                    disabled={
+                      isReservedAdminUsername(u.username) || adminToggleUserId === u.id
+                    }
+                    onChange={(e) => onToggleAdmin(u, e.target.checked)}
+                    title={
+                      isReservedAdminUsername(u.username)
+                        ? 'Dem Benutzer „admin“ können Admin-Rechte nicht entzogen werden.'
+                        : 'Administratorrechte (z. B. Backup, Dependencies)'
+                    }
+                    aria-label={`Administratorrechte für ${u.username}`}
+                  >
+                    Admin
+                  </PhixCheckboxOption>
                 ) : null}
               </span>
               <span className="program-user-mgmt-row-actions">
@@ -235,7 +273,7 @@ export default function ProgramUserManagement() {
                   disabled={!canChangePasswordForUser(u)}
                   title={
                     !canChangePasswordForUser(u)
-                      ? 'Nur der Administrator darf das Passwort von „admin“ ändern.'
+                      ? 'Nur Administratoren dürfen das Passwort dieses Benutzers ändern.'
                       : 'Passwort ändern'
                   }
                   onClick={() => openPasswordModal(u)}
@@ -245,9 +283,9 @@ export default function ProgramUserManagement() {
                 <button
                   type="button"
                   className="program-user-mgmt-delete-btn"
-                  disabled={sortedUsers.length <= 1 || isReservedAdminUser(u.username)}
+                  disabled={sortedUsers.length <= 1 || isReservedAdminUsername(u.username)}
                   title={
-                    isReservedAdminUser(u.username)
+                    isReservedAdminUsername(u.username)
                       ? 'Der Benutzer „admin“ kann nicht gelöscht werden.'
                       : sortedUsers.length <= 1
                         ? 'Mindestens ein Benutzer muss bleiben.'

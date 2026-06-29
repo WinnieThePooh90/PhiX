@@ -3,6 +3,7 @@ import { ChevronDown, Download, Upload } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from '../components/PhixDialog';
 import { apiFetch } from '../utils/apiBase';
+import { userHasAdminRights } from '../utils/userAdmin';
 import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const RESTORE_CONFIRM = 'WIEDERHERSTELLEN';
@@ -259,7 +260,7 @@ function BackupRestoreBlock({
 export default function BackupView() {
   const { currentUser, usersList } = useAuth();
   const { showConfirm, showAlert } = useDialog();
-  const isAdminUser = currentUser?.username?.toLowerCase() === 'admin';
+  const isAdminUser = userHasAdminRights(currentUser);
   const username = currentUser?.username;
 
   const [expandedSections, setExpandedSections] = useState(() => new Set());

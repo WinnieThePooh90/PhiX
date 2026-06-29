@@ -116,7 +116,11 @@ export default function UserAuswertungshilfeButton({ courseArchived = false }) {
         aria-hidden
         tabIndex={-1}
       />
-      <div className="user-auswertungshilfe-actions">
+      <div
+        className={`user-auswertungshilfe-group${meta.uploaded && !courseArchived ? ' user-auswertungshilfe-group--with-delete' : ''}`}
+        role="group"
+        aria-label="Eigene Auswertungshilfe"
+      >
         <button
           type="button"
           className="tab secondary user-auswertungshilfe-btn"
@@ -127,16 +131,19 @@ export default function UserAuswertungshilfeButton({ courseArchived = false }) {
           {busy ? 'Bitte warten…' : label}
         </button>
         {meta.uploaded && !courseArchived ? (
-          <button
-            type="button"
-            className="danger secondary user-auswertungshilfe-delete-btn"
-            onClick={handleDelete}
-            disabled={busy || meta.loading}
-            title="Hinterlegte Auswertungshilfe entfernen"
-            aria-label="Hinterlegte Auswertungshilfe entfernen"
-          >
-            <Trash2 size={16} strokeWidth={2.25} aria-hidden />
-          </button>
+          <>
+            <span className="user-auswertungshilfe-sep" aria-hidden />
+            <button
+              type="button"
+              className="danger secondary user-auswertungshilfe-delete-btn"
+              onClick={handleDelete}
+              disabled={busy || meta.loading}
+              title="Nur die hinterlegte Auswertungshilfe entfernen (nicht GFS-/Referat-Einträge)"
+              aria-label="Hinterlegte Auswertungshilfe-Datei löschen"
+            >
+              <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+            </button>
+          </>
         ) : null}
       </div>
     </>

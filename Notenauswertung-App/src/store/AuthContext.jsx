@@ -9,6 +9,7 @@ import {
 } from '../utils/cryptoSession';
 import { INACTIVITY_LOGOUT_MS, SESSION_HEARTBEAT_MS } from '../config/session';
 import { applyUserSettings, getUserSettingsFromStorage, clearUserSettings } from '../utils/userSettings';
+import { mapAppUserFromApi, userHasAdminRights } from '../utils/userAdmin';
 import {
   readPendingRecoverySetup,
   clearPendingRecoverySetup,
@@ -140,7 +141,10 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       const data = await res.json();
-      if (n === usersListNonce.current) setUsersList(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data)
+        ? data.map((row) => mapAppUserFromApi(row)).filter(Boolean)
+        : [];
+      if (n === usersListNonce.current) setUsersList(list);
     } catch {
       if (n === usersListNonce.current) setUsersList([]);
     }
@@ -171,7 +175,8 @@ export const AuthProvider = ({ children }) => {
         if (cancelled) return;
         if (res.ok) {
           const body = await res.json();
-          setCurrentUser({ id: body.id, username: body.username });
+          const u = mapAppUserFromApi(body);
+          if (u) setCurrentUser(u);
           const statusRes = await apiFetch('/api/auth/crypto/status', {
             headers: authHeaders(body.username),
           });
@@ -231,7 +236,10 @@ export const AuthProvider = ({ children }) => {
       if (!res.ok) {
         return { ok: false, error: body.error || 'Anmeldung fehlgeschlagen.' };
       }
-      const u = { id: String(body.id), username: body.username };
+      const u = mapAppUserFromApi(body);
+      if (!u) {
+        return { ok: false, error: 'Anmeldung fehlgeschlagen.' };
+      }
       try {
         localStorage.setItem(STORAGE_SESSION_KEY, u.username);
       } catch {
@@ -469,6 +477,36 @@ export const AuthProvider = ({ children }) => {
     [currentUser?.username, currentUser?.id, refreshUsersList, logout],
   );
 
+  const setUserAdmin = useCallback(
+    async (userId, isAdmin) => {
+      const acting = currentUser?.username;
+      if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
+      if (!userHasAdminRights(currentUser)) {
+        return { ok: false, error: 'Nur Administratoren dürfen Admin-Rechte vergeben oder entziehen.' };
+      }
+      try {
+        const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/admin`, {
+          method: 'PATCH',
+          headers: jsonHeadersWithActing(acting),
+          body: JSON.stringify({ isAdmin: isAdmin === true }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return { ok: false, error: body.error || 'Speichern fehlgeschlagen.' };
+        }
+        const updated = mapAppUserFromApi(body);
+        await refreshUsersList(acting);
+        if (updated && String(userId) === String(currentUser?.id)) {
+          setCurrentUser(updated);
+        }
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Server nicht erreichbar.' };
+      }
+    },
+    [currentUser, refreshUsersList],
+  );
+
   const value = useMemo(
     () => ({
       currentUser,
@@ -482,6 +520,7 @@ export const AuthProvider = ({ children }) => {
       usersList,
       addUser,
       setPasswordForUser,
+      setUserAdmin,
       deleteUser,
       authHeaders,
     }),
@@ -497,6 +536,7 @@ export const AuthProvider = ({ children }) => {
       usersList,
       addUser,
       setPasswordForUser,
+      setUserAdmin,
       deleteUser,
     ],
   );
