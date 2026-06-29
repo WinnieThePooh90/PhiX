@@ -2192,26 +2192,7 @@ export const DataProvider = ({ children }) => {
     setSchoolRosterYears((prev) => prev.map((y) => (y.id === yearId ? { ...y, studentCount: 0 } : y)));
   };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          flex: 1,
-          minHeight: 0,
-          width: '100%',
-          color: '#64748b',
-        }}
-      >
-        Lade Daten…
-      </div>
-    );
-  }
-
-  return (
-    <DataContext.Provider value={{
+  const contextValue = {
       courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, archiveCourse, reactivateCourse, toggleCourseFavorite,
       courseArchived,
       config, setConfig: updateConfig, migrateGradingSystem,
@@ -2247,7 +2228,36 @@ export const DataProvider = ({ children }) => {
       updateSchoolRosterStudent,
       removeSchoolRosterStudent,
       clearSchoolRosterStudents,
-    }}>
+      loading,
+    };
+
+  if (loading) {
+    return (
+      <DataContext.Provider value={contextValue}>
+        <div
+          className="data-loading-screen"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            background: 'hsl(var(--background, 0 0% 100%))',
+            color: '#64748b',
+          }}
+          aria-busy="true"
+          aria-live="polite"
+        >
+          Lade Daten…
+        </div>
+        {children}
+      </DataContext.Provider>
+    );
+  }
+
+  return (
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );

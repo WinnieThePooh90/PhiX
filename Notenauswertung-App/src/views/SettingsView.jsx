@@ -85,15 +85,6 @@ export default function SettingsView() {
   }, [parsedClassGrade, classFieldForGrade]);
 
   useEffect(() => {
-    const sec = parsedClassSection ?? '';
-    if (sec && rosterSectionFilterOptions.includes(sec)) {
-      setRosterSectionFilter(sec);
-    } else if (!sec) {
-      setRosterSectionFilter('');
-    }
-  }, [parsedClassSection, classFieldForGrade, rosterSectionFilterOptions]);
-
-  useEffect(() => {
     const courseYear = String(config?.year ?? '').trim();
     if (!courseYear || !schoolRosterYears.length) return;
     const match = schoolRosterYears.find((y) => y.label === courseYear);
@@ -106,6 +97,15 @@ export default function SettingsView() {
     () => distinctClassSections(schoolRosterStudents, { gradeLevel: rosterGradeFilter }),
     [schoolRosterStudents, rosterGradeFilter],
   );
+
+  useEffect(() => {
+    const sec = parsedClassSection ?? '';
+    if (sec && rosterSectionFilterOptions.includes(sec)) {
+      setRosterSectionFilter(sec);
+    } else if (!sec) {
+      setRosterSectionFilter('');
+    }
+  }, [parsedClassSection, classFieldForGrade, rosterSectionFilterOptions]);
 
   useEffect(() => {
     if (rosterSectionFilter && !rosterSectionFilterOptions.includes(rosterSectionFilter)) {
