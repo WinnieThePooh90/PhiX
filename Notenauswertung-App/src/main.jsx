@@ -23,6 +23,7 @@ function AuthenticatedApp() {
     pendingRecoveryConfirm,
     completeCryptoSetup,
     confirmPendingRecovery,
+    logout,
   } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
   if (!authReady) {
@@ -86,12 +87,7 @@ function AuthenticatedApp() {
                 type="button"
                 className="app-login-submit"
                 onClick={() => {
-                  try {
-                    localStorage.removeItem('notenauswertung_session_username');
-                  } catch {
-                    /* ignore */
-                  }
-                  window.location.reload();
+                  void logout();
                 }}
               >
                 Zur Anmeldung
