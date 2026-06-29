@@ -62,18 +62,6 @@ export default function LoginView({ onRecovery }) {
     setInitialSetupUsername(null);
   };
 
-  const openInitialSetup = () => {
-    const name = String(username ?? '').trim();
-    if (!name) {
-      setError('Zuerst Benutzername eingeben.');
-      return;
-    }
-    setError('');
-    setInitialSetupUsername(name);
-    setInitialPasswordValue('');
-    setInitialPassword2('');
-  };
-
   const cancelInitialSetup = () => {
     setInitialSetupUsername(null);
     setInitialPasswordValue('');
@@ -182,14 +170,6 @@ export default function LoginView({ onRecovery }) {
             disabled={submitting}
           >
             Development
-          </button>
-          <button
-            type="button"
-            className="tab secondary app-login-initial-pwd-btn"
-            onClick={openInitialSetup}
-            disabled={submitting}
-          >
-            Erstes Passwort festlegen
           </button>
         </form>
       </div>
