@@ -93,15 +93,9 @@ Zusätzlich drittes Terminal: `cd desktop && npm run dev` — siehe **`desktop/R
 
 Bei leerer Datenbank legt das Backend automatisch den Benutzer **admin** an.
 
-- Standardpasswort: `admin`
-- Eigenes Passwort beim ersten Start: `BOOTSTRAP_ADMIN_PASSWORD` in `docker-compose.yml` (Service `backend`) oder `backend/.env`
+- Beim ersten Start: Benutzer `admin` anlegen lassen, dann auf der Anmeldeseite **„Erstes Passwort festlegen“** — kein Standardpasswort, kein npm-Skript.
 
-Passwort später ändern:
-
-```bat
-cd backend
-npm run set-admin-password -- admin IhrNeuesPasswort
-```
+Passwort ändern (nur eigenes Konto): in der App unter **Benutzerverwaltung** nach Anmeldung.
 
 ---
 

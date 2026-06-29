@@ -10,8 +10,6 @@ export default function ProgramUserManagement() {
   const { showConfirm } = useDialog();
 
   const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newPassword2, setNewPassword2] = useState('');
   const [formErr, setFormErr] = useState('');
   const [formMsg, setFormMsg] = useState('');
 
@@ -120,22 +118,16 @@ export default function ProgramUserManagement() {
     setFormErr('');
     setFormMsg('');
     setListErr('');
-    if (newPassword !== newPassword2) {
-      setFormErr('Die Passwort-Wiederholung stimmt nicht überein.');
-      return;
-    }
-    const r = await addUser(newUsername, newPassword);
+    const r = await addUser(newUsername);
     if (!r.ok) {
       setFormErr(r.error || 'Anlegen fehlgeschlagen.');
       return;
     }
     const createdName = newUsername.trim();
     setFormMsg(
-      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login richtet er die Verschlüsselung ein und erhält einen Recovery-Key.`,
+      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er selbst ein Passwort fest, richtet die Verschlüsselung ein und erhält einen Recovery-Key.`,
     );
     setNewUsername('');
-    setNewPassword('');
-    setNewPassword2('');
   };
 
   const onSubmitPassword = async (e) => {
@@ -320,26 +312,9 @@ export default function ProgramUserManagement() {
               onChange={(e) => setNewUsername(e.target.value)}
             />
           </label>
-          <label className="program-user-mgmt-label">
-            Passwort
-            <input
-              className="program-user-mgmt-input"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </label>
-          <label className="program-user-mgmt-label">
-            Passwort wiederholen
-            <input
-              className="program-user-mgmt-input"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword2}
-              onChange={(e) => setNewPassword2(e.target.value)}
-            />
-          </label>
+          <p className="program-user-mgmt-create-hint">
+            Das Passwort legt der neue Benutzer beim ersten Login selbst fest („Erstes Passwort festlegen“).
+          </p>
           {formErr ? (
             <p className="program-user-mgmt-error" role="alert">
               {formErr}

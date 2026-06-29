@@ -234,6 +234,14 @@ export const AuthProvider = ({ children }) => {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (body.requiresInitialPassword) {
+          return {
+            ok: false,
+            requiresInitialPassword: true,
+            username: body.username || usernameIn,
+            error: body.error || 'Bitte zuerst ein Passwort festlegen.',
+          };
+        }
         return { ok: false, error: body.error || 'Anmeldung fehlgeschlagen.' };
       }
       const u = mapAppUserFromApi(body);
@@ -394,15 +402,31 @@ export const AuthProvider = ({ children }) => {
     completeCryptoSetup();
   }, [completeCryptoSetup]);
 
+  const setInitialPassword = useCallback(async (usernameRaw, newPasswordRaw) => {
+    const username = String(usernameRaw ?? '').trim();
+    const newPassword = String(newPasswordRaw ?? '');
+    if (!username || !newPassword) {
+      return { ok: false, error: 'Benutzername und Passwort eingeben.' };
+    }
+    try {
+      const res = await apiFetch('/api/auth/initial-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, newPassword }),
+      });
+      if (res.status === 204) return { ok: true };
+      const body = await res.json().catch(() => ({}));
+      return { ok: false, error: body.error || 'Passwort konnte nicht gespeichert werden.' };
+    } catch {
+      return { ok: false, error: 'Server nicht erreichbar.' };
+    }
+  }, []);
+
   const addUser = useCallback(
-    async (usernameRaw, passwordRaw) => {
+    async (usernameRaw) => {
       const username = String(usernameRaw ?? '').trim();
-      const password = String(passwordRaw ?? '');
       if (!username) {
         return { ok: false, error: 'Benutzername eingeben.' };
-      }
-      if (!password) {
-        return { ok: false, error: 'Passwort eingeben.' };
       }
       const acting = currentUser?.username;
       if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
@@ -410,7 +434,7 @@ export const AuthProvider = ({ children }) => {
         const res = await apiFetch('/api/users', {
           method: 'POST',
           headers: jsonHeadersWithActing(acting),
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -517,6 +541,7 @@ export const AuthProvider = ({ children }) => {
       confirmPendingRecovery,
       login,
       logout,
+      setInitialPassword,
       usersList,
       addUser,
       setPasswordForUser,
@@ -533,6 +558,7 @@ export const AuthProvider = ({ children }) => {
       confirmPendingRecovery,
       login,
       logout,
+      setInitialPassword,
       usersList,
       addUser,
       setPasswordForUser,

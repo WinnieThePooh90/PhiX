@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "395.0.0",
+  "version": "396.0.0",
   "description": "PhiX API server — Notenauswertung",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,6 @@
     "start": "node server.js",
     "start:standalone": "node server.js",
     "dev": "nodemon server.js",
-    "set-admin-password": "node scripts/set-admin-password.js",
     "prisma:generate-all": "node scripts/prisma-generate-all.js",
     "ci:smoke": "node scripts/ci-smoke.js",
     "test": "node --test test/*.test.js"

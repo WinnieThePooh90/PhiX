@@ -1406,6 +1406,13 @@ p {
   color: var(--text-muted);
 }
 
+.program-user-mgmt-create-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .program-user-mgmt-list {
   list-style: none;
   margin: 0;

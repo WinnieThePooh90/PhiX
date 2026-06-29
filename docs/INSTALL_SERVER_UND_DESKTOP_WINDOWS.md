@@ -190,13 +190,13 @@ Drei Terminals: `backend` → `npm run dev`; `Notenauswertung-App` → `npm run 
 
 ## Erster Login (Kurzreferenz)
 
-| Szenario | Typischer Benutzer | Typisches Passwort |
-|----------|--------------------|--------------------|
-| Docker Compose / frische DB | `admin` | `admin` |
-| Electron Desktop (leere DB) | `admin` | `admin` |
-| Eigenes Admin-Passwort | `admin` | `BOOTSTRAP_ADMIN_PASSWORD` (siehe `docker-compose.yml` / `backend/.env`) |
+| Szenario | Vorgehen |
+|----------|----------|
+| Docker Compose / frische DB | Benutzer `admin` wird automatisch angelegt; auf der Anmeldeseite **„Erstes Passwort festlegen“** |
+| Electron Desktop (leere DB) | wie oben |
+| Weitere Benutzer | Admin legt nur den **Benutzernamen** an; Passwort setzt jeder Nutzer selbst beim ersten Login |
 
-Passwort später ändern: `cd backend` → `npm run set-admin-password -- admin IhrNeuesPasswort`
+Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werden (Datenschutz). Eigenes Passwort später ändern: **Benutzerverwaltung** in der App.
 
 ---
 

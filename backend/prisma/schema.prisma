@@ -12,6 +12,8 @@ model AppUser {
   id           Int      @id @default(autoincrement())
   username     String   @unique
   passwordHash String
+  /** true: nur POST /api/auth/initial-password (Erst-Login), kein Fremd-Passwort */
+  mustSetPassword Boolean @default(false)
   /** Zusätzliche Admin-Rechte (Backup, Benutzerverwaltung); System-„admin“ ist immer Admin. */
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())

@@ -29,9 +29,10 @@ Primär-/Fremdschlüssel, `ownerUsername`, Booleans, Struktur-Zahlen (`examNumbe
 | `POST /api/auth/login` | bcrypt + optional `cryptoSessionToken` |
 | `POST /api/auth/logout` | Krypto-Session beenden |
 | `POST /api/auth/crypto/setup` | Ersteinrichtung + Recovery-Key (erster Login eines neuen Benutzers) |
-| `POST /api/users` | Nur Konto (bcrypt); **kein** Recovery-Key — Verschlüsselung folgt beim ersten Login des neuen Benutzers |
-| `POST /api/auth/crypto/unlock-recovery` | Passwort vergessen |
-| `PATCH /api/users/:id/password` | bcrypt + DEK re-wrap (`oldPassword` erforderlich) |
+| `POST /api/auth/initial-password` | Erstes Passwort (nur `mustSetPassword`, vom Benutzer selbst) |
+| `POST /api/users` | Nur Benutzername; Passwort legt der Nutzer beim ersten Login selbst fest |
+| `POST /api/auth/crypto/unlock-recovery` | Eigenes Passwort mit Recovery-Key |
+| `PATCH /api/users/:id/password` | Nur eigenes Konto: bcrypt + DEK re-wrap (`oldPassword` erforderlich) |
 
 Ohne gültige Krypto-Session: **HTTP 423** (außer Login/Setup/Session).
 

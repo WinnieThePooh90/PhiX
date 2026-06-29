@@ -16,6 +16,7 @@ model AppUser {
   id           Int      @id @default(autoincrement())
   username     String   @unique
   passwordHash String
+  mustSetPassword Boolean @default(false)
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())
 

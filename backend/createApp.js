@@ -28,6 +28,7 @@ const {
   unlockDekWithPassword,
 } = require('./lib/user-crypto-service');
 const { unwrapDekFromRecovery } = require('./lib/phix-crypto');
+const { placeholderPasswordHash, BCRYPT_ROUNDS } = require('./lib/app-user-password');
 const { buildDefaultExamAndOralRecords } = require('./lib/course-defaults');
 
 function createApp() {
@@ -45,8 +46,6 @@ app.use(
     getActingUser,
   }),
 );
-
-const BCRYPT_ROUNDS = 10;
 
 const {
   hasAdminRights,
@@ -144,11 +143,20 @@ app.post('/api/auth/login', async (req, res) => {
   if (!usernameIn || !password) {
     return res.status(400).json({ error: 'Benutzername und Passwort eingeben.' });
   }
-  const { usernameWhere } = require('./lib/username-filter');
   const user = await prisma.appUser.findFirst({
     where: usernameWhere(usernameIn),
   });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user) {
+    return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
+  }
+  if (user.mustSetPassword) {
+    return res.status(403).json({
+      error: 'Für diesen Benutzer wurde noch kein Passwort festgelegt.',
+      requiresInitialPassword: true,
+      username: user.username,
+    });
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
     return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });
   }
 
@@ -177,6 +185,27 @@ app.post('/api/auth/login', async (req, res) => {
     requiresCryptoSetup,
     settings: settings || { inactivityTimeoutMin: 5, darkMode: false, colorScheme: 'standard' },
   });
+});
+
+app.post('/api/auth/initial-password', async (req, res) => {
+  const usernameIn = String(req.body?.username ?? '').trim();
+  const newPassword = String(req.body?.newPassword ?? '');
+  if (!usernameIn || !newPassword) {
+    return res.status(400).json({ error: 'Benutzername und neues Passwort eingeben.' });
+  }
+  const user = await prisma.appUser.findFirst({ where: usernameWhere(usernameIn) });
+  if (!user) {
+    return res.status(401).json({ error: 'Benutzer nicht gefunden.' });
+  }
+  if (!user.mustSetPassword) {
+    return res.status(403).json({ error: 'Das Passwort wurde bereits festgelegt. Bitte anmelden oder Recovery-Key nutzen.' });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  await prisma.appUser.update({
+    where: { id: user.id },
+    data: { passwordHash, mustSetPassword: false },
+  });
+  res.status(204).send();
 });
 
 app.post('/api/auth/logout', async (req, res) => {
@@ -292,14 +321,13 @@ app.post('/api/users/migrate-from-localstorage', async (req, res) => {
   let created = 0;
   for (const row of rawUsers) {
     const username = String(row?.username ?? '').trim();
-    const password = String(row?.password ?? '');
-    if (!username || !password) continue;
+    if (!username) continue;
     const existing = await prisma.appUser.findFirst({
       where: usernameWhere(username),
     });
     if (existing) continue;
-    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    await prisma.appUser.create({ data: { username, passwordHash } });
+    const passwordHash = await placeholderPasswordHash();
+    await prisma.appUser.create({ data: { username, passwordHash, mustSetPassword: true } });
     created += 1;
   }
   res.json({ ok: true, created });
@@ -319,16 +347,20 @@ app.post('/api/users', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
   const username = String(req.body?.username ?? '').trim();
-  const password = String(req.body?.password ?? '');
   if (!username) return res.status(400).json({ error: 'Benutzername eingeben.' });
-  if (!password) return res.status(400).json({ error: 'Passwort eingeben.' });
+  if (String(req.body?.password ?? '').trim()) {
+    return res.status(400).json({
+      error:
+        'Passwörter anderer Benutzer können nicht vergeben werden. Der neue Benutzer legt sein Passwort beim ersten Login selbst fest.',
+    });
+  }
   const clash = await prisma.appUser.findFirst({
     where: usernameWhere(username),
   });
   if (clash) return res.status(409).json({ error: 'Dieser Benutzername ist bereits vergeben.' });
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  const passwordHash = await placeholderPasswordHash();
   const user = await prisma.appUser.create({
-    data: { username, passwordHash },
+    data: { username, passwordHash, mustSetPassword: true },
     select: { id: true, username: true, isAdmin: true },
   });
   // Verschlüsselung + Recovery-Key erst beim ersten Login des neuen Benutzers (POST /api/auth/crypto/setup).
@@ -355,6 +387,11 @@ app.patch('/api/users/:id/password', async (req, res) => {
 
   if (target.id !== actingRow.id) {
     return res.status(403).json({ error: 'Sie dürfen nur Ihr eigenes Passwort ändern.' });
+  }
+  if (target.mustSetPassword) {
+    return res.status(400).json({
+      error: 'Bitte legen Sie zuerst Ihr Passwort über „Erstes Passwort festlegen“ auf der Anmeldeseite fest.',
+    });
   }
 
   const userCrypto = await prisma.userCrypto.findUnique({ where: { userId: target.id } });
@@ -435,15 +472,12 @@ async function ensureAppUsers() {
     console.log(`[auth] ${n} App-Benutzer in der Datenbank (Login mit gespeicherten Zugangsdaten).`);
     return;
   }
-  const bootstrapPwd = String(process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '').trim() || 'admin';
-  const passwordHash = await bcrypt.hash(bootstrapPwd, BCRYPT_ROUNDS);
+  const passwordHash = await placeholderPasswordHash();
   await prisma.appUser.create({
-    data: { username: 'admin', passwordHash, isAdmin: true },
+    data: { username: 'admin', passwordHash, isAdmin: true, mustSetPassword: true },
   });
-  const src = process.env.BOOTSTRAP_ADMIN_PASSWORD ? 'BOOTSTRAP_ADMIN_PASSWORD' : 'Standard';
   console.log(
-    `[auth] Erster Start: Benutzer "admin" angelegt (Passwort aus ${src}). ` +
-      'Passwort in der App unter Benutzerverwaltung ändern oder mit npm run set-admin-password setzen.',
+    '[auth] Erster Start: Benutzer "admin" angelegt. Auf der Anmeldeseite „Erstes Passwort festlegen“ wählen und Passwort für admin setzen.',
   );
 }
 

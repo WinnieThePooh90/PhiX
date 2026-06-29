@@ -27,7 +27,7 @@ services:
       - PHIX_DOCKER_SHUTDOWN=1
       - PHIX_COMPOSE_DIR=/compose
       - PHIX_COMPOSE_PROJECT_NAME=phix
-      # Optional (nur bei leerer AppUser-Tabelle): - BOOTSTRAP_ADMIN_PASSWORD=…
+      # Erster Start: Benutzer „admin“ ohne Passwort — in der App „Erstes Passwort festlegen“
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/compose:ro

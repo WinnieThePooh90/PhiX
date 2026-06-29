@@ -5,18 +5,31 @@ import AppLogo from '../components/AppLogo';
 import { useAuth } from '../store/AuthContext';
 
 export default function LoginView({ onRecovery }) {
-  const { login } = useAuth();
+  const { login, setInitialPassword } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [initialSetupUsername, setInitialSetupUsername] = useState(null);
+  const [initialPassword, setInitialPasswordValue] = useState('');
+  const [initialPassword2, setInitialPassword2] = useState('');
 
   const doLogin = async (user, pass) => {
     setError('');
     setSubmitting(true);
     const r = await login(user, pass);
     setSubmitting(false);
-    if (!r.ok) setError(r.error || 'Anmeldung fehlgeschlagen.');
+    if (r.ok) return;
+    if (r.requiresInitialPassword) {
+      setInitialSetupUsername(r.username || user);
+      setUsername(r.username || user);
+      setPassword('');
+      setInitialPasswordValue('');
+      setInitialPassword2('');
+      setError('');
+      return;
+    }
+    setError(r.error || 'Anmeldung fehlgeschlagen.');
   };
 
   const onSubmit = async (e) => {
@@ -24,9 +37,104 @@ export default function LoginView({ onRecovery }) {
     await doLogin(username, password);
   };
 
+  const onSubmitInitialPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (initialPassword !== initialPassword2) {
+      setError('Die Passwort-Wiederholung stimmt nicht überein.');
+      return;
+    }
+    setSubmitting(true);
+    const r = await setInitialPassword(initialSetupUsername || username, initialPassword);
+    if (!r.ok) {
+      setSubmitting(false);
+      setError(r.error || 'Passwort konnte nicht gespeichert werden.');
+      return;
+    }
+    const loginUser = initialSetupUsername || username;
+    const loginResult = await login(loginUser, initialPassword);
+    setSubmitting(false);
+    if (!loginResult.ok) {
+      setError(loginResult.error || 'Passwort gespeichert, Anmeldung fehlgeschlagen.');
+      setInitialSetupUsername(null);
+      return;
+    }
+    setInitialSetupUsername(null);
+  };
+
+  const openInitialSetup = () => {
+    const name = String(username ?? '').trim();
+    if (!name) {
+      setError('Zuerst Benutzername eingeben.');
+      return;
+    }
+    setError('');
+    setInitialSetupUsername(name);
+    setInitialPasswordValue('');
+    setInitialPassword2('');
+  };
+
+  const cancelInitialSetup = () => {
+    setInitialSetupUsername(null);
+    setInitialPasswordValue('');
+    setInitialPassword2('');
+    setError('');
+  };
+
   const onDevLogin = async () => {
     await doLogin('admin', 'admin');
   };
+
+  if (initialSetupUsername) {
+    return (
+      <div className="app-login-screen">
+        <div className="app-login-card">
+          <div className="app-login-brand app-login-brand--solo">
+            <AppLogo size={72} />
+          </div>
+          <h2 className="app-login-title app-login-title--setup">Erstes Passwort festlegen</h2>
+          <p className="app-login-subtitle">
+            Für <strong>{initialSetupUsername}</strong> — nur Sie kennen dieses Passwort danach.
+          </p>
+          <form className="app-login-form" onSubmit={onSubmitInitialPassword}>
+            <label className="app-login-label">
+              <span>Neues Passwort</span>
+              <input
+                className="app-login-input"
+                type="password"
+                autoComplete="new-password"
+                value={initialPassword}
+                onChange={(e) => setInitialPasswordValue(e.target.value)}
+                disabled={submitting}
+              />
+            </label>
+            <label className="app-login-label">
+              <span>Passwort wiederholen</span>
+              <input
+                className="app-login-input"
+                type="password"
+                autoComplete="new-password"
+                value={initialPassword2}
+                onChange={(e) => setInitialPassword2(e.target.value)}
+                disabled={submitting}
+              />
+            </label>
+            {error ? (
+              <p className="app-login-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <button type="submit" className="app-login-submit" disabled={submitting}>
+              {submitting ? 'Speichern…' : 'Passwort speichern und anmelden'}
+            </button>
+            <button type="button" className="tab secondary" onClick={cancelInitialSetup} disabled={submitting}>
+              Zurück zur Anmeldung
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-login-screen">
@@ -74,6 +182,14 @@ export default function LoginView({ onRecovery }) {
             disabled={submitting}
           >
             Development
+          </button>
+          <button
+            type="button"
+            className="tab secondary app-login-initial-pwd-btn"
+            onClick={openInitialSetup}
+            disabled={submitting}
+          >
+            Erstes Passwort festlegen
           </button>
         </form>
       </div>
