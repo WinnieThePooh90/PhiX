@@ -8,6 +8,7 @@ const { usernameWhere } = require('./username-filter');
 const CRYPTO_EXEMPT = new Set([
   '/api/auth/login',
   '/api/auth/logout',
+  '/api/auth/initial-password',
   '/api/auth/session',
   '/api/auth/crypto/setup',
   '/api/auth/crypto/unlock-recovery',

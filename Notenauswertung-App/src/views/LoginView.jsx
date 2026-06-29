@@ -81,9 +81,7 @@ export default function LoginView({ onRecovery }) {
             <AppLogo size={72} />
           </div>
           <h2 className="app-login-title app-login-title--setup">Erstes Passwort festlegen</h2>
-          <p className="app-login-subtitle">
-            Für <strong>{initialSetupUsername}</strong> — nur Sie kennen dieses Passwort danach.
-          </p>
+          <p className="app-login-subtitle">{initialSetupUsername}</p>
           <form className="app-login-form" onSubmit={onSubmitInitialPassword}>
             <label className="app-login-label">
               <span>Neues Passwort</span>
