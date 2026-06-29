@@ -84,7 +84,7 @@ export function scrollTableFieldIntoView(fieldEl) {
     return;
   }
 
-  const pad = 6;
+  const pad = 8;
   const cr = container.getBoundingClientRect();
   const insets = measureStickyInsets(container, table);
   const visible = {
@@ -94,14 +94,21 @@ export function scrollTableFieldIntoView(fieldEl) {
     bottom: cr.bottom - pad,
   };
   const fr = cell.getBoundingClientRect();
+  // Früher scrollen: Puffer vor fixen Spalten (≈ eine Aufgabenspalte), nicht erst bei Überlappung.
+  const earlyScrollX = Math.max(72, fr.width + pad * 4);
+  const earlyScrollY = Math.max(28, fr.height + pad * 2);
+  const targetRight = visible.right - earlyScrollX;
+  const targetLeft = visible.left + earlyScrollX;
+  const targetBottom = visible.bottom - earlyScrollY;
+  const targetTop = visible.top + earlyScrollY;
 
   let dx = 0;
-  if (fr.right > visible.right) dx = fr.right - visible.right;
-  else if (fr.left < visible.left) dx = fr.left - visible.left;
+  if (fr.right > targetRight) dx = fr.right - targetRight;
+  else if (fr.left < targetLeft) dx = fr.left - targetLeft;
 
   let dy = 0;
-  if (fr.bottom > visible.bottom) dy = fr.bottom - visible.bottom;
-  else if (fr.top < visible.top) dy = fr.top - visible.top;
+  if (fr.bottom > targetBottom) dy = fr.bottom - targetBottom;
+  else if (fr.top < targetTop) dy = fr.top - targetTop;
 
   if (dx !== 0 || dy !== 0) {
     container.scrollBy({ left: dx, top: dy, behavior: 'auto' });
