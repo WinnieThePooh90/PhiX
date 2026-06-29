@@ -101,7 +101,7 @@ export default function SettingsView() {
     const inCourse = new Set(students.map((s) => rosterStudentKey(s.firstName, s.lastName)));
     let rows = [...(schoolRosterStudents || [])]
       .filter((r) => rosterGradeFilter === null || r.gradeLevel === rosterGradeFilter)
-      .filter((r) => !rosterSectionFilter || String(r.classSection ?? '').toLowerCase() === rosterSectionFilter);
+      .filter((r) => !rosterSectionFilter || String(r.classSection ?? '').toLowerCase() === rosterSectionFilter)
       .filter((r) => !inCourse.has(rosterStudentKey(r.firstName, r.lastName)));
     const q = rosterTransferSearch.trim().toLowerCase();
     if (q) {
