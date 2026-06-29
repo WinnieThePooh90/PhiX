@@ -137,7 +137,7 @@ PhiX kann auf unterschiedliche Weise verteilt werden. Ausführliche Tabellen: [`
 
 | Variante | Typisch für | Datenbank | Start |
 |----------|-------------|-----------|--------|
-| **Docker Compose** | Schulserver, mehrere Clients im Browser | PostgreSQL (Volume) | Browser → Port 1990 |
+| **Docker Compose** | Selbst gehosteter Server (Docker), Browser-Zugriff | PostgreSQL (Volume) | Browser → Port 1990 |
 | **Electron Desktop** | Einzelplatz, USB-tauglich | SQLite neben `PhiX.exe` | `PhiX.exe` (ZIP oder Portable-EXE) |
 
 Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Docker oder Electron).
@@ -205,4 +205,4 @@ Hauptabhängigkeiten (Auszug): React (MIT), Express (MIT), Prisma (Apache-2.0), 
 
 **Karsten Paulokat** — [karsten@paulokat.de](mailto:karsten@paulokat.de)
 
-Fehler, Fragen oder Hinweise zur Notenberechnung sind willkommen. Für den Einsatz als **Schulserver** bitte vorab Schulleitung und Datenschutz klären (siehe auch FAQ in der App).
+Fehler, Fragen oder Hinweise zur Notenberechnung sind willkommen. PhiX ist **nicht offiziell für den institutionellen Schuleinsatz** dokumentiert oder freigegeben; der Betrieb in öffentlichen Schulen liegt in der Verantwortung der Nutzer.

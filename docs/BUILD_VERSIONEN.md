@@ -37,7 +37,7 @@ PhiX wird **nur** in diesen beiden Formen verteilt:
 | **Frontend-Auslieferung (Backend)** | nein (nginx) | ja, `PHIX_STANDALONE=1` (nur Electron) |
 | **Build-Rechner** | Windows, Linux, macOS (Docker) | **Windows** empfohlen für Release |
 | **Prisma / Schema** | `prisma migrate deploy` (Postgres) | SQLite, `db push` vor Start in Electron |
-| **Zielgruppe** | Schulserver, mehrere Clients | Einzelplatz, USB, ohne Docker |
+| **Zielgruppe** | Selbst gehosteter Server, Browser-Zugriff | Einzelplatz, USB, ohne Docker |
 
 ---
 

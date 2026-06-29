@@ -98,21 +98,7 @@ Eine der folgenden Optionen:
 |---------|----------|
 | Port **5432** belegt | `.env`: `DB_PORT` ändern; alte `phix`-Container oder lokale Postgres stoppen. |
 | `docker` nicht gefunden | Docker Desktop installieren und PATH prüfen; neues Terminal öffnen. |
-| Seite lädt, API-Fehler | `docker compose logs backend` im Projektroot prüfen; `BACKEND_PORT` und Firewall beachten. |
-
-### 1.8 TLS/HTTPS im Schulnetz (Pflicht)
-
-PhiX speichert die **Anmeldung in einem HttpOnly-Cookie** und überträgt Krypto-Token sowie Passwörter bei der Anmeldung. **Ohne TLS** können diese Daten im LAN mitgelesen werden.
-
-Für den produktiven Einsatz im Schulnetz:
-
-1. **Reverse-Proxy** (z. B. nginx, Caddy, Traefik) vor Port **1990** (Frontend) mit gültigem **HTTPS-Zertifikat**.
-2. Backend-Umgebung: `PHIX_COOKIE_SECURE=1`, damit das Session-Cookie nur über HTTPS gesendet wird.
-3. Optional weitere Client-Origins: `PHIX_CORS_ORIGINS` (kommagetrennt), falls die UI nicht über dieselbe Origin wie die API erreichbar ist.
-
-Lokale Entwicklung (`localhost` ohne TLS) funktioniert weiterhin ohne `PHIX_COOKIE_SECURE`.
-
-Details: [`ENCRYPTION.md`](ENCRYPTION.md).
+| Seite lädt, API-Fehler | `docker compose logs backend` im Projektroot prüfen; `BACKEND_PORT` und lokales Netzwerk/Firewall prüfen. |
 
 ---
 

@@ -63,9 +63,9 @@ export const FAQ_ITEMS = [
   {
     id: 'server',
     question:
-      'Ich möchte PhiX als Server in meiner Schule für meine Kollegen anbieten. Kann ich Hilfe bei der Installation erwarten?',
+      'Ich möchte PhiX als Server für mehrere Nutzer betreiben. Gibt es dafür eine offizielle Zulassung oder Betriebsanleitung?',
     answer:
-      'Selbstverständlich stehe ich mit Rat und Tat zur Seite. Doch bevor du einen Server auf einem Schulnetzwerk installierst, kläre dies bitte mit der Schulleitung und dem Datenschutzbeauftragten (evtl. sogar dem Beauftragten des Landes) ab, um nicht in rechtliche Grauzonen oder gar Schwierigkeiten zu geraten. Die Software sollte alle Datenschutzmechanismen vorweisen und eine Nutzung auf einem Schulserver sollte dahingehend kein Problem sein, aber sie ist nicht offiziell zugelassen/bestätigt. Für die private Nutzung gilt diese Einschränkung nicht.',
+      'PhiX ist **nicht offiziell für den institutionellen Schuleinsatz** (z. B. öffentliche Schulen, zentrale Schul-IT) zugelassen oder freigegeben. Es gibt **keine Betriebsanleitung** für Schulnetzwerke oder Schulserver — die Docker-Installation richtet sich an private oder selbst gehostete Nutzung. Für den Alltag einzelner Lehrkräfte ist die **Desktop-Variante** (Electron, lokale SQLite-Datenbank) die einfachste Option. Ob eine institutionelle Bereitstellung rechtlich und organisatorisch zulässig ist, entscheiden Schule und Nutzer selbst; dafür übernimmt der Softwarehersteller keine Verantwortung.',
   },
   {
     id: 'apple',

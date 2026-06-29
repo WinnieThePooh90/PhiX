@@ -17,7 +17,46 @@
 | Sind **alle** gespeicherten Daten verschlüsselt? | **Nein.** Fachliche Kerndaten (Namen, Noten, Listen, Fotos) sind verschlüsselt; Metadaten und einige Einstellungen bewusst im Klartext (siehe unten). |
 | Schützt das Passwort vor **DB-Diebstahl**? | **Ja** für verschlüsselte Felder — ohne Passwort oder Recovery-Key ist der DEK nicht verfügbar; Ciphertext in PostgreSQL/SQLite ist nicht lesbar. |
 | Kommt man **ohne Passwort** an Noten und Namen? | **Nicht** über die normalen Daten-APIs nach abgeschlossener Einrichtung. Randfälle (Netzwerk ohne TLS, XSS, kompromittierter Server) bleiben möglich (siehe Grenzen). |
-| Ist PhiX **Ende-zu-Ende-verschlüsselt**? | **Nein.** Der Server entschlüsselt Daten während aktiver Krypto-Sessions im RAM — by design für die zentrale Schulinstallation. |
+| Ist PhiX **Ende-zu-Ende-verschlüsselt**? | **Nein.** Siehe Abschnitt [Keine Ende-zu-Ende-Verschlüsselung (E2E)](#keine-ende-zu-ende-verschlüsselung-e2e). |
+
+---
+
+## Keine Ende-zu-Ende-Verschlüsselung (E2E)
+
+**Ende-zu-Ende-verschlüsselt (E2E)** bedeutet: Nur die kommunizierenden Endgeräte können die Inhalte lesen. Ein zwischengeschalteter Dienst — z. B. ein zentraler Server — sieht **keinen Klartext**, auch wenn er die Nachrichten transportiert oder speichert. Bekannte Beispiele sind Messenger wie Signal oder WhatsApp (im E2E-Modus).
+
+**PhiX ist nicht E2E-verschlüsselt.** PhiX nutzt **Verschlüsselung at rest** (Daten in Ruhe):
+
+```mermaid
+flowchart LR
+  subgraph client [Browser_Electron]
+    UI[PhiX_Oberflaeche]
+  end
+  subgraph server [PhiX_Server]
+    RAM[DEK_im_RAM]
+    API[API_Prisma]
+  end
+  subgraph storage [Datenbank]
+    DB[Ciphertext_AES_GCM]
+  end
+  UI --> API
+  API --> RAM
+  RAM --> DB
+```
+
+| Aspekt | PhiX |
+|--------|------|
+| **In der Datenbank** | Namen, Noten und Anhänge liegen als **Ciphertext** (AES-256-GCM). Ohne Passwort und Recovery-Key ist ein gestohlenes DB-File oder Raw-Backup nicht lesbar. |
+| **Beim Arbeiten** | Nach Login hält der **Server** den Datenverschlüsselungsschlüssel (DEK) **im Arbeitsspeicher** und entschlüsselt für API und Datenbankzugriff. |
+| **Auf dem Client** | Die Oberfläche zeigt Klartext — der Server liefert bereits entschlüsselte Daten über die API. |
+
+**Was das praktisch bedeutet:**
+
+- Wer den **laufenden Server** kontrolliert (Administrator des Hosts, kompromittiertes System, Schadsoftware auf dem Rechner) kann während **aktiver Krypto-Sessions** auf Klartext zugreifen. Das ist **kein Implementierungsfehler**, sondern die gewählte Architektur für zentralen Datenzugriff (ein Backend, mehrere Clients).
+- PhiX schützt vor **Diebstahl der Datenbankdatei** und vor **Backup-Leaks ohne Passwort** — nicht vor einem vollständig kompromittierten oder mitgelesenen Serverbetrieb.
+- PhiX ist **nicht** mit E2E-Messengern vergleichbar: Dort bleiben Schlüssel auf den Endgeräten; bei PhiX liegt die Entschlüsselung auf dem Server, der die App betreibt.
+
+Technische Details: [`ENCRYPTION.md`](ENCRYPTION.md).
 
 ---
 
@@ -132,7 +171,7 @@ Im Review (Build 421) wurden folgende **Befunde** identifiziert und **behoben** 
 | `POST /api/users` ohne Admin | Hoch | **Behoben** |
 | Prisma fail-open ohne DEK | Mittel | **Behoben** (fail-closed) |
 | Unverschlüsselte Stash-JSONs am Kurs | Mittel | **Behoben** (im Registry) |
-| HTTP ohne TLS im Docker-LAN | Mittel | **Doku + Pflichtempfehlung** (Abschnitt TLS) |
+| HTTP ohne TLS über unsicheres Netz | Mittel | **Dokumentiert** (siehe Angriffsvektoren) |
 | XSS + Crypto-Token in sessionStorage | Mittel | **Offen** (architekturbedingt) |
 | Kein E2E (Server sieht Klartext in Session) | Mittel | **By design** dokumentiert |
 
@@ -147,7 +186,7 @@ Im Review (Build 421) wurden folgende **Befunde** identifiziert und **behoben** 
 
 | Vektor | Risiko | Empfehlung |
 |--------|--------|------------|
-| **Netzwerk ohne TLS** | Passwort, Cookie, Token mitlesbar | HTTPS Reverse-Proxy vor Port 1990; `PHIX_COOKIE_SECURE=1` |
+| **Netzwerk ohne TLS** | Passwort, Cookie, Token mitlesbar | Nur in vertrauenswürdigem Netz nutzen; bei Erreichbarkeit über das Internet ist TLS erforderlich |
 | **XSS im Frontend** | Diebstahl `X-Phix-Crypto-Token` bis TTL | Vertrauenswürdige Umgebung; Browser aktuell halten |
 | **Kompromittierter Server** | DEK im RAM während Sessions | Server absichern; kein E2E-Modell |
 | **Verlorener Recovery-Key + Passwort** | Daten unwiederbringlich | Recovery-Key sicher archivieren |
@@ -168,15 +207,7 @@ Backups variantenübergreifend (Docker ↔ Desktop) bei kompatiblem Schema. Sieh
 
 ---
 
-## Betrieb: Checkliste
-
-### Docker-Server (Schulnetz)
-
-- [ ] **HTTPS** vor dem Frontend (Pflicht im LAN) — [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) Abschnitt 1.8
-- [ ] `PHIX_COOKIE_SECURE=1` hinter TLS
-- [ ] Firewall: nur benötigte Ports (z. B. 1990/443, nicht 3000/5432 nach außen)
-- [ ] Nach Updates: `npx prisma migrate deploy` im Backend-Container
-- [ ] Regelmäßige **verschlüsselte Backups**; Raw-Backups und Recovery-Keys getrennt schützen
+## Betrieb: Hinweise
 
 ### Electron-Desktop
 
@@ -208,7 +239,7 @@ Beispiele: [`backend/.env.example`](../backend/.env.example).
 | Thema | Datei |
 |-------|--------|
 | Verschlüsselung, API, KDF | [`ENCRYPTION.md`](ENCRYPTION.md) |
-| TLS / Docker-Installation | [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
+| Docker-Installation | [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
 | SQLite Desktop, lokale DB | [`SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md) |
 | Prisma Dual-Schema | [`ADR-002-prisma-postgres-sqlite.md`](ADR-002-prisma-postgres-sqlite.md) |
 
@@ -220,3 +251,4 @@ Beispiele: [`backend/.env.example`](../backend/.env.example).
 |-------|----------|
 | 47 | Feldverschlüsselung AES-256-GCM, Recovery-Key, Backup v2 |
 | 421 | Auth-Cookie, Setup-Token, Admin-Gates, fail-closed Prisma, Stash-Felder verschlüsselt, CORS, Security-Doku |
+| 434 | E2E-Abschnitt ergänzt; Schul-IT-Betriebsdoku entfernt |

@@ -17,7 +17,7 @@ export const IMPRESSUM_SECTIONS = [
     heading: 'Verantwortlich für Betrieb und Inhalte',
     paragraphs: [
       `Für den Betrieb Ihrer ${APP_NAME}-Installation und für alle darin erfassten Inhalte — Schülerdaten, Noten, Texte, Bilder usw. — sind Sie als nutzende Person, Lehrkraft, Schule oder beauftragte IT-Stelle verantwortlich, nicht der Softwarehersteller.`,
-      'Stellen Sie die Server-Version im Schulnetz für andere bereit, kann bei Ihnen eine eigene Impressumspflicht bestehen. Klären Sie dies ggf. mit Schulleitung und Datenschutzbeauftragten.',
+      'Stellen Sie PhiX für andere Personen bereit (z. B. Kolleginnen und Kollegen über einen gemeinsamen Server), kann bei Ihnen eine eigene Impressumspflicht bestehen. Klären Sie Verantwortlichkeiten und rechtliche Anforderungen selbst.',
     ],
   },
   {

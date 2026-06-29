@@ -87,7 +87,7 @@ Backups sind **variantenübergreifend** nutzbar (Docker ↔ Desktop), sofern Sch
 
 Schutz vor **DB-Diebstahl** und Backup-Leaks ohne Server-Passwort. **Kein** E2E-Modell: ein kompromittierter Server kann während laufender Sessions Klartext sehen.
 
-- **Docker-Server:** **TLS/HTTPS ist Pflicht** im Schulnetz (Reverse-Proxy vor Port 1990). Ohne TLS sind Passwort, Cookie und Krypto-Token im LAN mitlesbar.
+- **Netzwerk ohne TLS:** Über unsichere oder öffentliche Netze werden Login-Daten, Session-Cookie und Krypto-Token im Klartext übertragen und können mitgelesen werden. Nur in vertrauenswürdigen Netzen nutzen; bei Internet-Erreichbarkeit TLS erforderlich.
 - **Desktop:** Daten lokal auf dem Rechner/USB — physischer Zugriff auf `data/phix.db` schützt die Verschlüsselung nur mit Passwort/Recovery-Key.
 - **CORS:** Standardmäßig nur lokale Origins; weitere über `PHIX_CORS_ORIGINS` (kommagetrennt).
 
@@ -108,4 +108,4 @@ Datenbank-Migration `20260628190000_app_user_initial_setup_token`: Spalte `initi
 | Sicherheit & Datenschutz (Übersicht) | [`SECURITY.md`](SECURITY.md) |
 | SQLite Desktop / Backup | [`SQLITE_DESKTOP.md`](SQLITE_DESKTOP.md) |
 | Docker & Desktop Übersicht | [`BUILD_VERSIONEN.md`](BUILD_VERSIONEN.md) |
-| Server-Installation & TLS | [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |
+| Server-Installation | [`INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) |

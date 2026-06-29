@@ -4,7 +4,7 @@ PhiX wird unter Windows in **zwei Varianten** betrieben:
 
 | Variante | Typisch für | Start |
 |----------|-------------|--------|
-| **Docker Compose** | Schulserver, mehrere Clients im Browser | `start_docker.bat` → Browser :1990 |
+| **Docker Compose** | Selbst gehosteter Server (Docker), Browser-Zugriff | `start_docker.bat` → Browser :1990 |
 | **Electron Desktop** | Einzelplatz, USB-tauglich | `PhiX.exe` aus `desktop/dist-pack/` |
 
 Ausführliche Build-Anleitungen: **`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`**, **`docs/BUILD_VERSIONEN.md`**.
