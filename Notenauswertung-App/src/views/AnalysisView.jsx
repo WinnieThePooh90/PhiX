@@ -594,7 +594,7 @@ export default function AnalysisView() {
           <>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
               {gradeSys === 'points'
-                ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP (entspricht Note 1,25 oder besser).'
+                ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP.'
                 : 'Schüler mit berechneter Gesamtnote 1,25 oder besser.'}
             </p>
             {besondersGut.length > 0 ? (
