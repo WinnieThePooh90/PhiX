@@ -5114,6 +5114,16 @@ button.school-roster-control-btn.danger {
   font-size: 1.02em;
 }
 
+.calc-step-math--stacked-equals .calc-step-math__symbolic {
+  display: block;
+}
+
+.calc-step-math--stacked-equals .calc-step-math__numeric {
+  display: block;
+  padding-left: 7.25rem;
+  margin-top: 0.35rem;
+}
+
 .calc-modal-section {
   margin-bottom: 1.25rem;
 }

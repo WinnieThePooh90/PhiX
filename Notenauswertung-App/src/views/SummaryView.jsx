@@ -192,7 +192,7 @@ function joinGermanList(parts) {
 function formatPartialAverageDescription(symbol, label, parts) {
   return (
     <>
-      <strong>{symbol}</strong> ({label}): arithmetisches Mittel {parts.length > 1 ? 'aus ' : 'von '}
+      <strong>{symbol}</strong> ({label}): arithmetisches Mittel {parts.length > 1 ? 'aus ' : ''}
       {joinGermanList(parts)}.
     </>
   );
@@ -363,8 +363,7 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams,
               </div>
               <p style={{ margin: '0.75rem 0 0' }}>
                 <strong>NP(·)</strong> bildet den angezeigten Teildurchschnitt auf Notenpunkte 0–15 ab;{' '}
-                <strong>round</strong> rundet auf ganze Notenpunkte. Die <strong>Endnote (Exakt)</strong> ist die zugehörige Schulnote
-                (Abitur-Zuordnungstabelle).
+                <strong>round</strong> rundet auf ganze Notenpunkte. Die <strong>Endnote (Exakt)</strong> ist die zugehörige Schulnote.
               </p>
             </>
           ) : (
@@ -450,7 +449,55 @@ function PercentProjectTerm({ project, useNp = false }) {
   );
 }
 
-function GeneralFinalFormulaContent({ generalFormula }) {
+function NumericEndnoteEquation({ step }) {
+  if (step.type === 'fraction') {
+    return (
+      <>
+        <MathFraction numerator={step.numerator} denominator={step.denominator} />
+        {step.factor != null && <> · {step.factor}</>}
+        {step.result != null && (
+          <>
+            {' '}
+            = <strong>{step.result}</strong>
+          </>
+        )}
+      </>
+    );
+  }
+  if (step.type === 'sum') {
+    return (
+      <>
+        {step.parts.join(' + ')} = <strong>{step.result}</strong>
+      </>
+    );
+  }
+  return null;
+}
+
+function isNumericEndnoteStep(step) {
+  if (!step) return false;
+  const label = step.label;
+  if (step.type === 'fraction' && (label === 'Endnote (Exakt)' || label === 'NP_end')) return true;
+  if (step.type === 'sum' && (label === 'Endnote (Exakt)' || label === 'NP_end')) return true;
+  return false;
+}
+
+function mergeEndnoteCalculationSteps(steps) {
+  const out = [];
+  for (let i = 0; i < steps.length; i += 1) {
+    const step = steps[i];
+    const next = steps[i + 1];
+    if (step.type === 'generalFinal' && isNumericEndnoteStep(next)) {
+      out.push({ ...step, numericStep: next });
+      i += 1;
+      continue;
+    }
+    out.push(step);
+  }
+  return out;
+}
+
+function GeneralFinalFormulaContent({ generalFormula, numericStep = null }) {
   if (!generalFormula || generalFormula.mode === 'none') return null;
 
   const { pillars, percentProjects, mode } = generalFormula;
@@ -511,9 +558,19 @@ function GeneralFinalFormulaContent({ generalFormula }) {
   };
 
   return (
-    <span className="calc-step-math">
-      <strong>Endnote (Exakt)</strong> = {renderFormula()}
-      {useNp && (
+    <span className={`calc-step-math${numericStep ? ' calc-step-math--stacked-equals' : ''}`}>
+      <span className="calc-step-math__symbolic">
+        <strong>Endnote (Exakt)</strong> = {renderFormula()}
+        {useNp && !numericStep && (
+          <span className="calc-step-hint"> (Zuordnung aus NP<sub>end</sub> gerundet)</span>
+        )}
+      </span>
+      {numericStep ? (
+        <span className="calc-step-math__numeric">
+          = <NumericEndnoteEquation step={numericStep} />
+        </span>
+      ) : null}
+      {useNp && numericStep && (
         <span className="calc-step-hint"> (Zuordnung aus NP<sub>end</sub> gerundet)</span>
       )}
     </span>
@@ -579,7 +636,12 @@ function CalculationStepLine({ step }) {
         </span>
       );
     case 'generalFinal':
-      return <GeneralFinalFormulaContent generalFormula={step.generalFormula} />;
+      return (
+        <GeneralFinalFormulaContent
+          generalFormula={step.generalFormula}
+          numericStep={step.numericStep ?? null}
+        />
+      );
     case 'text':
     default:
       return <span>{step.text}</span>;
@@ -688,7 +750,7 @@ function SummaryStudentCalculationModal({
               <p style={{ margin: 0 }}>Keine zählenden Noten für diese Auswahl.</p>
             ) : (
               <ol className="calc-step-list">
-                {breakdown.steps.map((step, idx) => (
+                {mergeEndnoteCalculationSteps(breakdown.steps).map((step, idx) => (
                   <li
                     key={idx}
                     className={
