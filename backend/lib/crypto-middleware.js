@@ -61,7 +61,7 @@ function createCryptoMiddleware({ prisma, getActingUser, assertActingUser }) {
     const session = getCryptoSession(token);
     if (!session || session.userId !== user.id) {
       return res.status(423).json({
-        error: 'Bitte erneut anmelden (Verschlüsselung).',
+        error: 'Bitte melde dich erneut an (Verschlüsselung).',
         requiresCryptoRelogin: true,
       });
     }

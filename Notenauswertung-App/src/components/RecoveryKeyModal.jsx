@@ -15,7 +15,7 @@ export default function RecoveryKeyModal({
   const [confirmed, setConfirmed] = useState(false);
 
   const downloadRecovery = () => {
-    const text = `PhiX Recovery-Key für ${username}\n\n${recoveryKey}\n\nBewahren Sie diesen Schlüssel sicher auf. Er kann das Passwort ersetzen.\n`;
+    const text = `PhiX Recovery-Key für ${username}\n\n${recoveryKey}\n\nBewahre diesen Schlüssel sicher auf. Er kann das Passwort ersetzen.\n`;
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -33,8 +33,8 @@ export default function RecoveryKeyModal({
         </h1>
         {successMessage ? <p className="app-login-subtitle phix-recovery-success">{successMessage}</p> : null}
         <p className="phix-recovery-hint">
-          Notieren oder laden Sie diesen Schlüssel herunter. Ohne ihn und ohne Passwort sind die Daten dieses
-          Benutzers nicht wiederherstellbar.
+          Notiere oder lade diesen Schlüssel herunter. Ohne ihn und ohne Passwort sind deine Daten nicht
+          wiederherstellbar.
         </p>
         <p className="phix-recovery-key-display" aria-label="Recovery-Key">
           {recoveryKey}

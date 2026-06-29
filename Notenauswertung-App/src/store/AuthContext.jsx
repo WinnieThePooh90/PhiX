@@ -239,7 +239,7 @@ export const AuthProvider = ({ children }) => {
             ok: false,
             requiresInitialPassword: true,
             username: body.username || usernameIn,
-            error: body.error || 'Bitte zuerst ein Passwort festlegen.',
+            error: body.error || 'Leg zuerst ein Passwort fest.',
           };
         }
         return { ok: false, error: body.error || 'Anmeldung fehlgeschlagen.' };

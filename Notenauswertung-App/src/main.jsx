@@ -62,7 +62,7 @@ function AuthenticatedApp() {
       <RecoveryKeyModal
         username={pendingRecoveryConfirm.username}
         recoveryKey={pendingRecoveryConfirm.recoveryKey}
-        successMessage="Ihre Verschlüsselung wurde eingerichtet. Bitte den Recovery-Key sichern, bevor Sie fortfahren."
+        successMessage="Deine Verschlüsselung wurde eingerichtet. Bitte den Recovery-Key sichern, bevor du fortfährst."
         confirmLabel="Weiter zur App"
         onClose={confirmPendingRecovery}
       />
@@ -78,8 +78,8 @@ function AuthenticatedApp() {
             </div>
             <p className="app-login-subtitle">
               {pendingCryptoSetup.needsSetup
-                ? 'Bitte erneut anmelden. Beim ersten Login nach dem Update richten Sie die Verschlüsselung ein (Recovery-Key).'
-                : 'Die Verschlüsselungs-Sitzung ist abgelaufen oder ungültig. Bitte erneut anmelden.'}
+                ? 'Bitte erneut anmelden. Beim ersten Login nach dem Update richtest du die Verschlüsselung ein (Recovery-Key).'
+                : 'Die Verschlüsselungs-Sitzung ist abgelaufen oder ungültig. Bitte melde dich erneut an.'}
             </p>
             <div className="app-login-relogin-actions">
               <button

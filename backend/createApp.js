@@ -151,7 +151,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
   if (user.mustSetPassword) {
     return res.status(403).json({
-      error: 'Für diesen Benutzer wurde noch kein Passwort festgelegt.',
+      error: 'Du hast noch kein Passwort festgelegt.',
       requiresInitialPassword: true,
       username: user.username,
     });
@@ -201,7 +201,7 @@ app.post('/api/auth/initial-password', async (req, res) => {
     return res.status(401).json({ error: 'Benutzer nicht gefunden.' });
   }
   if (!user.mustSetPassword) {
-    return res.status(403).json({ error: 'Das Passwort wurde bereits festgelegt. Bitte anmelden oder Recovery-Key nutzen.' });
+    return res.status(403).json({ error: 'Das Passwort wurde bereits festgelegt. Bitte melde dich an oder nutze den Recovery-Key.' });
   }
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await prisma.appUser.update({
@@ -308,7 +308,7 @@ app.get('/api/auth/crypto/status', async (req, res) => {
     return res.status(423).json({
       ok: false,
       needsRelogin: true,
-      error: 'Bitte erneut anmelden (Verschlüsselung).',
+      error: 'Bitte melde dich erneut an (Verschlüsselung).',
     });
   }
 
