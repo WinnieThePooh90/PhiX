@@ -2,7 +2,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { parseSchoolRosterXlsx, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
+import { parseSchoolRosterImportFile, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
+import { CLASS_SECTION_OPTIONS, formatRosterClassLabel } from '../utils/schoolRosterClass';
 import GradingKeyHelpButton from '../components/GradingKeyHelpButton';
 import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear';
 
@@ -33,6 +34,7 @@ export default function SchoolRosterView() {
   const newYearInputRef = useRef(null);
 
   const [gradeLevel, setGradeLevel] = useState(10);
+  const [classSection, setClassSection] = useState('');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -42,29 +44,43 @@ export default function SchoolRosterView() {
 
   const [editingId, setEditingId] = useState(null);
   const [editGrade, setEditGrade] = useState(10);
+  const [editClassSection, setEditClassSection] = useState('');
   const [editLast, setEditLast] = useState('');
   const [editFirst, setEditFirst] = useState('');
   const [rosterSearch, setRosterSearch] = useState('');
+  /** `null` = alle Stufen */
+  const [rosterGradeFilter, setRosterGradeFilter] = useState(null);
+  /** leer = alle Teilklassen der gewählten Stufe */
+  const [rosterSectionFilter, setRosterSectionFilter] = useState('');
 
   const filteredSchoolRoster = useMemo(() => {
+    let rows = schoolRosterStudents;
+    if (rosterGradeFilter !== null) {
+      rows = rows.filter((row) => row.gradeLevel === rosterGradeFilter);
+    }
+    if (rosterSectionFilter) {
+      rows = rows.filter((row) => String(row.classSection ?? '').toLowerCase() === rosterSectionFilter);
+    }
     const raw = rosterSearch.trim().toLowerCase();
-    if (!raw) return schoolRosterStudents;
+    if (!raw) return rows;
     const tokens = raw.split(/\s+/).filter(Boolean);
-    return schoolRosterStudents.filter((row) => {
-      const hay = `${row.gradeLevel} ${String(row.lastName ?? '')} ${String(row.firstName ?? '')}`.toLowerCase();
+    return rows.filter((row) => {
+      const hay = `${formatRosterClassLabel(row.gradeLevel, row.classSection)} ${String(row.lastName ?? '')} ${String(row.firstName ?? '')}`.toLowerCase();
       return tokens.every((t) => hay.includes(t));
     });
-  }, [schoolRosterStudents, rosterSearch]);
+  }, [schoolRosterStudents, rosterSearch, rosterGradeFilter, rosterSectionFilter]);
 
   const startEdit = (row) => {
     setEditingId(row.id);
     setEditGrade(row.gradeLevel);
+    setEditClassSection(row.classSection ?? '');
     setEditLast(row.lastName);
     setEditFirst(row.firstName);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
+    setEditClassSection('');
     setEditLast('');
     setEditFirst('');
   };
@@ -154,6 +170,7 @@ export default function SchoolRosterView() {
     try {
       const res = await addSchoolRosterStudent({
         gradeLevel,
+        classSection,
         firstName: fn,
         lastName: ln,
         schoolYearId: activeSchoolRosterYearId,
@@ -181,6 +198,7 @@ export default function SchoolRosterView() {
     try {
       const res = await updateSchoolRosterStudent(id, {
         gradeLevel: editGrade,
+        classSection: editClassSection,
         firstName: fn,
         lastName: ln,
         schoolYearId: activeSchoolRosterYearId,
@@ -196,7 +214,7 @@ export default function SchoolRosterView() {
   };
 
   const handleDelete = async (row) => {
-    if (!(await showConfirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${row.gradeLevel}) wirklich löschen?`, { title: 'Eintrag löschen', danger: true }))) return;
+    if (!(await showConfirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${formatRosterClassLabel(row.gradeLevel, row.classSection)}) wirklich löschen?`, { title: 'Eintrag löschen', danger: true }))) return;
     await removeSchoolRosterStudent(row.id);
     if (editingId === row.id) cancelEdit();
   };
@@ -213,7 +231,7 @@ export default function SchoolRosterView() {
     setImporting(true);
     try {
       const buf = await file.arrayBuffer();
-      const parsed = parseSchoolRosterXlsx(buf);
+      const parsed = parseSchoolRosterImportFile(buf, file.name);
       if (parsed.error) {
         let msg = parsed.error;
         if (parsed.skipped?.length) {
@@ -233,11 +251,12 @@ export default function SchoolRosterView() {
       for (const r of rows) {
         const res = await addSchoolRosterStudent({
           gradeLevel: r.gradeLevel,
+          classSection: r.classSection ?? '',
           firstName: r.firstName,
           lastName: r.lastName,
           schoolYearId: activeSchoolRosterYearId,
         });
-        if (res?.error) apiErrors.push(`Excel-Zeile ${r._sheetRow}: ${res.error}`);
+        if (res?.error) apiErrors.push(`Zeile ${r._sheetRow}: ${res.error}`);
         else ok++;
       }
       let msg = `${ok} Schüler in „${activeYear?.label ?? 'Schuljahr'}“ importiert.`;
@@ -347,7 +366,7 @@ export default function SchoolRosterView() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
         style={{ display: 'none' }}
         aria-hidden
         onChange={handleImportFile}
@@ -385,6 +404,8 @@ export default function SchoolRosterView() {
                   setActiveSchoolRosterYearId(Number(e.target.value));
                   cancelEdit();
                   setRosterSearch('');
+                  setRosterGradeFilter(null);
+                  setRosterSectionFilter('');
                 }}
                 style={{ minWidth: '11rem' }}
                 disabled={busy}
@@ -438,6 +459,23 @@ export default function SchoolRosterView() {
               ))}
             </select>
           </div>
+          <div className="school-roster-add-form__section">
+            <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+              Teilklasse
+            </label>
+            <select
+              value={classSection}
+              onChange={(e) => setClassSection(e.target.value)}
+              aria-label="Teilklasse"
+            >
+              <option value="">—</option>
+              {CLASS_SECTION_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="school-roster-add-form__name">
             <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
               Nachname
@@ -479,8 +517,8 @@ export default function SchoolRosterView() {
                 </button>
                 <GradingKeyHelpButton
                   text={SCHOOL_ROSTER_IMPORT_HELP}
-                  title="Excel-Import"
-                  ariaLabel="Hilfe zum Excel-Import"
+                  title="Datei-Import"
+                  ariaLabel="Hilfe zum Datei-Import"
                 />
               </div>
             </div>
@@ -495,7 +533,7 @@ export default function SchoolRosterView() {
         >
           <h3 style={{ margin: 0, fontSize: '1.05rem' }}>
             Schüler{activeYear ? ` — ${activeYear.label}` : ''} (
-            {rosterSearch.trim()
+            {rosterSearch.trim() || rosterGradeFilter !== null || rosterSectionFilter
               ? `${filteredSchoolRoster.length} von ${schoolRosterStudents.length}`
               : schoolRosterStudents.length}
             )
@@ -511,30 +549,70 @@ export default function SchoolRosterView() {
         </div>
         {schoolRosterStudents.length === 0 ? (
           <p className="text-muted" style={{ margin: 0 }}>
-            In diesem Schuljahr noch keine Schüler. Nutze das Formular oben oder den Excel-Import.
+            In diesem Schuljahr noch keine Schüler. Nutze das Formular oben oder den Datei-Import (CSV/Excel).
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-3 mb-4" style={{ width: '100%' }}>
-              <label htmlFor="school-roster-search" className="text-muted" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
-                Suchen / filtern
-              </label>
-              <input
-                id="school-roster-search"
-                type="search"
-                className="w-full"
-                value={rosterSearch}
-                onChange={(e) => setRosterSearch(e.target.value)}
-                placeholder="Nachname, Vorname oder Stufe; mehrere Wörter = alle müssen passen (z. B. „10 Meyer“)"
-                autoComplete="off"
-                spellCheck={false}
-                style={{ flex: '1 1 auto', minWidth: '12rem', width: '100%' }}
-                aria-label="Schülerliste durchsuchen"
-              />
+            <div className="flex flex-wrap items-end gap-3 mb-4" style={{ width: '100%' }}>
+              <div>
+                <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                  Stufe filtern
+                </label>
+                <select
+                  value={rosterGradeFilter === null ? 'all' : String(rosterGradeFilter)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setRosterGradeFilter(v === 'all' ? null : Number(v));
+                  }}
+                  style={{ minWidth: '7rem' }}
+                  aria-label="Klassenstufe filtern"
+                >
+                  <option value="all">Alle</option>
+                  {GRADE_OPTIONS.map((g) => (
+                    <option key={g} value={String(g)}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                  Teilklasse filtern
+                </label>
+                <select
+                  value={rosterSectionFilter}
+                  onChange={(e) => setRosterSectionFilter(e.target.value)}
+                  style={{ minWidth: '5rem' }}
+                  aria-label="Teilklasse filtern"
+                >
+                  <option value="">—</option>
+                  {CLASS_SECTION_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ flex: '1 1 auto', minWidth: '12rem' }}>
+                <label htmlFor="school-roster-search" className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                  Suchen
+                </label>
+                <input
+                  id="school-roster-search"
+                  type="search"
+                  className="w-full"
+                  value={rosterSearch}
+                  onChange={(e) => setRosterSearch(e.target.value)}
+                  placeholder="Nachname, Vorname oder Klasse (z. B. „10a Meyer“)"
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-label="Schülerliste durchsuchen"
+                />
+              </div>
             </div>
             {filteredSchoolRoster.length === 0 ? (
               <p className="text-muted" style={{ margin: 0 }}>
-                Keine Treffer für „{rosterSearch.trim()}“. Filter anpassen oder zurücksetzen.
+                Keine Treffer mit den aktuellen Filtern{rosterSearch.trim() ? ` für „${rosterSearch.trim()}“` : ''}. Filter anpassen oder zurücksetzen.
               </p>
             ) : (
           <div className="table-container table-container--opaque-thead school-roster-table-scroll" style={{ margin: 0 }}>
@@ -556,18 +634,33 @@ export default function SchoolRosterView() {
                   editingId === row.id ? (
                     <tr key={row.id}>
                       <td className="text-center" style={{ verticalAlign: 'middle' }}>
-                        <select
-                          value={editGrade}
-                          onChange={(e) => setEditGrade(Number(e.target.value))}
-                          style={{ padding: '0.35rem', width: '100%', maxWidth: '5rem' }}
-                          aria-label="Klassenstufe bearbeiten"
-                        >
-                          {GRADE_OPTIONS.map((g) => (
-                            <option key={g} value={g}>
-                              {g}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-1" style={{ justifyContent: 'center' }}>
+                          <select
+                            value={editGrade}
+                            onChange={(e) => setEditGrade(Number(e.target.value))}
+                            style={{ padding: '0.35rem', width: '100%', maxWidth: '4rem' }}
+                            aria-label="Klassenstufe bearbeiten"
+                          >
+                            {GRADE_OPTIONS.map((g) => (
+                              <option key={g} value={g}>
+                                {g}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={editClassSection}
+                            onChange={(e) => setEditClassSection(e.target.value)}
+                            style={{ padding: '0.35rem', width: '100%', maxWidth: '3.5rem' }}
+                            aria-label="Teilklasse bearbeiten"
+                          >
+                            <option value="">—</option>
+                            {CLASS_SECTION_OPTIONS.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </td>
                       <td style={{ verticalAlign: 'middle' }}>
                         <input
@@ -603,7 +696,7 @@ export default function SchoolRosterView() {
                   ) : (
                     <tr key={row.id}>
                       <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                        {row.gradeLevel}
+                        {formatRosterClassLabel(row.gradeLevel, row.classSection)}
                       </td>
                       <td>{row.lastName}</td>
                       <td>{row.firstName}</td>

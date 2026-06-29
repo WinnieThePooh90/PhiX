@@ -4,6 +4,7 @@ import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import { normalizeCourseGradeSystem } from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
+import { CLASS_SECTION_OPTIONS, formatRosterClassLabel, parseClassSectionFromClassCell } from '../utils/schoolRosterClass';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import WeightingPercentHint from '../components/WeightingPercentHint';
@@ -54,6 +55,8 @@ export default function SettingsView() {
   const [pasteAdding, setPasteAdding] = useState(false);
   /** `null` = alle Klassenstufen (5–13), sonst nur diese Stufe */
   const [rosterGradeFilter, setRosterGradeFilter] = useState(10);
+  /** leer = alle Teilklassen der gewählten Stufe */
+  const [rosterSectionFilter, setRosterSectionFilter] = useState('');
   const [rosterTransferSearch, setRosterTransferSearch] = useState('');
   /** Gemeinsamer Bereich: manuelles Anlegen + Übernahme aus Schülerverwaltung */
   const [addStudentsPanelOpen, setAddStudentsPanelOpen] = useState(false);
@@ -66,6 +69,10 @@ export default function SettingsView() {
 
   const classFieldForGrade = config?.className || config?.class;
   const parsedClassGrade = useMemo(() => parseGradeFromClassCell(classFieldForGrade), [classFieldForGrade]);
+  const parsedClassSection = useMemo(
+    () => parseClassSectionFromClassCell(classFieldForGrade),
+    [classFieldForGrade],
+  );
   const effectiveWeighting = useMemo(
     () => resolveCourseWeighting(config?.weighting, config, exams, tests),
     [config, exams, tests],
@@ -76,6 +83,10 @@ export default function SettingsView() {
   useEffect(() => {
     if (parsedClassGrade != null) setRosterGradeFilter(parsedClassGrade);
   }, [parsedClassGrade, classFieldForGrade]);
+
+  useEffect(() => {
+    setRosterSectionFilter(parsedClassSection ?? '');
+  }, [parsedClassSection, classFieldForGrade]);
 
   useEffect(() => {
     const courseYear = String(config?.year ?? '').trim();
@@ -90,23 +101,27 @@ export default function SettingsView() {
     const inCourse = new Set(students.map((s) => rosterStudentKey(s.firstName, s.lastName)));
     let rows = [...(schoolRosterStudents || [])]
       .filter((r) => rosterGradeFilter === null || r.gradeLevel === rosterGradeFilter)
+      .filter((r) => !rosterSectionFilter || String(r.classSection ?? '').toLowerCase() === rosterSectionFilter);
       .filter((r) => !inCourse.has(rosterStudentKey(r.firstName, r.lastName)));
     const q = rosterTransferSearch.trim().toLowerCase();
     if (q) {
       const tokens = q.split(/\s+/).filter(Boolean);
       rows = rows.filter((r) => {
-        const hay = `${r.gradeLevel} ${String(r.lastName ?? '')} ${String(r.firstName ?? '')}`.toLowerCase();
+        const hay = `${formatRosterClassLabel(r.gradeLevel, r.classSection)} ${String(r.lastName ?? '')} ${String(r.firstName ?? '')}`.toLowerCase();
         return tokens.every((t) => hay.includes(t));
       });
     }
     rows.sort((a, b) => {
       if (a.gradeLevel !== b.gradeLevel) return a.gradeLevel - b.gradeLevel;
+      const secA = String(a.classSection ?? '');
+      const secB = String(b.classSection ?? '');
+      if (secA !== secB) return secA.localeCompare(secB, 'de', { sensitivity: 'base' });
       const ln = String(a.lastName || '').localeCompare(String(b.lastName || ''), 'de', { sensitivity: 'base' });
       if (ln !== 0) return ln;
       return String(a.firstName || '').localeCompare(String(b.firstName || ''), 'de', { sensitivity: 'base' });
     });
     return rows;
-  }, [schoolRosterStudents, students, rosterGradeFilter, rosterTransferSearch]);
+  }, [schoolRosterStudents, students, rosterGradeFilter, rosterSectionFilter, rosterTransferSearch]);
 
   const handleConfigChange = (e) => {
     const { name, value } = e.target;
@@ -233,7 +248,11 @@ export default function SettingsView() {
   const handleAddAllRosterCandidates = async () => {
     if (!rosterCandidates.length) return;
     const stageHint =
-      rosterGradeFilter === null ? 'allen gew\u00E4hlten Stufen' : `der Stufe ${rosterGradeFilter}`;
+      rosterGradeFilter === null
+        ? 'allen gew\u00E4hlten Stufen'
+        : rosterSectionFilter
+          ? `der Klasse ${rosterGradeFilter}${rosterSectionFilter}`
+          : `der Stufe ${rosterGradeFilter}`;
     let ok = true;
     if (rosterCandidates.length > 8) {
       ok = await showConfirm(
@@ -856,8 +875,14 @@ export default function SettingsView() {
               {parsedClassGrade != null ? (
                 <>
                   {' '}
-                  Die Stufe <strong>{parsedClassGrade}</strong> wurde aus dem Klassenfeld „{String(classFieldForGrade || '').trim() || '—'}“
-                  erkannt und als Filter voreingestellt.
+                  Die Stufe <strong>{parsedClassGrade}</strong>
+                  {parsedClassSection ? (
+                    <>
+                      {' '}
+                      und Teilklasse <strong>{parsedClassSection}</strong>
+                    </>
+                  ) : null}{' '}
+                  wurden aus dem Klassenfeld „{String(classFieldForGrade || '').trim() || '—'}“ erkannt und als Filter voreingestellt.
                 </>
               ) : (
                 <>
@@ -908,6 +933,25 @@ export default function SettingsView() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                  Teilklasse filtern
+                </label>
+                <select
+                  value={rosterSectionFilter}
+                  onChange={(e) => setRosterSectionFilter(e.target.value)}
+                  style={{ minWidth: '5rem', width: 'auto' }}
+                  aria-label="Teilklasse Schülerverwaltung"
+                  disabled={addingAllRoster}
+                >
+                  <option value="">—</option>
+                  {CLASS_SECTION_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div style={{ flex: '1 1 14rem', minWidth: '12rem', maxWidth: '100%' }}>
                 <label className="text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
                   Suche (optional)
@@ -950,7 +994,9 @@ export default function SettingsView() {
                     ? 'Keine Treffer für diese Suche (mit aktuellem Stufenfilter; nur Schüler, die noch nicht im Kurs sind).'
                     : rosterGradeFilter === null
                       ? 'Keine weiteren Schüler aus der Verwaltung für „Alle Stufen“ — evtl. sind alle bereits im Kurs.'
-                      : `Keine Schüler der Stufe ${rosterGradeFilter} in der Verwaltung, die noch nicht im Kurs sind.`}
+                      : rosterSectionFilter
+                        ? `Keine Schüler der Klasse ${rosterGradeFilter}${rosterSectionFilter} in der Verwaltung, die noch nicht im Kurs sind.`
+                        : `Keine Schüler der Stufe ${rosterGradeFilter} in der Verwaltung, die noch nicht im Kurs sind.`}
               </p>
             ) : (
               <div className="table-container table-container--opaque-thead" style={{ margin: 0, maxHeight: 'min(22rem, 50vh)', overflow: 'auto' }}>
@@ -960,7 +1006,7 @@ export default function SettingsView() {
                       <th>Nachname</th>
                       <th>Vorname</th>
                       <th className="text-center" style={{ width: '5rem' }}>
-                        Stufe
+                        Klasse
                       </th>
                       <th className="text-right" style={{ width: '11rem' }}>
                         Aktion
@@ -972,7 +1018,7 @@ export default function SettingsView() {
                       <tr key={r.id}>
                         <td>{r.lastName}</td>
                         <td>{r.firstName}</td>
-                        <td className="text-center">{r.gradeLevel}</td>
+                        <td className="text-center">{formatRosterClassLabel(r.gradeLevel, r.classSection)}</td>
                         <td className="text-right">
                           <button
                             type="button"

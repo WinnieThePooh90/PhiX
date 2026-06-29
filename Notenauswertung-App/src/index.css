@@ -4368,7 +4368,8 @@ button.table-maximize-toggle-btn--match-adjacent.course-meta-inline-btn {
   box-sizing: border-box;
 }
 
-.school-roster-add-form__grade {
+.school-roster-add-form__grade,
+.school-roster-add-form__section {
   flex: 0 1 auto;
 }
 
@@ -5748,6 +5749,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
   .school-roster-add-form > div,
   .school-roster-add-form__grade,
+  .school-roster-add-form__section,
   .school-roster-add-form__name,
   .school-roster-inline-actions {
     flex: 1 1 100%;

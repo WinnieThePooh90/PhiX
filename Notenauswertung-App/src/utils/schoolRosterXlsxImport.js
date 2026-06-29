@@ -1,4 +1,9 @@
 import * as XLSX from 'xlsx';
+import { parseClassSectionFromClassCell } from './schoolRosterClass';
+
+const COL_KLASSE = 0;
+const COL_VORNAME = 1;
+const COL_NACHNAME = 2;
 
 function normalizeHeaderCell(h) {
   return String(h ?? '')
@@ -7,23 +12,36 @@ function normalizeHeaderCell(h) {
     .replace(/\s+/g, ' ');
 }
 
-/** Erkennt Spalten anhand typischer Überschriften (erste Zeile). */
-function resolveColumnIndices(headerCells) {
-  const headers = headerCells.map(normalizeHeaderCell);
-  const pick = (candidates) => {
-    for (let j = 0; j < headers.length; j++) {
-      const h = headers[j];
-      if (!h) continue;
-      if (candidates.has(h)) return j;
-    }
-    return -1;
-  };
-  const klasse = pick(
-    new Set(['klasse', 'klassenstufe', 'stufe', 'jahrgang', 'jahrgangsstufe', 'jgst', 'jg']),
-  );
-  const vorname = pick(new Set(['vorname', 'vornamen']));
-  const nachname = pick(new Set(['nachname', 'nachnamen', 'familienname', 'zuname']));
-  return { klasse, vorname, nachname };
+function detectCsvDelimiter(text) {
+  const firstLine = text.split(/\r?\n/)[0] || '';
+  const sc = (firstLine.match(/;/g) || []).length;
+  const cc = (firstLine.match(/,/g) || []).length;
+  return sc >= cc ? ';' : ',';
+}
+
+function isHeaderRow(cells) {
+  const klasse = normalizeHeaderCell(cells[COL_KLASSE]);
+  const vorname = normalizeHeaderCell(cells[COL_VORNAME]);
+  const nachname = normalizeHeaderCell(cells[COL_NACHNAME]);
+  if (
+    klasse.includes('klasse') ||
+    klasse.includes('stufe') ||
+    klasse.includes('jahrgang') ||
+    klasse === 'jgst' ||
+    klasse === 'jg'
+  ) {
+    return true;
+  }
+  if (vorname === 'vorname' || vorname === 'vornamen') return true;
+  if (
+    nachname === 'nachname' ||
+    nachname === 'nachnamen' ||
+    nachname === 'familienname' ||
+    nachname === 'zuname'
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function parseGradeFromClassCell(raw) {
@@ -46,42 +64,49 @@ function cellString(v) {
   return String(v).trim();
 }
 
-/**
- * Liest die erste Tabelle einer Excel-Datei. Erste Zeile = Überschriften (Klasse, Vorname, Nachname).
- * @param {ArrayBuffer} arrayBuffer
- * @returns {{ rows: { gradeLevel: number, firstName: string, lastName: string, _sheetRow: number }[], error?: string, headerIssue?: string }}
- */
-export function parseSchoolRosterXlsx(arrayBuffer) {
-  let wb;
+function readSchoolRosterMatrix(arrayBuffer, filename = '') {
+  const lower = String(filename).toLowerCase();
+  const isCsv = lower.endsWith('.csv');
   try {
-    wb = XLSX.read(arrayBuffer, { type: 'array' });
+    if (isCsv) {
+      const text = new TextDecoder('utf-8').decode(arrayBuffer);
+      const wb = XLSX.read(text, { type: 'string', FS: detectCsvDelimiter(text), raw: false });
+      if (!wb.SheetNames?.length) return { matrix: [], error: 'Die CSV-Datei enthält keine Daten.' };
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      return { matrix: XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false }) };
+    }
+    const wb = XLSX.read(arrayBuffer, { type: 'array', raw: false });
+    if (!wb.SheetNames?.length) {
+      return { matrix: [], error: 'Die Arbeitsmappe enthält keine Tabellenblätter.' };
+    }
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    return { matrix: XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false }) };
   } catch {
-    return { rows: [], error: 'Die Datei konnte nicht als Excel gelesen werden.' };
-  }
-  if (!wb.SheetNames?.length) return { rows: [], error: 'Die Arbeitsmappe enthält keine Tabellenblätter.' };
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-  if (!matrix.length) return { rows: [], error: 'Die Datei enthält keine Zeilen.' };
-
-  const headerRow = matrix[0];
-  const { klasse, vorname, nachname } = resolveColumnIndices(headerRow);
-  const missing = [];
-  if (klasse < 0) missing.push('Klasse');
-  if (vorname < 0) missing.push('Vorname');
-  if (nachname < 0) missing.push('Nachname');
-  if (missing.length) {
     return {
-      rows: [],
-      error: `Pflicht-Spalten nicht gefunden: ${missing.join(', ')}. Erwartet in der ersten Zeile z. B. „Klasse“, „Vorname“, „Nachname“.`,
+      matrix: [],
+      error: isCsv
+        ? 'Die Datei konnte nicht als CSV gelesen werden.'
+        : 'Die Datei konnte nicht als Excel gelesen werden.',
     };
   }
+}
+
+/**
+ * Spalten 1–3: Klasse (inkl. Teilklasse), Vorname, Nachname; weitere Spalten werden ignoriert.
+ * @param {unknown[][]} matrix
+ */
+export function parseSchoolRosterMatrix(matrix) {
+  if (!matrix.length) return { rows: [], error: 'Die Datei enthält keine Zeilen.' };
+
+  let startRow = 0;
+  if (isHeaderRow(matrix[0])) startRow = 1;
 
   const rows = [];
-  for (let i = 1; i < matrix.length; i++) {
+  for (let i = startRow; i < matrix.length; i++) {
     const line = matrix[i];
-    const ln = cellString(line[nachname]);
-    const fn = cellString(line[vorname]);
-    const gradeRaw = line[klasse];
+    const ln = cellString(line[COL_NACHNAME]);
+    const fn = cellString(line[COL_VORNAME]);
+    const gradeRaw = line[COL_KLASSE];
     const gradeLevel = parseGradeFromClassCell(gradeRaw);
     const sheetRow = i + 1;
     if (!ln && !fn && (gradeRaw === '' || gradeRaw === null || gradeRaw === undefined)) continue;
@@ -97,7 +122,13 @@ export function parseSchoolRosterXlsx(arrayBuffer) {
       });
       continue;
     }
-    rows.push({ gradeLevel, firstName: fn, lastName: ln, _sheetRow: sheetRow });
+    rows.push({
+      gradeLevel,
+      classSection: parseClassSectionFromClassCell(gradeRaw),
+      firstName: fn,
+      lastName: ln,
+      _sheetRow: sheetRow,
+    });
   }
 
   const toImport = rows.filter((r) => !r._skip);
@@ -105,22 +136,41 @@ export function parseSchoolRosterXlsx(arrayBuffer) {
   if (!toImport.length) {
     const msg = skipped.length
       ? 'Keine gültige Schülerzeile: alle Zeilen sind leer oder enthalten Fehler.'
-      : 'Nach der Überschriftenzeile wurden keine Datenzeilen gefunden.';
+      : startRow >= matrix.length
+        ? 'Nach der optionalen Überschriftenzeile wurden keine Datenzeilen gefunden.'
+        : 'Es wurden keine Datenzeilen gefunden.';
     return { rows: [], skipped, error: msg };
   }
   return { rows: toImport, skipped };
 }
 
-/** Hilfetext für den Excel-Import (Schülerverwaltung). */
+/**
+ * Liest CSV (.csv) oder Excel (.xlsx/.xls). Erste drei Spalten: Klasse, Vorname, Nachname.
+ * @param {ArrayBuffer} arrayBuffer
+ * @param {string} [filename]
+ */
+export function parseSchoolRosterImportFile(arrayBuffer, filename = '') {
+  const { matrix, error } = readSchoolRosterMatrix(arrayBuffer, filename);
+  if (error) return { rows: [], error };
+  return parseSchoolRosterMatrix(matrix);
+}
+
+/** @deprecated Alias — bitte parseSchoolRosterImportFile mit Dateiname verwenden. */
+export function parseSchoolRosterXlsx(arrayBuffer, filename = '') {
+  return parseSchoolRosterImportFile(arrayBuffer, filename);
+}
+
+/** Hilfetext für den Datei-Import (Schülerverwaltung). */
 export const SCHOOL_ROSTER_IMPORT_HELP = [
-  'Format: Excel-Datei (.xlsx oder .xls), erstes Tabellenblatt.',
+  'Format: CSV (.csv) oder Excel (.xlsx / .xls), erstes Tabellenblatt bzw. die gesamte CSV.',
   '',
-  'Zeile 1 = Überschriften mit genau diesen Pflicht-Spalten:',
-  '• Klasse — auch: Klassenstufe, Stufe, Jahrgang, Jahrgangsstufe, Jgst, JG',
-  '• Vorname — auch: Vornamen',
-  '• Nachname — auch: Nachnamen, Familienname, Zuname',
+  'Die ersten drei Spalten (weitere Spalten werden ignoriert):',
+  '• Spalte 1 — Klasse inkl. Teilklasse, z. B. „10a“ oder „Klasse 10a“',
+  '• Spalte 2 — Vorname',
+  '• Spalte 3 — Nachname',
   '',
-  'Ab Zeile 2: je Schüler eine Zeile. Klasse = Jahrgangsstufe 5–13 (Zahl oder Text mit Zahl, z. B. „7“ oder „Klasse 7“).',
+  'Optional kann Zeile 1 eine Überschriftenzeile sein (z. B. Klasse, Vorname, Nachname); sie wird dann übersprungen.',
+  'Aus der Klasse werden Jahrgangsstufe 5–13 und Teilklasse ermittelt (z. B. „10a“ → Stufe 10, Teilklasse a).',
   'Leere Zeilen werden übersprungen. Vor- und Nachname müssen gesetzt sein.',
   '',
   'Der Import gilt für das aktuell gewählte Schuljahr.',

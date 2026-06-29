@@ -783,13 +783,28 @@ function normalizeSchoolRosterPayload(body) {
   const firstName = String(body?.firstName ?? '').trim();
   const lastName = String(body?.lastName ?? '').trim();
   const schoolYearId = parseSchoolYearId(body?.schoolYearId);
+  const classSectionRaw = body?.classSection;
+  const classSection =
+    classSectionRaw === undefined || classSectionRaw === null
+      ? ''
+      : normalizeClassSection(classSectionRaw);
   if (!schoolYearId) return { error: 'Schuljahr fehlt oder ist ungültig.' };
   if (!Number.isFinite(gradeLevel) || gradeLevel < 5 || gradeLevel > 13) {
     return { error: 'Klassenstufe muss zwischen 5 und 13 liegen.' };
   }
+  if (classSection === null) {
+    return { error: 'Teilklasse ungültig (z. B. a, b, c oder leer).' };
+  }
   if (!lastName) return { error: 'Nachname fehlt.' };
   if (!firstName) return { error: 'Vorname fehlt.' };
-  return { gradeLevel, firstName, lastName, schoolYearId };
+  return { gradeLevel, classSection, firstName, lastName, schoolYearId };
+}
+
+function normalizeClassSection(raw) {
+  const s = String(raw ?? '').trim().toLowerCase();
+  if (!s || s === '-') return '';
+  if (!/^[a-z]{1,4}$/.test(s)) return null;
+  return s;
 }
 
 async function assertRosterYearAccess(req, res, yearId) {
@@ -882,7 +897,7 @@ app.get('/api/school-roster-students', async (req, res) => {
   if (!access) return;
   const rows = await prisma.schoolRosterStudent.findMany({
     where: { schoolYearId },
-    orderBy: [{ gradeLevel: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
+    orderBy: [{ gradeLevel: 'asc' }, { classSection: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
   });
   res.json(rows);
 });
@@ -895,6 +910,7 @@ app.post('/api/school-roster-students', async (req, res) => {
   const row = await prisma.schoolRosterStudent.create({
     data: {
       gradeLevel: norm.gradeLevel,
+      classSection: norm.classSection,
       firstName: norm.firstName,
       lastName: norm.lastName,
       schoolYearId: norm.schoolYearId,
@@ -914,6 +930,7 @@ app.put('/api/school-roster-students/:id', async (req, res) => {
     where: { id },
     data: {
       gradeLevel: norm.gradeLevel,
+      classSection: norm.classSection,
       firstName: norm.firstName,
       lastName: norm.lastName,
       schoolYearId: norm.schoolYearId,

@@ -29,6 +29,9 @@ const ORAL_WEEK_COL_CAP = 24;
 function sortSchoolRosterRows(rows) {
   return [...(rows || [])].sort((a, b) => {
     if (a.gradeLevel !== b.gradeLevel) return a.gradeLevel - b.gradeLevel;
+    const secA = String(a.classSection ?? '');
+    const secB = String(b.classSection ?? '');
+    if (secA !== secB) return secA.localeCompare(secB, 'de', { sensitivity: 'base' });
     const ln = String(a.lastName || '').localeCompare(String(b.lastName || ''), 'de', { sensitivity: 'base' });
     if (ln !== 0) return ln;
     return String(a.firstName || '').localeCompare(String(b.firstName || ''), 'de', { sensitivity: 'base' });
@@ -2119,11 +2122,12 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const addSchoolRosterStudent = async ({ gradeLevel, firstName, lastName, schoolYearId }) => {
+  const addSchoolRosterStudent = async ({ gradeLevel, classSection, firstName, lastName, schoolYearId }) => {
     const yearId = schoolYearId ?? activeSchoolRosterYearId;
     if (!yearId) return { error: 'Bitte zuerst ein Schuljahr anlegen oder auswählen.' };
     const created = await apiCall('/api/school-roster-students', 'POST', {
       gradeLevel,
+      classSection: classSection ?? '',
       firstName,
       lastName,
       schoolYearId: yearId,
@@ -2141,11 +2145,12 @@ export const DataProvider = ({ children }) => {
     return created;
   };
 
-  const updateSchoolRosterStudent = async (id, { gradeLevel, firstName, lastName, schoolYearId }) => {
+  const updateSchoolRosterStudent = async (id, { gradeLevel, classSection, firstName, lastName, schoolYearId }) => {
     const yearId = schoolYearId ?? activeSchoolRosterYearId;
     if (!yearId) return { error: 'Schuljahr fehlt.' };
     const updated = await apiCall(`/api/school-roster-students/${id}`, 'PUT', {
       gradeLevel,
+      classSection: classSection ?? '',
       firstName,
       lastName,
       schoolYearId: yearId,

@@ -146,6 +146,8 @@ model SchoolRosterYear {
 model SchoolRosterStudent {
   id         Int      @id @default(autoincrement())
   gradeLevel Int
+  /** Teilklasse (z. B. a, b, c); leer = nicht zugeordnet */
+  classSection String @default("")
   firstName  String
   lastName   String
   createdAt  DateTime @default(now())
