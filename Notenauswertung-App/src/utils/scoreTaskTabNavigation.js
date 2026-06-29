@@ -1,4 +1,4 @@
-import { isEnterAsTabKey } from './tableEnterAsTab';
+import { isEnterAsTabKey, scheduleScrollTableFieldIntoView } from './tableEnterAsTab';
 
 export function scoreTaskInputDataAttr(scopeKey, rowKey, fieldIndex) {
   return `${scopeKey}__${String(rowKey)}__${fieldIndex}`;
@@ -17,6 +17,7 @@ export function focusScoreTaskInput(scopeKey, rowKey, fieldIndex) {
         /* ignore */
       }
     }
+    scheduleScrollTableFieldIntoView(el);
     return true;
   };
   if (!focusEl()) {

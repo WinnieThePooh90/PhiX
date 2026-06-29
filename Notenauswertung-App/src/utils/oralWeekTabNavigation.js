@@ -1,4 +1,4 @@
-import { isEnterAsTabKey } from './tableEnterAsTab';
+import { isEnterAsTabKey, scheduleScrollTableFieldIntoView } from './tableEnterAsTab';
 
 export function oralWeekInputDataAttr(oralId, studentId, weekIndex) {
   return `${oralId}__${studentId}__${weekIndex}`;
@@ -8,8 +8,14 @@ export function focusOralWeekInput(oralId, studentId, weekIndex) {
   const attr = oralWeekInputDataAttr(oralId, studentId, weekIndex);
   requestAnimationFrame(() => {
     const el = document.querySelector(`[data-oral-week-input="${attr}"]`);
-    el?.focus();
-    el?.select();
+    if (!el) return;
+    el.focus();
+    try {
+      el.select();
+    } catch {
+      /* ignore */
+    }
+    scheduleScrollTableFieldIntoView(el);
   });
 }
 

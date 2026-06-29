@@ -1,7 +1,138 @@
 const FOCUSABLE_SEL =
-  'input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), select:not([disabled])';
+  'input:not([disabled]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), select:not([disabled]), textarea:not([disabled])';
+
+const TABLE_SCROLL_ROOT_SEL =
+  '.view-table-scroll, .view-page-scroll, .exam-table-scroll, .table-max-host__body, .gfs-table-scroll, .oral-table-scroll, .referate-table-scroll';
 
 let installed = false;
+
+function isScrollableOverflow(value) {
+  return value === 'auto' || value === 'scroll' || value === 'overlay';
+}
+
+function findTableScrollContainer(el) {
+  const marked = el.closest(TABLE_SCROLL_ROOT_SEL);
+  if (marked instanceof HTMLElement) return marked;
+
+  let node = el.parentElement;
+  while (node && node !== document.documentElement) {
+    const style = getComputedStyle(node);
+    const canScrollX =
+      isScrollableOverflow(style.overflowX) || isScrollableOverflow(style.overflow);
+    const canScrollY =
+      isScrollableOverflow(style.overflowY) || isScrollableOverflow(style.overflow);
+    if (
+      (canScrollX && node.scrollWidth > node.clientWidth + 1) ||
+      (canScrollY && node.scrollHeight > node.clientHeight + 1)
+    ) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Sticky thead/-spalten verringern den sichtbaren Bereich im Scroll-Container. */
+function measureStickyInsets(container, table) {
+  const cr = container.getBoundingClientRect();
+  let left = 0;
+  let right = 0;
+  let top = 0;
+
+  for (const cell of table.querySelectorAll('th, td')) {
+    if (!(cell instanceof HTMLElement)) continue;
+    const style = getComputedStyle(cell);
+    if (style.position !== 'sticky') continue;
+    const r = cell.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) continue;
+
+    const stickyTop = parseFloat(style.top);
+    if (Number.isFinite(stickyTop) && stickyTop >= 0 && r.top <= cr.top + 1 && r.bottom > cr.top) {
+      top = Math.max(top, r.bottom - cr.top);
+    }
+
+    const stickyLeft = parseFloat(style.left);
+    if (Number.isFinite(stickyLeft) && stickyLeft >= 0 && r.left <= cr.left + 1 && r.right > cr.left) {
+      left = Math.max(left, r.right - cr.left);
+    }
+
+    const stickyRight = parseFloat(style.right);
+    if (Number.isFinite(stickyRight) && stickyRight >= 0 && r.right >= cr.right - 1 && r.left < cr.right) {
+      right = Math.max(right, cr.right - r.left);
+    }
+  }
+
+  return { left, right, top };
+}
+
+/** Scrollt Tabellen-Eingabefelder in den sichtbaren Bereich (inkl. horizontaler Aufgaben-Spalten). */
+export function scrollTableFieldIntoView(fieldEl) {
+  if (!(fieldEl instanceof HTMLElement)) return;
+  const cell = fieldEl.closest('td, th') ?? fieldEl;
+  const table = fieldEl.closest('table');
+  const container = findTableScrollContainer(fieldEl);
+
+  if (!(container instanceof HTMLElement) || !table) {
+    cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    return;
+  }
+
+  const pad = 6;
+  const cr = container.getBoundingClientRect();
+  const insets = measureStickyInsets(container, table);
+  const visible = {
+    left: cr.left + insets.left + pad,
+    right: cr.right - insets.right - pad,
+    top: cr.top + insets.top + pad,
+    bottom: cr.bottom - pad,
+  };
+  const fr = cell.getBoundingClientRect();
+
+  let dx = 0;
+  if (fr.right > visible.right) dx = fr.right - visible.right;
+  else if (fr.left < visible.left) dx = fr.left - visible.left;
+
+  let dy = 0;
+  if (fr.bottom > visible.bottom) dy = fr.bottom - visible.bottom;
+  else if (fr.top < visible.top) dy = fr.top - visible.top;
+
+  if (dx !== 0 || dy !== 0) {
+    container.scrollBy({ left: dx, top: dy, behavior: 'auto' });
+  }
+}
+
+export function scheduleScrollTableFieldIntoView(fieldEl) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => scrollTableFieldIntoView(fieldEl));
+  });
+}
+
+function isTableFieldFocusTarget(el) {
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
+    return false;
+  }
+  if (!el.closest('table')) return false;
+  if (el instanceof HTMLInputElement) {
+    const type = (el.type || 'text').toLowerCase();
+    if (['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'hidden'].includes(type)) return false;
+  }
+  return true;
+}
+
+function focusTableField(target) {
+  target.focus();
+  if (target instanceof HTMLInputElement && typeof target.select === 'function') {
+    const type = (target.type || 'text').toLowerCase();
+    if (type !== 'date' && type !== 'color') {
+      try {
+        target.select();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  scheduleScrollTableFieldIntoView(target);
+}
 
 export function isEnterAsTabKey(e) {
   return (e.key === 'Enter' || e.code === 'NumpadEnter') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey;
@@ -32,12 +163,7 @@ export function focusAdjacentSummaryGradeInput(current, reverse = false) {
   const next = reverse ? i - 1 : i + 1;
   if (next < 0 || next >= list.length) return false;
   const target = list[next];
-  target.focus();
-  try {
-    target.select();
-  } catch {
-    /* ignore */
-  }
+  focusTableField(target);
   return true;
 }
 
@@ -50,18 +176,7 @@ export function focusAdjacentTableField(current, reverse = false) {
   if (i === -1) return false;
   const next = reverse ? i - 1 : i + 1;
   if (next < 0 || next >= list.length) return false;
-  const target = list[next];
-  target.focus();
-  if (target instanceof HTMLInputElement && typeof target.select === 'function') {
-    const type = (target.type || 'text').toLowerCase();
-    if (type !== 'date' && type !== 'color') {
-      try {
-        target.select();
-      } catch {
-        /* ignore */
-      }
-    }
-  }
+  focusTableField(list[next]);
   return true;
 }
 
@@ -93,5 +208,10 @@ export function installTableEnterAsTab() {
 
     e.preventDefault();
     focusAdjacentTableField(el, false);
+  });
+
+  document.addEventListener('focusin', (e) => {
+    if (!isTableFieldFocusTarget(e.target)) return;
+    scheduleScrollTableFieldIntoView(e.target);
   });
 }

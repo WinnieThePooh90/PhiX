@@ -140,8 +140,8 @@ function rejectIfArchivedCourse(res, course) {
 app.post('/api/auth/login', async (req, res) => {
   const usernameIn = String(req.body?.username ?? '').trim();
   const password = String(req.body?.password ?? '');
-  if (!usernameIn || !password) {
-    return res.status(400).json({ error: 'Benutzername und Passwort eingeben.' });
+  if (!usernameIn) {
+    return res.status(400).json({ error: 'Benutzername eingeben.' });
   }
   const user = await prisma.appUser.findFirst({
     where: usernameWhere(usernameIn),
@@ -155,6 +155,9 @@ app.post('/api/auth/login', async (req, res) => {
       requiresInitialPassword: true,
       username: user.username,
     });
+  }
+  if (!password) {
+    return res.status(400).json({ error: 'Benutzername und Passwort eingeben.' });
   }
   if (!(await bcrypt.compare(password, user.passwordHash))) {
     return res.status(401).json({ error: 'Anmeldung fehlgeschlagen.' });

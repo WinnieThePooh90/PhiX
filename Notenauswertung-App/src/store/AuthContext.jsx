@@ -223,8 +223,8 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (usernameRaw, passwordRaw) => {
     const usernameIn = String(usernameRaw ?? '').trim();
     const password = String(passwordRaw ?? '');
-    if (!usernameIn || !password) {
-      return { ok: false, error: 'Benutzername und Passwort eingeben.' };
+    if (!usernameIn) {
+      return { ok: false, error: 'Benutzername eingeben.' };
     }
     try {
       const res = await apiFetch('/api/auth/login', {
