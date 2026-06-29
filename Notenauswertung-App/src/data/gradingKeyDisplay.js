@@ -69,6 +69,29 @@ export function getBuiltinGradingKeyShortDesc(type, maxPoints, showNotenpunkte =
   return '';
 }
 
+/** Kompakter Zusatz für Auswahlfelder, z. B. „(2 bei 75 %, 4 bei 45 %)“. */
+export function getBuiltinGradingKeySelectSuffix(type, maxPoints, showNotenpunkte = false) {
+  if (!isBuiltinGradingKeyType(type)) return '';
+
+  if (showNotenpunkte) {
+    const anchors = getBuiltinNpPercentAnchors(type);
+    if (!anchors) return '';
+    return `(11 NP bei ${formatPercentDe(anchors.at11)}%, 5 NP bei ${formatPercentDe(anchors.at5)}%)`;
+  }
+
+  if (isPlateauGradingKeyType(type)) {
+    const k = getFormulaKeyIntercept(type);
+    const max = Number(maxPoints);
+    if (k == null || !Number.isFinite(max) || max <= 0) return '';
+    const p2 = (formulaLeftBoundary(2, max, k) / max) * 100;
+    const p4 = (formulaLeftBoundary(4, max, k) / max) * 100;
+    return `(2 bei ${formatPercentDe(p2)}%, 4 bei ${formatPercentDe(p4)}%)`;
+  }
+
+  const th = getThresholds(type);
+  return `(2 bei ${formatPercentDe(th.percent2)}%, 4 bei ${formatPercentDe(th.percent4)}%)`;
+}
+
 export function getFormulaKeyHelpText(type) {
   const k = getFormulaKeyIntercept(type);
   if (k == null) return '';

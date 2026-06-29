@@ -38,7 +38,7 @@ import {
 import { abiTemplateSimulatedMaxMismatchTooltip } from '../utils/abiTemplateSimulatedMaxWarning';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 import GradingKeyTable from '../components/GradingKeyTable';
-import CustomGradingKeySelectOptions from '../components/CustomGradingKeySelectOptions';
+import GradingKeySelect from '../components/GradingKeySelect';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import ExamChartsPanels from '../components/ExamChartsPanels';
 import DeferredNumberInput from '../components/DeferredNumberInput';
@@ -353,17 +353,15 @@ export default function ExamsView({ studentIdFilterSet = null }) {
                 <label className="course-meta-field__label" htmlFor={`exam-key-${activeKlausur}`}>
                   Notenschlüssel
                 </label>
-                <select
+                <GradingKeySelect
                   id={`exam-key-${activeKlausur}`}
                   className="course-meta-control"
                   value={exam.keyType || '1'}
-                  onChange={(e) => updateExam(activeKlausur, 'keyType', e.target.value)}
-                >
-                  <CustomGradingKeySelectOptions
-                    course={config}
-                    selectedKeyType={exam.keyType}
-                  />
-                </select>
+                  onChange={(v) => updateExam(activeKlausur, 'keyType', v)}
+                  course={config}
+                  maxPoints={exam.maxPoints}
+                  showNotenpunkte={gradeSys === 'points'}
+                />
               </div>
               <div className="course-meta-field">
                 <span className="course-meta-field__label">Auswertung</span>

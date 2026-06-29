@@ -43,7 +43,7 @@ import {
   parseScorePointsValue,
 } from '../utils/calculator';
 import GradingKeyTable from '../components/GradingKeyTable';
-import CustomGradingKeySelectOptions from '../components/CustomGradingKeySelectOptions';
+import GradingKeySelect from '../components/GradingKeySelect';
 import DeferredNumberInput from '../components/DeferredNumberInput';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
@@ -523,17 +523,15 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       <label className="course-meta-field__label" htmlFor={`project-key-${activeProject}`}>
                         Notenschlüssel
                       </label>
-                      <select
+                      <GradingKeySelect
                         id={`project-key-${activeProject}`}
                         className="course-meta-control"
                         value={project.keyType || '1'}
-                        onChange={(e) => updateProject(activeProject, 'keyType', e.target.value)}
-                      >
-                        <CustomGradingKeySelectOptions
-                          course={config}
-                          selectedKeyType={project.keyType}
-                        />
-                      </select>
+                        onChange={(v) => updateProject(activeProject, 'keyType', v)}
+                        course={config}
+                        maxPoints={project.maxPoints}
+                        showNotenpunkte={gradeSys === 'points'}
+                      />
                     </div>
                     <div className="course-meta-field projects-meta-field--show-key">
                       <span className="course-meta-field__label">Schlüssel zeigen</span>

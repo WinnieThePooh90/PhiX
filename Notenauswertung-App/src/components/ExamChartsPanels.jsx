@@ -506,11 +506,6 @@ export default function ExamChartsPanels({
               );
             })}
           </div>
-          {gs === 'points' && (
-            <p className="text-muted exam-charts-panel__footnote" style={{ margin: '0.75rem 0 0', fontSize: '0.75rem' }}>
-              Balken = Anzahl Schüler je Notenpunkt (0–15), aus der berechneten Schulnote der Klausur.
-            </p>
-          )}
           </div>
         </div>
 
@@ -659,6 +654,7 @@ export default function ExamChartsPanels({
               className="exam-task-analysis__bars exam-charts-panel__chart"
               style={{ height: chartAreaHeight }}
             >
+              <div className="exam-task-analysis__row-gutter" aria-hidden="true" />
               {taskAnalysisData.map(({ index, successPercent, barColor }) => (
                 <div key={index} className="exam-task-analysis__bar-col">
                   <div
@@ -673,22 +669,45 @@ export default function ExamChartsPanels({
               ))}
             </div>
             <div className="exam-task-analysis__labels">
-              {taskAnalysisData.map(({ index, successPercent, maxForTask, avgAchieved }) => (
-                <div key={index} className="exam-task-analysis__label-col">
-                  <div className="exam-task-analysis__label-title">A{index + 1}</div>
-                  <div className="exam-task-analysis__label-line">{Math.round(successPercent)}%</div>
-                  <div className="exam-task-analysis__label-line">
+              <div className="exam-task-analysis__labels-row">
+                <div className="exam-task-analysis__row-gutter" aria-hidden="true" />
+                {taskAnalysisData.map(({ index }) => (
+                  <div key={index} className="exam-task-analysis__label-cell exam-task-analysis__label-title">
+                    A{index + 1}
+                  </div>
+                ))}
+              </div>
+              <div className="exam-task-analysis__labels-row">
+                <div className="exam-task-analysis__row-gutter" aria-hidden="true" />
+                {taskAnalysisData.map(({ index, successPercent }) => (
+                  <div
+                    key={index}
+                    className="exam-task-analysis__label-cell exam-task-analysis__label-line exam-task-analysis__label-line--pct"
+                  >
+                    {Math.round(successPercent)}%
+                  </div>
+                ))}
+              </div>
+              <div className="exam-task-analysis__labels-row">
+                <div className="exam-task-analysis__row-gutter exam-task-analysis__label-line">max.</div>
+                {taskAnalysisData.map(({ index, maxForTask }) => (
+                  <div key={index} className="exam-task-analysis__label-cell exam-task-analysis__label-line">
                     {maxForTask > 0
-                      ? `max. ${maxForTask.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
+                      ? maxForTask.toLocaleString('de-DE', { maximumFractionDigits: 2 })
                       : '—'}
                   </div>
-                  <div className="exam-task-analysis__label-line">
+                ))}
+              </div>
+              <div className="exam-task-analysis__labels-row">
+                <div className="exam-task-analysis__row-gutter exam-task-analysis__label-line">Ø</div>
+                {taskAnalysisData.map(({ index, avgAchieved }) => (
+                  <div key={index} className="exam-task-analysis__label-cell exam-task-analysis__label-line">
                     {avgAchieved !== null
-                      ? `Ø ${avgAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`
+                      ? avgAchieved.toLocaleString('de-DE', { maximumFractionDigits: 2 })
                       : '—'}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
           </div>

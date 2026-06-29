@@ -4258,7 +4258,8 @@ a.support-phix-paypal-btn:active {
 
 .course-meta-settings-row .course-meta-control,
 .course-meta-settings-row input.course-meta-control:not([type='checkbox']),
-.course-meta-settings-row select.course-meta-control {
+.course-meta-settings-row select.course-meta-control,
+.course-meta-settings-row .grading-key-select__trigger {
   height: var(--course-meta-control-height);
   min-height: var(--course-meta-control-height);
   box-sizing: border-box;
@@ -4273,6 +4274,82 @@ a.support-phix-paypal-btn:active {
 
 .course-meta-settings-row select.course-meta-control {
   padding-right: 0.65rem;
+}
+
+.grading-key-select {
+  position: relative;
+  min-width: 0;
+}
+
+.grading-key-select__trigger {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  font-weight: inherit;
+}
+
+.grading-key-select__trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.grading-key-select__suffix {
+  font-size: 0.78em;
+  color: var(--text-muted);
+  font-weight: normal;
+  margin-left: 0.25em;
+}
+
+.grading-key-select__list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  min-width: max(100%, 17rem);
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: hsl(var(--background));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 80;
+}
+
+.grading-key-select__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.grading-key-select__option:hover,
+.grading-key-select__option[aria-selected='true'] {
+  background: var(--surface);
+}
+
+.grading-key-select__option:last-child {
+  border-bottom: none;
+}
+
+.course-meta-settings-row .grading-key-select__trigger {
+  height: var(--course-meta-control-height);
+  min-height: var(--course-meta-control-height);
+  box-sizing: border-box;
 }
 
 .course-meta-settings-row .oral-extended-controls-rail select.course-meta-control {
@@ -4721,11 +4798,15 @@ button.school-roster-control-btn.danger {
 .exam-task-analysis__bars {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
   gap: 0.3rem;
   padding: 0.35rem 0.3rem 0;
   box-sizing: border-box;
   overflow: visible;
+}
+
+.exam-task-analysis__row-gutter {
+  flex: 0 0 2.25rem;
+  min-width: 2.25rem;
 }
 
 .exam-task-analysis__bar-col {
@@ -4746,19 +4827,29 @@ button.school-roster-control-btn.danger {
 
 .exam-task-analysis__labels {
   display: flex;
-  justify-content: space-between;
-  gap: 0.3rem;
+  flex-direction: column;
+  gap: 0.15rem;
   margin-top: 0.75rem;
-  padding: 0 0.3rem;
+  padding: 0.5rem 0.3rem 0;
   box-sizing: border-box;
+  border-top: 2px solid #eee;
 }
 
-.exam-task-analysis__label-col {
+.exam-task-analysis__labels-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.exam-task-analysis__labels-row .exam-task-analysis__row-gutter {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.exam-task-analysis__label-cell {
   flex: 1;
   min-width: 0;
   text-align: center;
-  border-top: 2px solid #eee;
-  padding-top: 0.5rem;
 }
 
 .exam-task-analysis__label-title {
@@ -4769,11 +4860,11 @@ button.school-roster-control-btn.danger {
 .exam-task-analysis__label-line {
   font-size: 0.6rem;
   color: var(--text-muted);
-  margin-top: 0.15rem;
   line-height: 1.25;
+  white-space: nowrap;
 }
 
-.exam-task-analysis__label-col > .exam-task-analysis__label-line:first-of-type {
+.exam-task-analysis__label-line--pct {
   font-size: 0.65rem;
 }
 
@@ -6070,7 +6161,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     min-width: min(100%, 14rem);
   }
 
-  .app-container--mobile .course-meta-settings-row .course-meta-field:has(select[id*='-key-']) select.course-meta-control {
+  .app-container--mobile .course-meta-settings-row .course-meta-field:has(select[id*='-key-']) select.course-meta-control,
+  .app-container--mobile .course-meta-settings-row .course-meta-field:has(.grading-key-select) .grading-key-select {
     width: 100% !important;
     max-width: 100%;
   }
@@ -6212,12 +6304,14 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     max-width: min(100%, 9.5rem);
   }
 
-  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) select.course-meta-control {
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(select[id*='-key-']) select.course-meta-control,
+  .app-container--mobile .projects-meta-settings .course-meta-field:has(.grading-key-select) .grading-key-select {
     width: 100% !important;
     max-width: 100%;
   }
 
-  .app-container--mobile .projects-meta-settings .projects-meta-field--key select.course-meta-control {
+  .app-container--mobile .projects-meta-settings .projects-meta-field--key select.course-meta-control,
+  .app-container--mobile .projects-meta-settings .projects-meta-field--key .grading-key-select {
     width: 9.5rem !important;
     min-width: 7.5rem;
     max-width: min(100%, 9.5rem);
