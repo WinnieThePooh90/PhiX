@@ -16,8 +16,6 @@ import {
 import {
   buildVorlage1Bands,
   isVorlage1KeyFamilyId,
-  VORLAGE_1_KEY,
-  nextVorlage1TemplateCloneIdentity,
 } from '../data/vorlage1GradingKey';
 import {
   getBuiltinGradingKeyShortDesc,
@@ -118,19 +116,6 @@ export default function KeysView() {
         bands: ABI_BAWUE_2026_100_BE_MATHEMATIK_KEY.bands.map((b) => ({ ...b })),
       };
       list.push(def);
-      return { ...c, customGradingKeys: list };
-    });
-  };
-
-  const handleAddVorlage1 = () => {
-    setConfig((c) => {
-      const list = parseCustomGradingKeys(c.customGradingKeys);
-      const { id, name } = nextVorlage1TemplateCloneIdentity(list);
-      list.push({
-        ...VORLAGE_1_KEY,
-        id,
-        name,
-      });
       return { ...c, customGradingKeys: list };
     });
   };
@@ -237,22 +222,6 @@ export default function KeysView() {
               title="100 Bewertungseinheiten; simulierte und Klausur-Maximalpunkte idealerweise 100"
             >
               Vorlage: ABI BaWü 2026 100 BE Mathematik
-            </button>
-            <button
-              type="button"
-              className="tab secondary"
-              onClick={handleAddVorlage1}
-              style={{
-                width: '100%',
-                marginTop: '0.5rem',
-                padding: '0.55rem 1rem',
-                fontWeight: 600,
-                whiteSpace: 'normal',
-                textAlign: 'center',
-              }}
-              title="Plateau-Schlüssel 1 (K = 1,05) als eigener Kurs-Schlüssel"
-            >
-              Vorlage: Plateau 1 (Vorlage 1)
             </button>
           </div>
         </div>
