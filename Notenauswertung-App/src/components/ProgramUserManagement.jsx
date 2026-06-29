@@ -240,16 +240,16 @@ export default function ProgramUserManagement() {
         <ul className="program-user-mgmt-list program-user-mgmt-list--wide">
           {sortedUsers.map((u) => (
             <li key={u.id} className="program-user-mgmt-list-item">
-              <span className="program-user-mgmt-name-row">
-                <span className="program-user-mgmt-name">
-                  {u.username}
-                  {currentUser?.username === u.username ? (
-                    <span className="program-user-mgmt-you"> (Sie)</span>
-                  ) : null}
-                </span>
+              <span className="program-user-mgmt-name">
+                {u.username}
+                {currentUser?.username === u.username ? (
+                  <span className="program-user-mgmt-you"> (Sie)</span>
+                ) : null}
+              </span>
+              <span className="program-user-mgmt-row-actions">
                 {actingIsAdmin ? (
                   <PhixCheckboxOption
-                    className="program-user-mgmt-admin-check phix-checkbox-option--compact"
+                    className="program-user-mgmt-admin-check"
                     checked={userHasAdminRights(u)}
                     disabled={
                       isReservedAdminUsername(u.username) || adminToggleUserId === u.id
@@ -265,8 +265,6 @@ export default function ProgramUserManagement() {
                     Admin
                   </PhixCheckboxOption>
                 ) : null}
-              </span>
-              <span className="program-user-mgmt-row-actions">
                 <button
                   type="button"
                   className="program-user-mgmt-link-btn"
