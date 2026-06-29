@@ -40,10 +40,3 @@ export function getOralExtendedModeLabel(mode) {
   if (m === ORAL_EXTENDED_GRADES) return 'Erweitert: Noten';
   return 'Erweitert';
 }
-
-export function cycleOralExtendedMode(current) {
-  const m = normalizeOralExtendedMode(current);
-  if (m === ORAL_EXTENDED_OFF) return ORAL_EXTENDED_POINTS;
-  if (m === ORAL_EXTENDED_POINTS) return ORAL_EXTENDED_GRADES;
-  return ORAL_EXTENDED_OFF;
-}

@@ -77,9 +77,6 @@ export const LEGACY_BUILTIN_ABI_KEY_TYPE = 'abi';
 /** Gleiche Bänder wie {@link ABI_BAWUE_2026_120_BE_KEY} — für eingebauten Schlüsseltyp `abi` (Bestand). */
 export const ABI_BAWUE_2026_120_BE_BANDS = ABI_BAWUE_2026_120_BE_KEY.bands;
 
-/** @deprecated gleiche Definition wie {@link ABI_BAWUE_2026_120_BE_KEY} */
-export const KM_BW_ABI_PHYSIK_2026_KEY = ABI_BAWUE_2026_120_BE_KEY;
-
 /** Canonische ID oder Klone `…~1`, `…~2` (Klausuren: `custom:…`). */
 export function isAbiBaWue2026KeyFamilyId(id) {
   return typeof id === 'string' && (id === ABI_BAWUE_2026_120_BE_KEY.id || id.startsWith(`${ABI_BAWUE_2026_120_BE_KEY.id}~`));

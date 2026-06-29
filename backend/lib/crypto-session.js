@@ -60,13 +60,6 @@ function destroyCryptoSession(token) {
   if (token) sessions.delete(String(token));
 }
 
-function destroySessionsForUser(userId) {
-  const uid = Number(userId);
-  for (const [tok, row] of sessions) {
-    if (row.userId === uid) sessions.delete(tok);
-  }
-}
-
 module.exports = {
   DEFAULT_TTL_MS,
   createCryptoSession,
@@ -74,5 +67,4 @@ module.exports = {
   peekCryptoSession,
   updateSessionTtl,
   destroyCryptoSession,
-  destroySessionsForUser,
 };

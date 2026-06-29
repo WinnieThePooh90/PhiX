@@ -155,11 +155,6 @@ export function parseSchoolRosterImportFile(arrayBuffer, filename = '') {
   return parseSchoolRosterMatrix(matrix);
 }
 
-/** @deprecated Alias — bitte parseSchoolRosterImportFile mit Dateiname verwenden. */
-export function parseSchoolRosterXlsx(arrayBuffer, filename = '') {
-  return parseSchoolRosterImportFile(arrayBuffer, filename);
-}
-
 /** Hilfetext für den Datei-Import (Schülerverwaltung). */
 export const SCHOOL_ROSTER_IMPORT_HELP = [
   'Format: CSV (.csv) oder Excel (.xlsx / .xls), erstes Tabellenblatt bzw. die gesamte CSV.',

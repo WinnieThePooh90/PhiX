@@ -154,7 +154,6 @@ function backendDepsRoot() {
 function buildBackendEnv() {
   const env = {
     ...process.env,
-    APP_MODE: 'desktop',
     PORT: backendPort(),
     PHI_X_USERDATA_DIR: PHI_X_USERDATA,
   };
@@ -184,7 +183,7 @@ function buildBackendEnv() {
 function ensureDbSchema() {
   const launch = resolveBackendLaunch();
   const baseEnv = buildBackendEnv();
-  const { runDbPush } = require(path.join(BACKEND_DIR, 'lib', 'db-push'));
+  const { runDbSync } = require(path.join(BACKEND_DIR, 'lib', 'db-push'));
 
   const { resolvePrismaCli } = require(path.join(BACKEND_DIR, 'lib', 'deps-root'));
   const prismaCli = resolvePrismaCli(BACKEND_DIR);
@@ -198,7 +197,7 @@ function ensureDbSchema() {
     );
   }
 
-  const r = runDbPush({
+  const r = runDbSync({
     backendRoot: BACKEND_DIR,
     nodeCmd: launch.cmd,
     extraEnv: { ...baseEnv, ...launch.extraEnv },

@@ -67,7 +67,6 @@ Siehe `Notenauswertung-App/src/utils/apiBase.js` und `Notenauswertung-App/.env.e
 
 | Variable | Bedeutung |
 |----------|-----------|
-| `APP_MODE` | `web` (Docker-Server) oder `desktop` (Electron) — Logging/Verzweigung. |
 | `DATABASE_URL` | PostgreSQL (Docker) oder `file:` (Electron/SQLite). |
 | `PORT` | HTTP-Port des Backends (Standard 3000). |
 | `PHIX_FRONTEND_DIST` | Pfad zum gebauten Frontend (`dist` mit `index.html`) — **nur Electron**. |

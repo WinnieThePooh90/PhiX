@@ -1,10 +1,10 @@
 /**
- * Zentrale API-URL für fetch (Web + später Desktop-Electron).
+ * Zentrale API-URL für fetch (Docker, Electron).
  *
- * - Leer / nicht gesetzt: relative URLs (Vite-Dev mit Proxy, gleicher Origin in Produktion).
+ * - Leer / nicht gesetzt: relative URLs (gleicher Origin bzw. Vite-Proxy).
  * - VITE_API_BASE_URL: z. B. http://127.0.0.1:3000 (ohne trailing slash).
  */
-export function getApiBaseUrl() {
+function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_BASE_URL;
   if (raw == null || String(raw).trim() === '') return '';
   return String(raw).replace(/\/+$/, '');
@@ -13,7 +13,7 @@ export function getApiBaseUrl() {
 /**
  * @param {string} path - beginnt mit /, z. B. /api/courses
  */
-export function apiUrl(path) {
+function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`;
   const base = getApiBaseUrl();
   if (!base) return p;

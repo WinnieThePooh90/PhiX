@@ -65,15 +65,6 @@ model AppRegistration {
   registeredBy   String   @default("")
 }
 
-model Config {
-  id        Int      @id @default(autoincrement())
-  year      String
-  className String
-  subject   String
-  hours     Int
-  weighting Json
-}
-
 model Course {
   id        Int      @id @default(autoincrement())
   year      String

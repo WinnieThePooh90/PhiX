@@ -37,10 +37,6 @@ function readFileAsBase64(file) {
   });
 }
 
-export function isPhiXDesktopApp() {
-  return typeof navigator !== 'undefined' && /Electron/i.test(navigator.userAgent);
-}
-
 export async function fetchUserAuswertungshilfeMeta(username) {
   const res = await apiFetch('/api/user-auswertungshilfe', { headers: actingHeaders(username) });
   if (!res.ok) {
@@ -125,9 +121,6 @@ export async function downloadUserAuswertungshilfe(username, fallbackName) {
     'auswertungshilfe.pdf';
   downloadBlob(blob, fileName);
 }
-
-/** @deprecated Alias — lädt die Datei herunter (kein neuer Tab). */
-export const openOrDownloadUserAuswertungshilfe = downloadUserAuswertungshilfe;
 
 export async function deleteUserAuswertungshilfe(username) {
   const res = await apiFetch('/api/user-auswertungshilfe', {

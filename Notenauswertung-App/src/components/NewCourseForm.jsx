@@ -9,11 +9,7 @@ import AdvancedWeightingSettings from './AdvancedWeightingSettings';
 import DeferredNumberInput from './DeferredNumberInput';
 import { showTestsInWeightingRatio, isTestsWeightComputed, resolveCourseWeighting, formatComputedTestsWeight, describeTestsPerKlausurWeighting, patchAdvancedWeightingToggle, resolveReferatModeToggle } from '../utils/courseWeightingOptions';
 import { selectInputOnFocus } from '../utils/selectOnFocus';
-
-function defaultSchoolYear() {
-  const y = new Date().getFullYear();
-  return `${y}/${y + 1}`;
-}
+import { defaultSchoolYear } from '../utils/schoolYear';
 
 export default function NewCourseForm() {
   const { createCourse, config } = useData();

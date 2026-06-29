@@ -3,28 +3,11 @@
  */
 
 import {
-  FORMULA_QUARTER_GRADES,
   buildFormulaBands,
-  buildFormulaPointIntervals,
-  formatFormulaInterceptDe,
-  formulaLeftBoundary,
-  getFormulaKeyDesc,
   gradeFromFormulaPoints,
-  roundPointsHalfStep,
 } from './formulaGradingKey';
 
 const VORLAGE_1_INTERCEPT = 1.05;
-
-export const VORLAGE_1_GRADES = FORMULA_QUARTER_GRADES;
-
-export { roundPointsHalfStep };
-
-export function vorlage1LeftBoundary(grade, maxPoints) {
-  return formulaLeftBoundary(grade, maxPoints, VORLAGE_1_INTERCEPT);
-}
-
-export const buildVorlage1PointIntervals = (maxPoints) =>
-  buildFormulaPointIntervals(maxPoints, VORLAGE_1_INTERCEPT);
 
 export const buildVorlage1Bands = (maxPoints) => buildFormulaBands(maxPoints, VORLAGE_1_INTERCEPT);
 
@@ -38,8 +21,6 @@ export const VORLAGE_1_KEY = {
   referenceMaxPoints: 50,
   bands: [],
 };
-
-export const VORLAGE_1_DESC = getFormulaKeyDesc('1');
 
 export function isVorlage1KeyFamilyId(id) {
   return typeof id === 'string' && (id === VORLAGE_1_KEY.id || id.startsWith(`${VORLAGE_1_KEY.id}~`));
@@ -70,5 +51,3 @@ export function nextVorlage1TemplateCloneIdentity(existingKeys) {
     n += 1;
   }
 }
-
-export { formatFormulaInterceptDe };

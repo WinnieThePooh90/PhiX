@@ -113,11 +113,6 @@ function runDbSync(opts = {}) {
   });
 }
 
-/** Rückwärtskompatibel: SQLite-spezifischer Push (für Desktop/Electron). */
-function runDbPush(opts = {}) {
-  return runDbSync(opts);
-}
-
 /**
  * Wie runDbSync, beendet den Prozess bei Fehler (Server-Start).
  */
@@ -134,9 +129,4 @@ function runDbSyncOrExit(opts = {}) {
   }
 }
 
-/** @deprecated Verwende runDbSyncOrExit */
-function runDbPushOrExit(opts = {}) {
-  return runDbSyncOrExit(opts);
-}
-
-module.exports = { runDbPush, runDbPushOrExit, runDbSync, runDbSyncOrExit };
+module.exports = { runDbSync, runDbSyncOrExit };

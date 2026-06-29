@@ -1,15 +1,11 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, barColorForNotenpunkte, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
+import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
+import { barColorForClassicDistributionGrade, barColorForNpBucket } from '../utils/gradeChartColors';
 import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent, usesReferatAsExam, usesReferatAsOral, usesReferatWrittenPercent, usesReferatOralPercent, usesReferatFinalPercent } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
-
-/** Balkenfarbe NP (Verteilung) — gleiche Logik wie Klausur-Diagramme */
-function barColorForNpBucket(np) {
-  return barColorForNotenpunkte(np);
-}
 
 function distributionBucket(finalGrade, gradeSys) {
   if (finalGrade === null || Number.isNaN(Number(finalGrade))) return null;
@@ -48,12 +44,6 @@ const GEFAEHRDET_NP_B = 5;
 const STARK_GEFAEHRDET_MIN = 4.5;
 const GEFAEHRDET_MIN = 4.0;
 const GEFAEHRDET_MAX_EXCLUSIVE = 4.5;
-
-function barColorForClassicGrade(grade) {
-  if (grade === 4) return '#f59e0b';
-  if (grade >= 5) return 'var(--danger)';
-  return 'hsl(var(--success-hsl))';
-}
 
 function sortStudentsByName(a, b) {
   return (
@@ -455,7 +445,7 @@ export default function AnalysisView() {
   const barPortalBorder = showBarPortal
     ? gradeSys === 'points'
       ? barColorForNpBucket(distributionTooltipBucket)
-      : barColorForClassicGrade(distributionTooltipBucket)
+      : barColorForClassicDistributionGrade(distributionTooltipBucket)
     : '';
   const barPortalTitle = showBarPortal
     ? gradeSys === 'points'
@@ -696,7 +686,7 @@ export default function AnalysisView() {
                   gradeSys === 'points' ? gradeCounts[bucketKey] : gradeCounts[bucketKey - 1];
                 const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
                 const barColor =
-                  gradeSys === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicGrade(bucketKey);
+                  gradeSys === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicDistributionGrade(bucketKey);
                 const isTooltipActive = distributionTooltipBucket === bucketKey;
                 return (
                   <div

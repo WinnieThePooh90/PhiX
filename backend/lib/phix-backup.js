@@ -31,7 +31,6 @@ const PG_SEQUENCE_TABLES = [
   'UserSettings',
   'UserCrypto',
   'AppRegistration',
-  'Config',
   'Course',
   'SchoolRosterYear',
   'SchoolRosterStudent',
@@ -234,13 +233,32 @@ async function fetchUserSettings(prisma, ownerUsername) {
   return row ? [row] : [];
 }
 
+function legacyConfigRowsToCourses(configRows) {
+  if (!Array.isArray(configRows) || configRows.length === 0) return [];
+  return configRows.map((conf) => ({
+    year: conf.year,
+    className: conf.className,
+    subject: conf.subject,
+    hours: conf.hours,
+    weighting: conf.weighting,
+    ownerUsername: 'admin',
+  }));
+}
+
+/** Alte Backups hatten `config` statt `courses` — in Kurse umwandeln. */
+function coursesForRestore(data) {
+  const courses = Array.isArray(data.courses) ? [...data.courses] : [];
+  const legacy = legacyConfigRowsToCourses(data.config);
+  if (legacy.length > 0 && courses.length === 0) return legacy;
+  return courses;
+}
+
 async function exportPhixDatabase(prisma, meta = {}) {
   const [
     appUsers,
     userSettings,
     userCrypto,
     appRegistration,
-    config,
     courses,
     students,
     schoolRosterYears,
@@ -266,7 +284,6 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.userSettings.findMany(),
     prisma.userCrypto.findMany(),
     prisma.appRegistration.findMany(),
-    prisma.config.findMany(),
     prisma.course.findMany(),
     prisma.student.findMany(),
     prisma.schoolRosterYear.findMany(),
@@ -297,7 +314,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
       userSettings,
       userCrypto,
       appRegistration,
-      config,
+      config: [],
       courses,
       students,
       schoolRosterYears,
@@ -435,7 +452,6 @@ async function clearAllPhixData(tx) {
   await tx.course.deleteMany();
   await tx.schoolRosterStudent.deleteMany();
   await tx.schoolRosterYear.deleteMany();
-  await tx.config.deleteMany();
   await tx.userSettings.deleteMany();
   await tx.userCrypto.deleteMany();
   await tx.appRegistration.deleteMany();
@@ -557,8 +573,7 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'UserSettings', d.userSettings ?? []);
       await insertMany(tx, 'UserCrypto', d.userCrypto);
       await insertMany(tx, 'AppRegistration', d.appRegistration ?? []);
-      await insertMany(tx, 'Config', d.config);
-      await insertMany(tx, 'Course', d.courses);
+      await insertMany(tx, 'Course', coursesForRestore(d));
       await insertMany(tx, 'SchoolRosterYear', d.schoolRosterYears);
       await insertMany(tx, 'SchoolRosterStudent', d.schoolRosterStudents);
       await insertMany(tx, 'Student', d.students);
@@ -701,11 +716,6 @@ function backupFilenameFromPayload(payload) {
   return `phix-full-backup-${stamp}Z.json`;
 }
 
-/** @deprecated Nutze backupFilenameFromPayload */
-function backupFilenameFromDate(iso) {
-  return backupFilenameFromPayload({ createdAt: iso, scope: BACKUP_SCOPE_FULL });
-}
-
 module.exports = {
   BACKUP_FORMAT,
   BACKUP_FORMAT_VERSION,
@@ -721,6 +731,5 @@ module.exports = {
   restorePhixDatabase,
   restorePhixUserDatabase,
   backupFilenameFromPayload,
-  backupFilenameFromDate,
   resolveStoredUsername,
 };

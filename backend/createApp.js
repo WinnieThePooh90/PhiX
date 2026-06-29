@@ -48,7 +48,6 @@ app.use(
 );
 
 const {
-  hasAdminRights,
   isReservedAdminUsername,
   resolveAdminRights,
   toPublicAppUser,
@@ -59,11 +58,6 @@ const ADMIN_USERNAME = 'admin';
 
 function getActingUser(req) {
   return String(req.get('X-Acting-User') || '').trim();
-}
-
-/** @deprecated Nutze resolveAdminRights / hasAdminRights. */
-function isAdminUser(username) {
-  return isReservedAdminUsername(username);
 }
 
 function canAccessCourse(course, actingUser) {
@@ -313,27 +307,6 @@ app.get('/api/auth/crypto/status', async (req, res) => {
   }
 
   return res.json({ ok: true, needsSetup: false, needsRelogin: false });
-});
-
-/** Einmalige Übernahme alter Klartext-Benutzer aus localStorage (nur fehlende Namen anlegen). */
-app.post('/api/users/migrate-from-localstorage', async (req, res) => {
-  const rawUsers = req.body?.users;
-  if (!Array.isArray(rawUsers)) {
-    return res.status(400).json({ error: 'Ungültiger Body' });
-  }
-  let created = 0;
-  for (const row of rawUsers) {
-    const username = String(row?.username ?? '').trim();
-    if (!username) continue;
-    const existing = await prisma.appUser.findFirst({
-      where: usernameWhere(username),
-    });
-    if (existing) continue;
-    const passwordHash = await placeholderPasswordHash();
-    await prisma.appUser.create({ data: { username, passwordHash, mustSetPassword: true } });
-    created += 1;
-  }
-  res.json({ ok: true, created });
 });
 
 app.get('/api/users', async (req, res) => {
@@ -715,36 +688,6 @@ app.delete('/api/registration', async (req, res) => {
   res.json({ registered: false });
 });
 
-// MIGRATION ON STARTUP
-const migrateData = async () => {
-  const configs = await prisma.config.findMany();
-  if (configs.length > 0) {
-    console.log(`Found ${configs.length} old Configs. Migrating to Courses...`);
-    for (const conf of configs) {
-      // Create course
-      const course = await prisma.course.create({
-        data: {
-          year: conf.year,
-          className: conf.className,
-          subject: conf.subject,
-          hours: conf.hours,
-          weighting: conf.weighting,
-          ownerUsername: ADMIN_USERNAME,
-        }
-      });
-      // Assign existing unassigned data to this new course
-      await prisma.student.updateMany({ where: { courseId: null }, data: { courseId: course.id } });
-      await prisma.exam.updateMany({ where: { courseId: null }, data: { courseId: course.id } });
-      await prisma.oral.updateMany({ where: { courseId: null }, data: { courseId: course.id } });
-      await prisma.test.updateMany({ where: { courseId: null }, data: { courseId: course.id } });
-      
-      // Delete config
-      await prisma.config.delete({ where: { id: conf.id } });
-    }
-    console.log("Migration complete.");
-  }
-};
-
 // COURSES
 app.get('/api/courses', async (req, res) => {
   const acting = await assertActingUser(req, res);
@@ -829,17 +772,6 @@ app.delete('/api/courses/:id', async (req, res) => {
 
   await prisma.course.delete({ where: { id: courseId } });
   res.status(204).send();
-});
-
-// For backward compatibility during migration from local storage
-// Because frontend migration might call PUT /api/config. We map it to creating a new course if none exists.
-app.put('/api/config', async (req, res) => {
-  const acting = await assertActingUser(req, res);
-  if (!acting) return;
-  const course = await prisma.course.create({
-    data: { ...req.body, ownerUsername: acting },
-  });
-  res.json(course);
 });
 
 function normalizeSchoolYearLabel(raw) {
@@ -934,28 +866,6 @@ app.post('/api/school-roster-years', async (req, res) => {
     res.json({ ...row, studentCount: 0 });
   } catch (e) {
     if (e?.code === 'P2002') return res.status(409).json({ error: 'Dieses Schuljahr existiert bereits.' });
-    throw e;
-  }
-});
-
-app.put('/api/school-roster-years/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
-  const access = await assertRosterYearAccess(req, res, id);
-  if (!access) return;
-  const norm = normalizeSchoolYearLabel(req.body?.label);
-  if (norm.error) return res.status(400).json({ error: norm.error });
-  try {
-    const row = await prisma.schoolRosterYear.update({
-      where: { id },
-      data: { label: norm.label },
-      include: { _count: { select: { students: true } } },
-    });
-    const { _count, ...y } = row;
-    res.json({ ...y, studentCount: _count.students });
-  } catch (e) {
-    if (e?.code === 'P2002') return res.status(409).json({ error: 'Dieses Schuljahr existiert bereits.' });
-    if (e?.code === 'P2025') return res.status(404).json({ error: 'Schuljahr nicht gefunden.' });
     throw e;
   }
 });
@@ -3039,12 +2949,6 @@ function setupStandaloneFrontend() {
 
 setupStandaloneFrontend();
 
-  const appMode = String(process.env.APP_MODE || 'web').trim().toLowerCase();
-  if (appMode !== 'web' && appMode !== 'desktop') {
-    console.warn(`[config] Unbekanntes APP_MODE="${process.env.APP_MODE}" — verwende "web".`);
-  } else {
-    console.log(`[config] APP_MODE=${appMode}`);
-  }
   const dbUrl = String(process.env.DATABASE_URL || '').trim();
   const dbKind = dbUrl.startsWith('file:') || dbUrl.startsWith('sqlite:') ? 'sqlite' : 'postgresql';
   console.log(`[config] Datenbank: ${dbKind}`);
@@ -3052,7 +2956,6 @@ setupStandaloneFrontend();
   return {
     app,
     prisma,
-    migrateData,
     ensureAppUsers,
     attachHttpServer(server) {
       getShutdownServer = () => server;

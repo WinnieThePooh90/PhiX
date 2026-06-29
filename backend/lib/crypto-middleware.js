@@ -13,19 +13,15 @@ const CRYPTO_EXEMPT = new Set([
   '/api/auth/crypto/setup',
   '/api/auth/crypto/unlock-recovery',
   '/api/auth/crypto/status',
-  '/api/users/migrate-from-localstorage',
   '/api/registration',
-  '/api/health',
   '/api/shutdown',
 ]);
 
 function isCryptoExempt(path) {
-  if (CRYPTO_EXEMPT.has(path)) return true;
-  if (path.startsWith('/api/impressum')) return true;
-  return false;
+  return CRYPTO_EXEMPT.has(path);
 }
 
-function createCryptoMiddleware({ prisma, getActingUser, assertActingUser }) {
+function createCryptoMiddleware({ prisma, getActingUser }) {
   return async function cryptoMiddleware(req, res, next) {
     if (!req.path.startsWith('/api/')) return next();
     if (isCryptoExempt(req.path)) return next();
@@ -48,9 +44,6 @@ function createCryptoMiddleware({ prisma, getActingUser, assertActingUser }) {
     });
 
     if (!userCrypto) {
-      if (req.path === '/api/auth/crypto/migrate-plaintext') {
-        return res.status(400).json({ error: 'Verschlüsselung zuerst einrichten.' });
-      }
       return res.status(423).json({
         error: 'Verschlüsselung einrichten.',
         requiresCryptoSetup: true,

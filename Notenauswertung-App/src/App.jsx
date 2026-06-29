@@ -48,6 +48,7 @@ import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
 import { installTableEnterAsTab } from './utils/tableEnterAsTab';
 import { userHasAdminRights } from './utils/userAdmin';
+import { schoolYearStartForSort } from './utils/schoolYear';
 import { APP_NAME } from './config/app';
 import { usePhiXRegistration } from './utils/phixRegistration';
 
@@ -68,12 +69,6 @@ const TABS_WITHOUT_COURSE = new Set([
   'supportOverview',
   'userSettings',
 ]);
-
-/** Schuljahres-String z. B. „2025/2026“ → erstes Jahr für Sortierung (höher = neuer = weiter oben). */
-function schoolYearStartForSort(yearRaw) {
-  const m = String(yearRaw ?? '').trim().match(/(\d{4})/);
-  return m ? parseInt(m[1], 10) : 0;
-}
 
 function courseSidebarLabel(c) {
   return `${c.subject ?? ''} ${c.className ?? ''}`.trim();

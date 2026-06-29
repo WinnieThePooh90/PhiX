@@ -1,8 +1,8 @@
 {
   "name": "backend",
-  "version": "419.0.0",
+  "version": "420.0.0",
   "description": "PhiX API server — Notenauswertung",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "postinstall": "node scripts/prisma-generate-all.js",
     "start": "node server.js",

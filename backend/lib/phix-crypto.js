@@ -140,12 +140,6 @@ async function createUserCryptoWraps(password) {
   };
 }
 
-function formatRecoveryForDisplay(normalized) {
-  const s = String(normalized).replace(/-/g, '').slice(0, 26);
-  if (s.length < 26) return s;
-  return `${s.slice(0, 5)}-${s.slice(5, 10)}-${s.slice(10, 15)}-${s.slice(15, 20)}-${s.slice(20, 26)}`;
-}
-
 async function unwrapDekFromPassword(userCrypto, password) {
   return unwrapDek(userCrypto.dekWrappedPassword, password, userCrypto.kdfSaltPassword);
 }
@@ -168,7 +162,6 @@ module.exports = {
   generateDek,
   generateRecoveryKey,
   normalizeRecoveryKey,
-  formatRecoveryForDisplay,
   wrapDek,
   unwrapDek,
   encryptField,

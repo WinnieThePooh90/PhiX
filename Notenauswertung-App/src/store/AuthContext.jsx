@@ -16,7 +16,6 @@ import {
 } from '../utils/pendingRecovery';
 
 const STORAGE_SESSION_KEY = 'notenauswertung_session_username';
-const LEGACY_STORAGE_USERS_KEY = 'notenauswertung_users';
 
 const AuthContext = createContext(null);
 
@@ -44,39 +43,6 @@ function jsonHeadersWithActing(acting) {
   const h = authHeaders(acting);
   h.set('Content-Type', 'application/json');
   return h;
-}
-
-async function tryMigrateLegacyUsersFromBrowser() {
-  let raw;
-  try {
-    raw = localStorage.getItem(LEGACY_STORAGE_USERS_KEY);
-  } catch {
-    return;
-  }
-  if (!raw) return;
-  let arr;
-  try {
-    arr = JSON.parse(raw);
-  } catch {
-    return;
-  }
-  if (!Array.isArray(arr) || arr.length === 0) return;
-  const users = arr
-    .filter((u) => u && String(u.username ?? '').trim() && String(u.password ?? ''))
-    .map((u) => ({ username: String(u.username).trim(), password: String(u.password) }));
-  if (users.length === 0) return;
-  try {
-    const res = await apiFetch('/api/users/migrate-from-localstorage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ users }),
-    });
-    if (res.ok) {
-      localStorage.removeItem(LEGACY_STORAGE_USERS_KEY);
-    }
-  } catch {
-    /* Server ggf. nicht erreichbar */
-  }
 }
 
 export const AuthProvider = ({ children }) => {
@@ -153,7 +119,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      await tryMigrateLegacyUsersFromBrowser();
       const sessionName = readSessionUsername();
       if (!sessionName || !String(sessionName).trim()) {
         if (!cancelled) {

@@ -1,11 +1,11 @@
 /**
- * Kopiert desktop/build/icon.png aus dem PhiX-Icon-Set (icons/favicon.pub).
+ * Kopiert desktop/build/icon.png aus Notenauswertung-App/public.
  * electron-builder wandelt die PNG für Windows in .ico um.
  */
 const fs = require('fs');
 const path = require('path');
 
-const srcPng = path.resolve(__dirname, '../../icons/favicon.pub/android-chrome-512x512.png');
+const srcPng = path.resolve(__dirname, '../../Notenauswertung-App/public/android-chrome-512x512.png');
 const outDir = path.resolve(__dirname, '../build');
 const outPng = path.join(outDir, 'icon.png');
 

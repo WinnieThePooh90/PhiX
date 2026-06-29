@@ -5,22 +5,14 @@ import {
   getNormalizedExamScore,
   getStudentEffectiveExamFieldCount,
   gradeToNotenpunkte,
-  barColorForNotenpunkte,
-  classicGradeColorTier,
   normalizeCourseGradeSystem,
   normalizeQuarterGrade,
   parseScorePointsValue,
 } from '../utils/calculator';
+import { barColorForClassicQuarterGrade, barColorForNpBucket } from '../utils/gradeChartColors';
 
 function formatQuarterAxisLabel(g) {
   return Number(g).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function barColorForClassicQuarterGrade(grade) {
-  const tier = classicGradeColorTier(normalizeQuarterGrade(grade));
-  if (tier === 'red') return 'var(--danger)';
-  if (tier === 'orange') return '#facc15';
-  return 'hsl(var(--success-hsl))';
 }
 
 /** Mittelpunkt eines Kreissegments (Prozent auf dem Ring) — Winkel wie SVG stroke nach rotate(-90deg). */
@@ -34,11 +26,6 @@ function pieSegmentLabelPos(startPercent, sweepPercent) {
 }
 
 const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round((1 + i * 0.25) * 4) / 4);
-
-/** Farbe für NP-Säule (drei Stufen wie Übersicht) */
-function barColorForNpBucket(np) {
-  return barColorForNotenpunkte(np);
-}
 
 /** Bestehensquote: klassisch ≤ 3,0; Punktesystem NP ≥ 5. */
 function isPassingForBestehensquote(grade, gradeSystem) {

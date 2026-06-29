@@ -26,13 +26,6 @@ async function createUserCryptoRecord(prisma, userId, password) {
   return { recoveryKey: wraps.recoveryKeyDisplay, dek: wraps.dek };
 }
 
-async function getUserCryptoForUsername(prisma, username) {
-  return prisma.userCrypto.findFirst({
-    where: { user: { username } },
-    include: { user: { select: { id: true, username: true } } },
-  });
-}
-
 async function unlockDekWithPassword(prisma, userId, password) {
   const row = await prisma.userCrypto.findUnique({ where: { userId } });
   if (!row) return null;
@@ -171,7 +164,6 @@ async function changeUserPasswordCrypto(prisma, userId, oldPassword, newPassword
 
 module.exports = {
   createUserCryptoRecord,
-  getUserCryptoForUsername,
   unlockDekWithPassword,
   migratePlaintextForOwner,
   changeUserPasswordCrypto,

@@ -131,75 +131,12 @@ export const DataProvider = ({ children }) => {
   const [albumPhotos, setAlbumPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch initial courses and migrate
+  // Fetch initial courses
   useEffect(() => {
     if (!currentUser?.username) return undefined;
 
     const initApp = async () => {
       try {
-        // 1. Check for localStorage migration
-        const localConfig = localStorage.getItem('grade_config');
-        if (localConfig) {
-          console.log("Migrating localStorage to Database...");
-          
-          const studentsLocal = JSON.parse(localStorage.getItem('grade_students') || '[]');
-          const examsLocal = JSON.parse(localStorage.getItem('grade_exams') || '{}');
-          const oralsLocal = JSON.parse(localStorage.getItem('grade_orals') || '{}');
-          const testsLocal = JSON.parse(localStorage.getItem('grade_tests') || '{}');
-
-          const newCourse = await fetchWithActing('/api/config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: localConfig,
-          }).then((r) => r.json());
-          
-          for (const s of studentsLocal) {
-            await fetchWithActing('/api/students', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...s, frontendId: s.id, courseId: newCourse.id }),
-            });
-          }
-
-          for (const [id, exam] of Object.entries(examsLocal)) {
-            await fetchWithActing(`/api/exams/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...exam, examNumber: Number(id), courseId: newCourse.id }),
-            });
-          }
-
-          for (const [id, oral] of Object.entries(oralsLocal)) {
-            await fetchWithActing(`/api/orals/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...oral, oralNumber: Number(id), courseId: newCourse.id }),
-            });
-          }
-
-          for (const [id, test] of Object.entries(testsLocal)) {
-            const { errors: legacyErr, ...testRest } = test;
-            await fetchWithActing(`/api/tests/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                ...testRest,
-                scores: test.scores ?? legacyErr ?? {},
-                testNumber: Number(id),
-                courseId: newCourse.id,
-              }),
-            });
-          }
-
-          localStorage.removeItem('grade_config');
-          localStorage.removeItem('grade_students');
-          localStorage.removeItem('grade_exams');
-          localStorage.removeItem('grade_orals');
-          localStorage.removeItem('grade_tests');
-          
-          console.log("Migration complete!");
-        }
-
         const coursesResRaw = await fetchWithActing('/api/courses');
         if (!coursesResRaw?.ok) {
           setLoading(false);

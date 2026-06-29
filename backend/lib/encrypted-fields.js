@@ -87,11 +87,6 @@ function encryptRows(dek, modelName, rows) {
   return rows.map((r) => encryptRow(dek, modelName, r));
 }
 
-function decryptRows(dek, modelName, rows) {
-  if (!Array.isArray(rows)) return rows;
-  return rows.map((r) => decryptRow(dek, modelName, r));
-}
-
 /** Listen-Einträge (Klassenlehrer): Eintrag + verknüpfter Schüler (Prisma-Include wird nicht auto-entschlüsselt). */
 function decryptKlassenlehrerListEntry(dek, entry, entryModelName) {
   if (!entry || typeof entry !== 'object') return entry;
@@ -107,7 +102,6 @@ module.exports = {
   encryptRow,
   decryptRow,
   encryptRows,
-  decryptRows,
   decryptKlassenlehrerListEntry,
   serializeFieldValue,
   deserializeFieldValue,
