@@ -8,10 +8,8 @@ import { applyCryptoHeader } from '../utils/cryptoSession';
 
 const RESTORE_CONFIRM = 'WIEDERHERSTELLEN';
 
-function actingHeaders(username) {
-  const h = new Headers();
-  if (username) h.set('X-Acting-User', username);
-  return applyCryptoHeader(h);
+function actingHeaders() {
+  return applyCryptoHeader(new Headers());
 }
 
 function downloadBlob(blob, filename) {
@@ -37,8 +35,8 @@ function parseFilenameFromDisposition(header) {
   }
 }
 
-async function downloadBackup(path, username, fallbackName) {
-  const res = await apiFetch(path, { headers: actingHeaders(username) });
+async function downloadBackup(path, _username, fallbackName) {
+  const res = await apiFetch(path, { headers: actingHeaders() });
   if (!res.ok) {
     let msg = 'Backup konnte nicht erstellt werden.';
     try {
@@ -55,11 +53,11 @@ async function downloadBackup(path, username, fallbackName) {
   downloadBlob(blob, filename);
 }
 
-async function restoreBackup(path, username, parsed) {
+async function restoreBackup(path, _username, parsed) {
   const res = await apiFetch(path, {
     method: 'POST',
     headers: (() => {
-      const h = actingHeaders(username);
+      const h = actingHeaders();
       h.set('Content-Type', 'application/json');
       return h;
     })(),

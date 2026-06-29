@@ -3,7 +3,18 @@
  */
 
 const ENCRYPTED_FIELDS = {
-  Course: ['year', 'className', 'subject', 'gradeSystem', 'weighting', 'customGradingKeys', 'archivedGradingKeys'],
+  Course: [
+    'year',
+    'className',
+    'subject',
+    'gradeSystem',
+    'weighting',
+    'customGradingKeys',
+    'archivedGradingKeys',
+    'advancedWeightingStash',
+    'gfsGehaltenStash',
+    'referatGehaltenStash',
+  ],
   Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note', 'summaryNotes'],
   SchoolRosterYear: ['label'],
   SchoolRosterStudent: ['firstName', 'lastName'],
@@ -23,7 +34,6 @@ const ENCRYPTED_FIELDS = {
   NotesListEntry: ['externalFirstName', 'externalLastName', 'remark'],
   AlbumPhoto: ['title', 'description', 'mimeType', 'imageData'],
   UserAuswertungshilfe: ['fileName', 'mimeType', 'fileData'],
-  Config: ['year', 'className', 'subject', 'weighting'],
 };
 
 const JSON_FIELDS = new Set([
@@ -36,6 +46,9 @@ const JSON_FIELDS = new Set([
   'scores',
   'grades',
   'auswertungHilfe',
+  'advancedWeightingStash',
+  'gfsGehaltenStash',
+  'referatGehaltenStash',
 ]);
 
 const DATE_STRING_FIELDS = new Set(['dueDate', 'sessionDate']);

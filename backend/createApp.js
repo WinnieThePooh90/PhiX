@@ -29,7 +29,48 @@ const {
 } = require('./lib/user-crypto-service');
 const { unwrapDekFromRecovery } = require('./lib/phix-crypto');
 const { placeholderPasswordHash, BCRYPT_ROUNDS } = require('./lib/app-user-password');
+const { createInitialSetupToken, verifyInitialSetupToken } = require('./lib/initial-setup-token');
+const { clientIp, checkRateLimit } = require('./lib/rate-limit');
+const {
+  attachAuthSession,
+  createAuthSession,
+  destroyAuthSession,
+  getActingUserFromRequest,
+  readSessionTokenFromRequest,
+  setAuthSessionCookie,
+  clearAuthSessionCookie,
+} = require('./lib/auth-session');
 const { buildDefaultExamAndOralRecords } = require('./lib/course-defaults');
+
+function createCorsOptions() {
+  const raw = String(process.env.PHIX_CORS_ORIGINS || '').trim();
+  const credentials = true;
+  if (!raw || raw === '*') {
+    const defaults = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:1990',
+      'http://127.0.0.1:1990',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
+    return {
+      credentials,
+      origin(origin, callback) {
+        if (!origin || defaults.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
+    };
+  }
+  const allowed = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  return {
+    credentials,
+    origin: allowed,
+  };
+}
 
 function createApp() {
 const app = express();
@@ -37,13 +78,14 @@ const prisma = createPrismaClient();
 /** gesetzt via attachHttpServer() nach app.listen() — für /api/shutdown */
 let getShutdownServer = () => null;
 
-app.use(cors());
+app.use(cors(createCorsOptions()));
 app.use(express.json({ limit: '64mb' }));
+app.use(attachAuthSession);
 
 app.use(
   createCryptoMiddleware({
     prisma,
-    getActingUser,
+    getActingUser: getActingUserFromRequest,
   }),
 );
 
@@ -57,7 +99,13 @@ const {
 const ADMIN_USERNAME = 'admin';
 
 function getActingUser(req) {
-  return String(req.get('X-Acting-User') || '').trim();
+  return getActingUserFromRequest(req);
+}
+
+function issueAuthSession(res, user) {
+  const authToken = createAuthSession(user.id, user.username);
+  setAuthSessionCookie(res, authToken);
+  return authToken;
 }
 
 function canAccessCourse(course, actingUser) {
@@ -69,7 +117,7 @@ function canAccessCourse(course, actingUser) {
 async function assertActingUser(req, res) {
   const acting = getActingUser(req);
   if (!acting) {
-    res.status(401).json({ error: 'X-Acting-User erforderlich' });
+    res.status(401).json({ error: 'Nicht angemeldet' });
     return null;
   }
   const row = await prisma.appUser.findFirst({
@@ -129,6 +177,10 @@ function rejectIfArchivedCourse(res, course) {
   return false;
 }
 
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
 // ——— App-Benutzer (Passwort-Hashes in der DB) ———
 
 app.post('/api/auth/login', async (req, res) => {
@@ -176,6 +228,10 @@ app.post('/api/auth/login', async (req, res) => {
 
   const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } });
 
+  const prevAuth = readSessionTokenFromRequest(req);
+  destroyAuthSession(prevAuth);
+  issueAuthSession(res, user);
+
   res.json({
     ...toPublicAppUser(user),
     cryptoSessionToken,
@@ -185,8 +241,14 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/initial-password', async (req, res) => {
+  const rate = checkRateLimit(`initial-password:${clientIp(req)}`);
+  if (!rate.allowed) {
+    return res.status(429).json({ error: 'Zu viele Versuche. Bitte später erneut versuchen.' });
+  }
+
   const usernameIn = String(req.body?.username ?? '').trim();
   const newPassword = String(req.body?.newPassword ?? '');
+  const setupToken = String(req.body?.setupToken ?? '').trim();
   if (!usernameIn || !newPassword) {
     return res.status(400).json({ error: 'Benutzername und neues Passwort eingeben.' });
   }
@@ -197,10 +259,13 @@ app.post('/api/auth/initial-password', async (req, res) => {
   if (!user.mustSetPassword) {
     return res.status(403).json({ error: 'Das Passwort wurde bereits festgelegt. Bitte melde dich an oder nutze den Recovery-Key.' });
   }
+  if (!(await verifyInitialSetupToken(setupToken, user.initialSetupTokenHash))) {
+    return res.status(401).json({ error: 'Einrichtungs-Token ungültig oder fehlt. Bitte den Administrator kontaktieren.' });
+  }
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await prisma.appUser.update({
     where: { id: user.id },
-    data: { passwordHash, mustSetPassword: false },
+    data: { passwordHash, mustSetPassword: false, initialSetupTokenHash: null },
   });
   res.status(204).send();
 });
@@ -208,6 +273,9 @@ app.post('/api/auth/initial-password', async (req, res) => {
 app.post('/api/auth/logout', async (req, res) => {
   const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
   destroyCryptoSession(token);
+  const authToken = readSessionTokenFromRequest(req);
+  destroyAuthSession(authToken);
+  clearAuthSessionCookie(res);
   res.status(204).send();
 });
 
@@ -219,6 +287,13 @@ app.post('/api/auth/crypto/setup', async (req, res) => {
 
   const user = await prisma.appUser.findFirst({ where: usernameWhere(acting) });
   if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+
+  if (user.mustSetPassword) {
+    return res.status(403).json({ error: 'Bitte zuerst das Passwort festlegen.' });
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
+    return res.status(401).json({ error: 'Passwort falsch.' });
+  }
 
   const existing = await prisma.userCrypto.findUnique({ where: { userId: user.id } });
   if (existing) {
@@ -263,6 +338,9 @@ app.post('/api/auth/crypto/unlock-recovery', async (req, res) => {
       await tx.appUser.update({ where: { id: user.id }, data: { passwordHash } });
     });
     const cryptoSessionToken = createCryptoSession(user.id, dek);
+    const prevAuth = readSessionTokenFromRequest(req);
+    destroyAuthSession(prevAuth);
+    issueAuthSession(res, user);
     res.json({ ...toPublicAppUser(user), cryptoSessionToken });
   } catch (err) {
     console.error('[crypto] Recovery-Unlock fehlgeschlagen:', err);
@@ -310,7 +388,7 @@ app.get('/api/auth/crypto/status', async (req, res) => {
 });
 
 app.get('/api/users', async (req, res) => {
-  const acting = await assertActingUser(req, res);
+  const acting = await assertAdminUser(req, res);
   if (!acting) return;
   const users = await prisma.appUser.findMany({
     orderBy: { username: 'asc' },
@@ -320,7 +398,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 app.post('/api/users', async (req, res) => {
-  const acting = await assertActingUser(req, res);
+  const acting = await assertAdminUser(req, res);
   if (!acting) return;
   const username = String(req.body?.username ?? '').trim();
   if (!username) return res.status(400).json({ error: 'Benutzername eingeben.' });
@@ -335,12 +413,13 @@ app.post('/api/users', async (req, res) => {
   });
   if (clash) return res.status(409).json({ error: 'Dieser Benutzername ist bereits vergeben.' });
   const passwordHash = await placeholderPasswordHash();
+  const { token: setupToken, hash: initialSetupTokenHash } = await createInitialSetupToken();
   const user = await prisma.appUser.create({
-    data: { username, passwordHash, mustSetPassword: true },
+    data: { username, passwordHash, mustSetPassword: true, initialSetupTokenHash },
     select: { id: true, username: true, isAdmin: true },
   });
   // Verschlüsselung + Recovery-Key erst beim ersten Login des neuen Benutzers (POST /api/auth/crypto/setup).
-  res.status(201).json(toPublicAppUser(user));
+  res.status(201).json({ ...toPublicAppUser(user), setupToken });
 });
 
 app.patch('/api/users/:id/password', async (req, res) => {
@@ -2908,7 +2987,7 @@ app.post('/api/backup/users/:username/restore', async (req, res) => {
 });
 
 app.post('/api/shutdown', async (req, res) => {
-  const acting = await assertActingUser(req, res);
+  const acting = await assertAdminUser(req, res);
   if (!acting) return;
 
   res.json({ ok: true, message: 'PhiX wird heruntergefahren.' });

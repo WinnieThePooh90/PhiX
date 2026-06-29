@@ -336,14 +336,14 @@ function startBackend() {
 
 async function waitForBackend(baseUrl, timeoutMs = 90000) {
   const deadline = Date.now() + timeoutMs;
-  const ping = `${baseUrl.replace(/\/+$/, '')}/api/auth/session`;
+  const ping = `${baseUrl.replace(/\/+$/, '')}/api/health`;
   while (Date.now() < deadline) {
     if (!backendProc) {
       throw new Error('Backend-Prozess ist vorzeitig beendet worden.');
     }
     try {
-      const r = await fetch(ping, { method: 'GET', headers: { 'X-Acting-User': '__electron_ping__' } });
-      if (r.status === 401 || r.status === 200) return;
+      const r = await fetch(ping, { method: 'GET' });
+      if (r.ok) return;
     } catch {
       /* noch nicht erreichbar */
     }

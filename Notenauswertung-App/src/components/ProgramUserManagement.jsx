@@ -134,8 +134,11 @@ export default function ProgramUserManagement() {
     }
     const createdName = newUsername.trim();
     setNewUsername('');
+    const tokenHint = r.setupToken
+      ? `\n\nEinrichtungs-Token (einmalig an den Benutzer weitergeben):\n${r.setupToken}`
+      : '';
     await showAlert(
-      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er selbst ein Passwort fest, richtet die Verschlüsselung ein und erhält einen Recovery-Key.`,
+      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er sein Passwort fest (mit Einrichtungs-Token), richtet die Verschlüsselung ein und erhält einen Recovery-Key.${tokenHint}`,
       { title: 'Benutzer angelegt' },
     );
   };

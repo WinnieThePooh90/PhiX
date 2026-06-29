@@ -31,7 +31,6 @@ export default function UserSettingsView() {
     if (!currentUser?.username) return;
     try {
       const headers = applyCryptoHeader(new Headers());
-      headers.set('X-Acting-User', currentUser.username);
       const res = await apiFetch('/api/user-settings', { headers });
       if (res.ok) {
         const data = await res.json();
@@ -53,7 +52,6 @@ export default function UserSettingsView() {
     setSaving(true);
     try {
       const headers = applyCryptoHeader(new Headers({ 'Content-Type': 'application/json' }));
-      headers.set('X-Acting-User', currentUser.username);
       const res = await apiFetch('/api/user-settings', {
         method: 'PUT',
         headers,

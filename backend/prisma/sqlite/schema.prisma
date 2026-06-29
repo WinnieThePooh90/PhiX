@@ -17,6 +17,8 @@ model AppUser {
   username     String   @unique
   passwordHash String
   mustSetPassword Boolean @default(false)
+  /** bcrypt-Hash des Einmal-Tokens für Erstpasswort (null = Bootstrap ohne Token) */
+  initialSetupTokenHash String?
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())
 

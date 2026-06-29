@@ -86,7 +86,6 @@ export const DataProvider = ({ children }) => {
   const fetchWithActing = useCallback(
     async (url, init = {}) => {
       const headers = applyCryptoHeader(new Headers(init.headers || {}));
-      if (currentUser?.username) headers.set('X-Acting-User', currentUser.username);
       const res = await apiFetch(url, { ...init, headers });
       const crypto = await checkCryptoApiResponse(res);
       return crypto.lost ? null : res;

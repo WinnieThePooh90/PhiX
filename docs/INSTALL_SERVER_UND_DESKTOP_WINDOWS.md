@@ -100,6 +100,20 @@ Eine der folgenden Optionen:
 | `docker` nicht gefunden | Docker Desktop installieren und PATH prüfen; neues Terminal öffnen. |
 | Seite lädt, API-Fehler | `docker compose logs backend` im Projektroot prüfen; `BACKEND_PORT` und Firewall beachten. |
 
+### 1.8 TLS/HTTPS im Schulnetz (Pflicht)
+
+PhiX speichert die **Anmeldung in einem HttpOnly-Cookie** und überträgt Krypto-Token sowie Passwörter bei der Anmeldung. **Ohne TLS** können diese Daten im LAN mitgelesen werden.
+
+Für den produktiven Einsatz im Schulnetz:
+
+1. **Reverse-Proxy** (z. B. nginx, Caddy, Traefik) vor Port **1990** (Frontend) mit gültigem **HTTPS-Zertifikat**.
+2. Backend-Umgebung: `PHIX_COOKIE_SECURE=1`, damit das Session-Cookie nur über HTTPS gesendet wird.
+3. Optional weitere Client-Origins: `PHIX_CORS_ORIGINS` (kommagetrennt), falls die UI nicht über dieselbe Origin wie die API erreichbar ist.
+
+Lokale Entwicklung (`localhost` ohne TLS) funktioniert weiterhin ohne `PHIX_COOKIE_SECURE`.
+
+Details: [`ENCRYPTION.md`](ENCRYPTION.md).
+
 ---
 
 ## Teil 2: Electron-Desktop-App
@@ -205,7 +219,7 @@ Siehe [`desktop/README.md`](../desktop/README.md). Kein Browser-Dev-Modus ohne E
 |----------|----------|
 | Docker Compose / frische DB | Benutzer `admin` wird automatisch angelegt; auf der Anmeldeseite **„Erstes Passwort festlegen“** |
 | Electron Desktop (leere DB) | wie oben |
-| Weitere Benutzer | Admin legt nur den **Benutzernamen** an; Passwort setzt jeder Nutzer selbst beim ersten Login |
+| Weitere Benutzer | Admin legt nur den **Benutzernamen** an und erhält ein **Einrichtungs-Token**; der Nutzer setzt beim ersten Login Passwort (mit Token) und richtet die Verschlüsselung ein |
 
 Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werden (Datenschutz). Eigenes Passwort später ändern: **Benutzerverwaltung** in der App.
 

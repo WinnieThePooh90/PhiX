@@ -6,15 +6,15 @@ const { runWithCryptoContext } = require('./crypto-context');
 const { usernameWhere } = require('./username-filter');
 
 const CRYPTO_EXEMPT = new Set([
+  '/api/health',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/initial-password',
   '/api/auth/session',
   '/api/auth/crypto/setup',
-  '/api/auth/crypto/unlock-recovery',
   '/api/auth/crypto/status',
+  '/api/auth/crypto/unlock-recovery',
   '/api/registration',
-  '/api/shutdown',
 ]);
 
 function isCryptoExempt(path) {
@@ -28,7 +28,7 @@ function createCryptoMiddleware({ prisma, getActingUser }) {
 
     const acting = getActingUser(req);
     if (!acting) {
-      return res.status(401).json({ error: 'X-Acting-User erforderlich' });
+      return res.status(401).json({ error: 'Nicht angemeldet' });
     }
 
     const user = await prisma.appUser.findFirst({

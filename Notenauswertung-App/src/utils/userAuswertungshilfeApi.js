@@ -18,10 +18,8 @@ export function subscribeUserAuswertungshilfe(listener) {
   return () => listeners.delete(listener);
 }
 
-function actingHeaders(username) {
-  const h = new Headers();
-  if (username) h.set('X-Acting-User', username);
-  return applyCryptoHeader(h);
+function actingHeaders() {
+  return applyCryptoHeader(new Headers());
 }
 
 function readFileAsBase64(file) {
@@ -61,7 +59,6 @@ export async function uploadUserAuswertungshilfe(username, file) {
     headers: applyCryptoHeader(
       new Headers({
         'Content-Type': 'application/json',
-        'X-Acting-User': username,
       }),
     ),
     body: JSON.stringify({

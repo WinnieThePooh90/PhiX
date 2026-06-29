@@ -35,7 +35,6 @@ export function isPhiXRegistered() {
 export async function registerPhiXVersion(keyRaw, username) {
   try {
     const headers = applyCryptoHeader(new Headers({ 'Content-Type': 'application/json' }));
-    if (username) headers.set('X-Acting-User', username);
     const res = await apiFetch('/api/registration', {
       method: 'POST',
       headers,
@@ -66,7 +65,6 @@ export function subscribePhiXRegistration(listener) {
 export async function unregisterPhiXVersion(username) {
   try {
     const headers = applyCryptoHeader(new Headers());
-    if (username) headers.set('X-Acting-User', username);
     const res = await apiFetch('/api/registration', { method: 'DELETE', headers });
     if (res.ok) {
       cachedStatus = false;

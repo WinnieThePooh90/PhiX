@@ -13,6 +13,7 @@ export default function LoginView({ onRecovery }) {
   const [initialSetupUsername, setInitialSetupUsername] = useState(null);
   const [initialPassword, setInitialPasswordValue] = useState('');
   const [initialPassword2, setInitialPassword2] = useState('');
+  const [setupToken, setSetupToken] = useState('');
 
   const doLogin = async (user, pass) => {
     setError('');
@@ -45,7 +46,7 @@ export default function LoginView({ onRecovery }) {
       return;
     }
     setSubmitting(true);
-    const r = await setInitialPassword(initialSetupUsername || username, initialPassword);
+    const r = await setInitialPassword(initialSetupUsername || username, initialPassword, setupToken);
     if (!r.ok) {
       setSubmitting(false);
       setError(r.error || 'Passwort konnte nicht gespeichert werden.');
@@ -83,6 +84,18 @@ export default function LoginView({ onRecovery }) {
           <h2 className="app-login-title app-login-title--setup">Erstes Passwort festlegen</h2>
           <p className="app-login-subtitle app-login-subtitle--center">{initialSetupUsername}</p>
           <form className="app-login-form" onSubmit={onSubmitInitialPassword}>
+            <label className="app-login-label">
+              <span>Einrichtungs-Token (vom Administrator)</span>
+              <input
+                className="app-login-input"
+                type="text"
+                autoComplete="off"
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+                disabled={submitting}
+                placeholder="Beim allerersten Start leer lassen"
+              />
+            </label>
             <label className="app-login-label">
               <span>Neues Passwort</span>
               <input

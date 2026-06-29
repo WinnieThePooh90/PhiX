@@ -4,6 +4,7 @@ import { User } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from './PhixDialog';
 import { apiFetch } from '../utils/apiBase';
+import { authHeaders } from '../store/AuthContext';
 
 /**
  * @param {object} props
@@ -87,16 +88,8 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
     );
     if (!ok) return;
     setMenuOpen(false);
-    const headers = { 'Content-Type': 'application/json' };
-    if (currentUser?.username) headers['X-Acting-User'] = currentUser.username;
-    const token = (() => {
-      try {
-        return sessionStorage.getItem('phix_crypto_session_token');
-      } catch {
-        return null;
-      }
-    })();
-    if (token) headers['X-Phix-Crypto-Token'] = token;
+    const headers = authHeaders();
+    headers.set('Content-Type', 'application/json');
 
     try {
       if (import.meta.env.DEV) {

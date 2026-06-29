@@ -38,7 +38,12 @@ function createPrismaWithCrypto(basePrisma) {
           if (isCryptoBypassed()) return query(args);
           const ctx = getCryptoContext();
           const dek = ctx?.dek;
-          if (!dek) return query(args);
+          if (!dek) {
+            if (READ_OPS.has(operation) || WRITE_OPS.has(operation)) {
+              throw new Error(`Verschlüsselungskontext fehlt (${model}.${operation})`);
+            }
+            return query(args);
+          }
 
           let nextArgs = args;
           if (WRITE_OPS.has(operation)) {

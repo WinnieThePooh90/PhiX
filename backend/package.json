@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "420.0.0",
+  "version": "421.0.0",
   "description": "PhiX API server — Notenauswertung",
   "main": "server.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "@prisma/client": "^6.4.1",
     "argon2": "^0.41.1",
     "bcryptjs": "^3.0.2",
+    "cookie": "^0.7.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

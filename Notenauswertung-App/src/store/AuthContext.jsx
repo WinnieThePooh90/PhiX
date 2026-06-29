@@ -33,14 +33,12 @@ function readSessionUsername() {
   }
 }
 
-export function authHeaders(username) {
-  const h = new Headers();
-  if (username) h.set('X-Acting-User', username);
-  return applyCryptoHeader(h);
+export function authHeaders() {
+  return applyCryptoHeader(new Headers());
 }
 
-function jsonHeadersWithActing(acting) {
-  const h = authHeaders(acting);
+function jsonAuthHeaders() {
+  const h = authHeaders();
   h.set('Content-Type', 'application/json');
   return h;
 }
@@ -93,15 +91,10 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener(PHIX_CRYPTO_LOST_EVENT, onCryptoLost);
   }, [currentUser?.username]);
 
-  const refreshUsersList = useCallback(async (actingUsername) => {
-    const u = String(actingUsername ?? '').trim();
-    if (!u) {
-      setUsersList([]);
-      return;
-    }
+  const refreshUsersList = useCallback(async () => {
     const n = ++usersListNonce.current;
     try {
-      const res = await apiFetch('/api/users', { headers: authHeaders(u) });
+      const res = await apiFetch('/api/users', { headers: authHeaders() });
       if (!res.ok) {
         if (n === usersListNonce.current) setUsersList([]);
         return;
@@ -119,15 +112,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const sessionName = readSessionUsername();
-      if (!sessionName || !String(sessionName).trim()) {
-        if (!cancelled) {
-          setCurrentUser(null);
-          clearCryptoSessionToken();
-          setAuthReady(true);
-        }
-        return;
-      }
       try {
         const storedSettings = getUserSettingsFromStorage();
         if (storedSettings.darkMode) {
@@ -136,14 +120,21 @@ export const AuthProvider = ({ children }) => {
         if (storedSettings.colorScheme && storedSettings.colorScheme !== 'standard') {
           document.documentElement.setAttribute('data-color-scheme', storedSettings.colorScheme);
         }
-        const res = await apiFetch('/api/auth/session', { headers: authHeaders(sessionName) });
+        const res = await apiFetch('/api/auth/session');
         if (cancelled) return;
         if (res.ok) {
           const body = await res.json();
           const u = mapAppUserFromApi(body);
-          if (u) setCurrentUser(u);
+          if (u) {
+            setCurrentUser(u);
+            try {
+              localStorage.setItem(STORAGE_SESSION_KEY, u.username);
+            } catch {
+              /* ignore */
+            }
+          }
           const statusRes = await apiFetch('/api/auth/crypto/status', {
-            headers: authHeaders(body.username),
+            headers: authHeaders(),
           });
           const statusBody = await statusRes.json().catch(() => ({}));
           if (!cancelled) {
@@ -181,9 +172,13 @@ export const AuthProvider = ({ children }) => {
       if (!currentUser?.username) setUsersList([]);
       return undefined;
     }
-    refreshUsersList(currentUser.username);
+    if (!userHasAdminRights(currentUser)) {
+      setUsersList([]);
+      return undefined;
+    }
+    refreshUsersList();
     return undefined;
-  }, [currentUser?.username, pendingCryptoSetup, pendingRecoveryConfirm, refreshUsersList]);
+  }, [currentUser, pendingCryptoSetup, pendingRecoveryConfirm, refreshUsersList]);
 
   const login = useCallback(async (usernameRaw, passwordRaw) => {
     const usernameIn = String(usernameRaw ?? '').trim();
@@ -242,13 +237,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    const token = readCryptoSessionToken();
     try {
-      const acting = readSessionUsername();
-      const h = new Headers();
-      if (acting) h.set('X-Acting-User', acting);
-      if (token) h.set('X-Phix-Crypto-Token', token);
-      await apiFetch('/api/auth/logout', { method: 'POST', headers: h });
+      await apiFetch('/api/auth/logout', { method: 'POST', headers: authHeaders() });
     } catch {
       /* ignore */
     }
@@ -309,21 +299,20 @@ export const AuthProvider = ({ children }) => {
     let cancelled = false;
 
     const verifySession = async () => {
-      const username = currentUser.username;
       try {
-        const sessionRes = await apiFetch('/api/auth/session', { headers: authHeaders(username) });
+        const sessionRes = await apiFetch('/api/auth/session');
         if (cancelled) return;
         if (!sessionRes.ok) {
           void logout();
           return;
         }
         const statusRes = await apiFetch('/api/auth/crypto/status', {
-          headers: authHeaders(username),
+          headers: authHeaders(),
         });
         if (cancelled) return;
         const statusBody = await statusRes.json().catch(() => ({}));
         if (!cancelled) {
-          applyCryptoGateFromStatus(username, statusRes, statusBody);
+          applyCryptoGateFromStatus(currentUser.username, statusRes, statusBody);
         }
       } catch {
         /* Netzwerkfehler: keine erzwungene Abmeldung */
@@ -367,9 +356,10 @@ export const AuthProvider = ({ children }) => {
     completeCryptoSetup();
   }, [completeCryptoSetup]);
 
-  const setInitialPassword = useCallback(async (usernameRaw, newPasswordRaw) => {
+  const setInitialPassword = useCallback(async (usernameRaw, newPasswordRaw, setupTokenRaw) => {
     const username = String(usernameRaw ?? '').trim();
     const newPassword = String(newPasswordRaw ?? '');
+    const setupToken = String(setupTokenRaw ?? '').trim();
     if (!username || !newPassword) {
       return { ok: false, error: 'Benutzername und Passwort eingeben.' };
     }
@@ -377,7 +367,7 @@ export const AuthProvider = ({ children }) => {
       const res = await apiFetch('/api/auth/initial-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, newPassword }),
+        body: JSON.stringify({ username, newPassword, setupToken }),
       });
       if (res.status === 204) return { ok: true };
       const body = await res.json().catch(() => ({}));
@@ -398,15 +388,15 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await apiFetch('/api/users', {
           method: 'POST',
-          headers: jsonHeadersWithActing(acting),
+          headers: jsonAuthHeaders(),
           body: JSON.stringify({ username }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           return { ok: false, error: body.error || 'Anlegen fehlgeschlagen.' };
         }
-        await refreshUsersList(acting);
-        return { ok: true };
+        await refreshUsersList();
+        return { ok: true, setupToken: body.setupToken || '' };
       } catch {
         return { ok: false, error: 'Server nicht erreichbar.' };
       }
@@ -426,7 +416,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/password`, {
           method: 'PATCH',
-          headers: jsonHeadersWithActing(acting),
+          headers: jsonAuthHeaders(),
           body: JSON.stringify({ newPassword, oldPassword }),
         });
         if (res.status === 204) return { ok: true };
@@ -446,14 +436,14 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}`, {
           method: 'DELETE',
-          headers: authHeaders(acting),
+          headers: authHeaders(),
         });
         if (res.status === 204) {
           const selfDeleted = String(userId) === String(currentUser?.id);
           if (selfDeleted) {
             await logout();
           } else {
-            await refreshUsersList(acting);
+            await refreshUsersList();
           }
           return { ok: true };
         }
@@ -476,7 +466,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/admin`, {
           method: 'PATCH',
-          headers: jsonHeadersWithActing(acting),
+          headers: jsonAuthHeaders(),
           body: JSON.stringify({ isAdmin: isAdmin === true }),
         });
         const body = await res.json().catch(() => ({}));
@@ -484,7 +474,7 @@ export const AuthProvider = ({ children }) => {
           return { ok: false, error: body.error || 'Speichern fehlgeschlagen.' };
         }
         const updated = mapAppUserFromApi(body);
-        await refreshUsersList(acting);
+        await refreshUsersList();
         if (updated && String(userId) === String(currentUser?.id)) {
           setCurrentUser(updated);
         }

@@ -14,6 +14,8 @@ model AppUser {
   passwordHash String
   /** true: nur POST /api/auth/initial-password (Erst-Login), kein Fremd-Passwort */
   mustSetPassword Boolean @default(false)
+  /** bcrypt-Hash des Einmal-Tokens für Erstpasswort (null = Bootstrap ohne Token, z. B. erster admin) */
+  initialSetupTokenHash String?
   /** Zusätzliche Admin-Rechte (Backup, Benutzerverwaltung); System-„admin“ ist immer Admin. */
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())

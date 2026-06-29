@@ -17,10 +17,7 @@ export default function CryptoSetupModal({ username, password, onComplete }) {
     try {
       const res = await apiFetch('/api/auth/crypto/setup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Acting-User': username,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
       const body = await res.json().catch(() => ({}));
