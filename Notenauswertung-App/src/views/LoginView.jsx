@@ -70,10 +70,6 @@ export default function LoginView({ onRecovery }) {
     setError('');
   };
 
-  const onDevLogin = async () => {
-    await doLogin('admin', 'admin');
-  };
-
   if (initialSetupUsername) {
     return (
       <div className="app-login-screen">
@@ -173,14 +169,6 @@ export default function LoginView({ onRecovery }) {
           ) : null}
           <button type="submit" className="app-login-submit" disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden'}
-          </button>
-          <button
-            type="button"
-            className="tab secondary app-login-dev-btn"
-            onClick={onDevLogin}
-            disabled={submitting}
-          >
-            Development
           </button>
         </form>
       </div>

@@ -2543,14 +2543,6 @@ tfoot td {
   cursor: not-allowed;
 }
 
-.app-login-dev-btn {
-  width: 100%;
-  margin-top: 0.35rem;
-  justify-content: center;
-  box-sizing: border-box;
-  font-size: 0.8125rem;
-}
-
 .app-login-cancel-btn {
   width: 100%;
   margin-top: 0.5rem;

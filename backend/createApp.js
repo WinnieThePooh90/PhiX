@@ -730,14 +730,20 @@ app.put('/api/user-auswertungshilfe', async (req, res) => {
 });
 
 // REGISTRATION (global, für alle Benutzer)
+/** PHIX-Marker je 4er-Block: Position im Block (1-basiert) 4-3-1-2. */
+const REGISTRATION_KEY_MARKERS = [
+  { blockIndex: 0, posInBlock: 4, char: 'P' },
+  { blockIndex: 1, posInBlock: 3, char: 'H' },
+  { blockIndex: 2, posInBlock: 1, char: 'I' },
+  { blockIndex: 3, posInBlock: 2, char: 'X' },
+];
+
 function isValidRegistrationKey(raw) {
   const k = String(raw ?? '').replace(/-/g, '').toUpperCase();
-  return k.length === 16
-    && /^[A-Z]{16}$/.test(k)
-    && k[2] === 'P'
-    && k[4] === 'H'
-    && k[11] === 'I'
-    && k[13] === 'X';
+  if (k.length !== 16 || !/^[A-Z]{16}$/.test(k)) return false;
+  return REGISTRATION_KEY_MARKERS.every(
+    ({ blockIndex, posInBlock, char }) => k[blockIndex * 4 + posInBlock - 1] === char
+  );
 }
 
 app.get('/api/registration', async (req, res) => {
