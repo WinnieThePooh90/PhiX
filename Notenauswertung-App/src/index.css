@@ -5253,6 +5253,19 @@ button.school-roster-control-btn.danger {
   border-right: 1px solid var(--border);
 }
 
+/* Rahmen des Tabellen-Containers mit Inhalt mitwachsen (z. B. Nachschreiber-Zusatzspalten) */
+.exam-table-scroll .table-container {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.exam-table-scroll .table-container > table {
+  width: max-content;
+  min-width: 100%;
+}
+
 /* #-Spalte Klausur: Lesezeichen (Tooltip per Portal in ExamsView, nicht per ::after) */
 .exam-index-flag {
   position: absolute;
