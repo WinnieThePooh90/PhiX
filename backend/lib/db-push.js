@@ -92,13 +92,17 @@ function runDbSync(opts = {}) {
 
   if (sqlite) {
     console.log('[db-sync] db push (SQLite)');
-    return spawnSync(nodeCmd, [prismaCli, 'db', 'push', `--schema=${schemaAbs}`], {
-      stdio,
-      cwd: backendRoot,
-      env,
-      shell: false,
-      windowsHide: true,
-    });
+    return spawnSync(
+      nodeCmd,
+      [prismaCli, 'db', 'push', '--accept-data-loss', `--schema=${schemaAbs}`],
+      {
+        stdio,
+        cwd: backendRoot,
+        env,
+        shell: false,
+        windowsHide: true,
+      },
+    );
   }
 
   baselineIfNeeded({ backendRoot, prismaCli, schemaAbs, nodeCmd, env, stdio });
