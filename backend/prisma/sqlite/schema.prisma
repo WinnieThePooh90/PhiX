@@ -1,6 +1,8 @@
 // SQLite-Variante — Modelle müssen mit prisma/schema.prisma (Postgres) synchron gehalten werden.
 // Generate: npx prisma generate --schema=prisma/sqlite/schema.prisma
 // Push:     npx prisma db push --schema=prisma/sqlite/schema.prisma
+// Hinweis: Json @default("{}") erzeugt in Prisma 6 ungültiges SQLite-SQL (JSONB DEFAULT {}).
+//          Leere Objekte daher: @default(dbgenerated("'{}'")) — Postgres-Schema unverändert @default("{}").
 
 generator client {
   provider = "prisma-client-js"
@@ -298,7 +300,7 @@ model GfsEntry {
   gehalten        Boolean @default(false)
   halbjahr        String  @default("1")
   note            String  @default("")
-  auswertungHilfe Json    @default("{}")
+  auswertungHilfe Json    @default(dbgenerated("'{}'"))
   studentId       Int
   student         Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId        Int?
@@ -313,7 +315,7 @@ model ReferatEntry {
   gehalten        Boolean @default(false)
   halbjahr        String  @default("1")
   note            String  @default("")
-  auswertungHilfe Json    @default("{}")
+  auswertungHilfe Json    @default(dbgenerated("'{}'"))
   studentId       Int
   student         Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId        Int?
@@ -394,10 +396,10 @@ model Project {
   maxPoints      Float
   numFields      Int      @default(0)
   fieldMaxPoints Json
-  fieldNames     Json     @default("{}")
+  fieldNames     Json     @default(dbgenerated("'{}'"))
   gradeMode      String   @default("key")
   gradeScope     String   @default("individual")
-  groups         Json     @default("{}")
+  groups         Json     @default(dbgenerated("'{}'"))
   keyType        String
   date           String   @default("")
   halbjahr       String   @default("1")
