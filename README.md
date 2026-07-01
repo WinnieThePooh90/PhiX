@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Aktueller Build** | siehe [`docs/APP_VERSION.md`](docs/APP_VERSION.md) |
+| **Aktueller Build** | **443** ([`docs/APP_VERSION.md`](docs/APP_VERSION.md), Stand 2026-06-30) |
 | **Lizenz** | [Apache License 2.0](LICENSE) |
 | **Autor** | Karsten Paulokat |
 
@@ -96,7 +96,8 @@ Prisma nutzt **zwei Schema-Dateien** (PostgreSQL und SQLite), die manuell synchr
 
 ### Voraussetzungen
 
-- [Node.js](https://nodejs.org/) LTS (20+) für Desktop-Entwicklung und -Builds
+- [Node.js](https://nodejs.org/) **20+** für Backend/Frontend-Entwicklung und Docker
+- [Node.js](https://nodejs.org/) **22.12+** empfohlen für **Desktop-Release-Builds** (`desktop/npm run dist`, Electron 42)
 - [Docker](https://www.docker.com/) für die Server-Variante (empfohlen)
 
 ### Abhängigkeiten & Prisma
@@ -149,7 +150,11 @@ Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Dock
 | Docker-Stack | `docker compose up -d --build` | Container-Images |
 | Windows Electron | `cd desktop && npm run dist` | `desktop/dist-pack/*.zip` und `*.exe` |
 
-**Plattformen:** Windows ist für Desktop-Builds vorgesehen. Ein fertiges **Linux-/macOS-Desktop-Paket** ist derzeit nicht vorkonfiguriert. Apple-Geräte (Mac/iPad) werden nicht unterstützt.
+**GitHub-Release:** Für **Docker** reicht das Repo (Tag auschecken oder Source-ZIP) plus `docker compose up -d --build` — kein separates Image nötig. Für **Desktop** die Artefakte aus `desktop/dist-pack/` (ZIP und/oder portable EXE) hochladen.
+
+**Sauberer Neustart vor Desktop-Build:** `clean-build.bat` (Windows) bzw. `./clean-build.sh` (Linux/macOS) im Projektroot — entfernt `node_modules`, `dist`, `dist-pack` und generierte Prisma-Clients; danach `npm install` in `backend`, `Notenauswertung-App` und `desktop`.
+
+**Plattformen:** Windows ist für Desktop-**Release**-Builds vorgesehen. Unter Linux/macOS: Strukturtest mit `cd desktop && npm run dist:dir`. Ein fertiges **Linux-/macOS-Desktop-Paket** ist derzeit nicht vorkonfiguriert. Apple-Geräte (Mac/iPad) werden nicht unterstützt.
 
 **Datenpfade (Desktop-Release):** SQLite unter `<Installationsordner>/data/phix.db` — Ordner komplett kopieren für USB/Backup. Siehe [`docs/SQLITE_DESKTOP.md`](docs/SQLITE_DESKTOP.md).
 
@@ -159,7 +164,7 @@ Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Dock
 
 Die sichtbare **Build-Nummer** ist eine fortlaufende Ganzzahl (`PHIX_BUILD` in [`docs/APP_VERSION.md`](docs/APP_VERSION.md)).
 
-In `package.json` der drei Hauptpakete steht sie als SemVer **`"<BUILD>.0.0"`** (z. B. `378.0.0`), weil npm und electron-builder eine SemVer-Zeichenkette erwarten — die **Major-Komponente** entspricht dem Build.
+In `package.json` der drei Hauptpakete steht sie als SemVer **`"<BUILD>.0.0"`** (z. B. `443.0.0`), weil npm und electron-builder eine SemVer-Zeichenkette erwarten — die **Major-Komponente** entspricht dem Build.
 
 Die App zeigt die Build-Nummer unter **Info**; synchronisiert über `Notenauswertung-App/scripts/sync-app-version.mjs`.
 

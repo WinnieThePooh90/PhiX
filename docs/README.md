@@ -6,8 +6,8 @@
 
 | Stand | Wert |
 |-------|------|
-| Letzte inhaltliche Aktualisierung | 2026-06-28 |
-| Aktueller Build | siehe [`APP_VERSION.md`](APP_VERSION.md) |
+| Letzte inhaltliche Aktualisierung | 2026-06-30 |
+| Aktueller Build | **443** — [`APP_VERSION.md`](APP_VERSION.md) |
 
 ---
 
@@ -58,7 +58,8 @@
 | Ziel | Befehl (Projektroot bzw. Ordner) |
 |------|----------------------------------|
 | **Server (Docker)** | `docker compose up -d --build` → Browser `http://localhost:1990` |
-| **Desktop Release** | `cd desktop && npm run dist` → `desktop/dist-pack/` |
+| **Desktop Release** | `cd desktop && npm run dist` → `desktop/dist-pack/` (nur Windows-ZIP/EXE zuverlässig) |
 | **Desktop Entwicklung** | `Notenauswertung-App`: `npm run dev`; `desktop`: `npm run dev` |
+| **Build-Artefakte löschen** | `clean-build.bat` (Windows) / `./clean-build.sh` (Linux, macOS) |
 
 Unter Windows für Docker: `start_docker.bat` / `stop_docker.bat` im Projektroot.

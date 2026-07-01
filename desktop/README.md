@@ -16,7 +16,7 @@ Die SQLite-Datei liegt bei Release unter **`data\phix.db`** (ohne eigene `DATABA
 
 ## Voraussetzungen
 
-- **Node.js** (wie für das Backend) — im PATH; gepackte App nutzt **Electron als Node** (`ELECTRON_RUN_AS_NODE`).
+- **Node.js** **22.12+** für `npm run dist` (Electron 42); **20+** für Entwicklung — im PATH; gepackte App nutzt **Electron als Node** (`ELECTRON_RUN_AS_NODE`).
 - Backend-Abhängigkeiten: im Ordner `backend/` einmal `npm install` (führt `postinstall` → beide Prisma-Clients aus).
 - Datenbank: **PostgreSQL** mit `DATABASE_URL=postgresql://…`, oder **SQLite** (Electron setzt bei fehlender URL automatisch `file:…/phix.db` — siehe `docs/SQLITE_DESKTOP.md`).
 

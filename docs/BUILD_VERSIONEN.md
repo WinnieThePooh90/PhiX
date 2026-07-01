@@ -4,8 +4,9 @@
 
 | Stand | Wert |
 |-------|------|
+| **Aktueller Build** | **443** — [`APP_VERSION.md`](APP_VERSION.md) |
 | Zuletzt abgestimmt mit Repo | `desktop/package.json`, `docker-compose.yml`, `backend/createApp.js` |
-| Letzte inhaltliche Aktualisierung | 2026-06-28 |
+| Letzte inhaltliche Aktualisierung | 2026-06-30 |
 
 ---
 
@@ -36,7 +37,7 @@ PhiX wird **nur** in diesen beiden Formen verteilt:
 | **Frontend** | Container (nginx) | `resources/frontend-dist/` im Paket |
 | **Frontend-Auslieferung (Backend)** | nein (nginx) | ja, `PHIX_STANDALONE=1` (nur Electron) |
 | **Build-Rechner** | Windows, Linux, macOS (Docker) | **Windows** empfohlen für Release |
-| **Prisma / Schema** | `prisma migrate deploy` (Postgres) | SQLite, `db push` vor Start in Electron |
+| **Prisma / Schema** | `prisma migrate deploy` (Postgres) | SQLite, `db push --accept-data-loss` vor Start in Electron (`desktop/main.cjs`) |
 | **Zielgruppe** | Selbst gehosteter Server, Browser-Zugriff | Einzelplatz, USB, ohne Docker |
 
 ---
@@ -103,6 +104,24 @@ npm run dist
 Voraussetzungen: `docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md` (Teil 2), `desktop/README.md`.
 
 **Hinweis:** Auf Linux/macOS erzeugt `npm run dist` **keine** zuverlässigen Windows-Installer-Ziele; für Strukturtests `dist:dir`. Ein **Linux-Desktop-Paket** ist derzeit **nicht** vorkonfiguriert.
+
+### Verteilung (GitHub-Release o. Ä.)
+
+| Variante | Was Nutzer erhalten | Build auf dem Rechner |
+|----------|---------------------|------------------------|
+| **Docker** | Quellcode (Tag / Source-ZIP) | `docker compose up -d --build` im Projektroot |
+| **Desktop** | ZIP und/oder portable EXE aus `desktop/dist-pack/` | nicht nötig (vorgebaut unter Windows) |
+
+---
+
+## Aufräumen vor Neu-Build (`clean-build`)
+
+| Plattform | Skript | Entfernt u. a. |
+|-----------|--------|----------------|
+| Windows | `clean-build.bat` | `backend/node_modules`, `backend/generated`, `Notenauswertung-App/node_modules`, `dist`, `.vite`, `desktop/node_modules`, `desktop/dist-pack` |
+| Linux, macOS | `./clean-build.sh` | dieselben Pfade |
+
+Danach in **`backend`**, **`Notenauswertung-App`** und **`desktop`** jeweils `npm install`; Desktop-Release unter Windows: `cd desktop && npm run dist`.
 
 ---
 

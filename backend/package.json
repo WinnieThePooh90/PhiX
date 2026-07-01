@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "442.0.0",
+  "version": "443.0.0",
   "description": "PhiX API server — Notenauswertung",
   "main": "server.js",
   "scripts": {

@@ -111,7 +111,7 @@ Eine der folgenden Optionen:
 ### 2.1 Voraussetzungen zum Bauen
 
 - **Windows** (laut `desktop/README.md` baut **`npm run dist`** die Windows-Ziele zuverlässig **unter Windows**).
-- **Node.js** (LTS, z. B. 20+) im PATH — in der **Eingabeaufforderung (cmd)** ausführen, wenn PowerShell `npm` wegen Execution Policy blockiert.
+- **Node.js** **22.12+** im PATH (Electron 42 / `npm run dist`) — in der **Eingabeaufforderung (cmd)** ausführen, wenn PowerShell `npm` wegen Execution Policy blockiert.
 - **Internet** für `npm install` (u. a. Electron-Download).
 - Build **nicht** in Dropbox/Sync-Ordnern (siehe **2.4**).
 
@@ -172,7 +172,7 @@ npm run dist
 
 **Dropbox / EBUSY:** `desktop\install-deps.bat` oder `npm run install-deps` im Ordner `desktop\`.
 
-**Sauberer Neustart:** `clean-build.bat` im Projektroot, danach komplette Reihenfolge aus **2.2**.
+**Sauberer Neustart:** `clean-build.bat` (Windows) bzw. `./clean-build.sh` (Linux/macOS) im Projektroot, danach komplette Reihenfolge aus **2.2**.
 
 **Logs:** `<Installationsordner>\data\logs\` (Release) bzw. `%APPDATA%\PhiX\logs\` (Dev).
 
@@ -227,4 +227,4 @@ Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werde
 
 ---
 
-*Diese Datei beschreibt den intendierten Ablauf laut Repository (Stand 2026-06-28).*
+*Diese Datei beschreibt den intendierten Ablauf laut Repository (Stand 2026-06-30, Build 443).*

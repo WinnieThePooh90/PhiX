@@ -4,8 +4,8 @@ Dokumentation der REST-ähnlichen HTTP-Schnittstelle des PhiX-Backends (`backend
 
 | Stand | Wert |
 |-------|------|
-| **Passend zu Build** | **`432`** (siehe [`APP_VERSION.md`](APP_VERSION.md)) |
-| Letzte inhaltliche Aktualisierung | 2026-06-28 |
+| **Passend zu Build** | **`443`** (siehe [`APP_VERSION.md`](APP_VERSION.md)) |
+| Letzte inhaltliche Aktualisierung | 2026-06-30 |
 | Implementierung | `backend/createApp.js` |
 
 ---

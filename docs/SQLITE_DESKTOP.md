@@ -4,7 +4,8 @@ SQLite ist die Datenbank der **Electron-Desktop-Variante**. Der **Docker-Server*
 
 | Stand | Wert |
 |-------|------|
-| Letzte inhaltliche Aktualisierung | 2026-06-28 |
+| **Aktueller Build** | **443** |
+| Letzte inhaltliche Aktualisierung | 2026-06-30 |
 
 ---
 
@@ -26,7 +27,7 @@ Schema und Client: `backend/prisma/sqlite/schema.prisma` → generiert nach `bac
 
 - **Backup:** App beenden, Datei `phix.db` (bzw. Ihre `*.sqlite`) kopieren — z. B. `phix-backup-20260628.db`.
 - **Rollback:** App beenden, fehlerhafte DB ersetzen oder Backup-Datei zurückspielen.
-- Vor **App-Updates** (wenn sich das Schema ändert): immer ein Backup anlegen; `prisma db push` kann bei SQLite Schema-Anpassungen erzwingen.
+- Vor **App-Updates** (wenn sich das Schema ändert): immer ein Backup anlegen. Beim Desktop-Start synchronisiert Electron das SQLite-Schema per `prisma db push` (mit `--accept-data-loss` bei nötigen Schema-Anpassungen).
 
 ---
 

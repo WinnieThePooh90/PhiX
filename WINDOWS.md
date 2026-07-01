@@ -16,8 +16,8 @@ Ausführliche Build-Anleitungen: **`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`*
 | Variante | Benötigt |
 |----------|-----------|
 | **Docker** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| **Electron (Build)** | [Node.js](https://nodejs.org/) LTS (20+) |
-| **Entwicklung** | Node.js LTS; optional Docker Desktop |
+| **Electron (Build)** | [Node.js](https://nodejs.org/) **22.12+** (Electron 42; `npm run dist`) |
+| **Entwicklung** | Node.js 20+; optional Docker Desktop |
 
 ---
 
@@ -103,4 +103,5 @@ Passwort ändern (nur eigenes Konto): in der App unter **Benutzerverwaltung** na
 |-------|--------|
 | `start_docker.bat` | Gesamte App per Docker Compose |
 | `stop_docker.bat` | Container stoppen |
-| `clean-build.bat` | `node_modules`, `dist`, `dist-pack` entfernen |
+| `clean-build.bat` | `node_modules`, `dist`, `dist-pack` entfernen (Windows) |
+| `clean-build.sh` | dasselbe unter Linux/macOS (`chmod +x` einmalig) |
