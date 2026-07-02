@@ -6,8 +6,6 @@ import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import { useAuth } from '../store/AuthContext';
 import { apiFetch } from '../utils/apiBase';
 
-const MIN_PASSWORD_LEN = 8;
-
 function passwordsMatch(a, b) {
   return String(a) === String(b);
 }
@@ -15,9 +13,6 @@ function passwordsMatch(a, b) {
 function validatePasswordPair(password, password2) {
   if (!password || !password2) {
     return 'Bitte Passwort und Wiederholung eingeben.';
-  }
-  if (password.length < MIN_PASSWORD_LEN) {
-    return `Das Passwort muss mindestens ${MIN_PASSWORD_LEN} Zeichen haben.`;
   }
   if (!passwordsMatch(password, password2)) {
     return 'Die Passwort-Wiederholung stimmt nicht überein.';
