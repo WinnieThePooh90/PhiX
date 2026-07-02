@@ -9,6 +9,7 @@ CREATE TABLE "ReferatEntry" (
     "gehalten" BOOLEAN NOT NULL DEFAULT false,
     "halbjahr" TEXT NOT NULL DEFAULT '1',
     "note" TEXT NOT NULL DEFAULT '',
+    "auswertungHilfe" JSONB NOT NULL DEFAULT '{}',
     "studentId" INTEGER NOT NULL,
     "courseId" INTEGER,
 

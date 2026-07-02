@@ -3,8 +3,6 @@
 # (Host nutzt den Ordnernamen, im Container wäre es sonst nur „compose“).
 name: phix
 
-version: '3.8'
-
 services:
   frontend:
     build:

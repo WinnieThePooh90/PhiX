@@ -96,6 +96,8 @@ Eine der folgenden Optionen:
 
 | Problem | Vorgehen |
 |---------|----------|
+| **`502 Bad Gateway`** auf Port 1990 | Backend läuft nicht: `docker compose ps`, `docker compose logs backend --tail 80`. |
+| **`P3009` / fehlgeschlagene Migration** (`referat_auswertung_hilfe`) | Im Projektroot (nach Update auf aktuellen Stand): `docker compose run --rm backend node scripts/resolve-referat-migration.js`, danach `docker compose up -d --build`. Prüfen: `curl -s http://localhost:1990/api/health` → `{"ok":true,...}`. |
 | Port **5432** belegt | `.env`: `DB_PORT` ändern; alte `phix`-Container oder lokale Postgres stoppen. |
 | `docker` nicht gefunden | Docker Desktop installieren und PATH prüfen; neues Terminal öffnen. |
 | Seite lädt, API-Fehler | `docker compose logs backend` im Projektroot prüfen; `BACKEND_PORT` und lokales Netzwerk/Firewall prüfen. |
