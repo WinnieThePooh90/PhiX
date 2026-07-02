@@ -89,9 +89,11 @@ Siehe **`desktop/README.md`**. Es gibt keinen eigenständigen Browser-Dev-Modus 
 
 ## Erster Login
 
-Bei leerer Datenbank legt das Backend automatisch den Benutzer **admin** an.
+Bei leerer Datenbank legt das Backend automatisch den Benutzer **admin** an (`mustSetPassword`).
 
-- Beim ersten Start: Benutzer `admin` anlegen lassen, dann auf der Anmeldeseite **„Erstes Passwort festlegen“** — kein Standardpasswort, kein npm-Skript.
+- **Frische Installation:** **Einrichtungsassistent** (admin-Passwort, optional Arbeitskonto, Start-Tipps) — nicht die normale Anmeldeseite.
+- **Start-Tipps** jederzeit unter **Einstellungen → Hilfe**.
+- **API erreichbar?** `curl -s http://localhost:1990/api/health` (Docker) bzw. nach Desktop-Start dieselbe URL im Backend-Port.
 
 Passwort ändern (nur eigenes Konto): in der App unter **Benutzerverwaltung** nach Anmeldung.
 

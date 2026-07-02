@@ -6,8 +6,8 @@
 
 | Stand | Wert |
 |-------|------|
-| Letzte inhaltliche Aktualisierung | 2026-06-30 |
-| Aktueller Build | **443** — [`APP_VERSION.md`](APP_VERSION.md) |
+| Letzte inhaltliche Aktualisierung | 2026-07-02 |
+| Aktueller Build | **452** — [`APP_VERSION.md`](APP_VERSION.md) |
 
 ---
 
@@ -50,6 +50,7 @@
 | Thema | Datei |
 |-------|--------|
 | Build-Nummer und Datum | [`APP_VERSION.md`](APP_VERSION.md) |
+| Changelog (Kernänderungen pro Build) | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ---
 
@@ -58,6 +59,7 @@
 | Ziel | Befehl (Projektroot bzw. Ordner) |
 |------|----------------------------------|
 | **Server (Docker)** | `docker compose up -d --build` → Browser `http://localhost:1990` |
+| **Erste Einrichtung** | Einrichtungsassistent (frische DB); Start-Tipps unter **Einstellungen → Hilfe** |
 | **Desktop Release** | `cd desktop && npm run dist` → `desktop/dist-pack/` (nur Windows-ZIP/EXE zuverlässig) |
 | **Desktop Entwicklung** | `Notenauswertung-App`: `npm run dev`; `desktop`: `npm run dev` |
 | **Build-Artefakte löschen** | `clean-build.bat` (Windows) / `./clean-build.sh` (Linux, macOS) |

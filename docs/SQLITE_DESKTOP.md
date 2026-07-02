@@ -4,8 +4,8 @@ SQLite ist die Datenbank der **Electron-Desktop-Variante**. Der **Docker-Server*
 
 | Stand | Wert |
 |-------|------|
-| **Aktueller Build** | **443** |
-| Letzte inhaltliche Aktualisierung | 2026-06-30 |
+| **Aktueller Build** | **452** |
+| Letzte inhaltliche Aktualisierung | 2026-07-02 |
 
 ---
 

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Aktueller Build** | **443** ([`docs/APP_VERSION.md`](docs/APP_VERSION.md), Stand 2026-06-30) |
+| **Aktueller Build** | **452** ([`docs/APP_VERSION.md`](docs/APP_VERSION.md), Stand 2026-07-02) |
 | **Lizenz** | [Apache License 2.0](LICENSE) |
 | **Autor** | Karsten Paulokat |
 
@@ -57,10 +57,10 @@
 ### Sicherheit & Verwaltung
 
 - Verschlüsselte Speicherung sensibler Daten (**AES-256-GCM**), siehe [`docs/ENCRYPTION.md`](docs/ENCRYPTION.md) und [`docs/SECURITY.md`](docs/SECURITY.md)
-- Benutzerkonten mit **Recovery-Key** bei Passwortverlust
+- Benutzerkonten mit **Recovery-Key** bei Passwortverlust; **Einrichtungsassistent** bei frischer Installation (admin-Passwort, optional Arbeitskonto, Start-Tipps)
 - **Backup/Import** — verschlüsseltes Backup inkl. Kurse, Noten, Klassenlehrer-Listen, Album-Fotos, Auswertungshilfe und persönlicher Anzeige-Einstellungen
 - Benutzerverwaltung (Admin)
-- In-App: Hilfe/FAQ, Lizenz- und Abhängigkeitsübersicht (Open Source)
+- In-App: **Hilfe** (Start-Tipps, FAQ), Lizenz- und Abhängigkeitsübersicht (Open Source)
 
 PhiX ist **kostenlos** nutzbar (keine Werbung, keine versteckten Kosten). Eine freiwillige Registrierung/Spende schaltet optionale Farbschemas frei — Kernfunktionen bleiben für alle verfügbar.
 
@@ -117,9 +117,9 @@ Im Projektroot `.env` aus `.env.example` anlegen, dann:
 docker compose up -d --build
 ```
 
-Browser: **http://localhost:1990** (Frontend; API intern auf Port 3000).
+Browser: **http://localhost:1990** (Frontend; API intern auf Port 3000). Gesundheitscheck: `curl -s http://localhost:1990/api/health` → `{"ok":true,"needsWizard":…}`.
 
-Unter Windows alternativ: `start_docker.bat` / `stop_docker.bat`.
+Unter Windows alternativ: `start_docker.bat` / `stop_docker.bat`. Bei **502 Bad Gateway** oder fehlgeschlagenen DB-Migrationen: [`docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md`](docs/INSTALL_SERVER_UND_DESKTOP_WINDOWS.md) Abschnitt 1.7.
 
 ### Variante B — Electron-Desktop (Dev)
 
@@ -164,9 +164,9 @@ Es gibt **keinen** eigenständigen Web-App-Release (Frontend + Backend ohne Dock
 
 Die sichtbare **Build-Nummer** ist eine fortlaufende Ganzzahl (`PHIX_BUILD` in [`docs/APP_VERSION.md`](docs/APP_VERSION.md)).
 
-In `package.json` der drei Hauptpakete steht sie als SemVer **`"<BUILD>.0.0"`** (z. B. `443.0.0`), weil npm und electron-builder eine SemVer-Zeichenkette erwarten — die **Major-Komponente** entspricht dem Build.
+In `package.json` der drei Hauptpakete steht sie als SemVer **`"<BUILD>.0.0"`** (z. B. `452.0.0`), weil npm und electron-builder eine SemVer-Zeichenkette erwarten — die **Major-Komponente** entspricht dem Build.
 
-Die App zeigt die Build-Nummer unter **Info**; synchronisiert über `Notenauswertung-App/scripts/sync-app-version.mjs`.
+Die App zeigt die Build-Nummer unter **Info**; synchronisiert über `Notenauswertung-App/scripts/sync-app-version.mjs`. Änderungshistorie: [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ---
 
@@ -203,6 +203,7 @@ Hauptabhängigkeiten (Auszug): React (MIT), Express (MIT), Prisma (Apache-2.0), 
 | Sicherheit & Datenschutz | [`docs/SECURITY.md`](docs/SECURITY.md) |
 | Prisma Dual-Schema (ADR) | [`docs/ADR-002-prisma-postgres-sqlite.md`](docs/ADR-002-prisma-postgres-sqlite.md) |
 | Aktueller Build | [`docs/APP_VERSION.md`](docs/APP_VERSION.md) |
+| Changelog | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) |
 
 ---
 

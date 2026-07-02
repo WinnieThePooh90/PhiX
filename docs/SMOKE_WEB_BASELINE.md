@@ -4,7 +4,7 @@ Festhalten, wie die Referenz-Installationen laufen und was vor jedem Release kur
 
 | Stand | Wert |
 |-------|------|
-| Letzte inhaltliche Aktualisierung | 2026-06-28 |
+| Letzte inhaltliche Aktualisierung | 2026-07-02 |
 
 ---
 
@@ -26,20 +26,24 @@ Vor einem Release oder nach größeren Infra-Änderungen — **je Variante**, di
 
 ### Docker-Server
 
-1. **Login** – Anmeldung; Session bleibt nach Reload.
-2. **Kurs** – Kurs anlegen oder wechseln.
-3. **Schüler** – Schüler hinzufügen, Namen ändern.
-4. **Klausur** – Note eintragen, speichern, Reload.
-5. **Export** – ein Export ohne Fehler.
-6. **Herunterfahren** – Menü „Herunterfahren“ / `docker compose down` wie erwartet.
+0. **Health** – `curl -s http://localhost:1990/api/health` → `{"ok":true,"needsWizard":…}` (kein 502).
+1. **Ersteinrichtung** (frische DB) – Einrichtungsassistent: admin-Passwort, optional Arbeitskonto, Start-Tipps; danach Anmeldung.
+2. **Login** – Anmeldung; Session bleibt nach Reload.
+3. **Kurs** – Kurs anlegen oder wechseln.
+4. **Schüler** – Schüler hinzufügen, Namen ändern.
+5. **Klausur** – Note eintragen, speichern, Reload.
+6. **Hilfe** – **Einstellungen → Hilfe**: Start-Tipps sichtbar.
+7. **Export** – ein Export ohne Fehler.
+8. **Herunterfahren** – Menü „Herunterfahren“ / `docker compose down` wie erwartet.
 
 ### Electron-Desktop
 
 1. **Start** – `PhiX.exe` oder Dev (`desktop/npm run dev`).
-2. **Login** – wie oben.
-3. **Kurs / Schüler / Klausur** – Kurztest mit Reload.
-4. **SQLite** – Datei unter `data/phix.db` (Release) bzw. `%APPDATA%\PhiX` (Dev) wächst bei Speichern.
-5. **Schließen** – Backend-Prozess endet; erneuter Start lädt Daten.
+2. **Ersteinrichtung** (leere DB) – Einrichtungsassistent wie oben.
+3. **Login** – wie oben.
+4. **Kurs / Schüler / Klausur** – Kurztest mit Reload.
+5. **SQLite** – Datei unter `data/phix.db` (Release) bzw. `%APPDATA%\PhiX` (Dev) wächst bei Speichern.
+6. **Schließen** – Backend-Prozess endet; erneuter Start lädt Daten.
 
 ---
 

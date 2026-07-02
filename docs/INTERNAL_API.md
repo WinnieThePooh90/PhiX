@@ -4,8 +4,8 @@ Dokumentation der REST-ähnlichen HTTP-Schnittstelle des PhiX-Backends (`backend
 
 | Stand | Wert |
 |-------|------|
-| **Passend zu Build** | **`443`** (siehe [`APP_VERSION.md`](APP_VERSION.md)) |
-| Letzte inhaltliche Aktualisierung | 2026-06-30 |
+| **Passend zu Build** | **`452`** (siehe [`APP_VERSION.md`](APP_VERSION.md)) |
+| Letzte inhaltliche Aktualisierung | 2026-07-02 |
 | Implementierung | `backend/createApp.js` |
 
 ---
@@ -86,6 +86,7 @@ Ohne gültigen Krypto-Token (wenn Verschlüsselung eingerichtet): **HTTP 423** m
 **Ausnahmen** (kein Krypto-Token nötig) — siehe `backend/lib/crypto-middleware.js`:
 
 - `/api/health`
+- `/api/setup/wizard-status`, `/api/setup/work-user`
 - `/api/auth/login`, `/api/auth/logout`, `/api/auth/initial-password`, `/api/auth/session`
 - `/api/auth/crypto/setup`, `/api/auth/crypto/status`, `/api/auth/crypto/unlock-recovery`
 - `/api/registration` (alle Methoden)
@@ -138,10 +139,12 @@ Fehlerantworten: `{ "error": "…" }` (teilweise zusätzliche Felder wie `requir
 
 | Methode | Pfad | Auth | Krypto | Beschreibung |
 |---------|------|------|--------|--------------|
-| GET | `/api/health` | — | — | `{ "ok": true }` — Liveness |
+| GET | `/api/health` | — | — | `{ "ok": true, "needsWizard": boolean }` — Liveness und Einrichtungsstatus |
+| GET | `/api/setup/wizard-status` | — | — | `{ "needsWizard": boolean }` |
+| POST | `/api/setup/work-user` | — | — | Arbeitskonto im Assistenten; Body: `{ username, password, isAdmin? }` |
 | POST | `/api/auth/login` | — | — | Body: `{ username, password }`. Response: Benutzer, `cryptoSessionToken`, `requiresCryptoSetup`, `settings` |
 | POST | `/api/auth/logout` | Cookie | optional | Beendet Auth- und Krypto-Session |
-| GET | `/api/auth/session` | Cookie | — | Aktueller Benutzer oder 401 |
+| GET | `/api/auth/session` | Cookie | — | Aktueller Benutzer oder **401** mit `{ error, needsWizard? }` |
 | POST | `/api/auth/initial-password` | — | — | Erstes Passwort; Body: `{ username, newPassword, setupToken }` |
 | GET | `/api/auth/crypto/status` | Cookie | — | `{ ok, needsSetup?, needsRelogin? }` |
 | POST | `/api/auth/crypto/setup` | Cookie | — | Ersteinrichtung Verschlüsselung; Body: `{ password }` → `recoveryKey`, `cryptoSessionToken` |

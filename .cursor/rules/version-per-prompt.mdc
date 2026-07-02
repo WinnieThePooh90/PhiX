@@ -18,10 +18,12 @@ Gilt für **Agent-Modus** (wenn du Dateien ändern darfst). Im **Ask-Modus** kei
 5. **Sichtbare Build-Nummer** = nur **`PHIX_BUILD`** (eine Zahl). In **`backend/package.json`**, **`Notenauswertung-App/package.json`**, **`desktop/package.json`** das Feld **`"version"`** auf **`"<PHIX_BUILD>.0.0"`** setzen (Beispiel: Build `42` → `"42.0.0"`). Grund: **electron-builder** und npm verlangen SemVer; die laufende Nummer bleibt die **Major**-Komponente.
 6. In den **`package-lock.json`** derselben drei Ordner **nur** die Root-**`version`** und unter **`packages[""].version`** auf **dieselbe** SemVer-Zeichenkette setzen — **nicht** per `replace_all` auf die gesamte Datei.
 7. **Info-Seite synchronisieren:** `node Notenauswertung-App/scripts/sync-app-version.mjs` (aus Repo-Root) bzw. im App-Ordner `npm run sync-version` — schreibt `src/config/appVersion.js` aus `docs/APP_VERSION.md` (lokal) oder aus `package.json`-Major (Docker). Falls Node nicht verfügbar: Werte in `appVersion.js` manuell setzen.
+8. **Changelog:** In [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) oben einen Eintrag **`## Build <PHIX_BUILD> (<PHIX_LETZTE_AENDERUNG>)`** mit **einem kurzen Absatz** (Kern der Änderung in dieser Bearbeitung). Kein Bullet-Wälzen — nur das Wesentliche.
 
 ## Ausnahmen
 
 - Wenn die Nutzeranfrage ausdrücklich **keine** Repo-Änderungen erlaubt: nichts an Version oder Datum ändern.
+- Wenn die Nutzeranfrage ausdrücklich **keine** Build-Erhöhung verlangt: `PHIX_BUILD` unverändert lassen; Changelog-Eintrag nur ergänzen/aktualisieren, wenn inhaltlich nötig.
 
 ## Hinweise
 

@@ -4,9 +4,9 @@
 
 | Stand | Wert |
 |-------|------|
-| **Aktueller Build** | **443** — [`APP_VERSION.md`](APP_VERSION.md) |
+| **Aktueller Build** | **452** — [`APP_VERSION.md`](APP_VERSION.md) |
 | Zuletzt abgestimmt mit Repo | `desktop/package.json`, `docker-compose.yml`, `backend/createApp.js` |
-| Letzte inhaltliche Aktualisierung | 2026-06-30 |
+| Letzte inhaltliche Aktualisierung | 2026-07-02 |
 
 ---
 
@@ -37,7 +37,7 @@ PhiX wird **nur** in diesen beiden Formen verteilt:
 | **Frontend** | Container (nginx) | `resources/frontend-dist/` im Paket |
 | **Frontend-Auslieferung (Backend)** | nein (nginx) | ja, `PHIX_STANDALONE=1` (nur Electron) |
 | **Build-Rechner** | Windows, Linux, macOS (Docker) | **Windows** empfohlen für Release |
-| **Prisma / Schema** | `prisma migrate deploy` (Postgres) | SQLite, `db push --accept-data-loss` vor Start in Electron (`desktop/main.cjs`) |
+| **Prisma / Schema** | `prisma migrate deploy` (Postgres); bei bekannter P3009-Migration `referat_auswertung_hilfe` automatische Recovery beim Start (ab Build 451) | SQLite, `db push --accept-data-loss` vor Start in Electron (`desktop/main.cjs`) |
 | **Zielgruppe** | Selbst gehosteter Server, Browser-Zugriff | Einzelplatz, USB, ohne Docker |
 
 ---

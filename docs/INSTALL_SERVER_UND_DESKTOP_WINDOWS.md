@@ -97,7 +97,8 @@ Eine der folgenden Optionen:
 | Problem | Vorgehen |
 |---------|----------|
 | **`502 Bad Gateway`** auf Port 1990 | Backend läuft nicht: `docker compose ps`, `docker compose logs backend --tail 80`. |
-| **`P3009` / fehlgeschlagene Migration** (`referat_auswertung_hilfe`) | Im Projektroot (nach Update auf aktuellen Stand): `docker compose run --rm backend node scripts/resolve-referat-migration.js`, danach `docker compose up -d --build`. Prüfen: `curl -s http://localhost:1990/api/health` → `{"ok":true,...}`. |
+| **`P3009` / fehlgeschlagene Migration** (`referat_auswertung_hilfe`) | Ab Build **451** versucht das Backend beim Start automatische Recovery. Sonst: `docker compose run --rm backend node scripts/resolve-referat-migration.js`, danach `docker compose up -d --build`. |
+| **API-Test** | `curl -s http://localhost:1990/api/health` → `{"ok":true,"needsWizard":true|false}` (nicht Port 3000 von außen, wenn nur nginx exponiert ist). |
 | Port **5432** belegt | `.env`: `DB_PORT` ändern; alte `phix`-Container oder lokale Postgres stoppen. |
 | `docker` nicht gefunden | Docker Desktop installieren und PATH prüfen; neues Terminal öffnen. |
 | Seite lädt, API-Fehler | `docker compose logs backend` im Projektroot prüfen; `BACKEND_PORT` und lokales Netzwerk/Firewall prüfen. |
@@ -205,11 +206,12 @@ Siehe [`desktop/README.md`](../desktop/README.md). Kein Browser-Dev-Modus ohne E
 
 | Szenario | Vorgehen |
 |----------|----------|
-| Docker Compose / frische DB | **Einrichtungsassistent** (admin-Passwort, optional Arbeitskonto) statt normaler Anmeldung |
+| Docker Compose / frische DB | **Einrichtungsassistent** statt normaler Anmeldung: (1) admin-Passwort, (2) optional Arbeitskonto mit Admin-Rechten, (3) Start-Tipps |
 | Electron Desktop (leere DB) | wie oben |
+| Start-Tipps erneut lesen | **Einstellungen → Hilfe** (Abschnitt „Start-Tipps“ oben) |
 | Weitere Benutzer | Admin legt nur den **Benutzernamen** an und erhält ein **Einrichtungs-Token**; der Nutzer setzt beim ersten Login Passwort (mit Token) und richtet die Verschlüsselung ein |
 
-Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werden (Datenschutz). Eigenes Passwort später ändern: **Benutzerverwaltung** in der App.
+Passwörter im Assistenten und für andere Benutzer unterliegen **keiner Mindestlänge** (freie Wahl). Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werden (Datenschutz). Eigenes Passwort später ändern: **Benutzerverwaltung** in der App.
 
 ---
 
@@ -229,4 +231,4 @@ Passwörter anderer Benutzer können weder in der App noch per npm gesetzt werde
 
 ---
 
-*Diese Datei beschreibt den intendierten Ablauf laut Repository (Stand 2026-06-30, Build 443).*
+*Diese Datei beschreibt den intendierten Ablauf laut Repository (Stand 2026-07-02, Build 452).*
