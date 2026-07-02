@@ -5,6 +5,7 @@ import AppLogo from '../components/AppLogo';
 import PhixCheckboxOption from '../components/PhixCheckboxOption';
 import { useAuth } from '../store/AuthContext';
 import { apiFetch } from '../utils/apiBase';
+import { SETUP_START_TIPS, SETUP_START_TIPS_INTRO } from '../config/setupStartTips';
 
 function passwordsMatch(a, b) {
   return String(a) === String(b);
@@ -217,21 +218,11 @@ export default function SetupWizardView({ onComplete }) {
 
         {step === 3 ? (
           <div className="app-login-form">
-            <p className="app-login-subtitle app-login-wizard-intro">
-              Um direkt loslegen zu können, hier ein paar Tipps für einen schnellen und einfachen Einstieg:
-            </p>
+            <p className="app-login-subtitle app-login-wizard-intro">{SETUP_START_TIPS_INTRO}</p>
             <ol className="app-login-wizard-tips">
-              <li>
-                Geh auf Einstellungen → Schülerverwaltung und lege ein Schuljahr an. Lege dann die Schüler an, die
-                an deine Schule gehen. Am besten liest du diese per Import einer Excel- oder csv-Datei ein.
-              </li>
-              <li>
-                Lege nun eine neue Klasse an. Gib alle notwendigen Daten ein wie Name, Schuljahr und Gewichtung.
-              </li>
-              <li>
-                Geh auf Einstellungen → Klasse und füge deiner Klasse Schüler aus deiner Schülerverwaltung hinzu.
-              </li>
-              <li>Fertig: Nun kannst du Klausuren, Tests, mündliche Noten, usw. anlegen.</li>
+              {SETUP_START_TIPS.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
             </ol>
             <button type="button" className="app-login-submit" onClick={finishWizard}>
               Zur Anmeldung

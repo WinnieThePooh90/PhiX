@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { FAQ_ITEMS } from '../config/faq';
 import { HELP_CONTACT_EMAIL } from '../config/help';
+import { SETUP_START_TIPS, SETUP_START_TIPS_INTRO } from '../config/setupStartTips';
 
 function FaqRow({ item, expanded, onToggle }) {
   const headingId = `help-faq-${item.id}-heading`;
@@ -44,6 +45,19 @@ export default function HelpView() {
   return (
     <div className="view-generic-scroll program-view">
       <h3 className="program-view-title">Hilfe</h3>
+
+      <section className="program-view-panel glass-panel help-start-tips-panel" aria-labelledby="help-start-tips-heading">
+        <h4 id="help-start-tips-heading" className="program-view-panel-heading">
+          Start-Tipps
+        </h4>
+        <p className="program-view-panel-text">{SETUP_START_TIPS_INTRO}</p>
+        <ol className="help-start-tips">
+          {SETUP_START_TIPS.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
+        </ol>
+      </section>
+
       <section className="program-view-panel glass-panel">
         <p className="program-view-panel-text">
           Du hast einen Fehler entdeckt oder kommst einfach nicht weiter? Du hast Fragen zu PhiX? Melde

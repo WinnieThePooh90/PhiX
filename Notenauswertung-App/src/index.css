@@ -365,6 +365,22 @@ p {
   margin-top: 1.25rem;
 }
 
+.help-start-tips-panel {
+  margin-bottom: 1rem;
+}
+
+.help-start-tips {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-main);
+}
+
+.help-start-tips li + li {
+  margin-top: 0.65rem;
+}
+
 .help-faq-panel .program-view-panel-heading {
   margin-bottom: 0.85rem;
 }
