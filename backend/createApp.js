@@ -182,8 +182,15 @@ function rejectIfArchivedCourse(res, course) {
   return false;
 }
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await ensureBootstrapAdmin(prisma);
+    const needsWizard = await needsSetupWizard(prisma);
+    res.json({ ok: true, needsWizard });
+  } catch (err) {
+    console.error('[health] Einrichtungsstatus nicht lesbar:', err);
+    res.json({ ok: true, needsWizard: false });
+  }
 });
 
 app.get('/api/setup/wizard-status', async (_req, res) => {
@@ -572,16 +579,21 @@ app.patch('/api/users/:id/admin', async (req, res) => {
 async function ensureAppUsers() {
   const n = await prisma.appUser.count();
   if (n > 0) {
-    console.log(`[auth] ${n} App-Benutzer in der Datenbank (Login mit gespeicherten Zugangsdaten).`);
+    const admin = await prisma.appUser.findFirst({
+      where: { username: 'admin' },
+      select: { mustSetPassword: true },
+    });
+    const pending = await prisma.appUser.count({ where: { mustSetPassword: true } });
+    console.log(
+      `[auth] ${n} App-Benutzer in der Datenbank (admin mustSetPassword=${admin?.mustSetPassword === true}, ausstehend=${pending}).`,
+    );
     return;
   }
   const passwordHash = await placeholderPasswordHash();
   await prisma.appUser.create({
     data: { username: 'admin', passwordHash, isAdmin: true, mustSetPassword: true },
   });
-  console.log(
-    '[auth] Erster Start: Benutzer "admin" angelegt. Auf der Anmeldeseite „Erstes Passwort festlegen“ wählen und Passwort für admin setzen.',
-  );
+  console.log('[auth] Erster Start: Benutzer "admin" angelegt (Einrichtungsassistent).');
 }
 
 // USER SETTINGS

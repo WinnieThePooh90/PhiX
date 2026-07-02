@@ -26,10 +26,11 @@ function AuthenticatedApp() {
     confirmPendingRecovery,
     setupWizardNeeded,
     completeSetupWizard,
+    bootstrapError,
     logout,
   } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
-  if (!authReady || (!currentUser && setupWizardNeeded === null)) {
+  if (!authReady || (!currentUser && setupWizardNeeded === null && !bootstrapError)) {
     return (
       <div className="app-login-screen" aria-busy="true" aria-live="polite">
         <div className="app-login-card">
@@ -38,6 +39,30 @@ function AuthenticatedApp() {
             <h1 className="app-login-title">{APP_NAME}</h1>
           </div>
           <p className="app-login-subtitle">Wird geladen…</p>
+        </div>
+      </div>
+    );
+  }
+  if (bootstrapError) {
+    return (
+      <div className="app-login-screen">
+        <div className="app-login-card app-login-card--relogin">
+          <div className="app-login-brand">
+            <AppLogo size={72} />
+            <h1 className="app-login-title">{APP_NAME}</h1>
+          </div>
+          <p className="app-login-subtitle">{bootstrapError}</p>
+          <div className="app-login-relogin-actions">
+            <button
+              type="button"
+              className="app-login-submit"
+              onClick={() => {
+                window.location.reload();
+              }}
+            >
+              Erneut versuchen
+            </button>
+          </div>
         </div>
       </div>
     );

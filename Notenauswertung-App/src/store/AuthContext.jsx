@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }) => {
   const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
   const [pendingRecoveryConfirm, setPendingRecoveryConfirm] = useState(null);
   const [setupWizardNeeded, setSetupWizardNeeded] = useState(null);
+  const [bootstrapError, setBootstrapError] = useState(null);
   const usersListNonce = useRef(0);
 
   const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
@@ -117,28 +118,49 @@ export const AuthProvider = ({ children }) => {
       await new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    async function fetchWizardNeededFallback() {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        if (cancelled) return false;
+    async function readJsonResponse(res) {
+      const contentType = String(res.headers.get('content-type') || '');
+      if (!contentType.includes('application/json')) return null;
+      try {
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchNeedsWizardFromHealth() {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (cancelled) return { reachable: false, needsWizard: null };
         try {
-          const wsRes = await apiFetch('/api/setup/wizard-status');
-          if (wsRes.ok) {
-            const ws = await wsRes.json();
-            if (typeof ws?.needsWizard === 'boolean') return ws.needsWizard;
+          const res = await apiFetch('/api/health');
+          const body = await readJsonResponse(res);
+          if (res.ok && body?.ok === true) {
+            return {
+              reachable: true,
+              needsWizard: typeof body.needsWizard === 'boolean' ? body.needsWizard : null,
+            };
           }
         } catch {
           /* retry */
         }
-        if (attempt < 3) await sleep(250 * (attempt + 1));
+        if (attempt < 4) await sleep(300 * (attempt + 1));
       }
-      return false;
+      return { reachable: false, needsWizard: null };
     }
 
-    async function resolveWizardNeeded(sessionBody) {
-      if (typeof sessionBody?.needsWizard === 'boolean') {
-        return sessionBody.needsWizard;
+    async function fetchNeedsWizardFromSetupEndpoint() {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        if (cancelled) return null;
+        try {
+          const res = await apiFetch('/api/setup/wizard-status');
+          const body = await readJsonResponse(res);
+          if (res.ok && typeof body?.needsWizard === 'boolean') return body.needsWizard;
+        } catch {
+          /* retry */
+        }
+        if (attempt < 2) await sleep(250 * (attempt + 1));
       }
-      return fetchWizardNeededFallback();
+      return null;
     }
 
     (async () => {
@@ -150,10 +172,24 @@ export const AuthProvider = ({ children }) => {
         if (storedSettings.colorScheme && storedSettings.colorScheme !== 'standard') {
           document.documentElement.setAttribute('data-color-scheme', storedSettings.colorScheme);
         }
-        const res = await apiFetch('/api/auth/session');
+
+        const healthPromise = fetchNeedsWizardFromHealth();
+        let sessionRes = null;
+        let sessionBody = null;
+        try {
+          sessionRes = await apiFetch('/api/auth/session');
+          sessionBody = await readJsonResponse(sessionRes);
+        } catch {
+          sessionRes = null;
+          sessionBody = null;
+        }
+
         if (cancelled) return;
-        const sessionBody = await res.json().catch(() => ({}));
-        if (res.ok) {
+
+        const health = await healthPromise;
+        let backendReachable = health.reachable || Boolean(sessionRes);
+
+        if (sessionRes?.ok && sessionBody) {
           const u = mapAppUserFromApi(sessionBody);
           if (u) {
             setCurrentUser(u);
@@ -162,7 +198,10 @@ export const AuthProvider = ({ children }) => {
             } catch {
               /* ignore */
             }
-            if (!cancelled) setSetupWizardNeeded(false);
+            if (!cancelled) {
+              setBootstrapError(null);
+              setSetupWizardNeeded(false);
+            }
             const statusRes = await apiFetch('/api/auth/crypto/status', {
               headers: authHeaders(),
             });
@@ -177,30 +216,46 @@ export const AuthProvider = ({ children }) => {
                 applyCryptoGateFromStatus(sessionBody.username, statusRes, statusBody);
               }
             }
-          } else if (!cancelled) {
-            try {
-              localStorage.removeItem(STORAGE_SESSION_KEY);
-            } catch {
-              /* ignore */
-            }
-            clearCryptoSessionToken();
-            setCurrentUser(null);
-            setSetupWizardNeeded(await resolveWizardNeeded(sessionBody));
+            return;
           }
-        } else {
-          try {
-            localStorage.removeItem(STORAGE_SESSION_KEY);
-          } catch {
-            /* ignore */
+        }
+
+        try {
+          localStorage.removeItem(STORAGE_SESSION_KEY);
+        } catch {
+          /* ignore */
+        }
+        clearCryptoSessionToken();
+        setCurrentUser(null);
+
+        if (!backendReachable) {
+          if (!cancelled) {
+            setBootstrapError(
+              'PhiX-Backend nicht erreichbar. Läuft die App im Desktop-Modus? Bei Entwicklung: Backend starten (Port 3000).',
+            );
+            setSetupWizardNeeded(false);
           }
-          clearCryptoSessionToken();
-          setCurrentUser(null);
-          if (!cancelled) setSetupWizardNeeded(await resolveWizardNeeded(sessionBody));
+          return;
+        }
+
+        let needsWizard =
+          typeof sessionBody?.needsWizard === 'boolean' ? sessionBody.needsWizard : health.needsWizard;
+        if (needsWizard === null) {
+          needsWizard = await fetchNeedsWizardFromSetupEndpoint();
+        }
+        if (needsWizard === null) {
+          needsWizard = true;
+        }
+
+        if (!cancelled) {
+          setBootstrapError(null);
+          setSetupWizardNeeded(needsWizard);
         }
       } catch {
         if (!cancelled) {
           setCurrentUser(null);
-          setSetupWizardNeeded(await fetchWizardNeededFallback());
+          setBootstrapError('Verbindung zum PhiX-Backend fehlgeschlagen.');
+          setSetupWizardNeeded(false);
         }
       } finally {
         if (!cancelled) setAuthReady(true);
@@ -538,6 +593,7 @@ export const AuthProvider = ({ children }) => {
     () => ({
       currentUser,
       authReady,
+      bootstrapError,
       setupWizardNeeded,
       completeSetupWizard,
       pendingCryptoSetup,
@@ -557,6 +613,7 @@ export const AuthProvider = ({ children }) => {
     [
       currentUser,
       authReady,
+      bootstrapError,
       setupWizardNeeded,
       completeSetupWizard,
       pendingCryptoSetup,
