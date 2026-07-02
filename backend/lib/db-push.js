@@ -50,6 +50,55 @@ function baselineIfNeeded(opts) {
   console.log('[db-sync] Baseline abgeschlossen.');
 }
 
+/** Bekannte fehlgeschlagene Migrationen (P3009), die nach Korrektur der SQL erneut deployt werden. */
+const RECOVERABLE_FAILED_MIGRATIONS = ['20260622170000_referat_auswertung_hilfe'];
+
+function spawnOutput(result) {
+  return [result.stdout, result.stderr].filter(Boolean).map((b) => b.toString()).join('\n');
+}
+
+function echoSpawnOutput(result, stdio) {
+  if (stdio === 'pipe') return;
+  const text = spawnOutput(result).trim();
+  if (text) console.log(text);
+}
+
+function migrateDeploy({ nodeCmd, prismaCli, schemaAbs, backendRoot, env }) {
+  return spawnSync(nodeCmd, [prismaCli, 'migrate', 'deploy', `--schema=${schemaAbs}`], {
+    stdio: 'pipe',
+    cwd: backendRoot,
+    env,
+    shell: false,
+    windowsHide: true,
+  });
+}
+
+function migrateResolveRolledBack(migrationName, { nodeCmd, prismaCli, schemaAbs, backendRoot, env, stdio }) {
+  return spawnSync(
+    nodeCmd,
+    [prismaCli, 'migrate', 'resolve', '--rolled-back', migrationName, `--schema=${schemaAbs}`],
+    { stdio, cwd: backendRoot, env, shell: false, windowsHide: true },
+  );
+}
+
+function tryRecoverP3009(output, ctx) {
+  if (!output.includes('P3009')) return false;
+  for (const migrationName of RECOVERABLE_FAILED_MIGRATIONS) {
+    if (!output.includes(migrationName)) continue;
+    console.log(
+      `[db-sync] P3009: fehlgeschlagene Migration „${migrationName}“ als rolled-back markieren …`,
+    );
+    const resolved = migrateResolveRolledBack(migrationName, ctx);
+    if (resolved.status !== 0) {
+      echoSpawnOutput(resolved, ctx.stdio);
+      console.error(`[db-sync] migrate resolve fehlgeschlagen: ${migrationName}`);
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 /**
  * Synchronisiert das Datenbankschema beim Serverstart:
  * - PostgreSQL: `prisma migrate deploy` (inkrementelle Migrations, kein Datenverlust)
@@ -107,14 +156,20 @@ function runDbSync(opts = {}) {
 
   baselineIfNeeded({ backendRoot, prismaCli, schemaAbs, nodeCmd, env, stdio });
 
+  const migrateCtx = { nodeCmd, prismaCli, schemaAbs, backendRoot, env, stdio };
+
   console.log('[db-sync] migrate deploy (PostgreSQL)');
-  return spawnSync(nodeCmd, [prismaCli, 'migrate', 'deploy', `--schema=${schemaAbs}`], {
-    stdio,
-    cwd: backendRoot,
-    env,
-    shell: false,
-    windowsHide: true,
-  });
+  let result = migrateDeploy(migrateCtx);
+  let output = spawnOutput(result);
+  if (result.status !== 0 && tryRecoverP3009(output, migrateCtx)) {
+    console.log('[db-sync] migrate deploy (PostgreSQL, Wiederholung nach P3009-Recovery)');
+    result = migrateDeploy(migrateCtx);
+    output = spawnOutput(result);
+  }
+  if (stdio !== 'pipe' && output.trim()) {
+    console.log(output);
+  }
+  return result;
 }
 
 /**
