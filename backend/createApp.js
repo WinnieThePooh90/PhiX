@@ -376,12 +376,24 @@ app.post('/api/auth/crypto/unlock-recovery', async (req, res) => {
 
 app.get('/api/auth/session', async (req, res) => {
   const acting = getActingUser(req);
-  if (!acting) return res.status(401).json({ error: 'Nicht angemeldet' });
+  if (!acting) {
+    await ensureBootstrapAdmin(prisma);
+    return res.status(401).json({
+      error: 'Nicht angemeldet',
+      needsWizard: await needsSetupWizard(prisma),
+    });
+  }
   const user = await prisma.appUser.findFirst({
     where: usernameWhere(acting),
     select: { id: true, username: true, isAdmin: true },
   });
-  if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+  if (!user) {
+    await ensureBootstrapAdmin(prisma);
+    return res.status(401).json({
+      error: 'Unbekannter Benutzer',
+      needsWizard: await needsSetupWizard(prisma),
+    });
+  }
   res.json(toPublicAppUser(user));
 });
 

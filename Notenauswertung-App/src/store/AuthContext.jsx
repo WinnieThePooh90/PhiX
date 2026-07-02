@@ -113,19 +113,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchWizardNeeded() {
-      try {
-        const wsRes = await apiFetch('/api/setup/wizard-status');
-        if (!wsRes.ok) return false;
-        const ws = await wsRes.json();
-        return ws.needsWizard === true;
-      } catch {
-        return false;
+    async function sleep(ms) {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function fetchWizardNeededFallback() {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        if (cancelled) return false;
+        try {
+          const wsRes = await apiFetch('/api/setup/wizard-status');
+          if (wsRes.ok) {
+            const ws = await wsRes.json();
+            if (typeof ws?.needsWizard === 'boolean') return ws.needsWizard;
+          }
+        } catch {
+          /* retry */
+        }
+        if (attempt < 3) await sleep(250 * (attempt + 1));
       }
+      return false;
+    }
+
+    async function resolveWizardNeeded(sessionBody) {
+      if (typeof sessionBody?.needsWizard === 'boolean') {
+        return sessionBody.needsWizard;
+      }
+      return fetchWizardNeededFallback();
     }
 
     (async () => {
-      const wizardPromise = fetchWizardNeeded();
       try {
         const storedSettings = getUserSettingsFromStorage();
         if (storedSettings.darkMode) {
@@ -136,9 +152,9 @@ export const AuthProvider = ({ children }) => {
         }
         const res = await apiFetch('/api/auth/session');
         if (cancelled) return;
+        const sessionBody = await res.json().catch(() => ({}));
         if (res.ok) {
-          const body = await res.json();
-          const u = mapAppUserFromApi(body);
+          const u = mapAppUserFromApi(sessionBody);
           if (u) {
             setCurrentUser(u);
             try {
@@ -146,21 +162,30 @@ export const AuthProvider = ({ children }) => {
             } catch {
               /* ignore */
             }
-          }
-          if (!cancelled) setSetupWizardNeeded(false);
-          const statusRes = await apiFetch('/api/auth/crypto/status', {
-            headers: authHeaders(),
-          });
-          const statusBody = await statusRes.json().catch(() => ({}));
-          if (!cancelled) {
-            const pendingRec = readPendingRecoverySetup();
-            if (pendingRec && pendingRec.username === body.username) {
-              clearCryptoSessionToken();
-              setPendingRecoveryConfirm(pendingRec);
-              setPendingCryptoSetup(null);
-            } else {
-              applyCryptoGateFromStatus(body.username, statusRes, statusBody);
+            if (!cancelled) setSetupWizardNeeded(false);
+            const statusRes = await apiFetch('/api/auth/crypto/status', {
+              headers: authHeaders(),
+            });
+            const statusBody = await statusRes.json().catch(() => ({}));
+            if (!cancelled) {
+              const pendingRec = readPendingRecoverySetup();
+              if (pendingRec && pendingRec.username === sessionBody.username) {
+                clearCryptoSessionToken();
+                setPendingRecoveryConfirm(pendingRec);
+                setPendingCryptoSetup(null);
+              } else {
+                applyCryptoGateFromStatus(sessionBody.username, statusRes, statusBody);
+              }
             }
+          } else if (!cancelled) {
+            try {
+              localStorage.removeItem(STORAGE_SESSION_KEY);
+            } catch {
+              /* ignore */
+            }
+            clearCryptoSessionToken();
+            setCurrentUser(null);
+            setSetupWizardNeeded(await resolveWizardNeeded(sessionBody));
           }
         } else {
           try {
@@ -170,12 +195,12 @@ export const AuthProvider = ({ children }) => {
           }
           clearCryptoSessionToken();
           setCurrentUser(null);
-          if (!cancelled) setSetupWizardNeeded(await wizardPromise);
+          if (!cancelled) setSetupWizardNeeded(await resolveWizardNeeded(sessionBody));
         }
       } catch {
         if (!cancelled) {
           setCurrentUser(null);
-          setSetupWizardNeeded(await wizardPromise);
+          setSetupWizardNeeded(await fetchWizardNeededFallback());
         }
       } finally {
         if (!cancelled) setAuthReady(true);

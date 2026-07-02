@@ -4,8 +4,10 @@ const { usernameWhere } = require('./username-filter');
 
 /** Frische Installation: noch kein Benutzer mit festgelegtem Passwort. */
 async function needsSetupWizard(prisma) {
-  const configured = await prisma.appUser.count({ where: { mustSetPassword: false } });
-  return configured === 0;
+  const pending = await prisma.appUser.count({ where: { mustSetPassword: true } });
+  if (pending > 0) return true;
+  const total = await prisma.appUser.count();
+  return total === 0;
 }
 
 async function ensureBootstrapAdmin(prisma) {
