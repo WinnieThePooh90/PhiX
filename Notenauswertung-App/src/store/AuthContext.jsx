@@ -187,7 +187,13 @@ export const AuthProvider = ({ children }) => {
         if (cancelled) return;
 
         const health = await healthPromise;
-        let backendReachable = health.reachable || Boolean(sessionRes);
+
+        const sessionApiOk =
+          sessionRes != null &&
+          sessionBody != null &&
+          (sessionRes.ok || sessionRes.status === 401 || sessionRes.status === 403);
+
+        const backendReachable = health.reachable || sessionApiOk;
 
         if (sessionRes?.ok && sessionBody) {
           const u = mapAppUserFromApi(sessionBody);
@@ -231,7 +237,7 @@ export const AuthProvider = ({ children }) => {
         if (!backendReachable) {
           if (!cancelled) {
             setBootstrapError(
-              'PhiX-Backend nicht erreichbar. Läuft die App im Desktop-Modus? Bei Entwicklung: Backend starten (Port 3000).',
+              'PhiX-Backend nicht erreichbar. Docker: „docker compose ps“ und „docker compose logs backend“ prüfen. Desktop: App neu starten.',
             );
             setSetupWizardNeeded(false);
           }
@@ -244,7 +250,13 @@ export const AuthProvider = ({ children }) => {
           needsWizard = await fetchNeedsWizardFromSetupEndpoint();
         }
         if (needsWizard === null) {
-          needsWizard = true;
+          if (!cancelled) {
+            setBootstrapError(
+              'PhiX-Backend antwortet ohne Einrichtungsstatus. Bitte Backend-Logs prüfen und die Installation neu starten.',
+            );
+            setSetupWizardNeeded(false);
+          }
+          return;
         }
 
         if (!cancelled) {
