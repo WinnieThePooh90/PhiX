@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
 import AppLogo from './components/AppLogo';
+import SetupWizardView from './views/SetupWizardView';
 import LoginView from './views/LoginView';
 import RecoveryUnlockView from './views/RecoveryUnlockView';
 import CryptoSetupModal from './components/CryptoSetupModal';
@@ -23,6 +24,8 @@ function AuthenticatedApp() {
     pendingRecoveryConfirm,
     completeCryptoSetup,
     confirmPendingRecovery,
+    setupWizardNeeded,
+    completeSetupWizard,
     logout,
   } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
@@ -55,6 +58,9 @@ function AuthenticatedApp() {
           }}
         />
       );
+    }
+    if (setupWizardNeeded) {
+      return <SetupWizardView onComplete={completeSetupWizard} />;
     }
     return <LoginView onRecovery={() => setShowRecovery(true)} />;
   }

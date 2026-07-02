@@ -203,7 +203,7 @@ Siehe [`desktop/README.md`](../desktop/README.md). Kein Browser-Dev-Modus ohne E
 
 | Szenario | Vorgehen |
 |----------|----------|
-| Docker Compose / frische DB | Benutzer `admin` wird automatisch angelegt; auf der Anmeldeseite **„Erstes Passwort festlegen“** |
+| Docker Compose / frische DB | **Einrichtungsassistent** (admin-Passwort, optional Arbeitskonto) statt normaler Anmeldung |
 | Electron Desktop (leere DB) | wie oben |
 | Weitere Benutzer | Admin legt nur den **Benutzernamen** an und erhält ein **Einrichtungs-Token**; der Nutzer setzt beim ersten Login Passwort (mit Token) und richtet die Verschlüsselung ein |
 

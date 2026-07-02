@@ -32,6 +32,11 @@ const { placeholderPasswordHash, BCRYPT_ROUNDS } = require('./lib/app-user-passw
 const { createInitialSetupToken, verifyInitialSetupToken } = require('./lib/initial-setup-token');
 const { clientIp, checkRateLimit } = require('./lib/rate-limit');
 const {
+  needsSetupWizard,
+  ensureBootstrapAdmin,
+  createWorkUser,
+} = require('./lib/setup-wizard');
+const {
   attachAuthSession,
   createAuthSession,
   destroyAuthSession,
@@ -179,6 +184,27 @@ function rejectIfArchivedCourse(res, course) {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get('/api/setup/wizard-status', async (_req, res) => {
+  await ensureBootstrapAdmin(prisma);
+  res.json({ needsWizard: await needsSetupWizard(prisma) });
+});
+
+app.post('/api/setup/work-user', async (req, res) => {
+  const rate = checkRateLimit(`setup-work-user:${clientIp(req)}`);
+  if (!rate.allowed) {
+    return res.status(429).json({ error: 'Zu viele Versuche. Bitte später erneut versuchen.' });
+  }
+  const result = await createWorkUser(prisma, {
+    username: req.body?.username,
+    password: req.body?.password,
+    isAdmin: req.body?.isAdmin === true,
+  });
+  if (result.error) {
+    return res.status(result.status).json({ error: result.error });
+  }
+  res.status(result.status).json(result.user);
 });
 
 // ——— App-Benutzer (Passwort-Hashes in der DB) ———

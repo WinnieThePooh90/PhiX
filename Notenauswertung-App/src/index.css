@@ -2487,6 +2487,34 @@ tfoot td {
   text-align: center;
 }
 
+.app-login-card--wizard {
+  max-width: 34rem;
+}
+
+.app-login-wizard-intro {
+  margin: 0 0 0.25rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.app-login-wizard-tips {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-main);
+}
+
+.app-login-wizard-tips li + li {
+  margin-top: 0.65rem;
+}
+
+.app-login-wizard-secondary-btn {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .app-login-form {
   display: flex;
   flex-direction: column;

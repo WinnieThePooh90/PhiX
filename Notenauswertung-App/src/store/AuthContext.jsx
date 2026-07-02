@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }) => {
   const [usersList, setUsersList] = useState([]);
   const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
   const [pendingRecoveryConfirm, setPendingRecoveryConfirm] = useState(null);
+  const [setupWizardNeeded, setSetupWizardNeeded] = useState(false);
   const usersListNonce = useRef(0);
 
   const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
@@ -155,6 +156,17 @@ export const AuthProvider = ({ children }) => {
           }
           clearCryptoSessionToken();
           setCurrentUser(null);
+          try {
+            const wsRes = await apiFetch('/api/setup/wizard-status');
+            if (!cancelled && wsRes.ok) {
+              const ws = await wsRes.json();
+              setSetupWizardNeeded(ws.needsWizard === true);
+            } else if (!cancelled) {
+              setSetupWizardNeeded(false);
+            }
+          } catch {
+            if (!cancelled) setSetupWizardNeeded(false);
+          }
         }
       } catch {
         if (!cancelled) setCurrentUser(null);
@@ -486,10 +498,16 @@ export const AuthProvider = ({ children }) => {
     [currentUser, refreshUsersList],
   );
 
+  const completeSetupWizard = useCallback(() => {
+    setSetupWizardNeeded(false);
+  }, []);
+
   const value = useMemo(
     () => ({
       currentUser,
       authReady,
+      setupWizardNeeded,
+      completeSetupWizard,
       pendingCryptoSetup,
       pendingRecoveryConfirm,
       completeCryptoSetup,
@@ -507,6 +525,8 @@ export const AuthProvider = ({ children }) => {
     [
       currentUser,
       authReady,
+      setupWizardNeeded,
+      completeSetupWizard,
       pendingCryptoSetup,
       pendingRecoveryConfirm,
       completeCryptoSetup,
