@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   const [usersList, setUsersList] = useState([]);
   const [pendingCryptoSetup, setPendingCryptoSetup] = useState(null);
   const [pendingRecoveryConfirm, setPendingRecoveryConfirm] = useState(null);
-  const [setupWizardNeeded, setSetupWizardNeeded] = useState(false);
+  const [setupWizardNeeded, setSetupWizardNeeded] = useState(null);
   const usersListNonce = useRef(0);
 
   const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
@@ -112,7 +112,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let cancelled = false;
+
+    async function fetchWizardNeeded() {
+      try {
+        const wsRes = await apiFetch('/api/setup/wizard-status');
+        if (!wsRes.ok) return false;
+        const ws = await wsRes.json();
+        return ws.needsWizard === true;
+      } catch {
+        return false;
+      }
+    }
+
     (async () => {
+      const wizardPromise = fetchWizardNeeded();
       try {
         const storedSettings = getUserSettingsFromStorage();
         if (storedSettings.darkMode) {
@@ -134,6 +147,7 @@ export const AuthProvider = ({ children }) => {
               /* ignore */
             }
           }
+          if (!cancelled) setSetupWizardNeeded(false);
           const statusRes = await apiFetch('/api/auth/crypto/status', {
             headers: authHeaders(),
           });
@@ -156,20 +170,13 @@ export const AuthProvider = ({ children }) => {
           }
           clearCryptoSessionToken();
           setCurrentUser(null);
-          try {
-            const wsRes = await apiFetch('/api/setup/wizard-status');
-            if (!cancelled && wsRes.ok) {
-              const ws = await wsRes.json();
-              setSetupWizardNeeded(ws.needsWizard === true);
-            } else if (!cancelled) {
-              setSetupWizardNeeded(false);
-            }
-          } catch {
-            if (!cancelled) setSetupWizardNeeded(false);
-          }
+          if (!cancelled) setSetupWizardNeeded(await wizardPromise);
         }
       } catch {
-        if (!cancelled) setCurrentUser(null);
+        if (!cancelled) {
+          setCurrentUser(null);
+          setSetupWizardNeeded(await wizardPromise);
+        }
       } finally {
         if (!cancelled) setAuthReady(true);
       }

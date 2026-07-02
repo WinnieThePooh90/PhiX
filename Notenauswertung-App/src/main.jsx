@@ -29,7 +29,7 @@ function AuthenticatedApp() {
     logout,
   } = useAuth();
   const [showRecovery, setShowRecovery] = React.useState(false);
-  if (!authReady) {
+  if (!authReady || (!currentUser && setupWizardNeeded === null)) {
     return (
       <div className="app-login-screen" aria-busy="true" aria-live="polite">
         <div className="app-login-card">

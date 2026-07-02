@@ -11,9 +11,16 @@ const { createApp } = require('./createApp');
 const { app, ensureAppUsers, attachHttpServer } = createApp();
 
 const PORT = process.env.PORT || 3000;
-const httpServer = app.listen(PORT, async () => {
-  await ensureAppUsers();
-  console.log(`Server running on port ${PORT}`);
-});
 
-attachHttpServer(httpServer);
+async function start() {
+  await ensureAppUsers();
+  const httpServer = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+  attachHttpServer(httpServer);
+}
+
+start().catch((err) => {
+  console.error('[server] Start fehlgeschlagen:', err);
+  process.exit(1);
+});

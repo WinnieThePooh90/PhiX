@@ -12,9 +12,14 @@ async function ensureBootstrapAdmin(prisma) {
   const n = await prisma.appUser.count();
   if (n > 0) return;
   const passwordHash = await placeholderPasswordHash();
-  await prisma.appUser.create({
-    data: { username: 'admin', passwordHash, isAdmin: true, mustSetPassword: true },
-  });
+  try {
+    await prisma.appUser.create({
+      data: { username: 'admin', passwordHash, isAdmin: true, mustSetPassword: true },
+    });
+  } catch (err) {
+    if (err?.code === 'P2002') return;
+    throw err;
+  }
 }
 
 /** Arbeit-Benutzer nur, wenn admin-Passwort gesetzt ist und noch kein zweiter Account existiert. */
