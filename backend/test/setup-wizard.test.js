@@ -15,6 +15,15 @@ describe('setup-wizard', () => {
     assert.equal(await needsSetupWizard(prisma), true);
   });
 
+  it('needsSetupWizard ist false wenn mindestens ein konfigurierter Benutzer existiert', async () => {
+    const prisma = {
+      appUser: {
+        count: async ({ where }) => (where?.mustSetPassword === false ? 1 : 2),
+      },
+    };
+    assert.equal(await needsSetupWizard(prisma), false);
+  });
+
   it('canCreateWorkUser nur mit einem fertigen Benutzer', async () => {
     const prisma = {
       appUser: {
