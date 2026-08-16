@@ -445,26 +445,74 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
-  const username = String(req.body?.username ?? '').trim();
-  if (!username) return res.status(400).json({ error: 'Benutzername eingeben.' });
   if (String(req.body?.password ?? '').trim()) {
     return res.status(400).json({
       error:
         'Passwörter anderer Benutzer können nicht vergeben werden. Der neue Benutzer legt sein Passwort beim ersten Login selbst fest.',
     });
   }
-  const clash = await prisma.appUser.findFirst({
-    where: usernameWhere(username),
-  });
-  if (clash) return res.status(409).json({ error: 'Dieser Benutzername ist bereits vergeben.' });
+
+  const rawInput = req.body?.usernames ?? req.body?.username;
+  let items = [];
+  if (Array.isArray(rawInput)) {
+    items = rawInput.flatMap((item) => String(item ?? '').split(/[,;\n\r]+/));
+  } else if (typeof rawInput === 'string' || typeof rawInput === 'number') {
+    items = String(rawInput).split(/[,;\n\r]+/);
+  }
+
+  const cleanItems = [];
+  const seenLower = new Set();
+  for (const item of items) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    const lower = trimmed.toLowerCase();
+    if (seenLower.has(lower)) continue;
+    seenLower.add(lower);
+    cleanItems.push(trimmed);
+  }
+
+  if (cleanItems.length === 0) {
+    return res.status(400).json({ error: 'Bitte mindestens einen Benutzernamen eingeben.' });
+  }
+
   const passwordHash = await placeholderPasswordHash();
-  const { token: setupToken, hash: initialSetupTokenHash } = await createInitialSetupToken();
-  const user = await prisma.appUser.create({
-    data: { username, passwordHash, mustSetPassword: true, initialSetupTokenHash },
-    select: { id: true, username: true, isAdmin: true },
-  });
-  // Verschlüsselung + Recovery-Key erst beim ersten Login des neuen Benutzers (POST /api/auth/crypto/setup).
-  res.status(201).json({ ...toPublicAppUser(user), setupToken });
+  const created = [];
+  const skipped = [];
+
+  for (const username of cleanItems) {
+    const clash = await prisma.appUser.findFirst({
+      where: usernameWhere(username),
+    });
+    if (clash) {
+      skipped.push({ username, reason: 'Dieser Benutzername ist bereits vergeben.' });
+      continue;
+    }
+    const { token: setupToken, hash: initialSetupTokenHash } = await createInitialSetupToken();
+    const user = await prisma.appUser.create({
+      data: { username, passwordHash, mustSetPassword: true, initialSetupTokenHash },
+      select: { id: true, username: true, isAdmin: true },
+    });
+    created.push({ ...toPublicAppUser(user), setupToken });
+  }
+
+  if (created.length === 0) {
+    return res.status(409).json({
+      error: 'Keiner der angegebenen Benutzernamen konnte angelegt werden (bereits vergeben).',
+      created,
+      skipped,
+    });
+  }
+
+  const responsePayload = {
+    ok: true,
+    created,
+    skipped,
+  };
+  if (created.length === 1) {
+    Object.assign(responsePayload, created[0]);
+  }
+
+  return res.status(201).json(responsePayload);
 });
 
 app.patch('/api/users/:id/password', async (req, res) => {

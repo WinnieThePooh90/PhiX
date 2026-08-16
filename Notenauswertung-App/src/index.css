@@ -1354,6 +1354,49 @@ p {
   margin-top: 0.35rem;
 }
 
+.program-user-mgmt-token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.program-user-mgmt-token-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: hsl(var(--background) / 0.6);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.program-user-mgmt-token-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+}
+
+.program-user-mgmt-token-username {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-main);
+}
+
+.program-user-mgmt-token-code {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: var(--primary);
+  background: hsl(var(--foreground) / 0.05);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
 .program-user-mgmt-form {
   display: flex;
   flex-direction: column;

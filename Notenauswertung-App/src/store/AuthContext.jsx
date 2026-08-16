@@ -492,7 +492,7 @@ export const AuthProvider = ({ children }) => {
     async (usernameRaw) => {
       const username = String(usernameRaw ?? '').trim();
       if (!username) {
-        return { ok: false, error: 'Benutzername eingeben.' };
+        return { ok: false, error: 'Bitte mindestens einen Benutzernamen eingeben.' };
       }
       const acting = currentUser?.username;
       if (!acting) return { ok: false, error: 'Nicht angemeldet.' };
@@ -504,10 +504,20 @@ export const AuthProvider = ({ children }) => {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          return { ok: false, error: body.error || 'Anlegen fehlgeschlagen.' };
+          return {
+            ok: false,
+            error: body.error || 'Anlegen fehlgeschlagen.',
+            created: body.created || [],
+            skipped: body.skipped || [],
+          };
         }
         await refreshUsersList();
-        return { ok: true, setupToken: body.setupToken || '' };
+        return {
+          ok: true,
+          setupToken: body.setupToken || '',
+          created: body.created || [],
+          skipped: body.skipped || [],
+        };
       } catch {
         return { ok: false, error: 'Server nicht erreichbar.' };
       }

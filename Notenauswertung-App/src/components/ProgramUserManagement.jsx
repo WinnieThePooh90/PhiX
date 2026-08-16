@@ -123,25 +123,231 @@ export default function ProgramUserManagement() {
     if (passwordUserId === u.id) resetPasswordForm();
   };
 
+  const [createdBatch, setCreatedBatch] = useState(null);
+  const [copiedTokenUser, setCopiedTokenUser] = useState(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
   const onCreateUser = async (e) => {
     e.preventDefault();
     setFormErr('');
     setListErr('');
     const r = await addUser(newUsername);
-    if (!r.ok) {
+    if (!r.ok && (!r.created || r.created.length === 0)) {
       setFormErr(r.error || 'Anlegen fehlgeschlagen.');
       return;
     }
-    const createdName = newUsername.trim();
     setNewUsername('');
-    const tokenHint = r.setupToken
-      ? `\n\nEinrichtungs-Token (einmalig an den Benutzer weitergeben):\n${r.setupToken}`
-      : '';
-    await showAlert(
-      `Benutzer „${createdName}“ wurde angelegt. Beim ersten Login legt er sein Passwort fest (mit Einrichtungs-Token), richtet die Verschlüsselung ein und erhält einen Recovery-Key.${tokenHint}`,
-      { title: 'Benutzer angelegt' },
-    );
+    setCreatedBatch({
+      created: r.created || [],
+      skipped: r.skipped || [],
+    });
   };
+
+  const copySingleToken = (username, token) => {
+    try {
+      navigator.clipboard.writeText(token);
+      setCopiedTokenUser(username);
+      setTimeout(() => setCopiedTokenUser(null), 2000);
+    } catch {}
+  };
+
+  const copyAllTokens = () => {
+    if (!createdBatch?.created?.length) return;
+    const text = createdBatch.created
+      .map((u) => `Benutzer: ${u.username}\nToken: ${u.setupToken}`)
+      .join('\n\n');
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 2000);
+    } catch {}
+  };
+
+  const createdBatchModal =
+    createdBatch &&
+    createPortal(
+      <div
+        className="program-user-mgmt-modal-backdrop"
+        role="presentation"
+        onMouseDown={(ev) => {
+          if (ev.target === ev.currentTarget) setCreatedBatch(null);
+        }}
+      >
+        <div
+          className="program-user-mgmt-modal-dialog glass-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="program-user-mgmt-batch-title"
+          style={{ maxWidth: '560px', width: '90%' }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h2 id="program-user-mgmt-batch-title" className="program-user-mgmt-modal-title">
+            Ergebnis der Benutzeranlegung
+          </h2>
+
+          {createdBatch.created?.length > 0 && (
+            <div className="program-user-mgmt-batch-section">
+              <p className="program-user-mgmt-create-hint" style={{ marginBottom: '0.75rem' }}>
+                {createdBatch.created.length === 1
+                  ? 'Der Benutzer wurde erfolgreich angelegt. Beim ersten Login legt er sein Passwort mit dem Einrichtungs-Token fest.'
+                  : `${createdBatch.created.length} Benutzer wurden erfolgreich angelegt. Bitte übergeben Sie den Lehrkräften ihre jeweiligen Einrichtungs-Tokens.`}
+              </p>
+              <div className="program-user-mgmt-token-list">
+                {createdBatch.created.map((u) => (
+                  <div key={u.id || u.username} className="program-user-mgmt-token-card">
+                    <div className="program-user-mgmt-token-info">
+                      <span className="program-user-mgmt-token-username">{u.username}</span>
+                      <code className="program-user-mgmt-token-code">{u.setupToken}</code>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary program-user-mgmt-action-btn"
+                      onClick={() => copySingleToken(u.username, u.setupToken)}
+                      title="Einrichtungs-Token kopieren"
+                    >
+                      {copiedTokenUser === u.username ? 'Kopiert!' : 'Kopieren'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {createdBatch.skipped?.length > 0 && (
+            <div className="program-user-mgmt-batch-skipped" style={{ marginTop: '1rem' }}>
+              <p className="program-user-mgmt-error" style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                Folgende Benutzernamen wurden übersprungen:
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                {createdBatch.skipped.map((s, idx) => (
+                  <li key={idx}>
+                    <strong>{s.username}</strong>: {s.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="program-user-mgmt-modal-actions" style={{ marginTop: '1.25rem' }}>
+            {createdBatch.created?.length > 1 && (
+              <button type="button" className="program-user-mgmt-submit" onClick={copyAllTokens}>
+                {copiedAll ? 'Alle Tokens kopiert!' : 'Alle Tokens kopieren'}
+              </button>
+            )}
+            <button type="button" className="secondary" onClick={() => setCreatedBatch(null)}>
+              Schließen
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+
+  return (
+    <div className="program-user-mgmt">
+      <h3 className="program-user-mgmt-page-title">Benutzerverwaltung</h3>
+
+      <section className="program-user-mgmt-section" aria-labelledby="program-user-mgmt-list-heading">
+        <h4 id="program-user-mgmt-list-heading" className="program-user-mgmt-section-title">
+          Bestehende Benutzer
+        </h4>
+        {listErr ? (
+          <p className="program-user-mgmt-error program-user-mgmt-section-alert" role="alert">
+            {listErr}
+          </p>
+        ) : null}
+        <ul className="program-user-mgmt-list program-user-mgmt-list--wide">
+          {sortedUsers.map((u) => (
+            <li key={u.id} className="program-user-mgmt-list-item">
+              <span className="program-user-mgmt-name">
+                {u.username}
+                {currentUser?.username === u.username ? (
+                  <span className="program-user-mgmt-you"> (Sie)</span>
+                ) : null}
+              </span>
+              <span className="program-user-mgmt-row-actions">
+                {actingIsAdmin ? (
+                  <PhixCheckboxOption
+                    className="program-user-mgmt-admin-check program-user-mgmt-action-btn"
+                    checked={userHasAdminRights(u)}
+                    disabled={
+                      isReservedAdminUsername(u.username) || adminToggleUserId === u.id
+                    }
+                    onChange={(e) => onToggleAdmin(u, e.target.checked)}
+                    title={
+                      isReservedAdminUsername(u.username)
+                        ? 'Dem Benutzer „admin“ können Admin-Rechte nicht entzogen werden.'
+                        : 'Administratorrechte (z. B. Backup, Dependencies)'
+                    }
+                    aria-label={`Administratorrechte für ${u.username}`}
+                  >
+                    Admin
+                  </PhixCheckboxOption>
+                ) : null}
+                {isSelfUser(u) ? (
+                  <button
+                    type="button"
+                    className="program-user-mgmt-link-btn program-user-mgmt-action-btn"
+                    title="Eigenes Passwort ändern"
+                    onClick={() => openPasswordModal(u)}
+                  >
+                    Passwort ändern
+                  </button>
+                ) : null}
+                {canDeleteUser(u) ? (
+                  <button
+                    type="button"
+                    className="program-user-mgmt-delete-btn program-user-mgmt-action-btn"
+                    title={
+                      isSelfUser(u)
+                        ? 'Eigenen Benutzer löschen'
+                        : 'Benutzer löschen'
+                    }
+                    onClick={() => onDeleteUser(u)}
+                  >
+                    Löschen
+                  </button>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="program-user-mgmt-section" aria-labelledby="program-user-mgmt-create-heading">
+        <h4 id="program-user-mgmt-create-heading" className="program-user-mgmt-section-title">
+          Neuen Benutzer anlegen
+        </h4>
+        <form className="program-user-mgmt-form" onSubmit={onCreateUser}>
+          <label className="program-user-mgmt-label">
+            Benutzername(n)
+            <textarea
+              className="program-user-mgmt-input"
+              rows={2}
+              placeholder="z. B. lehrer1, lehrer2, lehrer3 oder zeilenweise"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+            />
+          </label>
+          <p className="program-user-mgmt-create-hint">
+            Mehrere Benutzernamen durch Komma, Semikolon oder Zeilenumbruch trennen. Das Passwort legt jeder Benutzer beim ersten Login selbst fest.
+          </p>
+          {formErr ? (
+            <p className="program-user-mgmt-error" role="alert">
+              {formErr}
+            </p>
+          ) : null}
+          <button type="submit" className="program-user-mgmt-submit">
+            Benutzer anlegen
+          </button>
+        </form>
+      </section>
+
+      {passwordModal}
+      {createdBatchModal}
+    </div>
+  );
+}
 
   const onSubmitPassword = async (e) => {
     e.preventDefault();
