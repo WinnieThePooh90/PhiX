@@ -114,7 +114,7 @@ function App() {
   });
 
   const setActiveTab = useCallback((tab, { replace = false } = {}) => {
-    const targetTab = (!isAdminUser && (tab === 'userManagement' || tab === 'dependencies')) ? 'summary' : tab;
+    const targetTab = (!isAdminUser && tab === 'dependencies') ? 'summary' : tab;
     setActiveTabRaw(targetTab);
     try { if (userTabKey) localStorage.setItem(userTabKey, targetTab); } catch {}
     setSearchParams((prev) => {
@@ -135,7 +135,7 @@ function App() {
 
   useEffect(() => {
     const urlTab = searchParams.get('tab');
-    if (!isAdminUser && (urlTab === 'userManagement' || urlTab === 'dependencies')) {
+    if (!isAdminUser && urlTab === 'dependencies') {
       setActiveTab('summary', { replace: true });
       return;
     }
@@ -150,7 +150,7 @@ function App() {
     try {
       const stored = localStorage.getItem(userTabKey);
       const rawRestored = stored || 'summary';
-      const restoredTab = (!isAdminUser && (rawRestored === 'userManagement' || rawRestored === 'dependencies')) ? 'summary' : rawRestored;
+      const restoredTab = (!isAdminUser && rawRestored === 'dependencies') ? 'summary' : rawRestored;
       setActiveTabRaw(restoredTab);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -344,7 +344,7 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (!isAdminUser && (activeTab === 'dependencies' || activeTab === 'userManagement')) {
+    if (!isAdminUser && activeTab === 'dependencies') {
       setActiveTab('summary', { replace: true });
     }
   }, [isAdminUser, activeTab]);
@@ -355,7 +355,7 @@ function App() {
   }, [hasActiveCourse, activeTab]);
 
   const openMainTab = (tab) => {
-    if (!isAdminUser && (tab === 'userManagement' || tab === 'dependencies')) {
+    if (!isAdminUser && tab === 'dependencies') {
       return;
     }
     if (isNewCoursePage) navigate('/');
@@ -478,11 +478,7 @@ function App() {
       case 'schoolRoster':
         return <SchoolRosterView />;
       case 'userManagement':
-        return isAdminUser ? (
-          <UserManagementView />
-        ) : (
-          <SummaryView studentIdFilterSet={studentIdFilterSet} />
-        );
+        return <UserManagementView />;
       case 'backup':
         return <BackupView />;
       case 'analysis':
@@ -551,7 +547,7 @@ function App() {
   const settingsTabActive =
     activeTab === 'settings' ||
     activeTab === 'schoolRoster' ||
-    (isAdminUser && activeTab === 'userManagement') ||
+    activeTab === 'userManagement' ||
     activeTab === 'keys' ||
     (hasActiveCourse && activeTab === 'analysis') ||
     (hasActiveCourse && activeTab === 'album') ||

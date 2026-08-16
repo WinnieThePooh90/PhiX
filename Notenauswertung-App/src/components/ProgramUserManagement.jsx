@@ -342,9 +342,40 @@ export default function ProgramUserManagement() {
   if (!actingIsAdmin) {
     return (
       <div className="program-user-mgmt">
-        <p className="program-user-mgmt-error" role="alert" style={{ padding: '1rem', background: 'hsl(var(--background) / 0.6)', borderRadius: 'var(--radius)' }}>
-          Zugriff verweigert. Nur Administratoren dürfen die Benutzerverwaltung aufrufen.
-        </p>
+        <h3 className="program-user-mgmt-page-title">Benutzerverwaltung</h3>
+
+        <section className="program-user-mgmt-section" aria-labelledby="program-user-mgmt-profile-heading">
+          <h4 id="program-user-mgmt-profile-heading" className="program-user-mgmt-section-title">
+            Mein Benutzerprofil
+          </h4>
+          {listErr ? (
+            <p className="program-user-mgmt-error program-user-mgmt-section-alert" role="alert">
+              {listErr}
+            </p>
+          ) : null}
+          <ul className="program-user-mgmt-list program-user-mgmt-list--wide">
+            <li className="program-user-mgmt-list-item">
+              <span className="program-user-mgmt-name">
+                {currentUser?.username || '—'}
+                <span className="program-user-mgmt-you"> (Sie)</span>
+              </span>
+              <span className="program-user-mgmt-row-actions">
+                {currentUser ? (
+                  <button
+                    type="button"
+                    className="program-user-mgmt-link-btn program-user-mgmt-action-btn"
+                    title="Eigenes Passwort ändern"
+                    onClick={() => openPasswordModal(currentUser)}
+                  >
+                    Passwort ändern
+                  </button>
+                ) : null}
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        {passwordModal}
       </div>
     );
   }

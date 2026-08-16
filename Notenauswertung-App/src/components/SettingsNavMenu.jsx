@@ -51,11 +51,9 @@ export default function SettingsNavMenu({
       <button type="button" role="menuitem" onClick={() => pick('schoolRoster')}>
         Schülerverwaltung
       </button>
-      {isAdminUser ? (
-        <button type="button" role="menuitem" onClick={() => pick('userManagement')}>
-          Benutzerverwaltung
-        </button>
-      ) : null}
+      <button type="button" role="menuitem" onClick={() => pick('userManagement')}>
+        Benutzerverwaltung
+      </button>
       <button type="button" role="menuitem" onClick={() => pick('backup')}>
         Backup
       </button>
