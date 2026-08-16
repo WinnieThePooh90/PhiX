@@ -339,6 +339,16 @@ export default function ProgramUserManagement() {
       document.body,
     );
 
+  if (!actingIsAdmin) {
+    return (
+      <div className="program-user-mgmt">
+        <p className="program-user-mgmt-error" role="alert" style={{ padding: '1rem', background: 'hsl(var(--background) / 0.6)', borderRadius: 'var(--radius)' }}>
+          Zugriff verweigert. Nur Administratoren dürfen die Benutzerverwaltung aufrufen.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="program-user-mgmt">
       <h3 className="program-user-mgmt-page-title">Benutzerverwaltung</h3>

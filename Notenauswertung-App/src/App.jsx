@@ -338,7 +338,7 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (!isAdminUser && activeTab === 'dependencies') {
+    if (!isAdminUser && (activeTab === 'dependencies' || activeTab === 'userManagement')) {
       setActiveTab('summary', { replace: true });
     }
   }, [isAdminUser, activeTab]);
@@ -469,7 +469,11 @@ function App() {
       case 'schoolRoster':
         return <SchoolRosterView />;
       case 'userManagement':
-        return <UserManagementView />;
+        return isAdminUser ? (
+          <UserManagementView />
+        ) : (
+          <SummaryView studentIdFilterSet={studentIdFilterSet} />
+        );
       case 'backup':
         return <BackupView />;
       case 'analysis':
@@ -538,7 +542,7 @@ function App() {
   const settingsTabActive =
     activeTab === 'settings' ||
     activeTab === 'schoolRoster' ||
-    activeTab === 'userManagement' ||
+    (isAdminUser && activeTab === 'userManagement') ||
     activeTab === 'keys' ||
     (hasActiveCourse && activeTab === 'analysis') ||
     (hasActiveCourse && activeTab === 'album') ||

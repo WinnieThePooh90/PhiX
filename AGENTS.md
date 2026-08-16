@@ -11,3 +11,6 @@
 
 ## Automatische Versionserhöhung bei Programmänderungen
 - **Versionsnummer & Zeitstempel inkrementieren**: Bei jedem Prompt/Auftrag, der eine Änderung am Programm vornimmt, muss die Versionsnummer um 1 erhöht werden und der Zeitstempel entsprechend auf das aktuelle Datum/Uhrzeit (im ISO 8601-Format mit Zeitzone, z. B. `2026-08-09T10:55:00+02:00`) gesetzt werden.
+
+## Verbot von `npm` Terminal-Befehlen
+- **Keine `npm` Befehle ausführen**: Der Agent darf keine Terminal-Befehle ausführen oder vorschlagen, die `npm` beinhalten (z. B. `npm test`, `npm run build`, `npm install` etc.). Sämtliche `npm`-Befehle werden vom Benutzer selbst ausgeführt.
