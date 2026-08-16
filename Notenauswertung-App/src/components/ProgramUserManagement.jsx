@@ -4,6 +4,7 @@ import { useAuth } from '../store/AuthContext';
 import { useDialog } from './PhixDialog';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import { isReservedAdminUsername, userHasAdminRights } from '../utils/userAdmin';
+import { copyToClipboard } from '../utils/clipboard';
 
 export default function ProgramUserManagement() {
   const { usersList, addUser, setPasswordForUser, setUserAdmin, deleteUser, currentUser } = useAuth();
@@ -166,24 +167,24 @@ export default function ProgramUserManagement() {
     setPwdNew2('');
   };
 
-  const copySingleToken = (username, token) => {
-    try {
-      navigator.clipboard.writeText(token);
+  const copySingleToken = async (username, token) => {
+    const ok = await copyToClipboard(token);
+    if (ok) {
       setCopiedTokenUser(username);
       setTimeout(() => setCopiedTokenUser(null), 2000);
-    } catch {}
+    }
   };
 
-  const copyAllTokens = () => {
+  const copyAllTokens = async () => {
     if (!createdBatch?.created?.length) return;
     const text = createdBatch.created
       .map((u) => `Benutzer: ${u.username}\nToken: ${u.setupToken}`)
       .join('\n\n');
-    try {
-      navigator.clipboard.writeText(text);
+    const ok = await copyToClipboard(text);
+    if (ok) {
       setCopiedAll(true);
       setTimeout(() => setCopiedAll(false), 2000);
-    } catch {}
+    }
   };
 
   const passwordModal =
@@ -292,7 +293,7 @@ export default function ProgramUserManagement() {
                   <div key={u.id || u.username} className="program-user-mgmt-token-card">
                     <div className="program-user-mgmt-token-info">
                       <span className="program-user-mgmt-token-username">{u.username}</span>
-                      <code className="program-user-mgmt-token-code">{u.setupToken}</code>
+                      <code className="program-user-mgmt-token-code" style={{ userSelect: 'all' }}>{u.setupToken}</code>
                     </div>
                     <button
                       type="button"
