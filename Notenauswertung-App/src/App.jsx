@@ -114,18 +114,19 @@ function App() {
   });
 
   const setActiveTab = useCallback((tab, { replace = false } = {}) => {
-    setActiveTabRaw(tab);
-    try { if (userTabKey) localStorage.setItem(userTabKey, tab); } catch {}
+    const targetTab = (!isAdminUser && (tab === 'userManagement' || tab === 'dependencies')) ? 'summary' : tab;
+    setActiveTabRaw(targetTab);
+    try { if (userTabKey) localStorage.setItem(userTabKey, targetTab); } catch {}
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (tab === 'summary') {
+      if (targetTab === 'summary') {
         next.delete('tab');
       } else {
-        next.set('tab', tab);
+        next.set('tab', targetTab);
       }
       return next;
     }, { replace });
-  }, [setSearchParams, userTabKey]);
+  }, [setSearchParams, userTabKey, isAdminUser]);
 
   useEffect(() => {
     installTableRowFocusHighlight();
@@ -134,17 +135,22 @@ function App() {
 
   useEffect(() => {
     const urlTab = searchParams.get('tab');
+    if (!isAdminUser && (urlTab === 'userManagement' || urlTab === 'dependencies')) {
+      setActiveTab('summary', { replace: true });
+      return;
+    }
     if (urlTab && urlTab !== activeTab) {
       setActiveTabRaw(urlTab);
       try { if (userTabKey) localStorage.setItem(userTabKey, urlTab); } catch {}
     }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, isAdminUser, activeTab, setActiveTab, userTabKey]);
 
   useEffect(() => {
     if (!userTabKey) return;
     try {
       const stored = localStorage.getItem(userTabKey);
-      const restoredTab = stored || 'summary';
+      const rawRestored = stored || 'summary';
+      const restoredTab = (!isAdminUser && (rawRestored === 'userManagement' || rawRestored === 'dependencies')) ? 'summary' : rawRestored;
       setActiveTabRaw(restoredTab);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -152,7 +158,7 @@ function App() {
         return next;
       }, { replace: true });
     } catch {}
-  }, [userTabKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userTabKey, isAdminUser, setSearchParams]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA).matches : false,
@@ -349,6 +355,9 @@ function App() {
   }, [hasActiveCourse, activeTab]);
 
   const openMainTab = (tab) => {
+    if (!isAdminUser && (tab === 'userManagement' || tab === 'dependencies')) {
+      return;
+    }
     if (isNewCoursePage) navigate('/');
     setActiveTab(tab);
     setMobileSettingsOpen(false);
