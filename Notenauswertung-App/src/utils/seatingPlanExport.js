@@ -45,8 +45,7 @@ function formatStudentDisplayName(student, allStudents) {
 
 /**
   Exportiert den Sitzplan als Excel-Datei (.xlsx)
-  - Ohne Orientierungs-Hinweiszeile
-  - Ohne erste Spalte "Reihe"
+  - Ohne Spalte "Reihe" & ohne Kopfzeile "Platz 1, Platz 2, ..."
   - Zentrierte Texte (horizontal & vertikal) in jeder Zelle
   - Vergrößerte Spaltenbreiten (24 ch) und Zeilenhöhen (38 pt) für ALLE Sitzreihen
   - Zusammengefasste Lehrerpult-Zeile über die volle Zeilenbreite ganz unten
@@ -70,12 +69,6 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
   const titleRow = [`Sitzplan – ${config?.subject || ''} ${config?.className || ''} ${config?.year ? `(${config.year})` : ''}`.trim()];
   const emptyRow = [''];
 
-  // Header Zeile: ["Platz 1", "Platz 2", ...] (ohne Spalte "Reihe")
-  const headerRow = [];
-  for (let c = 1; c <= colsCount; c++) {
-    headerRow.push(`Platz ${c}`);
-  }
-
   const tableRows = [];
   for (let r = 0; r < rowsCount; r++) {
     const rowData = [];
@@ -95,7 +88,7 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
     teacherDeskRow.push('');
   }
 
-  const aoa = [titleRow, emptyRow, headerRow, ...tableRows, emptyRow, teacherDeskRow];
+  const aoa = [titleRow, emptyRow, ...tableRows, emptyRow, teacherDeskRow];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
@@ -104,17 +97,15 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
     wch: 24,
   }));
 
-  const startRowIdx = 2; // Header-Zeile ist Index 2 (0=Titel, 1=Empty, 2=Header)
-  const dataStartRowIdx = 3; // Erste Datenzeile (Index 3)
-  const dataEndRowIdx = 3 + tableRows.length - 1; // Letzte Datenzeile
+  const dataStartRowIdx = 2; // Erste Datenzeile (Index 2: 0=Titel, 1=Empty)
+  const dataEndRowIdx = 2 + tableRows.length - 1; // Letzte Datenzeile
   const teacherDeskRowIdx = aoa.length - 1; // Lehrerpult-Zeile
 
-  // Zeilenhöhen: Titel (26 pt), Header (24 pt), Alle Datenzeilen (38 pt), Lehrerpult (32 pt)
+  // Zeilenhöhen: Titel (26 pt), Alle Datenzeilen (38 pt), Lehrerpult (32 pt)
   const totalRows = aoa.length;
   const rowHeights = [];
   for (let r = 0; r < totalRows; r++) {
     if (r === 0) rowHeights.push({ hpt: 26 });
-    else if (r === startRowIdx) rowHeights.push({ hpt: 24 });
     else if (r >= dataStartRowIdx && r <= dataEndRowIdx) rowHeights.push({ hpt: 38 });
     else if (r === teacherDeskRowIdx) rowHeights.push({ hpt: 32 });
     else rowHeights.push({ hpt: 12 });
@@ -150,16 +141,8 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
           font: { bold: true, sz: 14, color: { rgb: '333333' } },
           alignment: { horizontal: 'left', vertical: 'center' },
         };
-      } else if (r === startRowIdx) {
-        // Tabellen-Kopfzeile
-        cell.s = {
-          font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
-          fill: { fgColor: { rgb: '4F46E5' } },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          border: thinBorder,
-        };
       } else if (r >= dataStartRowIdx && r <= dataEndRowIdx) {
-        // Sitzplatz-Rasterzellen (alle Zeilen inklusive der letzten Datenzeile vergrößert)
+        // Sitzplatz-Rasterzellen
         const isOccupied = cell.v && cell.v !== '(Frei)';
         cell.s = {
           font: {
@@ -195,8 +178,7 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
 
 /**
   Exportiert den Sitzplan als PDF-Datei im Querformat (.pdf)
-  - Ohne Orientierungs-Untertitel
-  - Ohne Spalte "Reihe"
+  - Ohne Kopfzeile "Platz 1, Platz 2, ..."
   - Tafel / Lehrerpult als zusammengefasste ganze Zeile über die volle Breite am Ende
  */
 export function exportSeatingPlanPdf({ config, students, filename }) {
@@ -227,13 +209,7 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
   const title = `Sitzplan – ${config?.subject || ''} ${config?.className || ''} ${config?.year ? `(${config.year})` : ''}`.trim();
   doc.text(title, 14, 15);
 
-  // Tabellenkopf: ["Platz 1", "Platz 2", ...] (ohne "Reihe")
-  const head = [[]];
-  for (let c = 1; c <= colsCount; c++) {
-    head[0].push(`Platz ${c}`);
-  }
-
-  // Tabellenzeilen
+  // Tabellenzeilen (ohne Kopfzeile "Platz 1", "Platz 2", ...)
   const body = [];
   for (let r = 0; r < rowsCount; r++) {
     const rowData = [];
@@ -268,7 +244,6 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
   autoTable(doc, {
     startY: 20,
     margin: { left: 14, right: 14 },
-    head,
     body,
     styles: {
       font: 'helvetica',
@@ -277,12 +252,6 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
       halign: 'center',
       valign: 'middle',
       overflow: 'linebreak',
-    },
-    headStyles: {
-      fillColor: [79, 70, 229],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'center',
     },
     didParseCell: (data) => {
       if (data.section === 'body' && data.row.index < rowsCount) {
