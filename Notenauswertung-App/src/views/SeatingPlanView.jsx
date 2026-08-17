@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2 } from 'lucide-react';
+import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2, X } from 'lucide-react';
 import MaximizableTableSection from '../components/MaximizableTableSection';
 
 const PRESET_LAYOUTS = [
@@ -303,6 +303,22 @@ export default function SeatingPlanView({ onOpenExport }) {
     setDraggedItem(null);
   };
 
+  const handleRemoveStudentFromCell = (cellKey, e) => {
+    e?.stopPropagation();
+    if (courseArchived) return;
+
+    const nextAssignments = { ...assignments };
+    delete nextAssignments[cellKey];
+
+    updateConfig({
+      seatingPlan: {
+        rows,
+        cols,
+        assignments: nextAssignments,
+      },
+    });
+  };
+
   if (!config) {
     return (
       <div className="view-generic-scroll program-view">
@@ -511,6 +527,17 @@ export default function SeatingPlanView({ onOpenExport }) {
                             title={`${student.firstName} ${student.lastName} (Reihe ${displayRow}, Platz ${c + 1})`}
                           >
                             <span className="seating-plan-seat-name">{displayName}</span>
+                            {!courseArchived && (
+                              <button
+                                type="button"
+                                className="seating-plan-remove-btn"
+                                onClick={(e) => handleRemoveStudentFromCell(cellKey, e)}
+                                title={`${displayName} von diesem Platz entfernen`}
+                                aria-label={`${displayName} von diesem Platz entfernen`}
+                              >
+                                <X size={12} strokeWidth={2.5} aria-hidden />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="seating-plan-seat-empty">
