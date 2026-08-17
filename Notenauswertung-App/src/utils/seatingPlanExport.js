@@ -1,9 +1,7 @@
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
-import autoTable, { applyPlugin } from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { triggerPdfDownload } from './phixPdfExport';
-
-applyPlugin(jsPDF);
 
 /** Erstellt einen Dateinamen für den Sitzplan-Export. */
 export function seatingPlanExportFilename(config, format) {

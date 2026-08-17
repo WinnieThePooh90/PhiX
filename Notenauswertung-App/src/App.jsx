@@ -371,6 +371,11 @@ function App() {
     openMainTab(tab);
   };
 
+  const openExportSection = (sectionId) => {
+    setExportFocusSection(sectionId);
+    openMainTab('export');
+  };
+
   const clearLeistungFocus = () => setLeistungFocusStudentId(null);
 
   const sidebarShowsNav = !sidebarCollapsed || isMobile;
@@ -443,7 +448,7 @@ function App() {
       case 'settings':
         return <SettingsView />;
       case 'seatingPlan':
-        return <SeatingPlanView onOpenExport={() => { setExportFocusSection('seating-plan'); setActiveTab('export'); }} />;
+        return <SeatingPlanView onOpenExport={() => openExportSection('seating-plan')} />;
       case 'exams':
         return <ExamsView studentIdFilterSet={studentIdFilterSet} />;
       case 'oral':
