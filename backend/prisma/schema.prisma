@@ -132,6 +132,8 @@ model Course {
   archivedGradingKeys Json @default("[]")
   /** Besitzer (Anmeldename); nur dieser Nutzer bearbeitet den Kurs, außer „admin“ sieht alle. */
   ownerUsername String @default("admin")
+  /** Sitzplan-Konfiguration (Raster-Form & Belegung). */
+  seatingPlan Json?
 
   students   Student[]
   exams      Exam[]

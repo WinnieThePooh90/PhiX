@@ -111,6 +111,7 @@ model Course {
   /** Eingefrorene Notenschlüssel-Definitionen (Snapshot beim Archivieren). */
   archivedGradingKeys Json @default("[]")
   ownerUsername String @default("admin")
+  seatingPlan Json?
 
   students   Student[]
   exams      Exam[]

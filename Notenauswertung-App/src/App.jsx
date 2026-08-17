@@ -18,6 +18,7 @@ import { isCourseArchived } from './utils/courseArchive';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
+import SeatingPlanView from './views/SeatingPlanView';
 import NewCourseForm from './components/NewCourseForm';
 import SchoolRosterView from './views/SchoolRosterView';
 import UserManagementView from './views/UserManagementView';
@@ -440,6 +441,8 @@ function App() {
     switch (activeTab) {
       case 'settings':
         return <SettingsView />;
+      case 'seatingPlan':
+        return <SeatingPlanView />;
       case 'exams':
         return <ExamsView studentIdFilterSet={studentIdFilterSet} />;
       case 'oral':
@@ -546,6 +549,7 @@ function App() {
 
   const settingsTabActive =
     activeTab === 'settings' ||
+    (hasActiveCourse && activeTab === 'seatingPlan') ||
     activeTab === 'schoolRoster' ||
     activeTab === 'userManagement' ||
     activeTab === 'keys' ||

@@ -7271,3 +7271,270 @@ tbody tr:hover td.gfs-gehalten-td--checked {
     flex: 1 1 auto;
   }
 }
+
+/* ==========================================================================
+   SITZPLAN (SEATING PLAN) VIEW STYLES
+   ========================================================================== */
+
+.seating-plan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.seating-plan-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.seating-plan-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  background: var(--card-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.seating-plan-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.seating-plan-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-heading, currentColor);
+}
+
+.seating-plan-select {
+  width: auto;
+  min-width: 180px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.seating-plan-custom-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.seating-plan-sublabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.seating-plan-num-input {
+  width: 65px;
+  padding: 0.3rem 0.4rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.seating-plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seating-plan-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Unplatzierte Schüler Tray */
+.seating-plan-unassigned-section {
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius);
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+}
+
+.seating-plan-unassigned-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.seating-plan-unassigned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.seating-plan-chip {
+  padding: 0.4rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--primary-subtle, rgba(99, 102, 241, 0.12));
+  border: 1px solid var(--primary-border, rgba(99, 102, 241, 0.3));
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--primary-text, currentColor);
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.seating-plan-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.seating-plan-chip:active {
+  cursor: grabbing;
+}
+
+/* KASSENZIMMER & SITZPLAN GRID */
+.seating-plan-room-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  gap: 1rem;
+  overflow-x: auto;
+}
+
+.seating-plan-room-header-hint,
+.seating-plan-room-footer-hint {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.seating-plan-grid {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.seating-plan-cell {
+  position: relative;
+  min-height: 80px;
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.seating-plan-cell--empty {
+  border-color: var(--border);
+}
+
+.seating-plan-cell--occupied {
+  border-style: solid;
+  border-color: var(--primary-border, rgba(99, 102, 241, 0.4));
+  background: var(--card-bg, rgba(255, 255, 255, 0.05));
+}
+
+.seating-plan-cell--drag-over {
+  border-color: var(--primary, #6366f1) !important;
+  background: var(--primary-subtle, rgba(99, 102, 241, 0.2)) !important;
+  transform: scale(1.02);
+}
+
+.seating-plan-cell-coords {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.45;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.seating-plan-seat-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--primary-subtle, rgba(99, 102, 241, 0.15));
+  border: 1px solid var(--primary-border, rgba(99, 102, 241, 0.4));
+  color: var(--text-heading, currentColor);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.seating-plan-seat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.seating-plan-seat-card:active {
+  cursor: grabbing;
+}
+
+.seating-plan-seat-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  opacity: 0.4;
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+/* LEHRERPULT / TAFEL UNTERHALB DER GRID */
+.seating-plan-teacher-desk {
+  width: 100%;
+  max-width: 650px;
+  margin-top: 0.75rem;
+}
+
+.seating-plan-teacher-desk-bar {
+  width: 100%;
+  padding: 0.65rem 1.5rem;
+  text-align: center;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.25), rgba(99, 102, 241, 0.2));
+  border: 2px solid var(--primary-border, rgba(99, 102, 241, 0.5));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.seating-plan-teacher-desk-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--primary-text, currentColor);
+}
+
