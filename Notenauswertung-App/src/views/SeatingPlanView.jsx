@@ -44,7 +44,8 @@ function sortStudentsAlphabetically(studentsList) {
 }
 
 export default function SeatingPlanView() {
-  const { config, activeCourseId, students, updateConfig, courseArchived } = useData();
+  const { config, activeCourseId, students, setConfig, updateConfig: updateConfigCtx, courseArchived } = useData();
+  const updateConfig = setConfig || updateConfigCtx;
   const { showConfirm, showAlert } = useDialog();
 
   const savedSeatingPlan = config?.seatingPlan || null;

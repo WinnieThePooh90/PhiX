@@ -2191,7 +2191,7 @@ export const DataProvider = ({ children }) => {
   const contextValue = {
       courses, activeCourseId, setActiveCourseId, createCourse, deleteCourse, archiveCourse, reactivateCourse, toggleCourseFavorite,
       courseArchived,
-      config, setConfig: updateConfig, migrateGradingSystem,
+      config, setConfig: updateConfig, updateConfig, migrateGradingSystem,
       students, addStudent, removeStudent, clearCourseStudents, updateStudentConfig,
       exams, addExam, removeExam, updateExam, updateExamScore, updateExamFieldMaxPoints, updateExamCounted,
       updateExamStudentNachschreiber, updateExamStudentNachschreiberFields,
