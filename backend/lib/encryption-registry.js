@@ -14,6 +14,7 @@ const ENCRYPTED_FIELDS = {
     'advancedWeightingStash',
     'gfsGehaltenStash',
     'referatGehaltenStash',
+    'seatingPlan',
   ],
   Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note', 'summaryNotes'],
   SchoolRosterYear: ['label'],
@@ -49,6 +50,7 @@ const JSON_FIELDS = new Set([
   'advancedWeightingStash',
   'gfsGehaltenStash',
   'referatGehaltenStash',
+  'seatingPlan',
 ]);
 
 const DATE_STRING_FIELDS = new Set(['dueDate', 'sessionDate']);

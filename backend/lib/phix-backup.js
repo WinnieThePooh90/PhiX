@@ -464,29 +464,29 @@ async function clearUserPhixData(tx, ownerUsername) {
     select: { id: true },
   });
   const courseIds = courses.map((c) => c.id);
-  if (!courseIds.length) return;
-
-  await tx.notesListEntry.deleteMany({ where: { notesList: { courseId: { in: courseIds } } } });
-  await tx.notesList.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.collectionListEntry.deleteMany({
-    where: { collectionList: { courseId: { in: courseIds } } },
-  });
-  await tx.collectionList.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.attendanceListEntry.deleteMany({
-    where: { attendanceList: { courseId: { in: courseIds } } },
-  });
-  await tx.attendanceList.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.moneyListEntry.deleteMany({ where: { moneyList: { courseId: { in: courseIds } } } });
-  await tx.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.referatEntry.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.albumPhoto.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.test.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.project.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.oral.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.exam.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.student.deleteMany({ where: { courseId: { in: courseIds } } });
-  await tx.course.deleteMany({ where: { ownerUsername } });
+  if (courseIds.length > 0) {
+    await tx.notesListEntry.deleteMany({ where: { notesList: { courseId: { in: courseIds } } } });
+    await tx.notesList.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.collectionListEntry.deleteMany({
+      where: { collectionList: { courseId: { in: courseIds } } },
+    });
+    await tx.collectionList.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.attendanceListEntry.deleteMany({
+      where: { attendanceList: { courseId: { in: courseIds } } },
+    });
+    await tx.attendanceList.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.moneyListEntry.deleteMany({ where: { moneyList: { courseId: { in: courseIds } } } });
+    await tx.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.referatEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.albumPhoto.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.test.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.project.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.oral.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.exam.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.student.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.course.deleteMany({ where: { ownerUsername } });
+  }
   await tx.schoolRosterStudent.deleteMany({
     where: { schoolYear: { ownerUsername } },
   });
