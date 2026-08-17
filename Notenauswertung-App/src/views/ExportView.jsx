@@ -121,14 +121,18 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
 
   useEffect(() => {
     if (focusSection) {
-      setExpandedSections((prev) => new Set([...prev, focusSection]));
+      setExpandedSections((prev) => {
+        const next = new Set(prev);
+        next.add(focusSection);
+        return next;
+      });
       const timer = setTimeout(() => {
         const el = document.getElementById(`export-${focusSection}-section`) || document.getElementById(`export-${focusSection}-heading`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         onFocusConsumed?.();
-      }, 100);
+      }, 120);
       return () => clearTimeout(timer);
     }
   }, [focusSection, onFocusConsumed]);
@@ -178,7 +182,7 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
 
   const runExport = async (key, fn, { requireStudents = true } = {}) => {
     if (!config) return;
-    if (requireStudents && !students.length) return;
+    if (requireStudents && (!students || !students.length)) return;
     setBusyKey(key);
     try {
       await fn();

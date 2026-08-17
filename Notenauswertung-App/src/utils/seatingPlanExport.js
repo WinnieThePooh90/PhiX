@@ -13,6 +13,21 @@ export function seatingPlanExportFilename(config, format) {
   return `${base}${ext}`;
 }
 
+/** Hilfsfunktion zum sicheren Lesen des seatingPlan Objekts */
+function getSeatingPlanObj(config) {
+  if (!config?.seatingPlan) return {};
+  if (typeof config.seatingPlan === 'object' && config.seatingPlan !== null) return config.seatingPlan;
+  if (typeof config.seatingPlan === 'string') {
+    try {
+      const parsed = JSON.parse(config.seatingPlan);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 /** Formatiert Schülernamen (Vorname, bei Namensgleichheit mit Nachnamens-Initial). */
 function formatStudentDisplayName(student, allStudents) {
   if (!student) return '';
@@ -34,10 +49,13 @@ function formatStudentDisplayName(student, allStudents) {
   - Vergrößerte Spaltenbreiten (24 ch) und Zeilenhöhen (36 pt)
  */
 export function exportSeatingPlanXlsx({ config, students, filename }) {
-  const seatingPlan = config?.seatingPlan || {};
+  const seatingPlan = getSeatingPlanObj(config);
   const rowsCount = Number(seatingPlan.rows) || 8;
   const colsCount = Number(seatingPlan.cols) || 3;
-  const assignments = seatingPlan.assignments || {};
+  const rawAssignments = seatingPlan.assignments;
+  const assignments = typeof rawAssignments === 'object' && rawAssignments !== null
+    ? rawAssignments
+    : (typeof rawAssignments === 'string' ? (JSON.parse(rawAssignments) || {}) : {});
 
   const studentsMap = new Map();
   (students || []).forEach((s) => studentsMap.set(Number(s.id), s));
@@ -172,10 +190,13 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
   Exportiert den Sitzplan als PDF-Datei im Querformat (.pdf)
  */
 export function exportSeatingPlanPdf({ config, students, filename }) {
-  const seatingPlan = config?.seatingPlan || {};
+  const seatingPlan = getSeatingPlanObj(config);
   const rowsCount = Number(seatingPlan.rows) || 8;
   const colsCount = Number(seatingPlan.cols) || 3;
-  const assignments = seatingPlan.assignments || {};
+  const rawAssignments = seatingPlan.assignments;
+  const assignments = typeof rawAssignments === 'object' && rawAssignments !== null
+    ? rawAssignments
+    : (typeof rawAssignments === 'string' ? (JSON.parse(rawAssignments) || {}) : {});
 
   const studentsMap = new Map();
   (students || []).forEach((s) => studentsMap.set(Number(s.id), s));
