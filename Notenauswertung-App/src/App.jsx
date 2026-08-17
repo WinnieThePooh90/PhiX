@@ -107,6 +107,7 @@ function App() {
   const tabFromUrl = searchParams.get('tab') || null;
   const userTabKey = currentUser?.username ? `phix_last_tab_${currentUser.username}` : null;
   const userYearFilterKey = currentUser?.username ? `phix_sidebar_year_filter_${currentUser.username}` : null;
+  const [exportFocusSection, setExportFocusSection] = useState(null);
   const [activeTab, setActiveTabRaw] = useState(() => {
     if (tabFromUrl) return tabFromUrl;
     try {
@@ -442,7 +443,7 @@ function App() {
       case 'settings':
         return <SettingsView />;
       case 'seatingPlan':
-        return <SeatingPlanView />;
+        return <SeatingPlanView onOpenExport={() => { setExportFocusSection('seating-plan'); setActiveTab('export'); }} />;
       case 'exams':
         return <ExamsView studentIdFilterSet={studentIdFilterSet} />;
       case 'oral':
@@ -491,7 +492,12 @@ function App() {
       case 'klassenlehrer':
         return <KlassenlehrerView />;
       case 'export':
-        return <ExportView />;
+        return (
+          <ExportView
+            focusSection={exportFocusSection}
+            onFocusConsumed={() => setExportFocusSection(null)}
+          />
+        );
       case 'appInfo':
         return <AppInfoView onOpenSupport={() => openMainTab('support')} onOpenLicense={() => openMainTab('license')} />;
       case 'support':

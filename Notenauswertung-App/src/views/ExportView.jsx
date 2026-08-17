@@ -36,6 +36,7 @@ import {
   exportAllGradingKeys,
   exportSingleGradingKey,
 } from '../utils/gradingKeysListExport';
+import { exportSeatingPlanXlsx, exportSeatingPlanPdf } from '../utils/seatingPlanExport';
 
 function courseLabel(course) {
   if (!course) return '';
@@ -48,6 +49,7 @@ function ExportSection({ sectionId, title, expanded, onToggle, className = '', c
 
   return (
     <section
+      id={`export-${sectionId}-section`}
       className={`program-view-panel glass-panel export-section${expanded ? ' export-section--open' : ''}${className ? ` ${className}` : ''}`}
       aria-labelledby={headingId}
     >
@@ -108,10 +110,28 @@ function ExportFormatButtons({ label, sublabel, disabled, busyKey, exportKey, on
   );
 }
 
-export default function ExportView() {
+export default function ExportView({ focusSection, onFocusConsumed }) {
   const { config, students, exams, orals, tests, projects, gfsEntries, referatEntries } = useData();
   const [busyKey, setBusyKey] = useState(null);
-  const [expandedSections, setExpandedSections] = useState(() => new Set());
+  const [expandedSections, setExpandedSections] = useState(() => {
+    const s = new Set();
+    if (focusSection) s.add(focusSection);
+    return s;
+  });
+
+  useEffect(() => {
+    if (focusSection) {
+      setExpandedSections((prev) => new Set([...prev, focusSection]));
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`export-${focusSection}-section`) || document.getElementById(`export-${focusSection}-heading`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        onFocusConsumed?.();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [focusSection, onFocusConsumed]);
 
   const toggleSection = (sectionId) => {
     setExpandedSections((prev) => {
@@ -722,6 +742,37 @@ export default function ExportView() {
                 onPdf={() => exportGradingKey(entry, 'pdf')}
               />
             ))}
+          </div>
+        </ExportSection>
+
+        <ExportSection
+          sectionId="seating-plan"
+          title="Sitzplan"
+          expanded={isSectionOpen('seating-plan')}
+          onToggle={() => toggleSection('seating-plan')}
+        >
+          <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
+            Sitzordnung der Klasse ({config?.seatingPlan?.rows || 8} × {config?.seatingPlan?.cols || 3} Plätze). Exportieren Sie den Sitzplan im Querformat als PDF-Dokument oder als Excel-Datei (.xlsx) mit vergrößerten und zentrierten Tabellenzellen.
+          </p>
+          <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
+            <button
+              type="button"
+              className="tab secondary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => runExport('seating-plan-xlsx', async () => exportSeatingPlanXlsx({ config, students }), { requireStudents: false })}
+            >
+              <FileSpreadsheet size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'seating-plan-xlsx' ? 'Export …' : 'Sitzplan als Excel'}
+            </button>
+            <button
+              type="button"
+              className="tab secondary export-format-btn"
+              disabled={anyBusy || !config}
+              onClick={() => runExport('seating-plan-pdf', async () => exportSeatingPlanPdf({ config, students }), { requireStudents: false })}
+            >
+              <FileText size={16} strokeWidth={2} aria-hidden />
+              {busyKey === 'seating-plan-pdf' ? 'Export …' : 'Sitzplan als PDF (Querformat)'}
+            </button>
           </div>
         </ExportSection>
       </div>

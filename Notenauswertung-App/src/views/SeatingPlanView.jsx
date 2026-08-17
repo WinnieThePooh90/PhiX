@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2 } from 'lucide-react';
+import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2 } from 'lucide-react';
 import MaximizableTableSection from '../components/MaximizableTableSection';
 
 const PRESET_LAYOUTS = [
@@ -45,7 +45,7 @@ function sortStudentsAlphabetically(studentsList) {
   });
 }
 
-export default function SeatingPlanView() {
+export default function SeatingPlanView({ onOpenExport }) {
   const { config, activeCourseId, students, setConfig, updateConfig: updateConfigCtx, courseArchived } = useData();
   const updateConfig = setConfig || updateConfigCtx;
   const { showConfirm, showAlert } = useDialog();
@@ -315,14 +315,29 @@ export default function SeatingPlanView() {
   return (
     <div className="view-generic-scroll program-view seating-plan-view">
       <div className="seating-plan-header">
-        <div className="seating-plan-title-wrap">
-          <h3 className="program-view-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <Armchair size={24} strokeWidth={2.25} aria-hidden />
-            Sitzplan für {config.subject} {config.className}
-          </h3>
-          <p className="program-view-intro text-muted" style={{ margin: 0 }}>
-            Ziehe einfach die Schülernamen per Drag & Drop auf die Sitzplätze. Bei Platzierung auf einem besetzten Platz werden die Namen vertauscht.
-          </p>
+        <div className="seating-plan-title-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 className="program-view-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <Armchair size={24} strokeWidth={2.25} aria-hidden />
+              Sitzplan für {config.subject} {config.className}
+            </h3>
+            <p className="program-view-intro text-muted" style={{ margin: 0 }}>
+              Ziehe einfach die Schülernamen per Drag & Drop auf die Sitzplätze. Bei Platzierung auf einem besetzten Platz werden die Namen vertauscht.
+            </p>
+          </div>
+
+          {onOpenExport && (
+            <button
+              type="button"
+              className="tab secondary seating-plan-action-btn"
+              onClick={onOpenExport}
+              title="Sitzplan-Export aufrufen (PDF / Excel)"
+              style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <FileSpreadsheet size={16} strokeWidth={2} aria-hidden />
+              Exportieren
+            </button>
+          )}
         </div>
 
         <div className="seating-plan-toolbar">
