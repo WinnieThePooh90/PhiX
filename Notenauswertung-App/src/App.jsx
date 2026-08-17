@@ -252,7 +252,7 @@ function App() {
 
   useEffect(() => {
     if (!selectedYearFilter || uniqueYears.length === 0) return;
-    if (!uniqueYears.includes(selectedYearFilter)) {
+    if (selectedYearFilter !== 'ARCHIVE' && !uniqueYears.includes(selectedYearFilter)) {
       setSelectedYearFilter('');
     }
   }, [uniqueYears, selectedYearFilter, setSelectedYearFilter]);
@@ -262,6 +262,16 @@ function App() {
     const textMatch = (c) => courseMatchesSidebarSearch(c, q);
     const labelCompare = (a, b) =>
       courseSidebarLabel(a).localeCompare(courseSidebarLabel(b), 'de', { numeric: true, sensitivity: 'base' });
+
+    if (selectedYearFilter === 'ARCHIVE') {
+      return courses
+        .filter((c) => isCourseArchived(c) && textMatch(c))
+        .sort((a, b) => {
+          const yd = schoolYearStartForSort(b.year) - schoolYearStartForSort(a.year);
+          if (yd !== 0) return yd;
+          return labelCompare(a, b);
+        });
+    }
 
     const favorites = courses
       .filter((c) => !isCourseArchived(c) && c.isFavorite === true && textMatch(c))
@@ -285,6 +295,9 @@ function App() {
   }, [courses, selectedYearFilter, sidebarCourseSearch]);
 
   const sidebarArchivedCourses = React.useMemo(() => {
+    if (selectedYearFilter === 'ARCHIVE') {
+      return [];
+    }
     const q = sidebarCourseSearch;
     const textMatch = (c) => courseMatchesSidebarSearch(c, q);
     const labelCompare = (a, b) =>
@@ -749,6 +762,7 @@ function App() {
                       style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
                     >
                       <option value="">Alle Schuljahre</option>
+                      <option value="ARCHIVE">Archiv</option>
                       {uniqueYears.map((year) => (
                         <option key={year} value={year}>
                           {year}
@@ -757,12 +771,18 @@ function App() {
                     </select>
                   </div>
                 )}
+                {selectedYearFilter === 'ARCHIVE' && sidebarCourses.length === 0 && (
+                  <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--muted-foreground)', textAlign: 'center' }}>
+                    Keine archivierten Fächer
+                  </div>
+                )}
                 {sidebarCourses.map((course) => {
-                  const fav = course.isFavorite === true;
+                  const archived = isCourseArchived(course);
+                  const fav = !archived && course.isFavorite === true;
                   return (
                     <div
                       key={course.id}
-                      className={`course-item course-item--with-fav ${activeCourseId === course.id ? 'active' : ''}`}
+                      className={`course-item ${archived ? 'course-item--archived' : 'course-item--with-fav'} ${activeCourseId === course.id ? 'active' : ''}`}
                     >
                       <div
                         role="button"
@@ -786,20 +806,22 @@ function App() {
                             : ''}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className={`course-item-fav${fav ? ' course-item-fav--on' : ''}`}
-                        title={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
-                        aria-pressed={fav}
-                        aria-label={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCourseFavorite(course.id);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <Star size={18} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} aria-hidden />
-                      </button>
+                      {!archived && (
+                        <button
+                          type="button"
+                          className={`course-item-fav${fav ? ' course-item-fav--on' : ''}`}
+                          title={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                          aria-pressed={fav}
+                          aria-label={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCourseFavorite(course.id);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <Star size={18} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} aria-hidden />
+                        </button>
+                      )}
                     </div>
                   );
                 })}

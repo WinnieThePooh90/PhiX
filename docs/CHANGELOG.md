@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 477 (2026-08-17)
+
+Filter-Option „Archiv“ im Schuljahre-Dropdown der linken Navigationsleiste hinzugefügt. Bei Auswahl werden alle archivierten Klassen in der Hauptliste der Navigationsleiste angezeigt.
+
 ## Build 452 (2026-07-02)
 
 Start-Tipps des Einrichtungsassistenten (Schritt 5: Verweis auf **Einstellungen → Hilfe**); dieselben Tipps oben auf der Hilfe-Seite (`setupStartTips.js`). README und Installations-/API-Dokumentation auf den aktuellen Stand gebracht; dieses Changelog angelegt.
