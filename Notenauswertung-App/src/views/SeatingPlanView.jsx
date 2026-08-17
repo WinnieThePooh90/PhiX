@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { Grid, RotateCcw, Users, Armchair, HelpCircle } from 'lucide-react';
+import { Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2 } from 'lucide-react';
+import MaximizableTableSection from '../components/MaximizableTableSection';
 
 const PRESET_LAYOUTS = [
-  { label: '4 × 3 (Standard, 12 Plätze)', rows: 4, cols: 3 },
+  { label: '8 × 3 (24 Plätze)', rows: 8, cols: 3 },
+  { label: '4 × 3 (12 Plätze)', rows: 4, cols: 3 },
   { label: '4 × 4 (16 Plätze)', rows: 4, cols: 4 },
   { label: '5 × 4 (20 Plätze)', rows: 5, cols: 4 },
   { label: '5 × 5 (25 Plätze)', rows: 5, cols: 5 },
@@ -19,8 +21,8 @@ const PRESET_LAYOUTS = [
 function formatStudentDisplayName(student, allStudents) {
   if (!student) return '';
   const firstName = String(student.firstName || '').trim();
-  const sameFirstNameCount = allStudents.filter(
-    (s) => String(s.firstName || '').trim().toLowerCase() === firstName.toLowerCase(),
+  const sameFirstNameCount = (allStudents || []).filter(
+    (s) => s && String(s.firstName || '').trim().toLowerCase() === firstName.toLowerCase(),
   ).length;
 
   if (sameFirstNameCount > 1 && student.lastName) {
@@ -32,13 +34,13 @@ function formatStudentDisplayName(student, allStudents) {
 
 /** Sortiert Schüler alphabetisch nach Vorname, dann Nachname. */
 function sortStudentsAlphabetically(studentsList) {
-  return [...studentsList].sort((a, b) => {
-    const fnA = String(a.firstName || '').trim();
-    const fnB = String(b.firstName || '').trim();
+  return [...(studentsList || [])].sort((a, b) => {
+    const fnA = String(a?.firstName || '').trim();
+    const fnB = String(b?.firstName || '').trim();
     const fnComp = fnA.localeCompare(fnB, 'de', { sensitivity: 'base' });
     if (fnComp !== 0) return fnComp;
-    const lnA = String(a.lastName || '').trim();
-    const lnB = String(b.lastName || '').trim();
+    const lnA = String(a?.lastName || '').trim();
+    const lnB = String(b?.lastName || '').trim();
     return lnA.localeCompare(lnB, 'de', { sensitivity: 'base' });
   });
 }
@@ -50,15 +52,16 @@ export default function SeatingPlanView() {
 
   const savedSeatingPlan = config?.seatingPlan || null;
 
-  const [rowsInput, setRowsInput] = useState(() => Number(savedSeatingPlan?.rows) || 4);
+  const [rowsInput, setRowsInput] = useState(() => Number(savedSeatingPlan?.rows) || 8);
   const [colsInput, setColsInput] = useState(() => Number(savedSeatingPlan?.cols) || 3);
   const [presetValue, setPresetValue] = useState(() => {
-    const r = Number(savedSeatingPlan?.rows) || 4;
+    const r = Number(savedSeatingPlan?.rows) || 8;
     const c = Number(savedSeatingPlan?.cols) || 3;
     const found = PRESET_LAYOUTS.find((p) => p.rows === r && p.cols === c);
     return found ? `${r}x${c}` : 'custom';
   });
 
+  const [isMaximized, setIsMaximized] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverCellKey, setDragOverCellKey] = useState(null);
 
@@ -76,13 +79,15 @@ export default function SeatingPlanView() {
     return null;
   }, [savedSeatingPlan]);
 
-  /** Erzeugt eine automatische alphabetische Belegung für die aktuelle Grid-Größe. */
+  /** Erzeugt eine automatische alphabetische Belegung von links unten nach rechts oben. */
   const buildAlphabeticalAssignments = useCallback(
     (targetRows, targetCols) => {
       const sorted = sortStudentsAlphabetically(students || []);
       const newAssignments = {};
       let idx = 0;
-      for (let r = 0; r < targetRows; r++) {
+      // Zeilen von unten (targetRows - 1) bis oben (0)
+      for (let r = targetRows - 1; r >= 0; r--) {
+        // Spalten von links (0) bis rechts (targetCols - 1)
         for (let c = 0; c < targetCols; c++) {
           if (idx < sorted.length) {
             newAssignments[`${r}_${c}`] = Number(sorted[idx].id);
@@ -95,13 +100,13 @@ export default function SeatingPlanView() {
     [students],
   );
 
-  // Initialisierung: Falls noch kein Sitzplan gespeichert ist, alphabetisch vorbelegen (4x3)
+  // Initialisierung: Falls noch kein Sitzplan gespeichert ist, alphabetisch vorbelegen (8x3)
   useEffect(() => {
     if (!savedSeatingPlan && activeCourseId && students?.length > 0) {
-      const initAssignments = buildAlphabeticalAssignments(4, 3);
+      const initAssignments = buildAlphabeticalAssignments(8, 3);
       updateConfig({
         seatingPlan: {
-          rows: 4,
+          rows: 8,
           cols: 3,
           assignments: initAssignments,
         },
@@ -109,7 +114,7 @@ export default function SeatingPlanView() {
     }
   }, [savedSeatingPlan, activeCourseId, students, buildAlphabeticalAssignments, updateConfig]);
 
-  const rows = Number(savedSeatingPlan?.rows) || rowsInput || 4;
+  const rows = Number(savedSeatingPlan?.rows) || rowsInput || 8;
   const cols = Number(savedSeatingPlan?.cols) || colsInput || 3;
   const assignments = useMemo(() => {
     return savedSeatingPlan?.assignments || rawAssignments || buildAlphabeticalAssignments(rows, cols);
@@ -139,7 +144,6 @@ export default function SeatingPlanView() {
     setRowsInput(newR);
     setColsInput(newC);
 
-    // Rastergröße im Kurs speichern und bestehende Zuordnungen weitgehend beibehalten
     updateConfig({
       seatingPlan: {
         rows: newR,
@@ -167,7 +171,7 @@ export default function SeatingPlanView() {
 
   const handleResetAlphabetical = async () => {
     const ok = await showConfirm(
-      'Möchtest du den Sitzplan wirklich zurücksetzen?\n\nAlle Schüler werden neu alphabetisch nach Vornamen in das Raster einsortiert.',
+      'Möchtest du den Sitzplan wirklich zurücksetzen?\n\nAlle Schüler werden neu alphabetisch von unten links nach oben rechts in das Raster einsortiert.',
       { title: 'Sitzplan alphabetisch anordnen', danger: false },
     );
     if (!ok) return;
@@ -250,12 +254,10 @@ export default function SeatingPlanView() {
       const sourceCellKey = dragData.cellKey;
       if (sourceCellKey === targetCellKey) return;
 
-      // Wenn auf der Ziel-Position bereits ein Name steht -> Vertauschen!
       if (targetStudentId != null) {
         nextAssignments[sourceCellKey] = targetStudentId;
         nextAssignments[targetCellKey] = dragData.studentId;
       } else {
-        // Drop auf leeres Feld -> Verschieben
         delete nextAssignments[sourceCellKey];
         nextAssignments[targetCellKey] = dragData.studentId;
       }
@@ -319,7 +321,7 @@ export default function SeatingPlanView() {
             Sitzplan für {config.subject} {config.className}
           </h3>
           <p className="program-view-intro text-muted" style={{ margin: 0 }}>
-            Ziehen Sie Schülernamen per Drag & Drop auf Sitzplätze. Bei Platzierung auf einem besetzten Platz werden die Namen vertauscht.
+            Ziehe einfach die Schülernamen per Drag & Drop auf die Sitzplätze. Bei Platzierung auf einem besetzten Platz werden die Namen vertauscht.
           </p>
         </div>
 
@@ -378,7 +380,7 @@ export default function SeatingPlanView() {
               className="tab secondary seating-plan-action-btn"
               onClick={handleResetAlphabetical}
               disabled={courseArchived}
-              title="Schüler alphabetisch zeilenweise einordnen"
+              title="Schüler alphabetisch von unten links nach oben rechts einordnen"
             >
               <RotateCcw size={16} strokeWidth={2} aria-hidden />
               Alphabetisch anordnen
@@ -392,112 +394,131 @@ export default function SeatingPlanView() {
             >
               Plätze leeren
             </button>
+            <button
+              type="button"
+              className="tab secondary seating-plan-action-btn"
+              onClick={() => setIsMaximized((m) => !m)}
+              title={isMaximized ? 'Sitzplan verkleinern (Esc oder M)' : 'Sitzplan maximieren (M)'}
+            >
+              {isMaximized ? (
+                <Minimize2 size={16} strokeWidth={2} aria-hidden />
+              ) : (
+                <Maximize2 size={16} strokeWidth={2} aria-hidden />
+              )}
+              {isMaximized ? 'Verkleinern' : 'Maximieren'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Unplatzierte Schüler (falls vorhanden) */}
-      {unassignedStudents.length > 0 && (
-        <div
-          className="seating-plan-unassigned-section glass-panel"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDropOnUnassignedTray}
-        >
-          <div className="seating-plan-unassigned-header">
-            <Users size={18} strokeWidth={2} aria-hidden />
-            <strong>Unplatzierte Schüler ({unassignedStudents.length})</strong>
-            <span className="text-muted" style={{ fontSize: '0.8125rem', marginLeft: '0.5rem' }}>
-              (Hierher ziehen, um Schüler aus dem Sitzplan zu entfernen)
-            </span>
-          </div>
-          <div className="seating-plan-unassigned-list">
-            {unassignedStudents.map((s) => {
-              const displayName = formatStudentDisplayName(s, students || []);
-              return (
-                <div
-                  key={s.id}
-                  className="seating-plan-chip seating-plan-chip--unassigned"
-                  draggable={!courseArchived}
-                  onDragStart={(e) => handleDragStartUnassigned(e, Number(s.id))}
-                  title={`${s.firstName} ${s.lastName}`}
-                >
-                  <span className="seating-plan-chip-name">{displayName}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* SITZPLAN GRID CONTAINER */}
-      <div className="seating-plan-room-container glass-panel">
-        <div className="seating-plan-room-header-hint text-muted">
-          <span>▲ Hinterste Reihe (Klassenzimmer hinten) ▲</span>
-        </div>
-
-        {/* Die Sitzplan-Tabelle (Zeilen 0 bis rows-1) */}
-        <div
-          className="seating-plan-grid"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, minmax(100px, 1fr))`,
-          }}
-        >
-          {Array.from({ length: rows }).map((_, r) => (
-            <React.Fragment key={`row-${r}`}>
-              {Array.from({ length: cols }).map((_, c) => {
-                const cellKey = `${r}_${c}`;
-                const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
-                const student = studentId != null ? studentsMap.get(studentId) : null;
-                const displayName = student ? formatStudentDisplayName(student, students || []) : '';
-                const isDragOver = dragOverCellKey === cellKey;
-                const isFrontRow = r === rows - 1;
-
+      <MaximizableTableSection
+        title={`Sitzplan (${config.subject} ${config.className})`}
+        maximized={isMaximized}
+        onMaximizedChange={setIsMaximized}
+        embeddedToggle
+      >
+        {/* Unplatzierte Schüler (falls vorhanden) */}
+        {unassignedStudents.length > 0 && (
+          <div
+            className="seating-plan-unassigned-section glass-panel"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDropOnUnassignedTray}
+          >
+            <div className="seating-plan-unassigned-header">
+              <Users size={18} strokeWidth={2} aria-hidden />
+              <strong>Unplatzierte Schüler ({unassignedStudents.length})</strong>
+              <span className="text-muted" style={{ fontSize: '0.8125rem', marginLeft: '0.5rem' }}>
+                (Hierher ziehen, um Schüler aus dem Sitzplan zu entfernen)
+              </span>
+            </div>
+            <div className="seating-plan-unassigned-list">
+              {unassignedStudents.map((s) => {
+                const displayName = formatStudentDisplayName(s, students || []);
                 return (
                   <div
-                    key={cellKey}
-                    className={`seating-plan-cell${isDragOver ? ' seating-plan-cell--drag-over' : ''}${
-                      student ? ' seating-plan-cell--occupied' : ' seating-plan-cell--empty'
-                    }`}
-                    onDragOver={(e) => handleDragOverCell(e, cellKey)}
-                    onDragLeave={() => handleDragLeaveCell(cellKey)}
-                    onDrop={(e) => handleDropOnCell(e, cellKey)}
+                    key={s.id}
+                    className="seating-plan-chip seating-plan-chip--unassigned"
+                    draggable={!courseArchived}
+                    onDragStart={(e) => handleDragStartUnassigned(e, Number(s.id))}
+                    title={`${s.firstName} ${s.lastName}`}
                   >
-                    <div className="seating-plan-cell-coords" title={`Reihe ${r + 1}, Platz ${c + 1}`}>
-                      R{r + 1}:{c + 1}
-                    </div>
-
-                    {student ? (
-                      <div
-                        className="seating-plan-seat-card"
-                        draggable={!courseArchived}
-                        onDragStart={(e) => handleDragStartCell(e, cellKey, studentId)}
-                        title={`${student.firstName} ${student.lastName} (Reihe ${r + 1}, Platz ${c + 1})`}
-                      >
-                        <span className="seating-plan-seat-name">{displayName}</span>
-                      </div>
-                    ) : (
-                      <div className="seating-plan-seat-empty">
-                        <span className="seating-plan-empty-label">Frei</span>
-                      </div>
-                    )}
+                    <span className="seating-plan-chip-name">{displayName}</span>
                   </div>
                 );
               })}
-            </React.Fragment>
-          ))}
-        </div>
+            </div>
+          </div>
+        )}
 
-        <div className="seating-plan-room-footer-hint text-muted">
-          <span>▼ Vorderste Reihe (Klassenzimmer vorne) ▼</span>
-        </div>
+        {/* SITZPLAN GRID CONTAINER */}
+        <div className="seating-plan-room-container glass-panel">
+          <div className="seating-plan-room-header-hint text-muted">
+            <span>▲ Hinterste Reihe (Klassenzimmer hinten) ▲</span>
+          </div>
 
-        {/* LEHRERPULT / TAFEL UNTERHALB DES SITZPLANS */}
-        <div className="seating-plan-teacher-desk" role="region" aria-label="Lehrerpult und Tafel">
-          <div className="seating-plan-teacher-desk-bar">
-            <span className="seating-plan-teacher-desk-title">TAFEL / LEHRERPULT</span>
+          {/* Die Sitzplan-Tabelle (Zeilen 0 bis rows-1) */}
+          <div
+            className="seating-plan-grid"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, minmax(100px, 1fr))`,
+            }}
+          >
+            {Array.from({ length: rows }).map((_, r) => (
+              <React.Fragment key={`row-${r}`}>
+                {Array.from({ length: cols }).map((_, c) => {
+                  const cellKey = `${r}_${c}`;
+                  const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
+                  const student = studentId != null ? studentsMap.get(studentId) : null;
+                  const displayName = student ? formatStudentDisplayName(student, students || []) : '';
+                  const isDragOver = dragOverCellKey === cellKey;
+
+                  return (
+                    <div
+                      key={cellKey}
+                      className={`seating-plan-cell${isDragOver ? ' seating-plan-cell--drag-over' : ''}${
+                        student ? ' seating-plan-cell--occupied' : ' seating-plan-cell--empty'
+                      }`}
+                      onDragOver={(e) => handleDragOverCell(e, cellKey)}
+                      onDragLeave={() => handleDragLeaveCell(cellKey)}
+                      onDrop={(e) => handleDropOnCell(e, cellKey)}
+                    >
+                      <div className="seating-plan-cell-coords" title={`Reihe ${r + 1}, Platz ${c + 1}`}>
+                        R{r + 1}:{c + 1}
+                      </div>
+
+                      {student ? (
+                        <div
+                          className="seating-plan-seat-card"
+                          draggable={!courseArchived}
+                          onDragStart={(e) => handleDragStartCell(e, cellKey, studentId)}
+                          title={`${student.firstName} ${student.lastName} (Reihe ${r + 1}, Platz ${c + 1})`}
+                        >
+                          <span className="seating-plan-seat-name">{displayName}</span>
+                        </div>
+                      ) : (
+                        <div className="seating-plan-seat-empty">
+                          <span className="seating-plan-empty-label">Frei</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+
+          <div className="seating-plan-room-footer-hint text-muted">
+            <span>▼ Vorderste Reihe (Klassenzimmer vorne) ▼</span>
+          </div>
+
+          {/* LEHRERPULT / TAFEL UNTERHALB DES SITZPLANS */}
+          <div className="seating-plan-teacher-desk" role="region" aria-label="Lehrerpult und Tafel">
+            <div className="seating-plan-teacher-desk-bar">
+              <span className="seating-plan-teacher-desk-title">TAFEL / LEHRERPULT</span>
+            </div>
           </div>
         </div>
-      </div>
+      </MaximizableTableSection>
     </div>
   );
 }
