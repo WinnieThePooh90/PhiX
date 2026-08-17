@@ -756,7 +756,7 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
           onToggle={() => toggleSection('seating-plan')}
         >
           <p className="program-view-panel-text text-muted" style={{ margin: 0 }}>
-            Sitzordnung der Klasse ({config?.seatingPlan?.rows || 8} × {config?.seatingPlan?.cols || 3} Plätze). Exportieren Sie den Sitzplan im Querformat als PDF-Dokument oder als Excel-Datei (.xlsx) mit vergrößerten und zentrierten Tabellenzellen.
+            Sitzordnung der Klasse ({config?.seatingPlan?.rows || 8} × {config?.seatingPlan?.cols || 3} Plätze). Export im Querformat als PDF-Dokument oder als Excel-Datei (.xlsx) mit vergrößerten und zentrierten Tabellenzellen.
           </p>
           <div className="export-item-row__actions export-course-full-actions" style={{ marginTop: '0.75rem' }}>
             <button

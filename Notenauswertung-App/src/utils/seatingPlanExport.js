@@ -76,7 +76,8 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
 
   const tableRows = [];
   for (let r = 0; r < rowsCount; r++) {
-    const rowLabel = `Reihe ${r + 1}${r === rowsCount - 1 ? ' (Vorne)' : r === 0 ? ' (Hinten)' : ''}`;
+    const displayRow = rowsCount - r;
+    const rowLabel = `Reihe ${displayRow}${r === rowsCount - 1 ? ' (Vorne / R1)' : r === 0 ? ' (Hinten)' : ''}`;
     const rowData = [rowLabel];
 
     for (let c = 0; c < colsCount; c++) {
@@ -183,6 +184,7 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
     }
   }
 
+  XLSX.utils.book_append_sheet(wb, ws, 'Sitzplan');
   XLSX.writeFile(wb, outFilename);
 }
 
@@ -233,7 +235,8 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
   // Tabellenzeilen
   const body = [];
   for (let r = 0; r < rowsCount; r++) {
-    const rowLabel = `Reihe ${r + 1}${r === rowsCount - 1 ? ' (Vorne)' : r === 0 ? ' (Hinten)' : ''}`;
+    const displayRow = rowsCount - r;
+    const rowLabel = `Reihe ${displayRow}${r === rowsCount - 1 ? ' (Vorne / R1)' : r === 0 ? ' (Hinten)' : ''}`;
     const rowData = [rowLabel];
 
     for (let c = 0; c < colsCount; c++) {

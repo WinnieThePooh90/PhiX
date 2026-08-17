@@ -478,48 +478,51 @@ export default function SeatingPlanView({ onOpenExport }) {
               gridTemplateColumns: `repeat(${cols}, minmax(100px, 1fr))`,
             }}
           >
-            {Array.from({ length: rows }).map((_, r) => (
-              <React.Fragment key={`row-${r}`}>
-                {Array.from({ length: cols }).map((_, c) => {
-                  const cellKey = `${r}_${c}`;
-                  const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
-                  const student = studentId != null ? studentsMap.get(studentId) : null;
-                  const displayName = student ? formatStudentDisplayName(student, students || []) : '';
-                  const isDragOver = dragOverCellKey === cellKey;
+            {Array.from({ length: rows }).map((_, r) => {
+              const displayRow = rows - r;
+              return (
+                <React.Fragment key={`row-${r}`}>
+                  {Array.from({ length: cols }).map((_, c) => {
+                    const cellKey = `${r}_${c}`;
+                    const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
+                    const student = studentId != null ? studentsMap.get(studentId) : null;
+                    const displayName = student ? formatStudentDisplayName(student, students || []) : '';
+                    const isDragOver = dragOverCellKey === cellKey;
 
-                  return (
-                    <div
-                      key={cellKey}
-                      className={`seating-plan-cell${isDragOver ? ' seating-plan-cell--drag-over' : ''}${
-                        student ? ' seating-plan-cell--occupied' : ' seating-plan-cell--empty'
-                      }`}
-                      onDragOver={(e) => handleDragOverCell(e, cellKey)}
-                      onDragLeave={() => handleDragLeaveCell(cellKey)}
-                      onDrop={(e) => handleDropOnCell(e, cellKey)}
-                    >
-                      <div className="seating-plan-cell-coords" title={`Reihe ${r + 1}, Platz ${c + 1}`}>
-                        R{r + 1}:{c + 1}
+                    return (
+                      <div
+                        key={cellKey}
+                        className={`seating-plan-cell${isDragOver ? ' seating-plan-cell--drag-over' : ''}${
+                          student ? ' seating-plan-cell--occupied' : ' seating-plan-cell--empty'
+                        }`}
+                        onDragOver={(e) => handleDragOverCell(e, cellKey)}
+                        onDragLeave={() => handleDragLeaveCell(cellKey)}
+                        onDrop={(e) => handleDropOnCell(e, cellKey)}
+                      >
+                        <div className="seating-plan-cell-coords" title={`Reihe ${displayRow}, Platz ${c + 1}`}>
+                          R{displayRow}:{c + 1}
+                        </div>
+
+                        {student ? (
+                          <div
+                            className="seating-plan-seat-card"
+                            draggable={!courseArchived}
+                            onDragStart={(e) => handleDragStartCell(e, cellKey, studentId)}
+                            title={`${student.firstName} ${student.lastName} (Reihe ${displayRow}, Platz ${c + 1})`}
+                          >
+                            <span className="seating-plan-seat-name">{displayName}</span>
+                          </div>
+                        ) : (
+                          <div className="seating-plan-seat-empty">
+                            <span className="seating-plan-empty-label">Frei</span>
+                          </div>
+                        )}
                       </div>
-
-                      {student ? (
-                        <div
-                          className="seating-plan-seat-card"
-                          draggable={!courseArchived}
-                          onDragStart={(e) => handleDragStartCell(e, cellKey, studentId)}
-                          title={`${student.firstName} ${student.lastName} (Reihe ${r + 1}, Platz ${c + 1})`}
-                        >
-                          <span className="seating-plan-seat-name">{displayName}</span>
-                        </div>
-                      ) : (
-                        <div className="seating-plan-seat-empty">
-                          <span className="seating-plan-empty-label">Frei</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </div>
 
           <div className="seating-plan-room-footer-hint text-muted">
