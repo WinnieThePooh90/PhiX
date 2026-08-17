@@ -775,7 +775,7 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
               onClick={() => runExport('seating-plan-pdf', async () => exportSeatingPlanPdf({ config, students }), { requireStudents: false })}
             >
               <FileText size={16} strokeWidth={2} aria-hidden />
-              {busyKey === 'seating-plan-pdf' ? 'Export …' : 'Sitzplan als PDF (Querformat)'}
+              {busyKey === 'seating-plan-pdf' ? 'Export …' : 'Sitzplan als PDF'}
             </button>
           </div>
         </ExportSection>

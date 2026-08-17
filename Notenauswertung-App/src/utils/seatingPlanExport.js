@@ -45,8 +45,11 @@ function formatStudentDisplayName(student, allStudents) {
 
 /**
   Exportiert den Sitzplan als Excel-Datei (.xlsx)
+  - Ohne Orientierungs-Hinweiszeile
+  - Ohne erste Spalte "Reihe"
   - Zentrierte Texte (horizontal & vertikal) in jeder Zelle
-  - Vergrößerte Spaltenbreiten (24 ch) und Zeilenhöhen (36 pt)
+  - Vergrößerte Spaltenbreiten (24 ch) und Zeilenhöhen (38 pt) für ALLE Sitzreihen
+  - Zusammengefasste Lehrerpult-Zeile über die volle Zeilenbreite ganz unten
  */
 export function exportSeatingPlanXlsx({ config, students, filename }) {
   const seatingPlan = getSeatingPlanObj(config);
@@ -65,21 +68,17 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
   const wb = XLSX.utils.book_new();
 
   const titleRow = [`Sitzplan – ${config?.subject || ''} ${config?.className || ''} ${config?.year ? `(${config.year})` : ''}`.trim()];
-  const subtitleRow = ['Orientierung: Lehrerpult / Tafel befindet sich unterhalb des Sitzplans (unterste Zeile = vorderste Reihe).'];
   const emptyRow = [''];
 
-  // Header Zeile: ["Reihe", "Platz 1", "Platz 2", ...]
-  const headerRow = ['Reihe'];
+  // Header Zeile: ["Platz 1", "Platz 2", ...] (ohne Spalte "Reihe")
+  const headerRow = [];
   for (let c = 1; c <= colsCount; c++) {
     headerRow.push(`Platz ${c}`);
   }
 
   const tableRows = [];
   for (let r = 0; r < rowsCount; r++) {
-    const displayRow = rowsCount - r;
-    const rowLabel = `Reihe ${displayRow}${r === rowsCount - 1 ? ' (Vorne / R1)' : r === 0 ? ' (Hinten)' : ''}`;
-    const rowData = [rowLabel];
-
+    const rowData = [];
     for (let c = 0; c < colsCount; c++) {
       const cellKey = `${r}_${c}`;
       const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
@@ -90,32 +89,43 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
     tableRows.push(rowData);
   }
 
-  // Tafel / Lehrerpult Zeile am Ende
+  // Tafel / Lehrerpult Zeile als ganze Zeile am Ende
   const teacherDeskRow = ['TAFEL / LEHRERPULT'];
-  for (let c = 1; c <= colsCount; c++) {
+  for (let c = 1; c < colsCount; c++) {
     teacherDeskRow.push('');
   }
 
-  const aoa = [titleRow, subtitleRow, emptyRow, headerRow, ...tableRows, emptyRow, teacherDeskRow];
+  const aoa = [titleRow, emptyRow, headerRow, ...tableRows, emptyRow, teacherDeskRow];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // Vergrößerte Spaltenbreite: Spalte A = 18 ch, Sitzplatz-Spalten = 24 ch (deutlich größer als Standard 8.43)
-  ws['!cols'] = Array.from({ length: colsCount + 1 }, (_, i) => ({
-    wch: i === 0 ? 18 : 24,
+  // Spaltenbreite: Alle Sitzplatz-Spalten = 24 ch (zentriert & vergrößert)
+  ws['!cols'] = Array.from({ length: colsCount }, () => ({
+    wch: 24,
   }));
 
-  // Vergrößerte Zeilenhöhe: 36 pt (deutlich größer als Standard 15 pt)
+  const startRowIdx = 2; // Header-Zeile ist Index 2 (0=Titel, 1=Empty, 2=Header)
+  const dataStartRowIdx = 3; // Erste Datenzeile (Index 3)
+  const dataEndRowIdx = 3 + tableRows.length - 1; // Letzte Datenzeile
+  const teacherDeskRowIdx = aoa.length - 1; // Lehrerpult-Zeile
+
+  // Zeilenhöhen: Titel (26 pt), Header (24 pt), Alle Datenzeilen (38 pt), Lehrerpult (32 pt)
   const totalRows = aoa.length;
   const rowHeights = [];
   for (let r = 0; r < totalRows; r++) {
     if (r === 0) rowHeights.push({ hpt: 26 });
-    else if (r >= 3 && r < 3 + tableRows.length) rowHeights.push({ hpt: 38 });
-    else rowHeights.push({ hpt: 20 });
+    else if (r === startRowIdx) rowHeights.push({ hpt: 24 });
+    else if (r >= dataStartRowIdx && r <= dataEndRowIdx) rowHeights.push({ hpt: 38 });
+    else if (r === teacherDeskRowIdx) rowHeights.push({ hpt: 32 });
+    else rowHeights.push({ hpt: 12 });
   }
   ws['!rows'] = rowHeights;
 
-  // Zell-Formatierungen anwenden
+  // Tafel / Lehrerpult über die gesamte Zeilenbreite verbinden
+  ws['!merges'] = [
+    { s: { r: teacherDeskRowIdx, c: 0 }, e: { r: teacherDeskRowIdx, c: colsCount - 1 } },
+  ];
+
   const thinBorder = {
     top: { style: 'thin', color: { rgb: 'CCCCCC' } },
     bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
@@ -123,25 +133,21 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
     right: { style: 'thin', color: { rgb: 'CCCCCC' } },
   };
 
-  const startRowIdx = 3; // Header-Zeile ist AOA Index 3
-  const endRowIdx = 3 + tableRows.length; // Letzte Datenzeile
-
   for (let r = 0; r < totalRows; r++) {
-    for (let c = 0; c <= colsCount; c++) {
+    for (let c = 0; c < colsCount; c++) {
       const addr = XLSX.utils.encode_cell({ r, c });
-      const cell = ws[addr];
+      let cell = ws[addr];
+      if (!cell && r === teacherDeskRowIdx) {
+        // Leere Zellen der zusammengefassten Lehrerpult-Zeile erzeugen für konsistente Ränder & Hintergrund
+        ws[addr] = { v: '', t: 's' };
+        cell = ws[addr];
+      }
       if (!cell) continue;
 
       if (r === 0) {
         // Titel
         cell.s = {
           font: { bold: true, sz: 14, color: { rgb: '333333' } },
-          alignment: { horizontal: 'left', vertical: 'center' },
-        };
-      } else if (r === 1) {
-        // Untertitel
-        cell.s = {
-          font: { italic: true, sz: 10, color: { rgb: '666666' } },
           alignment: { horizontal: 'left', vertical: 'center' },
         };
       } else if (r === startRowIdx) {
@@ -152,28 +158,27 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
           alignment: { horizontal: 'center', vertical: 'center' },
           border: thinBorder,
         };
-      } else if (r > startRowIdx && r <= endRowIdx) {
-        // Sitzplatz-Rasterzellen
-        const isFirstCol = c === 0;
+      } else if (r >= dataStartRowIdx && r <= dataEndRowIdx) {
+        // Sitzplatz-Rasterzellen (alle Zeilen inklusive der letzten Datenzeile vergrößert)
         const isOccupied = cell.v && cell.v !== '(Frei)';
         cell.s = {
           font: {
-            bold: isFirstCol || isOccupied,
+            bold: isOccupied,
             sz: 11,
             color: { rgb: isOccupied ? '1F2937' : '9CA3AF' },
           },
           fill: {
-            fgColor: { rgb: isFirstCol ? 'F3F4F6' : isOccupied ? 'EEF2FF' : 'FAFAFA' },
+            fgColor: { rgb: isOccupied ? 'EEF2FF' : 'FAFAFA' },
           },
           alignment: {
-            horizontal: 'center', // Zentrierte Namen in jeder Zelle!
-            vertical: 'center',   // Zentrierte vertikale Ausrichtung!
+            horizontal: 'center',
+            vertical: 'center',
             wrapText: true,
           },
           border: thinBorder,
         };
-      } else if (r === totalRows - 1 && c === 0) {
-        // Lehrerpult
+      } else if (r === teacherDeskRowIdx) {
+        // Lehrerpult (volle Zeilenbreite)
         cell.s = {
           font: { bold: true, sz: 11, color: { rgb: '4F46E5' } },
           fill: { fgColor: { rgb: 'E0E7FF' } },
@@ -190,6 +195,9 @@ export function exportSeatingPlanXlsx({ config, students, filename }) {
 
 /**
   Exportiert den Sitzplan als PDF-Datei im Querformat (.pdf)
+  - Ohne Orientierungs-Untertitel
+  - Ohne Spalte "Reihe"
+  - Tafel / Lehrerpult als zusammengefasste ganze Zeile über die volle Breite am Ende
  */
 export function exportSeatingPlanPdf({ config, students, filename }) {
   const seatingPlan = getSeatingPlanObj(config);
@@ -212,8 +220,6 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
     format: 'a4',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-
   // Überschrift
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
@@ -221,13 +227,8 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
   const title = `Sitzplan – ${config?.subject || ''} ${config?.className || ''} ${config?.year ? `(${config.year})` : ''}`.trim();
   doc.text(title, 14, 15);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`Stand: ${new Date().toLocaleDateString('de-DE')} · Ausrichtung: Tafel / Lehrerpult unten`, 14, 21);
-
-  // Tabellenkopf
-  const head = [['Reihe']];
+  // Tabellenkopf: ["Platz 1", "Platz 2", ...] (ohne "Reihe")
+  const head = [[]];
   for (let c = 1; c <= colsCount; c++) {
     head[0].push(`Platz ${c}`);
   }
@@ -235,10 +236,7 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
   // Tabellenzeilen
   const body = [];
   for (let r = 0; r < rowsCount; r++) {
-    const displayRow = rowsCount - r;
-    const rowLabel = `Reihe ${displayRow}${r === rowsCount - 1 ? ' (Vorne / R1)' : r === 0 ? ' (Hinten)' : ''}`;
-    const rowData = [rowLabel];
-
+    const rowData = [];
     for (let c = 0; c < colsCount; c++) {
       const cellKey = `${r}_${c}`;
       const studentId = assignments[cellKey] != null ? Number(assignments[cellKey]) : null;
@@ -249,22 +247,33 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
     body.push(rowData);
   }
 
-  // Lehrerpult-Zeile am Ende
-  const teacherDeskRow = ['TAFEL / LEHRERPULT'];
-  for (let c = 1; c <= colsCount; c++) {
-    teacherDeskRow.push('');
-  }
+  // Lehrerpult-Zeile am Ende als ganze Zeile über die volle Breite (colSpan)
+  const teacherDeskRow = [
+    {
+      content: 'TAFEL / LEHRERPULT',
+      colSpan: colsCount,
+      styles: {
+        halign: 'center',
+        valign: 'middle',
+        fillColor: [224, 231, 255],
+        textColor: [79, 70, 229],
+        fontStyle: 'bold',
+        fontSize: 11,
+        cellPadding: 5,
+      },
+    },
+  ];
   body.push(teacherDeskRow);
 
   autoTable(doc, {
-    startY: 25,
+    startY: 20,
     margin: { left: 14, right: 14 },
     head,
     body,
     styles: {
       font: 'helvetica',
       fontSize: 10,
-      cellPadding: 4,
+      cellPadding: 5,
       halign: 'center',
       valign: 'middle',
       overflow: 'linebreak',
@@ -275,26 +284,8 @@ export function exportSeatingPlanPdf({ config, students, filename }) {
       fontStyle: 'bold',
       halign: 'center',
     },
-    columnStyles: {
-      0: {
-        halign: 'left',
-        fontStyle: 'bold',
-        fillColor: [243, 244, 246],
-        cellWidth: 32,
-      },
-    },
     didParseCell: (data) => {
-      // Lehrerpult-Zeile speziell hervorheben
-      if (data.row.index === body.length - 1) {
-        if (data.column.index === 0) {
-          data.cell.styles.fillColor = [224, 231, 255];
-          data.cell.styles.textColor = [79, 70, 229];
-          data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.halign = 'center';
-        } else {
-          data.cell.styles.fillColor = [224, 231, 255];
-        }
-      } else if (data.section === 'body' && data.column.index > 0) {
+      if (data.section === 'body' && data.row.index < rowsCount) {
         // Leere Plätze ausgegraut darstellen
         if (data.cell.raw === '(Frei)') {
           data.cell.styles.textColor = [156, 163, 175];
