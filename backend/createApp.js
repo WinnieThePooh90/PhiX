@@ -624,7 +624,20 @@ app.patch('/api/users/:id/admin', async (req, res) => {
   res.json(toPublicAppUser(updated));
 });
 
+async function ensureCourseSeatingPlanColumn(prisma) {
+  try {
+    await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "seatingPlan" JSONB;');
+  } catch {
+    try {
+      await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "seatingPlan" TEXT;');
+    } catch {
+      /* Spalte existiert bereits */
+    }
+  }
+}
+
 async function ensureAppUsers() {
+  await ensureCourseSeatingPlanColumn(prisma);
   const n = await prisma.appUser.count();
   if (n > 0) {
     const admin = await prisma.appUser.findFirst({
@@ -875,11 +888,26 @@ app.delete('/api/registration', async (req, res) => {
 app.get('/api/courses', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
-  const courses = await prisma.course.findMany({
-    where: { ownerUsername: acting },
-    orderBy: { id: 'asc' },
-  });
-  res.json(courses);
+  try {
+    const courses = await prisma.course.findMany({
+      where: { ownerUsername: acting },
+      orderBy: { id: 'asc' },
+    });
+    res.json(courses);
+  } catch (err) {
+    console.error('[courses] Fehler beim Laden der Kurse, versuche Spalten-Recovery:', err);
+    await ensureCourseSeatingPlanColumn(prisma);
+    try {
+      const courses = await prisma.course.findMany({
+        where: { ownerUsername: acting },
+        orderBy: { id: 'asc' },
+      });
+      res.json(courses);
+    } catch (fallbackErr) {
+      console.error('[courses] Recovery fehlgeschlagen:', fallbackErr);
+      res.status(500).json({ error: 'Fehler beim Laden der Kurse.' });
+    }
+  }
 });
 
 app.post('/api/courses', async (req, res) => {
