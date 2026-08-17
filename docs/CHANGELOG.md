@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 478 (2026-08-17)
+
+Schuljahres-Überschriften mit Trennlinien (`2024/2025 ────`) zur Gruppierung der Fächer/Klassen in der Navigationsleiste (Filteransicht & Archiv) ergänzt.
+
 ## Build 477 (2026-08-17)
 
 Filter-Option „Archiv“ im Schuljahre-Dropdown der linken Navigationsleiste hinzugefügt. Bei Auswahl werden alle archivierten Klassen in der Hauptliste der Navigationsleiste angezeigt.

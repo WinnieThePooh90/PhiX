@@ -3286,6 +3286,25 @@ button.equiphi-sidebar-toggle:focus-visible {
   border-left-color: hsl(142 76% 36%);
 }
 
+.app-sidebar-year-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.app-sidebar-year-header-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border);
+  opacity: 0.7;
+}
+
 .app-sidebar-footer {
   flex-shrink: 0;
   padding: 0.5rem 0.65rem 0.65rem;

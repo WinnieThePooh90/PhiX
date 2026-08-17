@@ -776,53 +776,66 @@ function App() {
                     Keine archivierten Fächer
                   </div>
                 )}
-                {sidebarCourses.map((course) => {
+                {sidebarCourses.map((course, idx) => {
                   const archived = isCourseArchived(course);
                   const fav = !archived && course.isFavorite === true;
+                  const prevCourse = idx > 0 ? sidebarCourses[idx - 1] : null;
+                  const showYearHeader =
+                    (selectedYearFilter === 'ARCHIVE' || !selectedYearFilter) &&
+                    !fav &&
+                    (!prevCourse || prevCourse.isFavorite || prevCourse.year !== course.year);
+
                   return (
-                    <div
-                      key={course.id}
-                      className={`course-item ${archived ? 'course-item--archived' : 'course-item--with-fav'} ${activeCourseId === course.id ? 'active' : ''}`}
-                    >
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="course-item-main"
-                        onClick={() => selectCourse(course.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            selectCourse(course.id);
-                          }
-                        }}
-                      >
-                        <div className="course-item-title">
-                          {course.subject} {course.className}
+                    <React.Fragment key={course.id}>
+                      {showYearHeader && (
+                        <div className="app-sidebar-year-header">
+                          <span>{course.year || 'Ohne Schuljahr'}</span>
+                          <div className="app-sidebar-year-header-line" />
                         </div>
-                        <div className="course-item-meta">
-                          {course.year}
-                          {course.weighting
-                            ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
-                            : ''}
-                        </div>
-                      </div>
-                      {!archived && (
-                        <button
-                          type="button"
-                          className={`course-item-fav${fav ? ' course-item-fav--on' : ''}`}
-                          title={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
-                          aria-pressed={fav}
-                          aria-label={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCourseFavorite(course.id);
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                        >
-                          <Star size={18} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} aria-hidden />
-                        </button>
                       )}
-                    </div>
+                      <div
+                        className={`course-item ${archived ? 'course-item--archived' : 'course-item--with-fav'} ${activeCourseId === course.id ? 'active' : ''}`}
+                      >
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="course-item-main"
+                          onClick={() => selectCourse(course.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              selectCourse(course.id);
+                            }
+                          }}
+                        >
+                          <div className="course-item-title">
+                            {course.subject} {course.className}
+                          </div>
+                          <div className="course-item-meta">
+                            {course.year}
+                            {course.weighting
+                              ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
+                              : ''}
+                          </div>
+                        </div>
+                        {!archived && (
+                          <button
+                            type="button"
+                            className={`course-item-fav${fav ? ' course-item-fav--on' : ''}`}
+                            title={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                            aria-pressed={fav}
+                            aria-label={fav ? 'Favorit entfernen' : 'Als Favorit markieren'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCourseFavorite(course.id);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <Star size={18} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} aria-hidden />
+                          </button>
+                        )}
+                      </div>
+                    </React.Fragment>
                   );
                 })}
                 </div>
@@ -848,35 +861,46 @@ function App() {
                     </button>
                     {sidebarArchiveOpen ? (
                       <div id="app-sidebar-archive-list" className="app-sidebar-archive-list">
-                        {sidebarArchivedCourses.map((course) => (
-                          <div
-                            key={course.id}
-                            className={`course-item course-item--archived ${activeCourseId === course.id ? 'active' : ''}`}
-                          >
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              className="course-item-main"
-                              onClick={() => selectCourse(course.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  selectCourse(course.id);
-                                }
-                              }}
-                            >
-                              <div className="course-item-title">
-                                {course.subject} {course.className}
+                        {sidebarArchivedCourses.map((course, idx) => {
+                          const prevCourse = idx > 0 ? sidebarArchivedCourses[idx - 1] : null;
+                          const showYearHeader = !selectedYearFilter && (!prevCourse || prevCourse.year !== course.year);
+                          return (
+                            <React.Fragment key={course.id}>
+                              {showYearHeader && (
+                                <div className="app-sidebar-year-header">
+                                  <span>{course.year || 'Ohne Schuljahr'}</span>
+                                  <div className="app-sidebar-year-header-line" />
+                                </div>
+                              )}
+                              <div
+                                className={`course-item course-item--archived ${activeCourseId === course.id ? 'active' : ''}`}
+                              >
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className="course-item-main"
+                                  onClick={() => selectCourse(course.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      selectCourse(course.id);
+                                    }
+                                  }}
+                                >
+                                  <div className="course-item-title">
+                                    {course.subject} {course.className}
+                                  </div>
+                                  <div className="course-item-meta">
+                                    {course.year}
+                                    {course.weighting
+                                      ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
+                                      : ''}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="course-item-meta">
-                                {course.year}
-                                {course.weighting
-                                  ? `, ${formatCourseWeightingRatio(course.weighting, showTestsInWeightingRatio(course))}`
-                                  : ''}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                            </React.Fragment>
+                          );
+                        })}
                       </div>
                     ) : null}
                   </div>
