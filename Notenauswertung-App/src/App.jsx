@@ -45,6 +45,7 @@ import SupportOverviewView from './views/SupportOverviewView';
 import UserSettingsView from './views/UserSettingsView';
 import HeaderUserMenu from './components/HeaderUserMenu';
 import SettingsNavMenu from './components/SettingsNavMenu';
+import { PhixErrorBoundary } from './components/PhixErrorBoundary';
 import { resolveStudentIdFilterSet } from './utils/studentSearchFilter';
 import { installTableRowFocusHighlight } from './utils/tableRowFocusHighlight';
 import { installTableEnterAsTab } from './utils/tableEnterAsTab';
@@ -1056,7 +1057,9 @@ function App() {
                     Dieses Fach ist archiviert — alle Einträge sind schreibgeschützt (nur Ansicht und Export).
                   </div>
                 ) : null}
-                {renderView()}
+                <PhixErrorBoundary key={activeTab}>
+                  {renderView()}
+                </PhixErrorBoundary>
               </main>
             </div>
           </>
@@ -1087,7 +1090,11 @@ function App() {
                 </div>
               ) : (
                 <div className="app-main-content-wrap">
-                  <main className="app-main-views">{renderView()}</main>
+                  <main className="app-main-views">
+                    <PhixErrorBoundary key={activeTab}>
+                      {renderView()}
+                    </PhixErrorBoundary>
+                  </main>
                 </div>
               )}
             </div>
