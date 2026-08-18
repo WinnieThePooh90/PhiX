@@ -636,20 +636,15 @@ async function ensureCourseSeatingPlanColumn(prisma) {
   }
 }
 
+function isSqliteDatabase() {
+  const url = String(process.env.DATABASE_URL || '').trim();
+  return url.startsWith('file:') || url.startsWith('sqlite:');
+}
+
 async function ensureHomeworkListTables(prisma) {
+  const isSqlite = isSqliteDatabase();
   try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "HomeworkList" (
-        "id" SERIAL PRIMARY KEY,
-        "title" TEXT NOT NULL DEFAULT 'Hausaufgabenliste',
-        "columns" TEXT NOT NULL DEFAULT '[]',
-        "courseId" INTEGER NOT NULL,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT "HomeworkList_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE
-      );
-    `);
-  } catch {
-    try {
+    if (isSqlite) {
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "HomeworkList" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -659,24 +654,7 @@ async function ensureHomeworkListTables(prisma) {
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE
         );
-      `);
-    } catch {}
-  }
-
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "HomeworkListEntry" (
-        "id" SERIAL PRIMARY KEY,
-        "homeworkListId" INTEGER NOT NULL,
-        "studentId" INTEGER NOT NULL,
-        "checks" TEXT NOT NULL DEFAULT '{}',
-        "completed" BOOLEAN NOT NULL DEFAULT false,
-        CONSTRAINT "HomeworkListEntry_homeworkListId_fkey" FOREIGN KEY ("homeworkListId") REFERENCES "HomeworkList"("id") ON DELETE CASCADE,
-        CONSTRAINT "HomeworkListEntry_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE
-      );
-    `);
-  } catch {
-    try {
+      `).catch(() => {});
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "HomeworkListEntry" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -687,8 +665,32 @@ async function ensureHomeworkListTables(prisma) {
           FOREIGN KEY ("homeworkListId") REFERENCES "HomeworkList"("id") ON DELETE CASCADE,
           FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE
         );
-      `);
-    } catch {}
+      `).catch(() => {});
+    } else {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "HomeworkList" (
+          "id" SERIAL PRIMARY KEY,
+          "title" TEXT NOT NULL DEFAULT 'Hausaufgabenliste',
+          "columns" TEXT NOT NULL DEFAULT '[]',
+          "courseId" INTEGER NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "HomeworkList_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE
+        );
+      `).catch(() => {});
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "HomeworkListEntry" (
+          "id" SERIAL PRIMARY KEY,
+          "homeworkListId" INTEGER NOT NULL,
+          "studentId" INTEGER NOT NULL,
+          "checks" TEXT NOT NULL DEFAULT '{}',
+          "completed" BOOLEAN NOT NULL DEFAULT false,
+          CONSTRAINT "HomeworkListEntry_homeworkListId_fkey" FOREIGN KEY ("homeworkListId") REFERENCES "HomeworkList"("id") ON DELETE CASCADE,
+          CONSTRAINT "HomeworkListEntry_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE
+        );
+      `).catch(() => {});
+    }
+  } catch (err) {
+    console.error('[db] ensureHomeworkListTables warning:', err);
   }
 }
 
