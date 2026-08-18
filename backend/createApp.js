@@ -3195,11 +3195,6 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
     console.error('Error updating homework list entry:', err);
     return res.status(500).json({ error: 'Eintrag konnte nicht aktualisiert werden' });
   }
-});  } catch (err) {
-    console.error('Error updating HomeworkListEntry:', err);
-  }
-
-  res.json({ ok: true });
 });
 
 // ——— Backup: benutzerbezogen (eigene Kurse) / vollständig (Admin) ———
