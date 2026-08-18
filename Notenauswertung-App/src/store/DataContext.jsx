@@ -2113,6 +2113,17 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateHomeworkList = async (id, { title, columns }) => {
+    setHomeworkLists((prev) =>
+      prev.map((l) =>
+        Number(l.id) === Number(id)
+          ? {
+              ...l,
+              ...(title !== undefined ? { title } : {}),
+              ...(columns !== undefined ? { columns } : {}),
+            }
+          : l,
+      ),
+    );
     const payload = {};
     if (title !== undefined) payload.title = title;
     if (columns !== undefined) payload.columns = columns;
@@ -2120,7 +2131,7 @@ export const DataProvider = ({ children }) => {
     const updated = await apiCall(`/api/homework-lists/${id}`, 'PUT', payload);
     if (updated?.id) {
       setHomeworkLists((prev) =>
-        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+        prev.map((l) => (Number(l.id) === Number(updated.id) ? updated : l)).sort((a, b) => a.id - b.id),
       );
     }
     return updated;

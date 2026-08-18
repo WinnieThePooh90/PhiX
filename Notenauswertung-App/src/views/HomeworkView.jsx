@@ -121,7 +121,10 @@ export default function HomeworkView() {
     const ordered = [];
     const usedIds = new Set();
 
-    for (let r = 0; r < rows; r++) {
+    // Sortierung von R1:1, R1:2, R1:3... über R2:1... bis R_rows
+    // In der Sitzplan-Logik entspricht R1 (Reihe 1 vorne) der internen Zeile r = rows - 1
+    for (let displayRow = 1; displayRow <= rows; displayRow++) {
+      const r = rows - displayRow;
       for (let c = 0; c < cols; c++) {
         const key = `${r}_${c}`;
         const sId = assignments[key];
@@ -186,7 +189,7 @@ export default function HomeworkView() {
         await updateHomeworkList(activeList.id, { title: titleClean });
       } else {
         const created = await createHomeworkList(titleClean);
-        if (created?.id) {
+        if (created && created.id) {
           setActiveListId(created.id);
         }
       }
@@ -235,13 +238,15 @@ export default function HomeworkView() {
     await updateHomeworkList(activeList.id, { columns: updatedCols });
   };
 
-  // Datum in Header einfügen / ändern
+  // Datum in Header einfügen / umschalten
   const handleSetHeaderDate = async (colId) => {
     if (!activeList) return;
     const todayStr = getTodayFormatted();
     const updatedCols = (activeList.columns || []).map((col) => {
       if (col.id === colId) {
-        return { ...col, date: todayStr };
+        // Wenn bereits heutiges Datum gesetzt ist, bei weiterem Klick zurücksetzen
+        const nextDate = col.date === todayStr ? null : todayStr;
+        return { ...col, date: nextDate };
       }
       return col;
     });
@@ -251,18 +256,10 @@ export default function HomeworkView() {
   // Checkbox für Stunde umschalten
   const handleToggleCheck = (studentId, colId) => {
     if (courseArchived || !activeList) return;
-    const entry = entriesMap.get(Number(studentId)) || { studentId, checks: {}, completed: false };
+    const entry = entriesMap.get(Number(studentId)) || { studentId, checks: {} };
     const currentChecks = entry.checks || {};
     const nextChecks = { ...currentChecks, [colId]: !currentChecks[colId] };
     updateHomeworkListEntry(activeList.id, studentId, { checks: nextChecks });
-  };
-
-  // Checkbox für Erledigt umschalten
-  const handleToggleCompleted = (studentId) => {
-    if (courseArchived || !activeList) return;
-    const entry = entriesMap.get(Number(studentId)) || { studentId, checks: {}, completed: false };
-    const nextVal = !entry.completed;
-    updateHomeworkListEntry(activeList.id, studentId, { completed: nextVal });
   };
 
   const columns = activeList?.columns || [{ id: 'col_1', label: 'Stunde 1', date: null }];
@@ -282,7 +279,7 @@ export default function HomeworkView() {
 
       <h2 className="program-view-title">Hausaufgaben</h2>
       <p className="text-muted program-view-intro">
-        Erstelle und verwalte Hausaufgabenlisten für die Klasse mit Kalenderdaten und Erledigt-Abhakung.
+        Erstelle und verwalte Hausaufgabenlisten für die Klasse mit Kalenderdaten und Abhak-Übersicht.
       </p>
 
       {/* Button & Tabs-Zeile */}
@@ -331,7 +328,7 @@ export default function HomeworkView() {
       {homeworkLists && homeworkLists.length > 0 ? (
         <div className="klassenlehrer-money-tabs" role="tablist" aria-label="Hausaufgabenlisten" style={{ marginBottom: '1rem' }}>
           {homeworkLists.map((list) => {
-            const isActive = activeList && activeList.id === list.id;
+            const isActive = activeList && Number(activeList.id) === Number(list.id);
             return (
               <button
                 key={list.id}
@@ -396,9 +393,18 @@ export default function HomeworkView() {
                       </div>
 
                       {/* Kalenderbutton & Datumsanzeige */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 'normal' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', fontWeight: 'normal' }}>
                         {col.date ? (
-                          <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#2563eb', padding: '0.15rem 0.4rem', borderRadius: '0.25rem' }}>
+                          <span
+                            className="badge"
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.15)',
+                              color: '#2563eb',
+                              padding: '0.15rem 0.44rem',
+                              borderRadius: '0.25rem',
+                              fontWeight: 600,
+                            }}
+                          >
                             {col.date}
                           </span>
                         ) : null}
@@ -407,34 +413,31 @@ export default function HomeworkView() {
                             type="button"
                             className="btn-icon"
                             onClick={() => handleSetHeaderDate(col.id)}
-                            title="Aktuelles Datum einfügen"
+                            title={col.date ? "Datum entfernen / ändern" : "Aktuelles Datum einfügen"}
                             style={{
-                              background: 'transparent',
-                              border: '1px solid rgba(148, 163, 184, 0.3)',
+                              background: col.date ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                              border: '1px solid rgba(148, 163, 184, 0.4)',
                               borderRadius: '0.25rem',
-                              padding: '0.2rem',
+                              padding: '0.25rem',
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
-                            <Calendar size={14} color="#3b82f6" />
+                            <Calendar size={15} color="#2563eb" />
                           </button>
                         ) : null}
                       </div>
                     </div>
                   </th>
                 ))}
-                <th style={{ textAlign: 'center', padding: '0.75rem', borderBottom: '2px solid rgba(148, 163, 184, 0.2)', width: '100px' }}>
-                  Erledigt
-                </th>
               </tr>
             </thead>
             <tbody>
               {sortedStudents.map((student) => {
                 const entry = entriesMap.get(Number(student.id));
                 const checks = entry?.checks || {};
-                const isCompleted = entry?.completed === true;
 
                 return (
                   <tr key={student.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
@@ -452,22 +455,11 @@ export default function HomeworkView() {
                             checked={isChecked}
                             disabled={courseArchived}
                             onChange={() => handleToggleCheck(student.id, col.id)}
-                            style={{ width: '1.1rem', height: '1.1rem', cursor: courseArchived ? 'default' : 'pointer' }}
+                            style={{ width: '1.15rem', height: '1.15rem', cursor: courseArchived ? 'default' : 'pointer' }}
                           />
                         </td>
                       );
                     })}
-
-                    {/* Spalte Erledigt */}
-                    <td style={{ textAlign: 'center', padding: '0.5rem' }}>
-                      <input
-                        type="checkbox"
-                        checked={isCompleted}
-                        disabled={courseArchived}
-                        onChange={() => handleToggleCompleted(student.id)}
-                        style={{ width: '1.25rem', height: '1.25rem', accentColor: '#16a34a', cursor: courseArchived ? 'default' : 'pointer' }}
-                      />
-                    </td>
                   </tr>
                 );
               })}
