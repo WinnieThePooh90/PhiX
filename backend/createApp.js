@@ -3039,19 +3039,22 @@ function safeParseJson(val, fallback) {
 }
 
 function serializeHomeworkList(list) {
-  const entries = (list.entries || []).map((e) => ({
-    id: e.id,
-    studentId: e.studentId,
-    homeworkListId: e.homeworkListId,
-    checks: safeParseJson(e.checks, {}),
-    completed: Boolean(e.completed),
-    student: e.student ? {
-      id: e.student.id,
-      firstName: e.student.firstName,
-      lastName: e.student.lastName,
-      studentNumber: e.student.studentNumber,
-    } : null,
-  }));
+  const entries = (list.entries || []).map((e) => {
+    const dec = prepareListEntry(e, 'HomeworkListEntry');
+    return {
+      id: dec.id,
+      studentId: dec.studentId,
+      homeworkListId: dec.homeworkListId,
+      checks: safeParseJson(dec.checks, {}),
+      completed: Boolean(dec.completed),
+      student: dec.student ? {
+        id: dec.student.id,
+        firstName: dec.student.firstName,
+        lastName: dec.student.lastName,
+        studentNumber: dec.student.studentNumber,
+      } : null,
+    };
+  });
   return {
     id: list.id,
     title: list.title || 'Hausaufgabenliste',
@@ -3167,6 +3170,11 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
   const listId = Number(req.params.id);
   const studentId = Number(req.body.studentId);
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
+
+  const list = await prisma.homeworkList.findUnique({ where: { id: listId } });
+  if (!list) return res.status(404).json({ error: 'Liste nicht gefunden' });
+  const ok = await assertCourseWritable(req, res, list.courseId);
+  if (!ok) return;
 
   const checks = req.body.checks !== undefined ? req.body.checks : {};
   const completed = req.body.completed !== undefined ? Boolean(req.body.completed) : false;

@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 499 (2026-08-18)
+
+Fehler behoben, bei dem die Checkboxen in Hausaufgabenlisten nach Abmeldung/Neustart nicht geladen wurden (fehlende Entschlüsselung der verschlüsselten `HomeworkListEntry.checks` in `serializeHomeworkList`).
+
 ## Build 478 (2026-08-17)
 
 Schuljahres-Überschriften mit Trennlinien (`2024/2025 ────`) zur Gruppierung der Fächer/Klassen in der Navigationsleiste (Filteransicht & Archiv) ergänzt.
