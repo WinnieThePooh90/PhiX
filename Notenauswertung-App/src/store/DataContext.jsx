@@ -2133,22 +2133,29 @@ export const DataProvider = ({ children }) => {
     return { ok: true };
   };
 
-  const updateHomeworkListEntry = (entryId, { checks, completed }) => {
+  const updateHomeworkListEntry = (listId, studentId, { checks, completed }) => {
     setHomeworkLists((prev) =>
-      prev.map((list) => ({
-        ...list,
-        entries: (list.entries || []).map((e) =>
-          e.id === entryId
-            ? {
-                ...e,
-                ...(checks !== undefined ? { checks } : {}),
-                ...(completed !== undefined ? { completed } : {}),
-              }
-            : e,
-        ),
-      })),
+      prev.map((list) => {
+        if (list.id !== listId) return list;
+        const entries = [...(list.entries || [])];
+        const idx = entries.findIndex((e) => Number(e.studentId) === Number(studentId));
+        if (idx >= 0) {
+          entries[idx] = {
+            ...entries[idx],
+            ...(checks !== undefined ? { checks } : {}),
+            ...(completed !== undefined ? { completed } : {}),
+          };
+        } else {
+          entries.push({
+            studentId,
+            checks: checks || {},
+            completed: Boolean(completed),
+          });
+        }
+        return { ...list, entries };
+      }),
     );
-    apiCall(`/api/homework-list-entries/${entryId}`, 'PUT', { checks, completed });
+    apiCall(`/api/homework-lists/${listId}/entries`, 'PUT', { studentId, checks, completed });
   };
 
   const addSchoolRosterYear = async (label) => {

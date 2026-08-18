@@ -636,8 +636,21 @@ async function ensureCourseSeatingPlanColumn(prisma) {
   }
 }
 
+async function ensureCourseHomeworkListsColumn(prisma) {
+  try {
+    await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "homeworkLists" JSONB;');
+  } catch {
+    try {
+      await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "homeworkLists" TEXT;');
+    } catch {
+      /* Spalte existiert bereits */
+    }
+  }
+}
+
 async function ensureAppUsers() {
   await ensureCourseSeatingPlanColumn(prisma);
+  await ensureCourseHomeworkListsColumn(prisma);
   const n = await prisma.appUser.count();
   if (n > 0) {
     const admin = await prisma.appUser.findFirst({
@@ -3003,21 +3016,44 @@ function serializeHomeworkList(list) {
   };
 }
 
+function getCourseHomeworkLists(course) {
+  if (!course || !course.homeworkLists) return [];
+  if (Array.isArray(course.homeworkLists)) return course.homeworkLists;
+  if (typeof course.homeworkLists === 'string') {
+    try {
+      const parsed = JSON.parse(course.homeworkLists);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 app.get('/api/homework-lists', async (req, res) => {
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.json([]);
   const ok = await assertCourseAccess(req, res, courseId);
   if (!ok) return;
-  const lists = await prisma.homeworkList.findMany({
-    where: { courseId },
-    orderBy: { id: 'asc' },
-    include: {
-      entries: {
-        include: { student: true },
-      },
-    },
-  });
-  res.json(lists.map(serializeHomeworkList));
+
+  try {
+    if (prisma.homeworkList) {
+      const lists = await prisma.homeworkList.findMany({
+        where: { courseId },
+        orderBy: { id: 'asc' },
+        include: { entries: { include: { student: true } } },
+      });
+      if (lists && lists.length > 0) {
+        return res.json(lists.map(serializeHomeworkList));
+      }
+    }
+  } catch {
+    /* Fallback zu course.homeworkLists */
+  }
+
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) return res.json([]);
+  res.json(getCourseHomeworkLists(course));
 });
 
 app.post('/api/homework-lists', async (req, res) => {
@@ -3033,107 +3069,157 @@ app.post('/api/homework-lists', async (req, res) => {
 
   const courseStudents = await prisma.student.findMany({
     where: { courseId },
-    orderBy: { id: 'asc' },
+    orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
   });
 
-  const list = await prisma.homeworkList.create({
-    data: {
-      courseId,
-      title,
-      columns,
-      entries: {
-        create: courseStudents.map((s) => ({
-          studentId: s.id,
-          checks: {},
-          completed: false,
-        })),
-      },
-    },
-    include: {
-      entries: { include: { student: true } },
-    },
-  });
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) return res.status(404).json({ error: 'Kurs nicht gefunden' });
 
-  res.status(201).json(serializeHomeworkList(list));
+  const existingLists = getCourseHomeworkLists(course);
+  const newList = {
+    id: Date.now(),
+    title,
+    columns,
+    courseId,
+    createdAt: new Date().toISOString(),
+    entries: courseStudents.map((s) => ({
+      studentId: Number(s.id),
+      checks: {},
+      completed: false,
+    })),
+  };
+
+  const updatedLists = [...existingLists, newList];
+  try {
+    await prisma.course.update({
+      where: { id: courseId },
+      data: { homeworkLists: updatedLists },
+    });
+  } catch (err) {
+    console.error('Failed to update course.homeworkLists', err);
+    return res.status(500).json({ error: 'Speichern fehlgeschlagen' });
+  }
+
+  res.status(201).json(newList);
 });
 
 app.put('/api/homework-lists/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  const existing = await prisma.homeworkList.findUnique({
-    where: { id },
-    include: { course: true },
-  });
-  if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseWritable(req, res, existing.courseId);
+  const listId = Number(req.params.id);
+  const courseId = Number(req.body.courseId || req.query.courseId);
+
+  const courses = await prisma.course.findMany();
+  let targetCourse = null;
+
+  for (const c of courses) {
+    const lists = getCourseHomeworkLists(c);
+    if (lists.some((l) => Number(l.id) === listId)) {
+      targetCourse = c;
+      break;
+    }
+  }
+
+  if (!targetCourse && courseId) {
+    targetCourse = await prisma.course.findUnique({ where: { id: courseId } });
+  }
+
+  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
+  const ok = await assertCourseWritable(req, res, targetCourse.id);
   if (!ok) return;
 
-  const data = {};
-  if (req.body.title !== undefined) {
-    data.title = String(req.body.title ?? '').trim() || 'Hausaufgabenliste';
-  }
-  if (req.body.columns !== undefined) {
-    data.columns = req.body.columns;
-  }
-
-  const list = await prisma.homeworkList.update({
-    where: { id },
-    data,
-    include: {
-      entries: { include: { student: true } },
-    },
+  const lists = getCourseHomeworkLists(targetCourse);
+  const updatedLists = lists.map((l) => {
+    if (Number(l.id) !== listId) return l;
+    return {
+      ...l,
+      ...(req.body.title !== undefined ? { title: String(req.body.title).trim() || 'Hausaufgabenliste' } : {}),
+      ...(req.body.columns !== undefined ? { columns: req.body.columns } : {}),
+    };
   });
 
-  res.json(serializeHomeworkList(list));
+  await prisma.course.update({
+    where: { id: targetCourse.id },
+    data: { homeworkLists: updatedLists },
+  });
+
+  const updatedList = updatedLists.find((l) => Number(l.id) === listId);
+  res.json(updatedList || { id: listId, ok: true });
 });
 
 app.delete('/api/homework-lists/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  const existing = await prisma.homeworkList.findUnique({
-    where: { id },
-    include: { course: true },
-  });
-  if (!existing) return res.status(404).json({ error: 'not found' });
-  const ok = await assertCourseWritable(req, res, existing.courseId);
+  const listId = Number(req.params.id);
+  const courses = await prisma.course.findMany();
+  let targetCourse = null;
+
+  for (const c of courses) {
+    const lists = getCourseHomeworkLists(c);
+    if (lists.some((l) => Number(l.id) === listId)) {
+      targetCourse = c;
+      break;
+    }
+  }
+
+  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
+  const ok = await assertCourseWritable(req, res, targetCourse.id);
   if (!ok) return;
 
-  await prisma.homeworkList.delete({ where: { id } });
+  const lists = getCourseHomeworkLists(targetCourse);
+  const updatedLists = lists.filter((l) => Number(l.id) !== listId);
+
+  await prisma.course.update({
+    where: { id: targetCourse.id },
+    data: { homeworkLists: updatedLists },
+  });
+
   res.status(204).end();
 });
 
-app.put('/api/homework-list-entries/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  const existing = await prisma.homeworkListEntry.findUnique({
-    where: { id },
-    include: { homeworkList: { include: { course: true } }, student: true },
-  });
-  if (!existing) return res.status(404).json({ error: 'not found' });
-  const acting = await assertActingUser(req, res);
-  if (!acting) return;
-  if (!existing.homeworkList?.course || !canAccessCourse(existing.homeworkList.course, acting)) {
-    return res.status(403).json({ error: 'Kein Zugriff' });
+app.put('/api/homework-lists/:id/entries', async (req, res) => {
+  const listId = Number(req.params.id);
+  const studentId = Number(req.body.studentId);
+  if (!studentId) return res.status(400).json({ error: 'studentId required' });
+
+  const courses = await prisma.course.findMany();
+  let targetCourse = null;
+
+  for (const c of courses) {
+    const lists = getCourseHomeworkLists(c);
+    if (lists.some((l) => Number(l.id) === listId)) {
+      targetCourse = c;
+      break;
+    }
   }
 
-  const data = {};
-  if (req.body.checks !== undefined) {
-    data.checks = req.body.checks;
-  }
-  if (req.body.completed !== undefined) {
-    data.completed = Boolean(req.body.completed);
-  }
+  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
+  const ok = await assertCourseWritable(req, res, targetCourse.id);
+  if (!ok) return;
 
-  const updated = await prisma.homeworkListEntry.update({
-    where: { id },
-    data,
-    include: { student: true },
+  const lists = getCourseHomeworkLists(targetCourse);
+  const updatedLists = lists.map((l) => {
+    if (Number(l.id) !== listId) return l;
+    const entries = [...(l.entries || [])];
+    const idx = entries.findIndex((e) => Number(e.studentId) === studentId);
+    if (idx >= 0) {
+      entries[idx] = {
+        ...entries[idx],
+        ...(req.body.checks !== undefined ? { checks: req.body.checks } : {}),
+        ...(req.body.completed !== undefined ? { completed: Boolean(req.body.completed) } : {}),
+      };
+    } else {
+      entries.push({
+        studentId,
+        checks: req.body.checks || {},
+        completed: Boolean(req.body.completed),
+      });
+    }
+    return { ...l, entries };
   });
 
-  res.json({
-    id: updated.id,
-    studentId: updated.studentId,
-    homeworkListId: updated.homeworkListId,
-    checks: safeParseJson(updated.checks, {}),
-    completed: Boolean(updated.completed),
+  await prisma.course.update({
+    where: { id: targetCourse.id },
+    data: { homeworkLists: updatedLists },
   });
+
+  res.json({ ok: true });
 });
 
 // ——— Backup: benutzerbezogen (eigene Kurse) / vollständig (Admin) ———

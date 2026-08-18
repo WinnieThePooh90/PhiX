@@ -251,20 +251,18 @@ export default function HomeworkView() {
   // Checkbox für Stunde umschalten
   const handleToggleCheck = (studentId, colId) => {
     if (courseArchived || !activeList) return;
-    const entry = entriesMap.get(Number(studentId));
-    if (!entry) return;
+    const entry = entriesMap.get(Number(studentId)) || { studentId, checks: {}, completed: false };
     const currentChecks = entry.checks || {};
     const nextChecks = { ...currentChecks, [colId]: !currentChecks[colId] };
-    updateHomeworkListEntry(entry.id, { checks: nextChecks });
+    updateHomeworkListEntry(activeList.id, studentId, { checks: nextChecks });
   };
 
   // Checkbox für Erledigt umschalten
   const handleToggleCompleted = (studentId) => {
     if (courseArchived || !activeList) return;
-    const entry = entriesMap.get(Number(studentId));
-    if (!entry) return;
+    const entry = entriesMap.get(Number(studentId)) || { studentId, checks: {}, completed: false };
     const nextVal = !entry.completed;
-    updateHomeworkListEntry(entry.id, { completed: nextVal });
+    updateHomeworkListEntry(activeList.id, studentId, { completed: nextVal });
   };
 
   const columns = activeList?.columns || [{ id: 'col_1', label: 'Stunde 1', date: null }];
