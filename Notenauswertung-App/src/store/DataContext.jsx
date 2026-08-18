@@ -127,6 +127,7 @@ export const DataProvider = ({ children }) => {
   const [attendanceLists, setAttendanceLists] = useState([]);
   const [collectionLists, setCollectionLists] = useState([]);
   const [notesLists, setNotesLists] = useState([]);
+  const [homeworkLists, setHomeworkLists] = useState([]);
   const [albumPhotos, setAlbumPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -232,6 +233,7 @@ export const DataProvider = ({ children }) => {
           attendanceListsRes,
           collectionListsRes,
           notesListsRes,
+          homeworkListsRes,
           albumPhotosRes,
         ] = await Promise.all([
           safeFetchJson(`/api/students?courseId=${activeCourseId}`, []),
@@ -245,6 +247,7 @@ export const DataProvider = ({ children }) => {
           safeFetchJson(`/api/attendance-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/collection-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/notes-lists?courseId=${activeCourseId}`, []),
+          safeFetchJson(`/api/homework-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/album-photos?courseId=${activeCourseId}`, []),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
@@ -258,6 +261,7 @@ export const DataProvider = ({ children }) => {
         setAttendanceLists(Array.isArray(attendanceListsRes) ? attendanceListsRes : []);
         setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
         setNotesLists(Array.isArray(notesListsRes) ? notesListsRes : []);
+        setHomeworkLists(Array.isArray(homeworkListsRes) ? homeworkListsRes : []);
         setAlbumPhotos(Array.isArray(albumPhotosRes) ? albumPhotosRes : []);
       } catch (err) {
         console.error("Failed to fetch course data", err);
@@ -2095,6 +2099,58 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/notes-list-entries/${entryId}`, 'PUT', { remark });
   };
 
+  const createHomeworkList = async (title = 'Hausaufgabenliste') => {
+    if (!activeCourseId) return null;
+    const created = await apiCall('/api/homework-lists', 'POST', {
+      courseId: activeCourseId,
+      title: title || 'Hausaufgabenliste',
+      columns: [{ id: 'col_1', label: 'Stunde 1', date: null }],
+    });
+    if (created?.id) {
+      setHomeworkLists((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+    }
+    return created;
+  };
+
+  const updateHomeworkList = async (id, { title, columns }) => {
+    const payload = {};
+    if (title !== undefined) payload.title = title;
+    if (columns !== undefined) payload.columns = columns;
+
+    const updated = await apiCall(`/api/homework-lists/${id}`, 'PUT', payload);
+    if (updated?.id) {
+      setHomeworkLists((prev) =>
+        prev.map((l) => (l.id === id ? updated : l)).sort((a, b) => a.id - b.id),
+      );
+    }
+    return updated;
+  };
+
+  const deleteHomeworkList = async (id) => {
+    const res = await apiCall(`/api/homework-lists/${id}`, 'DELETE');
+    if (res?.error) return res;
+    setHomeworkLists((prev) => prev.filter((l) => l.id !== id));
+    return { ok: true };
+  };
+
+  const updateHomeworkListEntry = (entryId, { checks, completed }) => {
+    setHomeworkLists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        entries: (list.entries || []).map((e) =>
+          e.id === entryId
+            ? {
+                ...e,
+                ...(checks !== undefined ? { checks } : {}),
+                ...(completed !== undefined ? { completed } : {}),
+              }
+            : e,
+        ),
+      })),
+    );
+    apiCall(`/api/homework-list-entries/${entryId}`, 'PUT', { checks, completed });
+  };
+
   const addSchoolRosterYear = async (label) => {
     const created = await apiCall('/api/school-roster-years', 'POST', { label });
     if (created?.error) return created;
@@ -2214,6 +2270,7 @@ export const DataProvider = ({ children }) => {
       updateCollectionListEntryCollected, addCollectionListExternalEntry, removeCollectionListEntry,
       notesLists, createNotesList, updateNotesList, deleteNotesList,
       updateNotesListEntryRemark, addNotesListExternalEntry, removeNotesListEntry,
+      homeworkLists, createHomeworkList, updateHomeworkList, deleteHomeworkList, updateHomeworkListEntry,
       schoolRosterYears,
       activeSchoolRosterYearId,
       setActiveSchoolRosterYearId,

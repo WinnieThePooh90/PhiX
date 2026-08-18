@@ -124,6 +124,7 @@ model Course {
   attendanceLists   AttendanceList[]
   collectionLists   CollectionList[]
   notesLists        NotesList[]
+  homeworkLists     HomeworkList[]
   albumPhotos       AlbumPhoto[]
 
   @@index([ownerUsername])
@@ -174,6 +175,7 @@ model Student {
   attendanceListEntries  AttendanceListEntry[]
   collectionListEntries  CollectionListEntry[]
   notesListEntries       NotesListEntry[]
+  homeworkListEntries    HomeworkListEntry[]
 }
 
 model MoneyList {
@@ -291,6 +293,31 @@ model NotesListEntry {
 
   @@unique([notesListId, studentId])
   @@index([notesListId])
+}
+
+model HomeworkList {
+  id        Int                 @id @default(autoincrement())
+  title     String              @default("Hausaufgabenliste")
+  columns   Json                @default("[]")
+  courseId  Int
+  course    Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  entries   HomeworkListEntry[]
+  createdAt DateTime            @default(now())
+
+  @@index([courseId])
+}
+
+model HomeworkListEntry {
+  id             Int          @id @default(autoincrement())
+  studentId      Int
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  homeworkListId Int
+  homeworkList   HomeworkList @relation(fields: [homeworkListId], references: [id], onDelete: Cascade)
+  checks         Json         @default("{}")
+  completed      Boolean      @default(false)
+
+  @@unique([homeworkListId, studentId])
+  @@index([homeworkListId])
 }
 
 model GfsEntry {

@@ -26,6 +26,9 @@ export default function SettingsNavMenu({
           <button type="button" role="menuitem" onClick={() => pick('settings')}>
             Klasse
           </button>
+          <button type="button" role="menuitem" onClick={() => pick('homework')}>
+            Hausaufgaben
+          </button>
           <button type="button" role="menuitem" onClick={() => pick('seatingPlan')}>
             Sitzplan
           </button>

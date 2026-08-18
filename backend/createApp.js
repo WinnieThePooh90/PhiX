@@ -2969,6 +2969,173 @@ app.delete('/api/notes-list-entries/:id', async (req, res) => {
   res.status(204).end();
 });
 
+// Hausaufgabenlisten (Einstellungsmenü / Hausaufgaben)
+
+function safeParseJson(val, fallback) {
+  if (typeof val === 'object' && val !== null) return val;
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return fallback; }
+  }
+  return fallback;
+}
+
+function serializeHomeworkList(list) {
+  const entries = (list.entries || []).map((e) => ({
+    id: e.id,
+    studentId: e.studentId,
+    homeworkListId: e.homeworkListId,
+    checks: safeParseJson(e.checks, {}),
+    completed: Boolean(e.completed),
+    student: e.student ? {
+      id: e.student.id,
+      firstName: e.student.firstName,
+      lastName: e.student.lastName,
+      studentNumber: e.student.studentNumber,
+    } : null,
+  }));
+  return {
+    id: list.id,
+    title: list.title || 'Hausaufgabenliste',
+    columns: safeParseJson(list.columns, []),
+    courseId: list.courseId,
+    createdAt: list.createdAt,
+    entries,
+  };
+}
+
+app.get('/api/homework-lists', async (req, res) => {
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.json([]);
+  const ok = await assertCourseAccess(req, res, courseId);
+  if (!ok) return;
+  const lists = await prisma.homeworkList.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+    include: {
+      entries: {
+        include: { student: true },
+      },
+    },
+  });
+  res.json(lists.map(serializeHomeworkList));
+});
+
+app.post('/api/homework-lists', async (req, res) => {
+  const courseId = Number(req.body.courseId);
+  if (!Number.isFinite(courseId)) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseWritable(req, res, courseId);
+  if (!ok) return;
+
+  const title = String(req.body.title ?? 'Hausaufgabenliste').trim() || 'Hausaufgabenliste';
+  const columns = Array.isArray(req.body.columns) && req.body.columns.length > 0
+    ? req.body.columns
+    : [{ id: 'col_1', label: 'Stunde 1', date: null }];
+
+  const courseStudents = await prisma.student.findMany({
+    where: { courseId },
+    orderBy: { id: 'asc' },
+  });
+
+  const list = await prisma.homeworkList.create({
+    data: {
+      courseId,
+      title,
+      columns,
+      entries: {
+        create: courseStudents.map((s) => ({
+          studentId: s.id,
+          checks: {},
+          completed: false,
+        })),
+      },
+    },
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.status(201).json(serializeHomeworkList(list));
+});
+
+app.put('/api/homework-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.homeworkList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseWritable(req, res, existing.courseId);
+  if (!ok) return;
+
+  const data = {};
+  if (req.body.title !== undefined) {
+    data.title = String(req.body.title ?? '').trim() || 'Hausaufgabenliste';
+  }
+  if (req.body.columns !== undefined) {
+    data.columns = req.body.columns;
+  }
+
+  const list = await prisma.homeworkList.update({
+    where: { id },
+    data,
+    include: {
+      entries: { include: { student: true } },
+    },
+  });
+
+  res.json(serializeHomeworkList(list));
+});
+
+app.delete('/api/homework-lists/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.homeworkList.findUnique({
+    where: { id },
+    include: { course: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseWritable(req, res, existing.courseId);
+  if (!ok) return;
+
+  await prisma.homeworkList.delete({ where: { id } });
+  res.status(204).end();
+});
+
+app.put('/api/homework-list-entries/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await prisma.homeworkListEntry.findUnique({
+    where: { id },
+    include: { homeworkList: { include: { course: true } }, student: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  if (!existing.homeworkList?.course || !canAccessCourse(existing.homeworkList.course, acting)) {
+    return res.status(403).json({ error: 'Kein Zugriff' });
+  }
+
+  const data = {};
+  if (req.body.checks !== undefined) {
+    data.checks = req.body.checks;
+  }
+  if (req.body.completed !== undefined) {
+    data.completed = Boolean(req.body.completed);
+  }
+
+  const updated = await prisma.homeworkListEntry.update({
+    where: { id },
+    data,
+    include: { student: true },
+  });
+
+  res.json({
+    id: updated.id,
+    studentId: updated.studentId,
+    homeworkListId: updated.homeworkListId,
+    checks: safeParseJson(updated.checks, {}),
+    completed: Boolean(updated.completed),
+  });
+});
+
 // ——— Backup: benutzerbezogen (eigene Kurse) / vollständig (Admin) ———
 
 function backupPkgBuildMeta() {

@@ -18,6 +18,7 @@ import { isCourseArchived } from './utils/courseArchive';
 import { useData } from './store/DataContext';
 import { useAuth } from './store/AuthContext';
 import SettingsView from './views/SettingsView';
+import HomeworkView from './views/HomeworkView';
 import SeatingPlanView from './views/SeatingPlanView';
 import NewCourseForm from './components/NewCourseForm';
 import SchoolRosterView from './views/SchoolRosterView';
@@ -510,6 +511,8 @@ function App() {
         return <AlbumView />;
       case 'klassenlehrer':
         return <KlassenlehrerView />;
+      case 'homework':
+        return <HomeworkView />;
       case 'export':
         return (
           <ExportView
@@ -581,6 +584,7 @@ function App() {
     (hasActiveCourse && activeTab === 'analysis') ||
     (hasActiveCourse && activeTab === 'album') ||
     (hasActiveCourse && activeTab === 'klassenlehrer') ||
+    (hasActiveCourse && activeTab === 'homework') ||
     (hasActiveCourse && activeTab === 'export') ||
     activeTab === 'backup' ||
     activeTab === 'appInfo' ||
