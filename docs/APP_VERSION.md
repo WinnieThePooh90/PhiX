@@ -4,14 +4,14 @@ Von der Projektregel `.cursor/rules/version-per-prompt.mdc` gepflegt (Agent-Modu
 
 | Feld | Wert |
 |------|------|
-| **Build** | `486` |
-| **Letzte Änderung** | `2026-08-18T20:22:31+02:00` |
+| **Build** | `487` |
+| **Letzte Änderung** | `2026-08-18T20:24:59+02:00` |
 
 Maschinenlesbar (eine Zeile pro Schlüssel):
 
 ```
-PHIX_BUILD=486
-PHIX_LETZTE_AENDERUNG=2026-08-18T20:22:31+02:00
+PHIX_BUILD=487
+PHIX_LETZTE_AENDERUNG=2026-08-18T20:24:59+02:00
 ```
 
 Die sichtbare Versionsnummer in der App entspricht **PHIX_BUILD** (eine Ganzzahl).

@@ -279,7 +279,7 @@ export default function HomeworkView() {
 
       <h2 className="program-view-title">Hausaufgaben</h2>
       <p className="text-muted program-view-intro">
-        Erstelle und verwalte Hausaufgabenlisten für die Klasse mit Kalenderdaten und Abhak-Übersicht.
+        Erstelle und verwalte Hausaufgabenlisten für die Klasse.
       </p>
 
       {/* Button & Tabs-Zeile */}
