@@ -3067,46 +3067,14 @@ app.get('/api/homework-lists', async (req, res) => {
   if (!ok) return;
 
   try {
-    const rawLists = await prisma.$queryRawUnsafe(
-      'SELECT "id", "title", "columns", "courseId", "createdAt" FROM "HomeworkList" WHERE "courseId" = $1 ORDER BY "id" ASC;',
-      courseId,
-    ).catch(() =>
-      prisma.$queryRawUnsafe(
-        'SELECT "id", "title", "columns", "courseId", "createdAt" FROM "HomeworkList" WHERE "courseId" = ? ORDER BY "id" ASC;',
-        courseId,
-      ),
-    );
-
-    const lists = [];
-    for (const list of rawLists) {
-      const listId = Number(list.id);
-      const rawEntries = await prisma.$queryRawUnsafe(
-        'SELECT "id", "homeworkListId", "studentId", "checks", "completed" FROM "HomeworkListEntry" WHERE "homeworkListId" = $1;',
-        listId,
-      ).catch(() =>
-        prisma.$queryRawUnsafe(
-          'SELECT "id", "homeworkListId", "studentId", "checks", "completed" FROM "HomeworkListEntry" WHERE "homeworkListId" = ?;',
-          listId,
-        ),
-      );
-
-      lists.push({
-        id: listId,
-        title: list.title || 'Hausaufgabenliste',
-        columns: safeParseJson(list.columns, []),
-        courseId: Number(list.courseId),
-        createdAt: list.createdAt,
-        entries: (rawEntries || []).map((e) => ({
-          id: Number(e.id),
-          homeworkListId: Number(e.homeworkListId),
-          studentId: Number(e.studentId),
-          checks: safeParseJson(e.checks, {}),
-          completed: Boolean(e.completed),
-        })),
-      });
-    }
-
-    return res.json(lists);
+    const lists = await prisma.homeworkList.findMany({
+      where: { courseId },
+      orderBy: { id: 'asc' },
+      include: {
+        entries: true,
+      },
+    });
+    return res.json(lists.map(serializeHomeworkList));
   } catch (err) {
     console.error('Error fetching homework lists:', err);
     return res.json([]);
@@ -3129,156 +3097,68 @@ app.post('/api/homework-lists', async (req, res) => {
     orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
   });
 
-  const columnsJson = JSON.stringify(columns);
-  const now = new Date().toISOString();
-
-  let newListId;
   try {
-    const inserted = await prisma.$queryRawUnsafe(
-      'INSERT INTO "HomeworkList" ("title", "columns", "courseId", "createdAt") VALUES ($1, $2, $3, $4) RETURNING "id";',
-      title,
-      columnsJson,
-      courseId,
-      now,
-    ).catch(() =>
-      prisma.$executeRawUnsafe(
-        'INSERT INTO "HomeworkList" ("title", "columns", "courseId", "createdAt") VALUES (?, ?, ?, ?);',
-        title,
-        columnsJson,
+    const list = await prisma.homeworkList.create({
+      data: {
         courseId,
-        now,
-      ),
-    );
-
-    if (Array.isArray(inserted) && inserted[0]?.id) {
-      newListId = Number(inserted[0].id);
-    } else {
-      const maxRes = await prisma.$queryRawUnsafe('SELECT MAX("id") as maxid FROM "HomeworkList";');
-      newListId = Number(maxRes[0]?.maxid || maxRes[0]?.MAXID || Date.now());
-    }
+        title,
+        columns,
+        ...(courseStudents.length > 0
+          ? {
+              entries: {
+                create: courseStudents.map((s) => ({
+                  studentId: Number(s.id),
+                  checks: {},
+                  completed: false,
+                })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        entries: true,
+      },
+    });
+    return res.status(201).json(serializeHomeworkList(list));
   } catch (err) {
-    console.error('Error inserting HomeworkList:', err);
+    console.error('Error creating homework list:', err);
     return res.status(500).json({ error: 'Erstellen fehlgeschlagen' });
   }
-
-  const entries = [];
-  for (const s of courseStudents) {
-    const studentId = Number(s.id);
-    try {
-      await prisma.$executeRawUnsafe(
-        'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES ($1, $2, $3, $4);',
-        newListId,
-        studentId,
-        '{}',
-        false,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES (?, ?, ?, ?);',
-          newListId,
-          studentId,
-          '{}',
-          0,
-        ),
-      );
-    } catch {}
-
-    entries.push({
-      studentId,
-      homeworkListId: newListId,
-      checks: {},
-      completed: false,
-    });
-  }
-
-  res.status(201).json({
-    id: newListId,
-    title,
-    columns,
-    courseId,
-    createdAt: now,
-    entries,
-  });
 });
 
 app.put('/api/homework-lists/:id', async (req, res) => {
-  const listId = Number(req.params.id);
-  const title = req.body.title !== undefined ? String(req.body.title).trim() || 'Hausaufgabenliste' : null;
-  const columnsJson = req.body.columns !== undefined ? JSON.stringify(req.body.columns) : null;
-
-  try {
-    if (title !== null && columnsJson !== null) {
-      await prisma.$executeRawUnsafe(
-        'UPDATE "HomeworkList" SET "title" = $1, "columns" = $2 WHERE "id" = $3;',
-        title,
-        columnsJson,
-        listId,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'UPDATE "HomeworkList" SET "title" = ?, "columns" = ? WHERE "id" = ?;',
-          title,
-          columnsJson,
-          listId,
-        ),
-      );
-    } else if (title !== null) {
-      await prisma.$executeRawUnsafe(
-        'UPDATE "HomeworkList" SET "title" = $1 WHERE "id" = $2;',
-        title,
-        listId,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'UPDATE "HomeworkList" SET "title" = ? WHERE "id" = ?;',
-          title,
-          listId,
-        ),
-      );
-    } else if (columnsJson !== null) {
-      await prisma.$executeRawUnsafe(
-        'UPDATE "HomeworkList" SET "columns" = $1 WHERE "id" = $2;',
-        columnsJson,
-        listId,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'UPDATE "HomeworkList" SET "columns" = ? WHERE "id" = ?;',
-          columnsJson,
-          listId,
-        ),
-      );
-    }
-  } catch (err) {
-    console.error('Error updating HomeworkList:', err);
+  const id = Number(req.params.id);
+  const data = {};
+  if (req.body.title !== undefined) {
+    data.title = String(req.body.title ?? '').trim() || 'Hausaufgabenliste';
+  }
+  if (req.body.columns !== undefined) {
+    data.columns = req.body.columns;
   }
 
-  res.json({ id: listId, ok: true });
+  try {
+    const updated = await prisma.homeworkList.update({
+      where: { id },
+      data,
+      include: { entries: true },
+    });
+    return res.json(serializeHomeworkList(updated));
+  } catch (err) {
+    console.error('Error updating homework list:', err);
+    return res.status(500).json({ error: 'Bearbeiten fehlgeschlagen' });
+  }
 });
 
 app.delete('/api/homework-lists/:id', async (req, res) => {
-  const listId = Number(req.params.id);
+  const id = Number(req.params.id);
   try {
-    await prisma.$executeRawUnsafe(
-      'DELETE FROM "HomeworkListEntry" WHERE "homeworkListId" = $1;',
-      listId,
-    ).catch(() =>
-      prisma.$executeRawUnsafe(
-        'DELETE FROM "HomeworkListEntry" WHERE "homeworkListId" = ?;',
-        listId,
-      ),
-    );
-
-    await prisma.$executeRawUnsafe(
-      'DELETE FROM "HomeworkList" WHERE "id" = $1;',
-      listId,
-    ).catch(() =>
-      prisma.$executeRawUnsafe(
-        'DELETE FROM "HomeworkList" WHERE "id" = ?;',
-        listId,
-      ),
-    );
+    await prisma.homeworkListEntry.deleteMany({ where: { homeworkListId: id } });
+    await prisma.homeworkList.delete({ where: { id } });
+    return res.status(204).end();
   } catch (err) {
-    console.error('Error deleting HomeworkList:', err);
+    console.error('Error deleting homework list:', err);
+    return res.status(500).json({ error: 'Löschen fehlgeschlagen' });
   }
-
-  res.status(204).end();
 });
 
 app.put('/api/homework-lists/:id/entries', async (req, res) => {
@@ -3286,53 +3166,34 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
   const studentId = Number(req.body.studentId);
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
 
-  const checksJson = req.body.checks !== undefined ? JSON.stringify(req.body.checks) : '{}';
+  const checks = req.body.checks !== undefined ? req.body.checks : {};
 
   try {
-    const existing = await prisma.$queryRawUnsafe(
-      'SELECT "id" FROM "HomeworkListEntry" WHERE "homeworkListId" = $1 AND "studentId" = $2;',
-      listId,
-      studentId,
-    ).catch(() =>
-      prisma.$queryRawUnsafe(
-        'SELECT "id" FROM "HomeworkListEntry" WHERE "homeworkListId" = ? AND "studentId" = ?;',
-        listId,
-        studentId,
-      ),
-    );
+    const existing = await prisma.homeworkListEntry.findFirst({
+      where: { homeworkListId: listId, studentId },
+    });
 
-    if (Array.isArray(existing) && existing.length > 0) {
-      await prisma.$executeRawUnsafe(
-        'UPDATE "HomeworkListEntry" SET "checks" = $1 WHERE "homeworkListId" = $2 AND "studentId" = $3;',
-        checksJson,
-        listId,
-        studentId,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'UPDATE "HomeworkListEntry" SET "checks" = ? WHERE "homeworkListId" = ? AND "studentId" = ?;',
-          checksJson,
-          listId,
-          studentId,
-        ),
-      );
+    if (existing) {
+      await prisma.homeworkListEntry.update({
+        where: { id: existing.id },
+        data: { checks },
+      });
     } else {
-      await prisma.$executeRawUnsafe(
-        'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES ($1, $2, $3, $4);',
-        listId,
-        studentId,
-        checksJson,
-        false,
-      ).catch(() =>
-        prisma.$executeRawUnsafe(
-          'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES (?, ?, ?, ?);',
-          listId,
+      await prisma.homeworkListEntry.create({
+        data: {
+          homeworkListId: listId,
           studentId,
-          checksJson,
-          0,
-        ),
-      );
+          checks,
+          completed: false,
+        },
+      });
     }
+    return res.json({ ok: true });
   } catch (err) {
+    console.error('Error updating homework list entry:', err);
+    return res.status(500).json({ error: 'Eintrag konnte nicht aktualisiert werden' });
+  }
+});  } catch (err) {
     console.error('Error updating HomeworkListEntry:', err);
   }
 
