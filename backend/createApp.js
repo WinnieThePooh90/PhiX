@@ -694,7 +694,6 @@ async function ensureHomeworkListTables(prisma) {
 
 async function ensureAppUsers() {
   await ensureCourseSeatingPlanColumn(prisma);
-  await ensureCourseHomeworkListsColumn(prisma);
   await ensureHomeworkListTables(prisma);
   const n = await prisma.appUser.count();
   if (n > 0) {
