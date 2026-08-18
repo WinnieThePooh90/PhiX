@@ -2131,7 +2131,26 @@ export const DataProvider = ({ children }) => {
     const updated = await apiCall(`/api/homework-lists/${id}`, 'PUT', payload);
     if (updated?.id) {
       setHomeworkLists((prev) =>
-        prev.map((l) => (Number(l.id) === Number(updated.id) ? updated : l)).sort((a, b) => a.id - b.id),
+        prev
+          .map((l) => {
+            if (Number(l.id) !== Number(updated.id)) return l;
+            const existingEntries = l.entries || [];
+            const updatedEntriesMap = new Map((updated.entries || []).map((e) => [Number(e.studentId), e]));
+            const mergedEntries = existingEntries.map((e) => {
+              const u = updatedEntriesMap.get(Number(e.studentId));
+              return {
+                ...e,
+                ...(u || {}),
+                checks: { ...(u?.checks || {}), ...(e.checks || {}) },
+              };
+            });
+            return {
+              ...l,
+              ...updated,
+              entries: mergedEntries.length > 0 ? mergedEntries : updated.entries || [],
+            };
+          })
+          .sort((a, b) => a.id - b.id),
       );
     }
     return updated;
