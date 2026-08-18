@@ -33,6 +33,8 @@ const ENCRYPTED_FIELDS = {
   CollectionListEntry: ['externalFirstName', 'externalLastName'],
   NotesList: ['subject', 'notes', 'sessionDate'],
   NotesListEntry: ['externalFirstName', 'externalLastName', 'remark'],
+  HomeworkList: ['title', 'columns'],
+  HomeworkListEntry: ['checks'],
   AlbumPhoto: ['title', 'description', 'mimeType', 'imageData'],
   UserAuswertungshilfe: ['fileName', 'mimeType', 'fileData'],
 };
@@ -51,6 +53,8 @@ const JSON_FIELDS = new Set([
   'gfsGehaltenStash',
   'referatGehaltenStash',
   'seatingPlan',
+  'columns',
+  'checks',
 ]);
 
 const DATE_STRING_FIELDS = new Set(['dueDate', 'sessionDate']);

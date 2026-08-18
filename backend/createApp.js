@@ -636,21 +636,66 @@ async function ensureCourseSeatingPlanColumn(prisma) {
   }
 }
 
-async function ensureCourseHomeworkListsColumn(prisma) {
+async function ensureHomeworkListTables(prisma) {
   try {
-    await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "homeworkLists" JSONB;');
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "HomeworkList" (
+        "id" SERIAL PRIMARY KEY,
+        "title" TEXT NOT NULL DEFAULT 'Hausaufgabenliste',
+        "columns" TEXT NOT NULL DEFAULT '[]',
+        "courseId" INTEGER NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "HomeworkList_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE
+      );
+    `);
   } catch {
     try {
-      await prisma.$executeRawUnsafe('ALTER TABLE "Course" ADD COLUMN "homeworkLists" TEXT;');
-    } catch {
-      /* Spalte existiert bereits */
-    }
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "HomeworkList" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "title" TEXT NOT NULL DEFAULT 'Hausaufgabenliste',
+          "columns" TEXT NOT NULL DEFAULT '[]',
+          "courseId" INTEGER NOT NULL,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE
+        );
+      `);
+    } catch {}
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "HomeworkListEntry" (
+        "id" SERIAL PRIMARY KEY,
+        "homeworkListId" INTEGER NOT NULL,
+        "studentId" INTEGER NOT NULL,
+        "checks" TEXT NOT NULL DEFAULT '{}',
+        "completed" BOOLEAN NOT NULL DEFAULT false,
+        CONSTRAINT "HomeworkListEntry_homeworkListId_fkey" FOREIGN KEY ("homeworkListId") REFERENCES "HomeworkList"("id") ON DELETE CASCADE,
+        CONSTRAINT "HomeworkListEntry_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE
+      );
+    `);
+  } catch {
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "HomeworkListEntry" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "homeworkListId" INTEGER NOT NULL,
+          "studentId" INTEGER NOT NULL,
+          "checks" TEXT NOT NULL DEFAULT '{}',
+          "completed" BOOLEAN NOT NULL DEFAULT 0,
+          FOREIGN KEY ("homeworkListId") REFERENCES "HomeworkList"("id") ON DELETE CASCADE,
+          FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE
+        );
+      `);
+    } catch {}
   }
 }
 
 async function ensureAppUsers() {
   await ensureCourseSeatingPlanColumn(prisma);
   await ensureCourseHomeworkListsColumn(prisma);
+  await ensureHomeworkListTables(prisma);
   const n = await prisma.appUser.count();
   if (n > 0) {
     const admin = await prisma.appUser.findFirst({
@@ -3016,72 +3061,57 @@ function serializeHomeworkList(list) {
   };
 }
 
-function getCourseHomeworkLists(course) {
-  if (!course) return [];
-  let sp = course.seatingPlan;
-  if (typeof sp === 'string') {
-    try { sp = JSON.parse(sp); } catch { sp = null; }
-  }
-  if (sp && typeof sp === 'object' && Array.isArray(sp.homeworkLists)) {
-    return sp.homeworkLists;
-  }
-  if (Array.isArray(course.homeworkLists)) return course.homeworkLists;
-  if (typeof course.homeworkLists === 'string') {
-    try {
-      const parsed = JSON.parse(course.homeworkLists);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
-  }
-  return [];
-}
-
-async function saveCourseHomeworkLists(prisma, courseId, updatedLists) {
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course) return false;
-
-  let sp = course.seatingPlan;
-  if (typeof sp === 'string') {
-    try { sp = JSON.parse(sp); } catch { sp = {}; }
-  }
-  if (!sp || typeof sp !== 'object') sp = {};
-
-  const nextSeatingPlan = {
-    ...sp,
-    homeworkLists: updatedLists,
-  };
-
-  await prisma.course.update({
-    where: { id: courseId },
-    data: { seatingPlan: nextSeatingPlan },
-  });
-
-  try {
-    const jsonStr = JSON.stringify(updatedLists);
-    await prisma.$executeRawUnsafe(
-      'UPDATE "Course" SET "homeworkLists" = $1 WHERE "id" = $2;',
-      jsonStr,
-      courseId,
-    ).catch(() =>
-      prisma.$executeRawUnsafe(
-        'UPDATE "Course" SET "homeworkLists" = ? WHERE "id" = ?;',
-        jsonStr,
-        courseId,
-      ),
-    );
-  } catch {}
-
-  return true;
-}
-
 app.get('/api/homework-lists', async (req, res) => {
   const courseId = Number(req.query.courseId);
   if (!courseId) return res.json([]);
   const ok = await assertCourseAccess(req, res, courseId);
   if (!ok) return;
 
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course) return res.json([]);
-  res.json(getCourseHomeworkLists(course));
+  try {
+    const rawLists = await prisma.$queryRawUnsafe(
+      'SELECT "id", "title", "columns", "courseId", "createdAt" FROM "HomeworkList" WHERE "courseId" = $1 ORDER BY "id" ASC;',
+      courseId,
+    ).catch(() =>
+      prisma.$queryRawUnsafe(
+        'SELECT "id", "title", "columns", "courseId", "createdAt" FROM "HomeworkList" WHERE "courseId" = ? ORDER BY "id" ASC;',
+        courseId,
+      ),
+    );
+
+    const lists = [];
+    for (const list of rawLists) {
+      const listId = Number(list.id);
+      const rawEntries = await prisma.$queryRawUnsafe(
+        'SELECT "id", "homeworkListId", "studentId", "checks", "completed" FROM "HomeworkListEntry" WHERE "homeworkListId" = $1;',
+        listId,
+      ).catch(() =>
+        prisma.$queryRawUnsafe(
+          'SELECT "id", "homeworkListId", "studentId", "checks", "completed" FROM "HomeworkListEntry" WHERE "homeworkListId" = ?;',
+          listId,
+        ),
+      );
+
+      lists.push({
+        id: listId,
+        title: list.title || 'Hausaufgabenliste',
+        columns: safeParseJson(list.columns, []),
+        courseId: Number(list.courseId),
+        createdAt: list.createdAt,
+        entries: (rawEntries || []).map((e) => ({
+          id: Number(e.id),
+          homeworkListId: Number(e.homeworkListId),
+          studentId: Number(e.studentId),
+          checks: safeParseJson(e.checks, {}),
+          completed: Boolean(e.completed),
+        })),
+      });
+    }
+
+    return res.json(lists);
+  } catch (err) {
+    console.error('Error fetching homework lists:', err);
+    return res.json([]);
+  }
 });
 
 app.post('/api/homework-lists', async (req, res) => {
@@ -3100,92 +3130,154 @@ app.post('/api/homework-lists', async (req, res) => {
     orderBy: [{ studentNumber: 'asc' }, { id: 'asc' }],
   });
 
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course) return res.status(404).json({ error: 'Kurs nicht gefunden' });
+  const columnsJson = JSON.stringify(columns);
+  const now = new Date().toISOString();
 
-  const existingLists = getCourseHomeworkLists(course);
-  const newList = {
-    id: Date.now(),
+  let newListId;
+  try {
+    const inserted = await prisma.$queryRawUnsafe(
+      'INSERT INTO "HomeworkList" ("title", "columns", "courseId", "createdAt") VALUES ($1, $2, $3, $4) RETURNING "id";',
+      title,
+      columnsJson,
+      courseId,
+      now,
+    ).catch(() =>
+      prisma.$executeRawUnsafe(
+        'INSERT INTO "HomeworkList" ("title", "columns", "courseId", "createdAt") VALUES (?, ?, ?, ?);',
+        title,
+        columnsJson,
+        courseId,
+        now,
+      ),
+    );
+
+    if (Array.isArray(inserted) && inserted[0]?.id) {
+      newListId = Number(inserted[0].id);
+    } else {
+      const maxRes = await prisma.$queryRawUnsafe('SELECT MAX("id") as maxid FROM "HomeworkList";');
+      newListId = Number(maxRes[0]?.maxid || maxRes[0]?.MAXID || Date.now());
+    }
+  } catch (err) {
+    console.error('Error inserting HomeworkList:', err);
+    return res.status(500).json({ error: 'Erstellen fehlgeschlagen' });
+  }
+
+  const entries = [];
+  for (const s of courseStudents) {
+    const studentId = Number(s.id);
+    try {
+      await prisma.$executeRawUnsafe(
+        'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES ($1, $2, $3, $4);',
+        newListId,
+        studentId,
+        '{}',
+        false,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES (?, ?, ?, ?);',
+          newListId,
+          studentId,
+          '{}',
+          0,
+        ),
+      );
+    } catch {}
+
+    entries.push({
+      studentId,
+      homeworkListId: newListId,
+      checks: {},
+      completed: false,
+    });
+  }
+
+  res.status(201).json({
+    id: newListId,
     title,
     columns,
     courseId,
-    createdAt: new Date().toISOString(),
-    entries: courseStudents.map((s) => ({
-      studentId: Number(s.id),
-      checks: {},
-      completed: false,
-    })),
-  };
-
-  const updatedLists = [...existingLists, newList];
-  const saved = await saveCourseHomeworkLists(prisma, courseId, updatedLists);
-  if (!saved) {
-    return res.status(500).json({ error: 'Speichern fehlgeschlagen' });
-  }
-
-  res.status(201).json(newList);
+    createdAt: now,
+    entries,
+  });
 });
 
 app.put('/api/homework-lists/:id', async (req, res) => {
   const listId = Number(req.params.id);
-  const courseId = Number(req.body.courseId || req.query.courseId);
+  const title = req.body.title !== undefined ? String(req.body.title).trim() || 'Hausaufgabenliste' : null;
+  const columnsJson = req.body.columns !== undefined ? JSON.stringify(req.body.columns) : null;
 
-  const courses = await prisma.course.findMany();
-  let targetCourse = null;
-
-  for (const c of courses) {
-    const lists = getCourseHomeworkLists(c);
-    if (lists.some((l) => Number(l.id) === listId)) {
-      targetCourse = c;
-      break;
+  try {
+    if (title !== null && columnsJson !== null) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "HomeworkList" SET "title" = $1, "columns" = $2 WHERE "id" = $3;',
+        title,
+        columnsJson,
+        listId,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "HomeworkList" SET "title" = ?, "columns" = ? WHERE "id" = ?;',
+          title,
+          columnsJson,
+          listId,
+        ),
+      );
+    } else if (title !== null) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "HomeworkList" SET "title" = $1 WHERE "id" = $2;',
+        title,
+        listId,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "HomeworkList" SET "title" = ? WHERE "id" = ?;',
+          title,
+          listId,
+        ),
+      );
+    } else if (columnsJson !== null) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "HomeworkList" SET "columns" = $1 WHERE "id" = $2;',
+        columnsJson,
+        listId,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "HomeworkList" SET "columns" = ? WHERE "id" = ?;',
+          columnsJson,
+          listId,
+        ),
+      );
     }
+  } catch (err) {
+    console.error('Error updating HomeworkList:', err);
   }
 
-  if (!targetCourse && courseId) {
-    targetCourse = await prisma.course.findUnique({ where: { id: courseId } });
-  }
-
-  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
-  const ok = await assertCourseWritable(req, res, targetCourse.id);
-  if (!ok) return;
-
-  const lists = getCourseHomeworkLists(targetCourse);
-  const updatedLists = lists.map((l) => {
-    if (Number(l.id) !== listId) return l;
-    return {
-      ...l,
-      ...(req.body.title !== undefined ? { title: String(req.body.title).trim() || 'Hausaufgabenliste' } : {}),
-      ...(req.body.columns !== undefined ? { columns: req.body.columns } : {}),
-    };
-  });
-
-  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
-
-  const updatedList = updatedLists.find((l) => Number(l.id) === listId);
-  res.json(updatedList || { id: listId, ok: true });
+  res.json({ id: listId, ok: true });
 });
 
 app.delete('/api/homework-lists/:id', async (req, res) => {
   const listId = Number(req.params.id);
-  const courses = await prisma.course.findMany();
-  let targetCourse = null;
+  try {
+    await prisma.$executeRawUnsafe(
+      'DELETE FROM "HomeworkListEntry" WHERE "homeworkListId" = $1;',
+      listId,
+    ).catch(() =>
+      prisma.$executeRawUnsafe(
+        'DELETE FROM "HomeworkListEntry" WHERE "homeworkListId" = ?;',
+        listId,
+      ),
+    );
 
-  for (const c of courses) {
-    const lists = getCourseHomeworkLists(c);
-    if (lists.some((l) => Number(l.id) === listId)) {
-      targetCourse = c;
-      break;
-    }
+    await prisma.$executeRawUnsafe(
+      'DELETE FROM "HomeworkList" WHERE "id" = $1;',
+      listId,
+    ).catch(() =>
+      prisma.$executeRawUnsafe(
+        'DELETE FROM "HomeworkList" WHERE "id" = ?;',
+        listId,
+      ),
+    );
+  } catch (err) {
+    console.error('Error deleting HomeworkList:', err);
   }
-
-  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
-  const ok = await assertCourseWritable(req, res, targetCourse.id);
-  if (!ok) return;
-
-  const lists = getCourseHomeworkLists(targetCourse);
-  const updatedLists = lists.filter((l) => Number(l.id) !== listId);
-
-  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
 
   res.status(204).end();
 });
@@ -3195,43 +3287,55 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
   const studentId = Number(req.body.studentId);
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
 
-  const courses = await prisma.course.findMany();
-  let targetCourse = null;
+  const checksJson = req.body.checks !== undefined ? JSON.stringify(req.body.checks) : '{}';
 
-  for (const c of courses) {
-    const lists = getCourseHomeworkLists(c);
-    if (lists.some((l) => Number(l.id) === listId)) {
-      targetCourse = c;
-      break;
-    }
-  }
-
-  if (!targetCourse) return res.status(404).json({ error: 'Liste nicht gefunden' });
-  const ok = await assertCourseWritable(req, res, targetCourse.id);
-  if (!ok) return;
-
-  const lists = getCourseHomeworkLists(targetCourse);
-  const updatedLists = lists.map((l) => {
-    if (Number(l.id) !== listId) return l;
-    const entries = [...(l.entries || [])];
-    const idx = entries.findIndex((e) => Number(e.studentId) === studentId);
-    if (idx >= 0) {
-      entries[idx] = {
-        ...entries[idx],
-        ...(req.body.checks !== undefined ? { checks: req.body.checks } : {}),
-        ...(req.body.completed !== undefined ? { completed: Boolean(req.body.completed) } : {}),
-      };
-    } else {
-      entries.push({
+  try {
+    const existing = await prisma.$queryRawUnsafe(
+      'SELECT "id" FROM "HomeworkListEntry" WHERE "homeworkListId" = $1 AND "studentId" = $2;',
+      listId,
+      studentId,
+    ).catch(() =>
+      prisma.$queryRawUnsafe(
+        'SELECT "id" FROM "HomeworkListEntry" WHERE "homeworkListId" = ? AND "studentId" = ?;',
+        listId,
         studentId,
-        checks: req.body.checks || {},
-        completed: Boolean(req.body.completed),
-      });
-    }
-    return { ...l, entries };
-  });
+      ),
+    );
 
-  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
+    if (Array.isArray(existing) && existing.length > 0) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "HomeworkListEntry" SET "checks" = $1 WHERE "homeworkListId" = $2 AND "studentId" = $3;',
+        checksJson,
+        listId,
+        studentId,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "HomeworkListEntry" SET "checks" = ? WHERE "homeworkListId" = ? AND "studentId" = ?;',
+          checksJson,
+          listId,
+          studentId,
+        ),
+      );
+    } else {
+      await prisma.$executeRawUnsafe(
+        'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES ($1, $2, $3, $4);',
+        listId,
+        studentId,
+        checksJson,
+        false,
+      ).catch(() =>
+        prisma.$executeRawUnsafe(
+          'INSERT INTO "HomeworkListEntry" ("homeworkListId", "studentId", "checks", "completed") VALUES (?, ?, ?, ?);',
+          listId,
+          studentId,
+          checksJson,
+          0,
+        ),
+      );
+    }
+  } catch (err) {
+    console.error('Error updating HomeworkListEntry:', err);
+  }
 
   res.json({ ok: true });
 });

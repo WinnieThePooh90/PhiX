@@ -22,6 +22,7 @@ const DATE_FIELDS_BY_MODEL = {
   AttendanceList: ['createdAt'],
   CollectionList: ['createdAt'],
   NotesList: ['createdAt'],
+  HomeworkList: ['createdAt'],
   AlbumPhoto: ['createdAt'],
   UserAuswertungshilfe: ['createdAt', 'updatedAt'],
 };
@@ -43,6 +44,8 @@ const PG_SEQUENCE_TABLES = [
   'CollectionListEntry',
   'NotesList',
   'NotesListEntry',
+  'HomeworkList',
+  'HomeworkListEntry',
   'GfsEntry',
   'ReferatEntry',
   'AlbumPhoto',
@@ -77,6 +80,8 @@ const EMPTY_DATA = {
   collectionListEntries: [],
   notesLists: [],
   notesListEntries: [],
+  homeworkLists: [],
+  homeworkListEntries: [],
   albumPhotos: [],
   userAuswertungshilfe: [],
 };
@@ -133,6 +138,8 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
       collectionListEntries: [],
       notesLists: [],
       notesListEntries: [],
+      homeworkLists: [],
+      homeworkListEntries: [],
       albumPhotos: [],
     };
   }
@@ -153,6 +160,8 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    homeworkLists,
+    homeworkListEntries,
     albumPhotos,
   ] = await Promise.all([
     prisma.student.findMany({ where: inCourses }),
@@ -174,6 +183,8 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     }),
     prisma.notesList.findMany({ where: inCourses }),
     prisma.notesListEntry.findMany({ where: { notesList: { courseId: { in: courseIds } } } }),
+    prisma.homeworkList.findMany({ where: inCourses }),
+    prisma.homeworkListEntry.findMany({ where: { homeworkList: { courseId: { in: courseIds } } } }),
     prisma.albumPhoto.findMany({ where: inCourses }),
   ]);
   return {
@@ -192,6 +203,8 @@ async function fetchCourseScopedRelations(prisma, courseIds) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    homeworkLists,
+    homeworkListEntries,
     albumPhotos,
   };
 }
@@ -277,6 +290,8 @@ async function exportPhixDatabase(prisma, meta = {}) {
     collectionListEntries,
     notesLists,
     notesListEntries,
+    homeworkLists,
+    homeworkListEntries,
     albumPhotos,
     userAuswertungshilfe,
   ] = await Promise.all([
@@ -302,6 +317,8 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.collectionListEntry.findMany(),
     prisma.notesList.findMany(),
     prisma.notesListEntry.findMany(),
+    prisma.homeworkList.findMany(),
+    prisma.homeworkListEntry.findMany(),
     prisma.albumPhoto.findMany(),
     prisma.userAuswertungshilfe.findMany(),
   ]);
@@ -323,9 +340,9 @@ async function exportPhixDatabase(prisma, meta = {}) {
       projects,
       orals,
       tests,
-    gfsEntries,
-    referatEntries,
-    moneyLists,
+      gfsEntries,
+      referatEntries,
+      moneyLists,
       moneyListEntries,
       attendanceLists,
       attendanceListEntries,
@@ -333,6 +350,8 @@ async function exportPhixDatabase(prisma, meta = {}) {
       collectionListEntries,
       notesLists,
       notesListEntries,
+      homeworkLists,
+      homeworkListEntries,
       albumPhotos,
       userAuswertungshilfe,
     },
@@ -434,6 +453,8 @@ function parseBackupPayload(raw, { expectedScope } = {}) {
 async function clearAllPhixData(tx) {
   await tx.notesListEntry.deleteMany();
   await tx.notesList.deleteMany();
+  await tx.homeworkListEntry.deleteMany();
+  await tx.homeworkList.deleteMany();
   await tx.collectionListEntry.deleteMany();
   await tx.collectionList.deleteMany();
   await tx.attendanceListEntry.deleteMany();
@@ -467,6 +488,8 @@ async function clearUserPhixData(tx, ownerUsername) {
   if (courseIds.length > 0) {
     await tx.notesListEntry.deleteMany({ where: { notesList: { courseId: { in: courseIds } } } });
     await tx.notesList.deleteMany({ where: { courseId: { in: courseIds } } });
+    await tx.homeworkListEntry.deleteMany({ where: { homeworkList: { courseId: { in: courseIds } } } });
+    await tx.homeworkList.deleteMany({ where: { courseId: { in: courseIds } } });
     await tx.collectionListEntry.deleteMany({
       where: { collectionList: { courseId: { in: courseIds } } },
     });
@@ -554,6 +577,7 @@ function countDataSummary(d) {
     attendanceLists: d.attendanceLists?.length ?? 0,
     collectionLists: d.collectionLists?.length ?? 0,
     notesLists: d.notesLists?.length ?? 0,
+    homeworkLists: d.homeworkLists?.length ?? 0,
     albumPhotos: d.albumPhotos?.length ?? 0,
     userAuswertungshilfe: d.userAuswertungshilfe?.length ?? 0,
     schoolRosterYears: d.schoolRosterYears?.length ?? 0,
@@ -591,6 +615,8 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries);
       await insertMany(tx, 'NotesList', d.notesLists);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries);
+      await insertMany(tx, 'HomeworkList', d.homeworkLists ?? []);
+      await insertMany(tx, 'HomeworkListEntry', d.homeworkListEntries ?? []);
       await insertMany(tx, 'AlbumPhoto', d.albumPhotos ?? []);
       await insertMany(tx, 'UserAuswertungshilfe', d.userAuswertungshilfe ?? []);
     },
@@ -659,6 +685,8 @@ async function restorePhixUserDatabase(prisma, rawPayload, targetUsernameInput, 
       await insertMany(tx, 'CollectionListEntry', d.collectionListEntries, insertOpts);
       await insertMany(tx, 'NotesList', d.notesLists, insertOpts);
       await insertMany(tx, 'NotesListEntry', d.notesListEntries, insertOpts);
+      await insertMany(tx, 'HomeworkList', d.homeworkLists ?? [], insertOpts);
+      await insertMany(tx, 'HomeworkListEntry', d.homeworkListEntries ?? [], insertOpts);
       await insertMany(tx, 'AlbumPhoto', d.albumPhotos ?? [], insertOpts);
       if (targetUser && Array.isArray(d.userSettings) && d.userSettings.length) {
         await tx.userSettings.deleteMany({ where: { userId: targetUser.id } });
