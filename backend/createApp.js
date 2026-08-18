@@ -3017,17 +3017,60 @@ function serializeHomeworkList(list) {
 }
 
 function getCourseHomeworkLists(course) {
-  if (!course || !course.homeworkLists) return [];
+  if (!course) return [];
+  let sp = course.seatingPlan;
+  if (typeof sp === 'string') {
+    try { sp = JSON.parse(sp); } catch { sp = null; }
+  }
+  if (sp && typeof sp === 'object' && Array.isArray(sp.homeworkLists)) {
+    return sp.homeworkLists;
+  }
   if (Array.isArray(course.homeworkLists)) return course.homeworkLists;
   if (typeof course.homeworkLists === 'string') {
     try {
       const parsed = JSON.parse(course.homeworkLists);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
   }
   return [];
+}
+
+async function saveCourseHomeworkLists(prisma, courseId, updatedLists) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) return false;
+
+  let sp = course.seatingPlan;
+  if (typeof sp === 'string') {
+    try { sp = JSON.parse(sp); } catch { sp = {}; }
+  }
+  if (!sp || typeof sp !== 'object') sp = {};
+
+  const nextSeatingPlan = {
+    ...sp,
+    homeworkLists: updatedLists,
+  };
+
+  await prisma.course.update({
+    where: { id: courseId },
+    data: { seatingPlan: nextSeatingPlan },
+  });
+
+  try {
+    const jsonStr = JSON.stringify(updatedLists);
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Course" SET "homeworkLists" = $1 WHERE "id" = $2;',
+      jsonStr,
+      courseId,
+    ).catch(() =>
+      prisma.$executeRawUnsafe(
+        'UPDATE "Course" SET "homeworkLists" = ? WHERE "id" = ?;',
+        jsonStr,
+        courseId,
+      ),
+    );
+  } catch {}
+
+  return true;
 }
 
 app.get('/api/homework-lists', async (req, res) => {
@@ -3035,21 +3078,6 @@ app.get('/api/homework-lists', async (req, res) => {
   if (!courseId) return res.json([]);
   const ok = await assertCourseAccess(req, res, courseId);
   if (!ok) return;
-
-  try {
-    if (prisma.homeworkList) {
-      const lists = await prisma.homeworkList.findMany({
-        where: { courseId },
-        orderBy: { id: 'asc' },
-        include: { entries: { include: { student: true } } },
-      });
-      if (lists && lists.length > 0) {
-        return res.json(lists.map(serializeHomeworkList));
-      }
-    }
-  } catch {
-    /* Fallback zu course.homeworkLists */
-  }
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course) return res.json([]);
@@ -3090,13 +3118,8 @@ app.post('/api/homework-lists', async (req, res) => {
   };
 
   const updatedLists = [...existingLists, newList];
-  try {
-    await prisma.course.update({
-      where: { id: courseId },
-      data: { homeworkLists: updatedLists },
-    });
-  } catch (err) {
-    console.error('Failed to update course.homeworkLists', err);
+  const saved = await saveCourseHomeworkLists(prisma, courseId, updatedLists);
+  if (!saved) {
     return res.status(500).json({ error: 'Speichern fehlgeschlagen' });
   }
 
@@ -3136,10 +3159,7 @@ app.put('/api/homework-lists/:id', async (req, res) => {
     };
   });
 
-  await prisma.course.update({
-    where: { id: targetCourse.id },
-    data: { homeworkLists: updatedLists },
-  });
+  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
 
   const updatedList = updatedLists.find((l) => Number(l.id) === listId);
   res.json(updatedList || { id: listId, ok: true });
@@ -3165,10 +3185,7 @@ app.delete('/api/homework-lists/:id', async (req, res) => {
   const lists = getCourseHomeworkLists(targetCourse);
   const updatedLists = lists.filter((l) => Number(l.id) !== listId);
 
-  await prisma.course.update({
-    where: { id: targetCourse.id },
-    data: { homeworkLists: updatedLists },
-  });
+  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
 
   res.status(204).end();
 });
@@ -3214,10 +3231,7 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
     return { ...l, entries };
   });
 
-  await prisma.course.update({
-    where: { id: targetCourse.id },
-    data: { homeworkLists: updatedLists },
-  });
+  await saveCourseHomeworkLists(prisma, targetCourse.id, updatedLists);
 
   res.json({ ok: true });
 });

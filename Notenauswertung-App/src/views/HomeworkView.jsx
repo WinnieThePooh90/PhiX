@@ -85,7 +85,7 @@ export default function HomeworkView() {
   const activeList = useMemo(() => {
     if (!homeworkLists || homeworkLists.length === 0) return null;
     if (activeListId != null) {
-      const found = homeworkLists.find((l) => l.id === activeListId);
+      const found = homeworkLists.find((l) => Number(l.id) === Number(activeListId));
       if (found) return found;
     }
     return homeworkLists[0];
