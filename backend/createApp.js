@@ -3169,6 +3169,7 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
   if (!studentId) return res.status(400).json({ error: 'studentId required' });
 
   const checks = req.body.checks !== undefined ? req.body.checks : {};
+  const completed = req.body.completed !== undefined ? Boolean(req.body.completed) : false;
 
   try {
     const existing = await prisma.homeworkListEntry.findFirst({
@@ -3178,7 +3179,10 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
     if (existing) {
       await prisma.homeworkListEntry.update({
         where: { id: existing.id },
-        data: { checks },
+        data: {
+          checks,
+          ...(req.body.completed !== undefined ? { completed } : {}),
+        },
       });
     } else {
       await prisma.homeworkListEntry.create({
@@ -3186,7 +3190,7 @@ app.put('/api/homework-lists/:id/entries', async (req, res) => {
           homeworkListId: listId,
           studentId,
           checks,
-          completed: false,
+          completed,
         },
       });
     }
