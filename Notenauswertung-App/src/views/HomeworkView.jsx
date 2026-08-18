@@ -432,12 +432,16 @@ export default function HomeworkView() {
                     </div>
                   </th>
                 ))}
+                <th style={{ textAlign: 'center', padding: '0.75rem 0.5rem', borderBottom: '2px solid rgba(148, 163, 184, 0.2)', width: '90px' }}>
+                  Gesamt
+                </th>
               </tr>
             </thead>
             <tbody>
               {sortedStudents.map((student) => {
                 const entry = entriesMap.get(Number(student.id));
                 const checks = entry?.checks || {};
+                const totalChecked = columns.reduce((acc, col) => (checks[col.id] ? acc + 1 : acc), 0);
 
                 return (
                   <tr key={student.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
@@ -460,6 +464,22 @@ export default function HomeworkView() {
                         </td>
                       );
                     })}
+
+                    {/* Spalte Gesamt */}
+                    <td style={{ textAlign: 'center', padding: '0.5rem 0.75rem', fontWeight: 600 }}>
+                      <span
+                        className="badge"
+                        style={{
+                          background: totalChecked > 0 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(148, 163, 184, 0.12)',
+                          color: totalChecked > 0 ? '#2563eb' : '#64748b',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        {totalChecked}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
