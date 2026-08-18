@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Calendar, Trash2, Edit2, ArrowUpDown } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
@@ -9,6 +10,48 @@ function getTodayFormatted() {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}.${month}.${year}`;
+}
+
+function HomeworkListFormModal({ open, mode, formTitle, setFormTitle, busy, error, onClose, onSubmit }) {
+  if (!open) return null;
+  const isEdit = mode === 'edit';
+  const modalHeading = isEdit ? 'Hausaufgabenliste umbenennen' : 'Neue Hausaufgabenliste erstellen';
+  const submitLabel = busy ? (isEdit ? 'Speichern…' : 'Erstellen…') : isEdit ? 'Speichern' : 'Erstellen';
+
+  return createPortal(
+    <div className="modal-overlay phix-dialog-overlay" onClick={onClose}>
+      <div className="modal-card phix-dialog-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', width: '90%' }}>
+        <h2 className="phix-dialog-title" style={{ marginTop: 0, marginBottom: '1rem' }}>{modalHeading}</h2>
+        <form onSubmit={onSubmit}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+              Titel der Liste
+            </label>
+            <input
+              type="text"
+              className="select-input"
+              style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.95rem', borderRadius: '0.375rem', border: '1px solid rgba(148,163,184,0.4)' }}
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              placeholder="z. B. Hausaufgabenliste"
+              autoFocus
+              disabled={busy}
+            />
+          </div>
+          {error ? <p style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{error}</p> : null}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <button type="button" className="tab secondary" onClick={onClose} disabled={busy}>
+              Abbrechen
+            </button>
+            <button type="submit" className="tab active" disabled={busy}>
+              {submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 export default function HomeworkView() {
@@ -23,13 +66,20 @@ export default function HomeworkView() {
     courseArchived,
   } = useData();
 
-  const { showConfirm, showAlert, showPrompt } = useDialog();
+  const { showConfirm, showAlert } = useDialog();
 
   const [activeListId, setActiveListId] = useState(() => {
     return homeworkLists && homeworkLists.length > 0 ? homeworkLists[0].id : null;
   });
 
   const [sortMode, setSortMode] = useState('seatingPlan'); // 'seatingPlan' | 'alphabetical'
+
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
+  const [modalTitleInput, setModalTitleInput] = useState('');
+  const [modalBusy, setModalBusy] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   // Ausgewählte/Aktive Hausaufgabenliste
   const activeList = useMemo(() => {
@@ -107,28 +157,45 @@ export default function HomeworkView() {
     return map;
   }, [activeList]);
 
-  // Liste erstellen
-  const handleCreateList = async () => {
-    const title = await showPrompt('Name der neuen Hausaufgabenliste:', {
-      defaultValue: 'Hausaufgabenliste',
-      title: 'Neue Hausaufgabenliste',
-    });
-    if (title === null) return; // Abbrechen
-    const created = await createHomeworkList(title.trim() || 'Hausaufgabenliste');
-    if (created?.id) {
-      setActiveListId(created.id);
-    }
+  // Modal öffnen: Erstellen
+  const openCreateModal = () => {
+    const nextIndex = (homeworkLists?.length || 0) + 1;
+    setModalTitleInput(nextIndex > 1 ? `Hausaufgabenliste ${nextIndex}` : 'Hausaufgabenliste');
+    setModalMode('create');
+    setModalError('');
+    setModalOpen(true);
   };
 
-  // Titel bearbeiten
-  const handleEditTitle = async () => {
+  // Modal öffnen: Bearbeiten
+  const openEditModal = () => {
     if (!activeList) return;
-    const newTitle = await showPrompt('Titel der Hausaufgabenliste bearbeiten:', {
-      defaultValue: activeList.title || 'Hausaufgabenliste',
-      title: 'Liste umbenennen',
-    });
-    if (newTitle === null) return;
-    await updateHomeworkList(activeList.id, { title: newTitle.trim() || 'Hausaufgabenliste' });
+    setModalTitleInput(activeList.title || 'Hausaufgabenliste');
+    setModalMode('edit');
+    setModalError('');
+    setModalOpen(true);
+  };
+
+  // Modal Absenden
+  const handleModalSubmit = async (e) => {
+    e.preventDefault();
+    const titleClean = modalTitleInput.trim() || 'Hausaufgabenliste';
+    setModalBusy(true);
+    setModalError('');
+    try {
+      if (modalMode === 'edit' && activeList) {
+        await updateHomeworkList(activeList.id, { title: titleClean });
+      } else {
+        const created = await createHomeworkList(titleClean);
+        if (created?.id) {
+          setActiveListId(created.id);
+        }
+      }
+      setModalOpen(false);
+    } catch {
+      setModalError('Fehler beim Speichern der Hausaufgabenliste.');
+    } finally {
+      setModalBusy(false);
+    }
   };
 
   // Liste löschen
@@ -204,6 +271,17 @@ export default function HomeworkView() {
 
   return (
     <div className="view-generic-scroll program-view">
+      <HomeworkListFormModal
+        open={modalOpen}
+        mode={modalMode}
+        formTitle={modalTitleInput}
+        setFormTitle={setModalTitleInput}
+        busy={modalBusy}
+        error={modalError}
+        onClose={() => !modalBusy && setModalOpen(false)}
+        onSubmit={handleModalSubmit}
+      />
+
       <h2 className="program-view-title">Hausaufgaben</h2>
       <p className="text-muted program-view-intro">
         Erstelle und verwalte Hausaufgabenlisten für die Klasse mit Kalenderdaten und Erledigt-Abhakung.
@@ -214,7 +292,7 @@ export default function HomeworkView() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {!courseArchived ? (
-              <button type="button" className="tab primary" onClick={handleCreateList}>
+              <button type="button" className="tab active" onClick={openCreateModal} style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <Plus size={16} style={{ marginRight: '0.35rem' }} /> Hausaufgabenliste erstellen
               </button>
             ) : null}
@@ -240,7 +318,7 @@ export default function HomeworkView() {
 
           {activeList && !courseArchived ? (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button type="button" className="tab secondary" onClick={handleEditTitle} title="Liste umbenennen">
+              <button type="button" className="tab secondary" onClick={openEditModal} title="Liste umbenennen">
                 <Edit2 size={15} style={{ marginRight: '0.3rem' }} /> Umbenennen
               </button>
               <button type="button" className="tab danger" onClick={handleDeleteList} title="Liste löschen">
