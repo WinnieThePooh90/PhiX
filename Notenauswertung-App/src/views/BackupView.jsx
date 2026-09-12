@@ -131,6 +131,7 @@ function BackupRestoreBlock({
   busy,
   setBusy,
   onFeedback,
+  onRestoreSuccess,
   showConfirm,
   expanded,
   onToggle,
@@ -180,8 +181,12 @@ function BackupRestoreBlock({
         return;
       }
       await restoreBackup(restorePath, actingUsername, parsed);
-      onFeedback('ok', 'Backup wurde aufgespielt. Die Anwendung wird neu geladen …');
-      window.setTimeout(() => window.location.reload(), 1200);
+      if (typeof onRestoreSuccess === 'function') {
+        await onRestoreSuccess();
+      } else {
+        onFeedback('ok', 'Restore erfolgreich. Bitte erneut anmelden.');
+        window.setTimeout(() => window.location.reload(), 1200);
+      }
     } catch (e) {
       onFeedback('err', e?.message || 'Wiederherstellung fehlgeschlagen.');
     } finally {
@@ -260,7 +265,7 @@ function BackupRestoreBlock({
 }
 
 export default function BackupView() {
-  const { currentUser, usersList } = useAuth();
+  const { currentUser, usersList, logout } = useAuth();
   const { showConfirm, showAlert } = useDialog();
   const isAdminUser = userHasAdminRights(currentUser);
   const username = currentUser?.username;
@@ -272,6 +277,19 @@ export default function BackupView() {
   const [feedback, setFeedback] = useState({ type: '', msg: '' });
 
   const [selectedAdminUser, setSelectedAdminUser] = useState('');
+
+  const handleRestoreSuccess = async () => {
+    try {
+      sessionStorage.setItem('phix_login_notice', 'Restore erfolgreich. Bitte erneut anmelden.');
+    } catch {
+      /* ignore */
+    }
+    onFeedback('ok', 'Restore erfolgreich. Bitte erneut anmelden.');
+    window.setTimeout(async () => {
+      await logout();
+      window.location.reload();
+    }, 1200);
+  };
 
   const sortedUsers = useMemo(
     () => [...usersList].sort((a, b) => a.username.localeCompare(b.username, 'de', { sensitivity: 'base' })),
@@ -334,6 +352,7 @@ export default function BackupView() {
           busy={meBusy}
           setBusy={setMeBusy}
           onFeedback={onFeedback}
+          onRestoreSuccess={handleRestoreSuccess}
           showConfirm={showConfirm}
           expanded={isSectionOpen('me')}
           onToggle={() => toggleSection('me')}
@@ -360,6 +379,7 @@ export default function BackupView() {
               busy={fullBusy}
               setBusy={setFullBusy}
               onFeedback={onFeedback}
+              onRestoreSuccess={handleRestoreSuccess}
               showConfirm={showConfirm}
               expanded={isSectionOpen('full')}
               onToggle={() => toggleSection('full')}
@@ -435,6 +455,7 @@ export default function BackupView() {
                   busy={userBusy}
                   setBusy={setUserBusy}
                   onFeedback={onFeedback}
+                  onRestoreSuccess={handleRestoreSuccess}
                   showConfirm={showConfirm}
                 />
               </BackupSubsection>
@@ -455,7 +476,15 @@ export default function BackupView() {
   );
 }
 
-function AdminUserRestorePanel({ selectedAdminUser, actingUsername, busy, setBusy, onFeedback, showConfirm }) {
+function AdminUserRestorePanel({
+  selectedAdminUser,
+  actingUsername,
+  busy,
+  setBusy,
+  onFeedback,
+  onRestoreSuccess,
+  showConfirm,
+}) {
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [confirmText, setConfirmText] = useState('');
@@ -485,8 +514,12 @@ function AdminUserRestorePanel({ selectedAdminUser, actingUsername, busy, setBus
       const parsed = JSON.parse(await selectedFile.text());
       const enc = encodeURIComponent(selectedAdminUser);
       await restoreBackup(`/api/backup/users/${enc}/restore`, actingUsername, parsed);
-      onFeedback('ok', `Backup für „${selectedAdminUser}“ aufgespielt. Seite wird neu geladen …`);
-      window.setTimeout(() => window.location.reload(), 1200);
+      if (typeof onRestoreSuccess === 'function') {
+        await onRestoreSuccess();
+      } else {
+        onFeedback('ok', `Backup für „${selectedAdminUser}“ aufgespielt. Seite wird neu geladen …`);
+        window.setTimeout(() => window.location.reload(), 1200);
+      }
     } catch (e) {
       onFeedback('err', e?.message || 'Wiederherstellung fehlgeschlagen.');
     } finally {

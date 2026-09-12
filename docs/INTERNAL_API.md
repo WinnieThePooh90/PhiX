@@ -142,6 +142,7 @@ Fehlerantworten: `{ "error": "…" }` (teilweise zusätzliche Felder wie `requir
 | GET | `/api/health` | — | — | `{ "ok": true, "needsWizard": boolean }` — Liveness und Einrichtungsstatus |
 | GET | `/api/setup/wizard-status` | — | — | `{ "needsWizard": boolean }` |
 | POST | `/api/setup/work-user` | — | — | Arbeitskonto im Assistenten; Body: `{ username, password, isAdmin? }` |
+| POST | `/api/setup/factory-reset` | Admin | — | Vollständiger Werksreset (leert DB, initialisiert Admin); `{ "ok": true, "needsWizard": true }` |
 | POST | `/api/auth/login` | — | — | Body: `{ username, password }`. Response: Benutzer, `cryptoSessionToken`, `requiresCryptoSetup`, `settings` |
 | POST | `/api/auth/logout` | Cookie | optional | Beendet Auth- und Krypto-Session |
 | GET | `/api/auth/session` | Cookie | — | Aktueller Benutzer oder **401** mit `{ error, needsWizard? }` |

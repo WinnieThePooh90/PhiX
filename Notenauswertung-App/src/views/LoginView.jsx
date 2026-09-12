@@ -9,6 +9,18 @@ export default function LoginView({ onRecovery }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState(() => {
+    try {
+      const msg = sessionStorage.getItem('phix_login_notice');
+      if (msg) {
+        sessionStorage.removeItem('phix_login_notice');
+        return msg;
+      }
+    } catch {
+      /* ignore */
+    }
+    return '';
+  });
   const [submitting, setSubmitting] = useState(false);
   const [initialSetupUsername, setInitialSetupUsername] = useState(null);
   const [initialPassword, setInitialPasswordValue] = useState('');
@@ -162,6 +174,11 @@ export default function LoginView({ onRecovery }) {
               disabled={submitting}
             />
           </label>
+          {info ? (
+            <p className="app-login-info" style={{ color: 'var(--color-primary, #3b82f6)', margin: '0 0 12px', fontSize: '0.9rem', textAlign: 'center' }} role="status">
+              {info}
+            </p>
+          ) : null}
           {error ? (
             <p className="app-login-error" role="alert">
               {error}

@@ -6,6 +6,14 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 503 (2026-09-12)
+
+„Danger-Zone“ in den Einstellungen hinzugefügt, um PhiX vollständig auf den Werkszustand zurückzusetzen (inkl. modalem Bestätigungsdialog mit Sicherheits-Checkbox, Löschen aller Datenbanktabellen, Re-Initialisierung des Bootstrap-Admins und automatischem Start des Einrichtungsassistenten).
+
+## Build 502 (2026-09-12)
+
+Nach erfolgreichem Einspielen eines Backups wird der Benutzer automatisch abgemeldet und zur Anmeldemaske weitergeleitet mit dem Hinweis: „Restore erfolgreich. Bitte erneut anmelden.“
+
 ## Build 501 (2026-09-12)
 
 Nginx-Reverse-Proxy-Konfiguration (`nginx.conf`) mit `client_max_body_size 64M` versehen, um HTTP 413 (Payload Too Large) beim Wiederherstellen größerer Backups (insb. mit Album-Fotos) zu beheben; Fehleranzeige im Frontend bei HTTP 413 präzisiert.

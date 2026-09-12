@@ -757,6 +757,7 @@ module.exports = {
   backupNeedsEncryptOnRestore,
   parseBackupPayload,
   getBackupScope,
+  clearAllPhixData,
   restorePhixDatabase,
   restorePhixUserDatabase,
   backupFilenameFromPayload,

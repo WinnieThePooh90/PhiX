@@ -11,6 +11,7 @@ const {
   exportPhixUserDatabaseDecrypted,
   exportPhixUserDatabaseRaw,
   serializeBackupPayload,
+  clearAllPhixData,
   restorePhixDatabase,
   restorePhixUserDatabase,
   backupFilenameFromPayload,
@@ -212,6 +213,24 @@ app.post('/api/setup/work-user', async (req, res) => {
     return res.status(result.status).json({ error: result.error });
   }
   res.status(result.status).json(result.user);
+});
+
+/** Vollständiger Werksreset der gesamten Datenbank (nur Administrator). */
+app.post('/api/setup/factory-reset', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    await runWithCryptoContext({ bypassCrypto: true }, async () => {
+      await prisma.$transaction(async (tx) => {
+        await clearAllPhixData(tx);
+      });
+      await ensureBootstrapAdmin(prisma);
+    });
+    res.json({ ok: true, needsWizard: true });
+  } catch (err) {
+    console.error('[setup] Werksreset fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Werksreset konnte nicht durchgeführt werden.' });
+  }
 });
 
 // ——— App-Benutzer (Passwort-Hashes in der DB) ———

@@ -17,6 +17,7 @@ const CRYPTO_EXEMPT = new Set([
   '/api/registration',
   '/api/setup/wizard-status',
   '/api/setup/work-user',
+  '/api/setup/factory-reset',
   '/api/backup/full/restore',
 ]);
 

@@ -6906,6 +6906,15 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   white-space: nowrap;
 }
 
+.user-settings-section--danger {
+  border: 1px solid hsl(var(--danger-hsl, 0 72% 51%) / 0.35);
+  background: hsl(var(--danger-hsl, 0 72% 51%) / 0.04);
+}
+
+.user-settings-heading--danger {
+  color: var(--danger, #ef4444);
+}
+
 /* ===== PhiX Dialog (Custom Confirm/Alert) ===== */
 .phix-dialog-overlay {
   z-index: 99999;
