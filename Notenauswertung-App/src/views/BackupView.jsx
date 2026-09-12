@@ -64,12 +64,16 @@ async function restoreBackup(path, _username, parsed) {
     body: JSON.stringify(parsed),
   });
   if (!res.ok) {
-    let msg = 'Wiederherstellung fehlgeschlagen.';
-    try {
-      const j = await res.json();
-      if (j?.error) msg = j.error;
-    } catch {
-      /* ignore */
+    let msg = `Wiederherstellung fehlgeschlagen (Status ${res.status}).`;
+    if (res.status === 413) {
+      msg = 'Die Backup-Datei ist zu groß für die Übertragung (HTTP 413 Payload Too Large).';
+    } else {
+      try {
+        const j = await res.json();
+        if (j?.error) msg = j.error;
+      } catch {
+        /* ignore */
+      }
     }
     throw new Error(msg);
   }

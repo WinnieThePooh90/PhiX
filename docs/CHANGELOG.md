@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 501 (2026-09-12)
+
+Nginx-Reverse-Proxy-Konfiguration (`nginx.conf`) mit `client_max_body_size 64M` versehen, um HTTP 413 (Payload Too Large) beim Wiederherstellen größerer Backups (insb. mit Album-Fotos) zu beheben; Fehleranzeige im Frontend bei HTTP 413 präzisiert.
+
 ## Build 500 (2026-09-12)
 
 Vollständige Datenbank-Wiederherstellung (`/api/backup/full/restore`) korrigiert: Befreiung von der Krypto-Session-Prüfung in der Middleware (ermöglicht Wiederherstellung vor Krypto-Einrichtung auf Neusystemen) und Datums-Konvertierung für `UserCrypto.createdAt` beim Datenbank-Import ergänzt.
