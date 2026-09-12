@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User } from 'lucide-react';
-import { useAuth } from '../store/AuthContext';
+import { useAuth, authHeaders } from '../store/AuthContext';
 import { useDialog } from './PhixDialog';
 import { apiFetch } from '../utils/apiBase';
-import { authHeaders } from '../store/AuthContext';
+import { userHasAdminRights } from '../utils/userAdmin';
 
 /**
  * @param {object} props
@@ -13,6 +13,7 @@ import { authHeaders } from '../store/AuthContext';
  */
 export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenChange }) {
   const { currentUser, logout } = useAuth();
+  const isAdminUser = userHasAdminRights(currentUser);
   const { showConfirm, showAlert } = useDialog();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
@@ -150,14 +151,16 @@ export default function HeaderUserMenu({ settingsMenuOpen = false, onMenuOpenCha
             >
               Abmelden
             </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="header-settings-dropdown-item--danger"
-              onClick={handleShutdown}
-            >
-              Herunterfahren
-            </button>
+            {isAdminUser && (
+              <button
+                type="button"
+                role="menuitem"
+                className="header-settings-dropdown-item--danger"
+                onClick={handleShutdown}
+              >
+                Herunterfahren
+              </button>
+            )}
           </div>,
           document.body,
         )}

@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 504 (2026-09-12)
+
+Sichtbarkeit des Buttons „Herunterfahren“ im Benutzermenü (`HeaderUserMenu`) auf Benutzer mit Administratorrechten (`userHasAdminRights`) beschränkt.
+
 ## Build 503 (2026-09-12)
 
 „Danger-Zone“ in den Einstellungen hinzugefügt, um PhiX vollständig auf den Werkszustand zurückzusetzen (inkl. modalem Bestätigungsdialog mit Sicherheits-Checkbox, Löschen aller Datenbanktabellen, Re-Initialisierung des Bootstrap-Admins und automatischem Start des Einrichtungsassistenten).
