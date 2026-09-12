@@ -24,6 +24,7 @@ const DATE_FIELDS_BY_MODEL = {
   NotesList: ['createdAt'],
   HomeworkList: ['createdAt'],
   AlbumPhoto: ['createdAt'],
+  UserCrypto: ['createdAt'],
   UserAuswertungshilfe: ['createdAt', 'updatedAt'],
 };
 

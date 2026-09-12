@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 500 (2026-09-12)
+
+Vollständige Datenbank-Wiederherstellung (`/api/backup/full/restore`) korrigiert: Befreiung von der Krypto-Session-Prüfung in der Middleware (ermöglicht Wiederherstellung vor Krypto-Einrichtung auf Neusystemen) und Datums-Konvertierung für `UserCrypto.createdAt` beim Datenbank-Import ergänzt.
+
 ## Build 499 (2026-08-18)
 
 Fehler behoben, bei dem die Checkboxen in Hausaufgabenlisten nach Abmeldung/Neustart nicht geladen wurden (fehlende Entschlüsselung der verschlüsselten `HomeworkListEntry.checks` in `serializeHomeworkList`).

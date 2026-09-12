@@ -17,6 +17,7 @@ const CRYPTO_EXEMPT = new Set([
   '/api/registration',
   '/api/setup/wizard-status',
   '/api/setup/work-user',
+  '/api/backup/full/restore',
 ]);
 
 function isCryptoExempt(path) {
