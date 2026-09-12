@@ -298,6 +298,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     homeworkListEntries,
     albumPhotos,
     userAuswertungshilfe,
+    autoBackupConfig,
   ] = await Promise.all([
     prisma.appUser.findMany(),
     prisma.userSettings.findMany(),

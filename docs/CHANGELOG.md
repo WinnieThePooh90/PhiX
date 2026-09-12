@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 508 (2026-09-12)
+
+Fehlerbehebung in `exportPhixDatabase`: Die Variable `autoBackupConfig` wurde im Destructuring-Array des `Promise.all`-Aufrufs nachgetragen, um einen `ReferenceError` beim Zusammenstellen des Backup-Payloads zu beheben.
+
 ## Build 507 (2026-09-12)
 
 Fehlerbehebung bei der Auto-Backup-Erstellung: Der Datenbank-Export (`exportPhixDatabase`) im Hintergrunddienst wird nun mit `runWithCryptoContext({ bypassCrypto: true })` ausgeführt, um fehlerhafte Entschlüsselungsversuche (`Unsupported state or unable to authenticate data`) bei Fremddaten anderer Benutzer zu verhindern; Auto-Backup-Endpunkte in `isCryptoExempt` ergänzt.
