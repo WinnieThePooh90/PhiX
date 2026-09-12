@@ -14,6 +14,29 @@ let schedulerInterval = null;
 let isBackupRunning = false;
 
 /**
+ * Erzeugt einen Zeitstempel formatiert in der Zeitzone Europe/Berlin (YYYY-MM-DDTHH-mm-ss).
+ */
+function formatBerlinTimestamp(date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat('de-DE', {
+      timeZone: 'Europe/Berlin',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+
+    const get = (type) => parts.find((p) => p.type === type)?.value || '00';
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}-${get('minute')}-${get('second')}`;
+  } catch {
+    return date.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  }
+}
+
+/**
  * Ermittelt den absoluten Pfad zum lokalen Backup-Ordner (fest "Autobackups" im PhiX-Verzeichnis).
  */
 function resolveLocalBackupDir() {
@@ -44,6 +67,69 @@ function resolveLocalBackupDir() {
 
   // 4. Docker / Standard-Arbeitsverzeichnis
   return path.resolve(process.cwd(), folderName);
+}
+
+/**
+ * Listet alle lokalen Backups im Autobackups-Verzeichnis auf.
+ */
+function listLocalBackups() {
+  const dirPath = resolveLocalBackupDir();
+  if (!fs.existsSync(dirPath)) return [];
+  try {
+    const files = fs.readdirSync(dirPath)
+      .filter((f) => f.startsWith(FILENAME_PREFIX) && f.endsWith('.json'))
+      .sort((a, b) => b.localeCompare(a)); // Neueste zuerst
+
+    return files.map((filename) => {
+      const fullPath = path.join(dirPath, filename);
+      try {
+        const stat = fs.statSync(fullPath);
+        return {
+          filename,
+          sizeBytes: stat.size,
+          mtime: stat.mtime.toISOString(),
+        };
+      } catch {
+        return {
+          filename,
+          sizeBytes: 0,
+          mtime: null,
+        };
+      }
+    });
+  } catch (err) {
+    console.error('[auto-backup] Fehler beim Auflisten lokaler Backups:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Validiert den Dateinamen und gibt den absoluten Pfad zur Backup-Datei zurück (oder null).
+ */
+function getLocalBackupFilePath(filename) {
+  if (!filename || typeof filename !== 'string') return null;
+  const base = path.basename(filename);
+  if (base !== filename || !filename.endsWith('.json') || filename.includes('..')) {
+    return null;
+  }
+  const dirPath = resolveLocalBackupDir();
+  const fullPath = path.join(dirPath, filename);
+  if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+    return fullPath;
+  }
+  return null;
+}
+
+/**
+ * Löscht eine lokale Backup-Datei.
+ */
+function deleteLocalBackup(filename) {
+  const fullPath = getLocalBackupFilePath(filename);
+  if (!fullPath) {
+    throw new Error('Datei nicht gefunden oder ungültiger Dateiname.');
+  }
+  fs.unlinkSync(fullPath);
+  return { ok: true, filename };
 }
 
 /**
@@ -158,8 +244,8 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
       fs.mkdirSync(localDir, { recursive: true });
     }
 
-    const nowIso = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `${FILENAME_PREFIX}${nowIso}Z.json`;
+    const stamp = formatBerlinTimestamp(new Date());
+    const filename = `${FILENAME_PREFIX}${stamp}.json`;
     const localFilePath = path.join(localDir, filename);
     const tempFilePath = `${localFilePath}.tmp`;
 
@@ -269,6 +355,9 @@ function initAutoBackupScheduler(prisma) {
 
 module.exports = {
   resolveLocalBackupDir,
+  listLocalBackups,
+  getLocalBackupFilePath,
+  deleteLocalBackup,
   rotateLocalBackups,
   isSundayBackupDue,
   getOrCreateConfig,

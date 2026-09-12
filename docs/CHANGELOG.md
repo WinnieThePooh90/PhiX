@@ -6,6 +6,14 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 511 (2026-09-12)
+
+Verwaltung lokaler Auto-Backups: Neuer Button „Backups anzeigen“ neben der Vorhalteanzahl in `BackupView`, Anzeige aller vorhandenen Dateien im `Autobackups/`-Ordner inkl. Dateigröße, Zeitstempel, Download- und Löschfunktion; entsprechende Backend-Endpunkte (`/api/backup/auto/list`, `/api/backup/auto/download/:filename`, `/api/backup/auto/delete/:filename`) implementiert.
+
+## Build 510 (2026-09-12)
+
+Benennung der Auto-Backup-Dateien an die Zeitzone Berlin (`Europe/Berlin`) angepasst (`formatBerlinTimestamp`), sodass die Dateinamen (z. B. `phix-autobackup-2026-09-12T22-12-00.json`) exakt der lokalen Uhrzeit entsprechen.
+
 ## Build 509 (2026-09-12)
 
 Lokales Auto-Backup-Verzeichnis fest auf `Autobackups/` im PhiX-Wurzelverzeichnis fixiert: Host-Volume-Mount in `docker-compose.yml` (`./Autobackups:/app/Autobackups`) hinzugefügt, automatische Pfadauflösung im Backend für Desktop und Server angepasst und das Formular in `BackupView` vereinfacht.

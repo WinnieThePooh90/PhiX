@@ -21,6 +21,9 @@ const {
   getOrCreateConfig: getOrCreateAutoBackupConfig,
   executeAutoBackup,
   initAutoBackupScheduler,
+  listLocalBackups,
+  getLocalBackupFilePath,
+  deleteLocalBackup,
 } = require('./lib/auto-backup-service');
 const { testRemoteConnection } = require('./lib/ftp-transport');
 const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
@@ -3467,6 +3470,50 @@ app.post('/api/backup/auto/run-now', async (req, res) => {
   } catch (err) {
     console.error('[auto-backup] Manuelles Ausführen fehlgeschlagen:', err);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/** Liste der lokalen Auto-Backups abrufen (nur Administrator). */
+app.get('/api/backup/auto/list', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const files = listLocalBackups();
+    res.json({ ok: true, files });
+  } catch (err) {
+    console.error('[auto-backup] Auflisten fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Dateiliste konnte nicht geladen werden.' });
+  }
+});
+
+/** Einzelnes Auto-Backup herunterladen (nur Administrator). */
+app.get('/api/backup/auto/download/:filename', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const filename = String(req.params.filename || '').trim();
+    const fullPath = getLocalBackupFilePath(filename);
+    if (!fullPath) {
+      return res.status(404).json({ error: 'Backup-Datei nicht gefunden.' });
+    }
+    res.download(fullPath, path.basename(fullPath));
+  } catch (err) {
+    console.error('[auto-backup] Download fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Download fehlgeschlagen.' });
+  }
+});
+
+/** Einzelnes Auto-Backup löschen (nur Administrator). */
+app.delete('/api/backup/auto/delete/:filename', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const filename = String(req.params.filename || '').trim();
+    const result = deleteLocalBackup(filename);
+    res.json(result);
+  } catch (err) {
+    console.error('[auto-backup] Löschen fehlgeschlagen:', err);
+    res.status(400).json({ error: err.message || 'Löschen fehlgeschlagen.' });
   }
 });
 

@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  FolderOpen,
+  Trash2,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from '../components/PhixDialog';
@@ -604,6 +607,10 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
   const [testing, setTesting] = useState(false);
   const [running, setRunning] = useState(false);
 
+  const [showFiles, setShowFiles] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
   const [form, setForm] = useState({
     enabled: false,
     localPath: 'Autobackups',
@@ -760,6 +767,70 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
     }
   };
 
+  const loadFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const res = await apiFetch('/api/backup/auto/list', { headers: actingHeaders() });
+      if (!res.ok) throw new Error('Dateiliste konnte nicht geladen werden.');
+      const data = await res.json();
+      setFiles(data?.files || []);
+    } catch (err) {
+      onFeedback('err', err?.message || 'Fehler beim Laden der Backup-Dateien.');
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const toggleFiles = () => {
+    if (!showFiles) {
+      loadFiles();
+    }
+    setShowFiles((prev) => !prev);
+  };
+
+  const handleDownloadFile = async (filename) => {
+    try {
+      const res = await apiFetch(`/api/backup/auto/download/${encodeURIComponent(filename)}`, {
+        headers: actingHeaders(),
+      });
+      if (!res.ok) throw new Error('Download fehlgeschlagen.');
+      const blob = await res.blob();
+      downloadBlob(blob, filename);
+    } catch (e) {
+      onFeedback('err', e?.message || 'Fehler beim Herunterladen.');
+    }
+  };
+
+  const handleDeleteFile = async (filename) => {
+    const ok = await showConfirm(`Möchten Sie das Backup „${filename}“ wirklich unwiderruflich löschen?`, {
+      title: 'Auto-Backup löschen',
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      const res = await apiFetch(`/api/backup/auto/delete/${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+        headers: actingHeaders(),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || 'Löschen fehlgeschlagen.');
+      }
+      onFeedback('ok', `Backup „${filename}“ wurde gelöscht.`);
+      await loadFiles();
+    } catch (err) {
+      onFeedback('err', err?.message || 'Fehler beim Löschen der Datei.');
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  };
+
   const formatLastRun = (isoStr) => {
     if (!isoStr) return 'Noch nie ausgeführt';
     try {
@@ -841,17 +912,89 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
               Speicherort: Ordner <code>Autobackups/</code> direkt im Verzeichnis der PhiX-Installation.
             </p>
 
-            <div className="auto-backup-field" style={{ maxWidth: '320px' }}>
-              <label>Anzahl vorzuhaltender Backups (Rotation)</label>
-              <input
-                type="number"
-                min={2}
-                max={52}
-                className="program-user-mgmt-input"
-                value={form.retentionCount}
-                onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
-              />
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="auto-backup-field" style={{ minWidth: '220px' }}>
+                <label>Anzahl vorzuhaltender Backups (Rotation)</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={52}
+                  className="program-user-mgmt-input"
+                  value={form.retentionCount}
+                  onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
+                />
+              </div>
+              <button
+                type="button"
+                className="tab secondary backup-action-btn"
+                style={{ height: '38px', margin: 0 }}
+                onClick={toggleFiles}
+              >
+                <FolderOpen size={16} aria-hidden />
+                {showFiles ? 'Backups ausblenden' : 'Backups anzeigen'}
+              </button>
             </div>
+
+            {showFiles ? (
+              <div className="auto-backup-file-panel">
+                <div className="auto-backup-file-panel__header">
+                  <span>Gespeicherte lokale Backups ({files.length})</span>
+                  <button
+                    type="button"
+                    className="auto-backup-icon-btn"
+                    title="Liste aktualisieren"
+                    onClick={loadFiles}
+                    disabled={loadingFiles}
+                  >
+                    <RefreshCw size={13} className={loadingFiles ? 'spin' : ''} />
+                  </button>
+                </div>
+
+                {loadingFiles ? (
+                  <p className="program-view-panel-text text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                    Lade Dateien …
+                  </p>
+                ) : files.length === 0 ? (
+                  <p className="program-view-panel-text text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                    Keine Backups im Verzeichnis Autobackups/ vorhanden.
+                  </p>
+                ) : (
+                  <div className="auto-backup-file-list">
+                    {files.map((f) => (
+                      <div key={f.filename} className="auto-backup-file-item">
+                        <div className="auto-backup-file-item__info">
+                          <span className="auto-backup-file-item__name">{f.filename}</span>
+                          <span className="auto-backup-file-item__meta">
+                            <span>{formatFileSize(f.sizeBytes)}</span>
+                            {f.mtime ? (
+                              <span>• {new Date(f.mtime).toLocaleString('de-DE')}</span>
+                            ) : null}
+                          </span>
+                        </div>
+                        <div className="auto-backup-file-item__actions">
+                          <button
+                            type="button"
+                            className="auto-backup-icon-btn"
+                            title="Backup herunterladen"
+                            onClick={() => handleDownloadFile(f.filename)}
+                          >
+                            <Download size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="auto-backup-icon-btn auto-backup-icon-btn--danger"
+                            title="Backup löschen"
+                            onClick={() => handleDeleteFile(f.filename)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {/* Remote (S)FTP Konfiguration */}
