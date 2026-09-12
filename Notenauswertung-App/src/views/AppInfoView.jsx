@@ -7,10 +7,12 @@ import { usePhiXRegistration } from '../utils/phixRegistration';
 import { useAuth } from '../store/AuthContext';
 import { PHIX_COPYRIGHT, PHIX_LICENSE_SPDX, PHIX_LICENSE_TITLE } from '../config/phixLicense';
 import { useDialog } from '../components/PhixDialog';
+import { userHasAdminRights } from '../utils/userAdmin';
 
 export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
   const { registered, unregister } = usePhiXRegistration();
   const { currentUser } = useAuth();
+  const isAdminUser = userHasAdminRights(currentUser);
   const { showConfirm } = useDialog();
 
   const handleUnregister = async () => {
@@ -31,7 +33,7 @@ export default function AppInfoView({ onOpenSupport, onOpenLicense }) {
             <h4 id="app-info-registration-heading" className="program-view-panel-heading">
               Registrierung
             </h4>
-            {registered ? (
+            {registered && isAdminUser ? (
               <button
                 type="button"
                 className="tab secondary school-roster-control-btn app-info-unregister-btn"

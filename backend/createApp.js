@@ -17,6 +17,12 @@ const {
   backupFilenameFromPayload,
   resolveStoredUsername,
 } = require('./lib/phix-backup');
+const {
+  getOrCreateConfig: getOrCreateAutoBackupConfig,
+  executeAutoBackup,
+  initAutoBackupScheduler,
+} = require('./lib/auto-backup-service');
+const { testRemoteConnection } = require('./lib/ftp-transport');
 const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
@@ -3377,6 +3383,93 @@ app.post('/api/backup/users/:username/restore', async (req, res) => {
   }
 });
 
+/** Auto-Backup Konfiguration abrufen (nur Administrator). */
+app.get('/api/backup/auto/config', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const config = await getOrCreateAutoBackupConfig(prisma);
+    res.json({ ok: true, config });
+  } catch (err) {
+    console.error('[auto-backup] Konfiguration abrufen fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Konfiguration konnte nicht geladen werden.' });
+  }
+});
+
+/** Auto-Backup Konfiguration speichern (nur Administrator). */
+app.put('/api/backup/auto/config', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const b = req.body || {};
+    const existing = await getOrCreateAutoBackupConfig(prisma);
+
+    const updateData = {
+      enabled: b.enabled === true,
+      localPath: typeof b.localPath === 'string' && b.localPath.trim() ? b.localPath.trim() : 'Autobackups',
+      retentionCount: Number.isInteger(b.retentionCount) && b.retentionCount > 0 ? b.retentionCount : 10,
+      remoteEnabled: b.remoteEnabled === true,
+      remoteProtocol: (b.remoteProtocol === 'ftps' ? 'ftps' : 'sftp'),
+      remoteHost: typeof b.remoteHost === 'string' ? b.remoteHost.trim() : '',
+      remotePort: Number.isInteger(b.remotePort) && b.remotePort > 0 ? b.remotePort : (b.remoteProtocol === 'ftps' ? 21 : 22),
+      remoteUser: typeof b.remoteUser === 'string' ? b.remoteUser.trim() : '',
+      remotePath: typeof b.remotePath === 'string' && b.remotePath.trim() ? b.remotePath.trim() : '/backups',
+    };
+
+    if (typeof b.remotePassword === 'string') {
+      updateData.remotePassword = b.remotePassword;
+    }
+
+    const updated = await prisma.autoBackupConfig.update({
+      where: { id: 1 },
+      data: updateData,
+    });
+
+    res.json({ ok: true, config: updated });
+  } catch (err) {
+    console.error('[auto-backup] Konfiguration speichern fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Konfiguration konnte nicht gespeichert werden: ' + err.message });
+  }
+});
+
+/** Verbindung zum Remote-Server testen (nur Administrator). */
+app.post('/api/backup/auto/test', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const saved = await getOrCreateAutoBackupConfig(prisma);
+    const configToTest = {
+      remoteProtocol: req.body?.remoteProtocol || saved.remoteProtocol,
+      remoteHost: req.body?.remoteHost !== undefined ? req.body.remoteHost : saved.remoteHost,
+      remotePort: req.body?.remotePort !== undefined ? req.body.remotePort : saved.remotePort,
+      remoteUser: req.body?.remoteUser !== undefined ? req.body.remoteUser : saved.remoteUser,
+      remotePassword: req.body?.remotePassword !== undefined ? req.body.remotePassword : saved.remotePassword,
+      remotePath: req.body?.remotePath !== undefined ? req.body.remotePath : saved.remotePath,
+    };
+
+    const result = await testRemoteConnection(configToTest);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+/** Sofortiges Auto-Backup anstoßen (nur Administrator). */
+app.post('/api/backup/auto/run-now', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const result = await executeAutoBackup(prisma, 'manual');
+    if (!result.ok && result.error) {
+      return res.status(500).json({ ok: false, error: result.error });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('[auto-backup] Manuelles Ausführen fehlgeschlagen:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/shutdown', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
@@ -3427,6 +3520,9 @@ setupStandaloneFrontend();
     app,
     prisma,
     ensureAppUsers,
+    initAutoBackupScheduler() {
+      initAutoBackupScheduler(prisma);
+    },
     attachHttpServer(server) {
       getShutdownServer = () => server;
     },

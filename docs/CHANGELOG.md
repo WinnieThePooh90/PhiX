@@ -6,6 +6,14 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 506 (2026-09-12)
+
+Automatisches Backup-System implementiert: Wöchentlicher Scheduler (sonntags 00:00 Uhr) mit Catch-up-Prüfung beim Start, Speicherung im konfigurierbaren lokalen Ordner mit automatischer Rotation (Standard: 10 Backups) sowie optionaler Offsite-Upload via SFTP (SSH Port 22) oder FTPS (TLS Port 21/990). Administrationsoberfläche in `BackupView` mit Statusübersicht, Verbindungstest und manueller Sofortausführung ergänzt.
+
+## Build 505 (2026-09-12)
+
+Sichtbarkeit des Buttons „Registrierung löschen“ unter **Info** (`AppInfoView`) auf Benutzer mit Administratorrechten (`userHasAdminRights`) beschränkt.
+
 ## Build 504 (2026-09-12)
 
 Sichtbarkeit des Buttons „Herunterfahren“ im Benutzermenü (`HeaderUserMenu`) auf Benutzer mit Administratorrechten (`userHasAdminRights`) beschränkt.

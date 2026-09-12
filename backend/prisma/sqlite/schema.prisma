@@ -69,6 +69,25 @@ model AppRegistration {
   registeredBy   String   @default("")
 }
 
+model AutoBackupConfig {
+  id               Int       @id @default(1)
+  enabled          Boolean   @default(false)
+  localPath        String    @default("Autobackups")
+  retentionCount   Int       @default(10)
+  remoteEnabled    Boolean   @default(false)
+  remoteProtocol   String    @default("sftp") // "sftp" | "ftps"
+  remoteHost       String    @default("")
+  remotePort       Int       @default(22)
+  remoteUser       String    @default("")
+  remotePassword   String    @default("")
+  remotePath       String    @default("/backups")
+  lastRunAt        DateTime?
+  lastStatusLocal  String    @default("")
+  lastStatusRemote String    @default("")
+  lastErrorMessage String?
+  updatedAt        DateTime  @default(now()) @updatedAt
+}
+
 model Course {
   id        Int      @id @default(autoincrement())
   year      String

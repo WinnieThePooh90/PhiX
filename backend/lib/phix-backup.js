@@ -26,6 +26,7 @@ const DATE_FIELDS_BY_MODEL = {
   AlbumPhoto: ['createdAt'],
   UserCrypto: ['createdAt'],
   UserAuswertungshilfe: ['createdAt', 'updatedAt'],
+  AutoBackupConfig: ['lastRunAt', 'updatedAt'],
 };
 
 const PG_SEQUENCE_TABLES = [
@@ -33,6 +34,7 @@ const PG_SEQUENCE_TABLES = [
   'UserSettings',
   'UserCrypto',
   'AppRegistration',
+  'AutoBackupConfig',
   'Course',
   'SchoolRosterYear',
   'SchoolRosterStudent',
@@ -62,6 +64,7 @@ const EMPTY_DATA = {
   userSettings: [],
   userCrypto: [],
   appRegistration: [],
+  autoBackupConfig: [],
   config: [],
   courses: [],
   students: [],
@@ -322,6 +325,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
     prisma.homeworkListEntry.findMany(),
     prisma.albumPhoto.findMany(),
     prisma.userAuswertungshilfe.findMany(),
+    prisma.autoBackupConfig ? prisma.autoBackupConfig.findMany() : Promise.resolve([]),
   ]);
 
   return buildBackupEnvelope(
@@ -332,6 +336,7 @@ async function exportPhixDatabase(prisma, meta = {}) {
       userSettings,
       userCrypto,
       appRegistration,
+      autoBackupConfig: autoBackupConfig ?? [],
       config: [],
       courses,
       students,
@@ -477,6 +482,7 @@ async function clearAllPhixData(tx) {
   await tx.userSettings.deleteMany();
   await tx.userCrypto.deleteMany();
   await tx.appRegistration.deleteMany();
+  if (tx.autoBackupConfig) await tx.autoBackupConfig.deleteMany();
   await tx.appUser.deleteMany();
 }
 
@@ -620,6 +626,9 @@ async function restorePhixDatabase(prisma, rawPayload) {
       await insertMany(tx, 'HomeworkListEntry', d.homeworkListEntries ?? []);
       await insertMany(tx, 'AlbumPhoto', d.albumPhotos ?? []);
       await insertMany(tx, 'UserAuswertungshilfe', d.userAuswertungshilfe ?? []);
+      if (d.autoBackupConfig?.length && tx.autoBackupConfig) {
+        await insertMany(tx, 'AutoBackupConfig', d.autoBackupConfig);
+      }
     },
     { maxWait: 60_000, timeout: 300_000 },
   );

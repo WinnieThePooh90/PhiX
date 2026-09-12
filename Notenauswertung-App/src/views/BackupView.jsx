@@ -1,5 +1,17 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { ChevronDown, Download, Upload } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  Download,
+  Upload,
+  Server,
+  HardDrive,
+  Save,
+  Play,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+} from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from '../components/PhixDialog';
 import { apiFetch } from '../utils/apiBase';
@@ -460,6 +472,13 @@ export default function BackupView() {
                 />
               </BackupSubsection>
             </BackupSection>
+
+            <AutoBackupAdminSection
+              expanded={isSectionOpen('auto-backup')}
+              onToggle={() => toggleSection('auto-backup')}
+              onFeedback={onFeedback}
+              showConfirm={showConfirm}
+            />
           </>
         ) : null}
 
@@ -578,3 +597,403 @@ function AdminUserRestorePanel({
     </>
   );
 }
+
+function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm }) {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  const [form, setForm] = useState({
+    enabled: false,
+    localPath: 'Autobackups',
+    retentionCount: 10,
+    remoteEnabled: false,
+    remoteProtocol: 'sftp',
+    remoteHost: '',
+    remotePort: 22,
+    remoteUser: '',
+    remotePassword: '',
+    remotePath: '/backups',
+    lastRunAt: null,
+    lastStatusLocal: '',
+    lastStatusRemote: '',
+    lastErrorMessage: null,
+  });
+
+  const loadConfig = async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch('/api/backup/auto/config', { headers: actingHeaders() });
+      if (!res.ok) throw new Error('Konfiguration konnte nicht geladen werden.');
+      const data = await res.json();
+      if (data?.config) {
+        setForm((prev) => ({
+          ...prev,
+          ...data.config,
+          remotePassword: '', // Aus Sicherheitsgründen nicht im Klartext zurückgeben
+        }));
+      }
+    } catch (err) {
+      onFeedback('err', err?.message || 'Fehler beim Laden der Auto-Backup-Konfiguration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (expanded) {
+      loadConfig();
+    }
+  }, [expanded]);
+
+  const handleSave = async (e) => {
+    e?.preventDefault();
+    setSaving(true);
+    onFeedback('', '');
+    try {
+      const payload = {
+        enabled: form.enabled,
+        localPath: form.localPath,
+        retentionCount: Number(form.retentionCount) || 10,
+        remoteEnabled: form.remoteEnabled,
+        remoteProtocol: form.remoteProtocol,
+        remoteHost: form.remoteHost,
+        remotePort: Number(form.remotePort) || (form.remoteProtocol === 'ftps' ? 21 : 22),
+        remoteUser: form.remoteUser,
+        remotePath: form.remotePath,
+      };
+      if (form.remotePassword) {
+        payload.remotePassword = form.remotePassword;
+      }
+
+      const res = await apiFetch('/api/backup/auto/config', {
+        method: 'PUT',
+        headers: (() => {
+          const h = actingHeaders();
+          h.set('Content-Type', 'application/json');
+          return h;
+        })(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || 'Speichern fehlgeschlagen.');
+      }
+      onFeedback('ok', 'Auto-Backup-Einstellungen erfolgreich gespeichert.');
+      await loadConfig();
+    } catch (err) {
+      onFeedback('err', err?.message || 'Fehler beim Speichern der Einstellungen.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestRemote = async () => {
+    setTesting(true);
+    onFeedback('', '');
+    try {
+      const payload = {
+        remoteProtocol: form.remoteProtocol,
+        remoteHost: form.remoteHost,
+        remotePort: Number(form.remotePort) || (form.remoteProtocol === 'ftps' ? 21 : 22),
+        remoteUser: form.remoteUser,
+        remotePath: form.remotePath,
+      };
+      if (form.remotePassword) {
+        payload.remotePassword = form.remotePassword;
+      }
+
+      const res = await apiFetch('/api/backup/auto/test', {
+        method: 'POST',
+        headers: (() => {
+          const h = actingHeaders();
+          h.set('Content-Type', 'application/json');
+          return h;
+        })(),
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error || 'Verbindungstest fehlgeschlagen.');
+      }
+      onFeedback('ok', data.message || 'Verbindung zum Remote-Server erfolgreich!');
+    } catch (err) {
+      onFeedback('err', `Remote-Test fehlgeschlagen: ${err?.message}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleRunNow = async () => {
+    const ok = await showConfirm(
+      'Möchten Sie jetzt sofort ein automatisches Backup (lokal und ggf. remote) ausführen?',
+      { title: 'Auto-Backup sofort starten', danger: false },
+    );
+    if (!ok) return;
+
+    setRunning(true);
+    onFeedback('', '');
+    try {
+      const res = await apiFetch('/api/backup/auto/run-now', {
+        method: 'POST',
+        headers: actingHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error || 'Backup fehlgeschlagen.');
+      }
+      let msg = `Auto-Backup erfolgreich erstellt: ${data.filename}`;
+      if (data.lastStatusRemote === 'success') {
+        msg += ' (Lokal & Remote gespeichert)';
+      } else if (data.lastStatusRemote === 'error') {
+        msg += ` (Lokal gespeichert, Remote-Fehler: ${data.lastErrorMessage || 'Upload fehlgeschlagen'})`;
+      }
+      onFeedback(data.lastStatusRemote === 'error' ? 'err' : 'ok', msg);
+      await loadConfig();
+    } catch (err) {
+      onFeedback('err', `Fehler beim Ausführen des Backups: ${err?.message}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const formatLastRun = (isoStr) => {
+    if (!isoStr) return 'Noch nie ausgeführt';
+    try {
+      const d = new Date(isoStr);
+      return Number.isNaN(d.getTime()) ? isoStr : d.toLocaleString('de-DE');
+    } catch {
+      return isoStr;
+    }
+  };
+
+  return (
+    <BackupSection
+      sectionId="auto-backup"
+      title="Automatisches Backup & (S)FTP-Speicher (Administrator)"
+      expanded={expanded}
+      onToggle={onToggle}
+    >
+      <p className="program-view-panel-text text-muted" style={{ marginTop: 0 }}>
+        Erstellt jeden Sonntag um 00:00 Uhr automatisch ein vollständiges Backup der Datenbank.
+        Falls der Rechner sonntags ausgeschaltet war, wird das Backup beim nächsten Start automatisch nachgeholt.
+      </p>
+
+      {loading ? (
+        <p className="program-view-panel-text text-muted">Lade Einstellungen …</p>
+      ) : (
+        <form onSubmit={handleSave}>
+          {/* Status Panel */}
+          <div className="auto-backup-status-panel">
+            <div className="auto-backup-status-row">
+              <span><strong>Letzte Ausführung:</strong> {formatLastRun(form.lastRunAt)}</span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {form.lastStatusLocal === 'success' && (
+                  <span className="auto-backup-badge auto-backup-badge--success" title="Lokales Backup erfolgreich">
+                    <CheckCircle2 size={13} /> Lokal: OK
+                  </span>
+                )}
+                {form.lastStatusLocal === 'error' && (
+                  <span className="auto-backup-badge auto-backup-badge--error" title="Lokales Backup fehlgeschlagen">
+                    <XCircle size={13} /> Lokal: Fehler
+                  </span>
+                )}
+                {form.lastStatusRemote === 'success' && (
+                  <span className="auto-backup-badge auto-backup-badge--success" title="Remote-Upload erfolgreich">
+                    <CheckCircle2 size={13} /> Remote: OK
+                  </span>
+                )}
+                {form.lastStatusRemote === 'error' && (
+                  <span className="auto-backup-badge auto-backup-badge--error" title="Remote-Upload fehlgeschlagen">
+                    <AlertTriangle size={13} /> Remote: Fehler
+                  </span>
+                )}
+                {form.lastStatusRemote === 'skipped' && (
+                  <span className="auto-backup-badge auto-backup-badge--skipped" title="Remote deaktiviert">
+                    Remote: Aus
+                  </span>
+                )}
+              </div>
+            </div>
+            {form.lastErrorMessage ? (
+              <div style={{ color: '#f87171', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+                <strong>Fehlerdetails:</strong> {form.lastErrorMessage}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Lokale Konfiguration */}
+          <div className="auto-backup-card" style={{ marginTop: '1rem' }}>
+            <label className="auto-backup-toggle-row">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
+              />
+              <span className="auto-backup-toggle-label">
+                Automatisches wöchentliches Backup aktivieren
+              </span>
+            </label>
+
+            <div className="auto-backup-grid">
+              <div className="auto-backup-field">
+                <label>Lokaler Speicherordner</label>
+                <input
+                  type="text"
+                  className="program-user-mgmt-input"
+                  value={form.localPath}
+                  onChange={(e) => setForm((p) => ({ ...p, localPath: e.target.value }))}
+                  placeholder="Autobackups"
+                />
+              </div>
+              <div className="auto-backup-field">
+                <label>Anzahl vorzuhaltender Backups (Rotation)</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={52}
+                  className="program-user-mgmt-input"
+                  value={form.retentionCount}
+                  onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Remote (S)FTP Konfiguration */}
+          <div className="auto-backup-card">
+            <label className="auto-backup-toggle-row">
+              <input
+                type="checkbox"
+                checked={form.remoteEnabled}
+                onChange={(e) => setForm((p) => ({ ...p, remoteEnabled: e.target.checked }))}
+              />
+              <span className="auto-backup-toggle-label">
+                Zweiten Speicherort aktivieren ((S)FTP)
+              </span>
+            </label>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>
+              Lädt nach jedem erfolgreichen lokalen Backup eine Kopie verschlüsselt auf einen entfernten Server hoch.
+            </p>
+
+            {form.remoteEnabled ? (
+              <div className="auto-backup-grid">
+                <div className="auto-backup-field">
+                  <label>Protokoll</label>
+                  <select
+                    className="program-user-mgmt-input"
+                    value={form.remoteProtocol}
+                    onChange={(e) => {
+                      const proto = e.target.value;
+                      setForm((p) => ({
+                        ...p,
+                        remoteProtocol: proto,
+                        remotePort: proto === 'ftps' ? (p.remotePort === 22 ? 21 : p.remotePort) : (p.remotePort === 21 ? 22 : p.remotePort),
+                      }));
+                    }}
+                  >
+                    <option value="sftp">SFTP (SSH Port 22 – Empfohlen)</option>
+                    <option value="ftps">FTPS (FTP over TLS/SSL Port 21/990)</option>
+                  </select>
+                </div>
+
+                <div className="auto-backup-field">
+                  <label>Server / Host-Adresse</label>
+                  <input
+                    type="text"
+                    className="program-user-mgmt-input"
+                    value={form.remoteHost}
+                    onChange={(e) => setForm((p) => ({ ...p, remoteHost: e.target.value }))}
+                    placeholder="backup.meineschule.de oder IP"
+                  />
+                </div>
+
+                <div className="auto-backup-field">
+                  <label>Port</label>
+                  <input
+                    type="number"
+                    className="program-user-mgmt-input"
+                    value={form.remotePort}
+                    onChange={(e) => setForm((p) => ({ ...p, remotePort: e.target.value }))}
+                  />
+                </div>
+
+                <div className="auto-backup-field">
+                  <label>Benutzername</label>
+                  <input
+                    type="text"
+                    className="program-user-mgmt-input"
+                    value={form.remoteUser}
+                    onChange={(e) => setForm((p) => ({ ...p, remoteUser: e.target.value }))}
+                    placeholder="sftp-user"
+                  />
+                </div>
+
+                <div className="auto-backup-field">
+                  <label>Passwort</label>
+                  <input
+                    type="password"
+                    className="program-user-mgmt-input"
+                    value={form.remotePassword}
+                    onChange={(e) => setForm((p) => ({ ...p, remotePassword: e.target.value }))}
+                    placeholder="Neues Passwort eingeben oder leer lassen"
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                <div className="auto-backup-field">
+                  <label>Zielverzeichnis auf Server</label>
+                  <input
+                    type="text"
+                    className="program-user-mgmt-input"
+                    value={form.remotePath}
+                    onChange={(e) => setForm((p) => ({ ...p, remotePath: e.target.value }))}
+                    placeholder="/backups/phix"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Aktionsschaltflächen */}
+          <div className="auto-backup-actions-row">
+            <button
+              type="submit"
+              className="tab primary backup-action-btn"
+              disabled={saving || testing || running}
+            >
+              <Save size={16} aria-hidden />
+              {saving ? 'Speichert …' : 'Einstellungen speichern'}
+            </button>
+
+            {form.remoteEnabled ? (
+              <button
+                type="button"
+                className="tab secondary backup-action-btn"
+                disabled={saving || testing || running || !form.remoteHost || !form.remoteUser}
+                onClick={handleTestRemote}
+              >
+                <Server size={16} aria-hidden />
+                {testing ? 'Verbindung wird getestet …' : 'Remote-Verbindung testen'}
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              className="tab secondary backup-action-btn"
+              disabled={saving || testing || running}
+              onClick={handleRunNow}
+            >
+              <Play size={16} aria-hidden />
+              {running ? 'Backup wird ausgeführt …' : 'Backup jetzt sofort ausführen'}
+            </button>
+          </div>
+        </form>
+      )}
+    </BackupSection>
+  );
+}
+

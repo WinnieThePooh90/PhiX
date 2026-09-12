@@ -8,12 +8,13 @@ if (process.env.PHIX_SKIP_DB_PUSH !== '1') {
 
 const { createApp } = require('./createApp');
 
-const { app, ensureAppUsers, attachHttpServer } = createApp();
+const { app, ensureAppUsers, attachHttpServer, initAutoBackupScheduler } = createApp();
 
 const PORT = process.env.PORT || 3000;
 
 async function start() {
   await ensureAppUsers();
+  initAutoBackupScheduler();
   const httpServer = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
