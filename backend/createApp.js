@@ -3478,6 +3478,32 @@ app.post('/api/backup/auto/run-now', async (req, res) => {
   const acting = await assertAdminUser(req, res);
   if (!acting) return;
   try {
+    const b = req.body || {};
+    // Falls Formulardaten mitgeschickt wurden, vorab in DB speichern
+    if (typeof b === 'object' && Object.keys(b).length > 0 && (b.usbEnabled !== undefined || b.enabled !== undefined || b.remoteEnabled !== undefined)) {
+      const updateData = {};
+      if (b.enabled !== undefined) updateData.enabled = b.enabled === true;
+      if (b.localPath !== undefined) updateData.localPath = typeof b.localPath === 'string' && b.localPath.trim() ? b.localPath.trim() : 'Autobackups';
+      if (b.retentionCount !== undefined) updateData.retentionCount = Number.isInteger(b.retentionCount) && b.retentionCount > 0 ? b.retentionCount : 10;
+      if (b.usbEnabled !== undefined) updateData.usbEnabled = b.usbEnabled === true;
+      if (b.usbPath !== undefined) updateData.usbPath = typeof b.usbPath === 'string' ? b.usbPath.trim() : '';
+      if (b.remoteEnabled !== undefined) updateData.remoteEnabled = b.remoteEnabled === true;
+      if (b.remoteProtocol !== undefined) updateData.remoteProtocol = (b.remoteProtocol === 'ftps' ? 'ftps' : 'sftp');
+      if (b.remoteHost !== undefined) updateData.remoteHost = typeof b.remoteHost === 'string' ? b.remoteHost.trim() : '';
+      if (b.remotePort !== undefined) updateData.remotePort = Number.isInteger(b.remotePort) && b.remotePort > 0 ? b.remotePort : (b.remoteProtocol === 'ftps' ? 21 : 22);
+      if (b.remoteUser !== undefined) updateData.remoteUser = typeof b.remoteUser === 'string' ? b.remoteUser.trim() : '';
+      if (b.remotePath !== undefined) updateData.remotePath = typeof b.remotePath === 'string' && b.remotePath.trim() ? b.remotePath.trim() : '/backups';
+      if (typeof b.remotePassword === 'string' && b.remotePassword) {
+        updateData.remotePassword = b.remotePassword;
+      }
+      if (Object.keys(updateData).length > 0) {
+        await prisma.autoBackupConfig.update({
+          where: { id: 1 },
+          data: updateData,
+        });
+      }
+    }
+
     const result = await executeAutoBackup(prisma, 'manual');
     if (!result.ok && result.error) {
       return res.status(500).json({ ok: false, error: result.error });

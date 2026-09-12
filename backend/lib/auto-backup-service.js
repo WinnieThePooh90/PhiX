@@ -217,9 +217,46 @@ function isSundayBackupDue(lastRunAt) {
 }
 
 /**
+ * Stellt sicher, dass alle Spalten (insbesondere usbEnabled, usbPath, lastStatusUsb)
+ * auch in bereits geöffneten Datenbanken vorhanden sind.
+ */
+async function ensureAutoBackupSchema(prisma) {
+  try {
+    if (prisma.$executeRawUnsafe) {
+      // PostgreSQL: Spalten anlegen falls noch nicht vorhanden
+      await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN IF NOT EXISTS "usbEnabled" BOOLEAN NOT NULL DEFAULT false;`).catch(() => {});
+      await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN IF NOT EXISTS "usbPath" TEXT NOT NULL DEFAULT '';`).catch(() => {});
+      await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN IF NOT EXISTS "lastStatusUsb" TEXT NOT NULL DEFAULT '';`).catch(() => {});
+
+      // SQLite: Tabellenstruktur prüfen und fehlende Spalten hinzufügen
+      try {
+        const tableInfo = await prisma.$queryRawUnsafe(`PRAGMA table_info("AutoBackupConfig")`);
+        if (Array.isArray(tableInfo) && tableInfo.length > 0) {
+          const colNames = tableInfo.map((c) => c.name);
+          if (!colNames.includes('usbEnabled')) {
+            await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN "usbEnabled" BOOLEAN NOT NULL DEFAULT 0;`).catch(() => {});
+          }
+          if (!colNames.includes('usbPath')) {
+            await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN "usbPath" TEXT NOT NULL DEFAULT '';`).catch(() => {});
+          }
+          if (!colNames.includes('lastStatusUsb')) {
+            await prisma.$executeRawUnsafe(`ALTER TABLE "AutoBackupConfig" ADD COLUMN "lastStatusUsb" TEXT NOT NULL DEFAULT '';`).catch(() => {});
+          }
+        }
+      } catch {
+        /* ignore if not SQLite */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
  * Lädt oder initialisiert die AutoBackupConfig-Tabelle.
  */
 async function getOrCreateConfig(prisma) {
+  await ensureAutoBackupSchema(prisma);
   let row = await prisma.autoBackupConfig.findUnique({ where: { id: 1 } });
   if (!row) {
     row = await prisma.autoBackupConfig.create({

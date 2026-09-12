@@ -768,9 +768,31 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
     setRunning(true);
     onFeedback('', '');
     try {
+      const payload = {
+        enabled: form.enabled,
+        localPath: form.localPath,
+        retentionCount: Number(form.retentionCount) || 10,
+        usbEnabled: form.usbEnabled,
+        usbPath: form.usbPath,
+        remoteEnabled: form.remoteEnabled,
+        remoteProtocol: form.remoteProtocol,
+        remoteHost: form.remoteHost,
+        remotePort: Number(form.remotePort) || (form.remoteProtocol === 'ftps' ? 21 : 22),
+        remoteUser: form.remoteUser,
+        remotePath: form.remotePath,
+      };
+      if (form.remotePassword) {
+        payload.remotePassword = form.remotePassword;
+      }
+
       const res = await apiFetch('/api/backup/auto/run-now', {
         method: 'POST',
-        headers: actingHeaders(),
+        headers: (() => {
+          const h = actingHeaders();
+          h.set('Content-Type', 'application/json');
+          return h;
+        })(),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {

@@ -6,6 +6,16 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 514 (2026-09-12)
+
+Fehlerbehebung beim Ausführen des USB-Auto-Backups: 
+1. Beim Sofort-Ausführen (`POST /api/backup/auto/run-now`) wird der aktuelle Formularzustand (inkl. USB-Aktivierung und USB-Pfad) automatisch vorab übergeben und gespeichert, sodass Änderungen nicht durch den nachfolgenden Konfigurations-Reload überschrieben/gelöscht werden.
+2. `ensureAutoBackupSchema` in `auto-backup-service.js` prüft und ergänzt fehlende Tabellenspalten (`usbEnabled`, `usbPath`, `lastStatusUsb`) dynamisch auch bei bestehenden Datenbankinstanzen.
+
+## Build 513 (2026-09-12)
+
+Korrektur und Absicherung der Build-Versionssynchronisation: Das Synchronisationsskript `sync-app-version.mjs` aktualisiert bei vorhandener `APP_VERSION.md` automatisch alle `package.json`-Dateien (`Notenauswertung-App`, `backend`, `desktop`) und greift in isolierten Docker-Build-Kontexten primär auf die bestehende `appVersion.js` zurück, wodurch ein Zurücksetzen der Versionsanzeige auf veraltete `package.json`-Stände (wie Build 479) auf der Login- und Info-Seite zuverlässig verhindert wird.
+
 ## Build 512 (2026-09-12)
 
 Erweiterung des Auto-Backup-Systems um einen dritten Speicherort (USB-Speichermedium): Automatische Erkennung angeschlossener USB- und Wechsellaufwerke unter Linux, Windows und macOS (`listAvailableDrives` in `drive-detector.js`), direkte Speicherung der Backup-Dateien im Hauptverzeichnis des ausgewählten USB-Laufwerks (ohne Unterordner) inkl. automatischer Rotation und robuster Fehlerbehandlung (Trennen des USB-Sticks bricht lokale Sicherung und SFTP-Upload nicht ab). Konfigurationsoberfläche in `BackupView` mit Dropdown-Auswahl, Suchbutton für Laufwerke und separater Statusanzeige (`USB: OK`, `USB: Fehler`, `USB: Aus`).
