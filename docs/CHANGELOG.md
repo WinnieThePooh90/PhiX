@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 512 (2026-09-12)
+
+Erweiterung des Auto-Backup-Systems um einen dritten Speicherort (USB-Speichermedium): Automatische Erkennung angeschlossener USB- und Wechsellaufwerke unter Linux, Windows und macOS (`listAvailableDrives` in `drive-detector.js`), direkte Speicherung der Backup-Dateien im Hauptverzeichnis des ausgewählten USB-Laufwerks (ohne Unterordner) inkl. automatischer Rotation und robuster Fehlerbehandlung (Trennen des USB-Sticks bricht lokale Sicherung und SFTP-Upload nicht ab). Konfigurationsoberfläche in `BackupView` mit Dropdown-Auswahl, Suchbutton für Laufwerke und separater Statusanzeige (`USB: OK`, `USB: Fehler`, `USB: Aus`).
+
 ## Build 511 (2026-09-12)
 
 Verwaltung lokaler Auto-Backups: Neuer Button „Backups anzeigen“ neben der Vorhalteanzahl in `BackupView`, Anzeige aller vorhandenen Dateien im `Autobackups/`-Ordner inkl. Dateigröße, Zeitstempel, Download- und Löschfunktion; entsprechende Backend-Endpunkte (`/api/backup/auto/list`, `/api/backup/auto/download/:filename`, `/api/backup/auto/delete/:filename`) implementiert.

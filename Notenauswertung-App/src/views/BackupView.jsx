@@ -14,6 +14,7 @@ import {
   FolderOpen,
   Trash2,
   FileText,
+  Usb,
 } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDialog } from '../components/PhixDialog';
@@ -611,10 +612,15 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
+  const [availableDrives, setAvailableDrives] = useState([]);
+  const [loadingDrives, setLoadingDrives] = useState(false);
+
   const [form, setForm] = useState({
     enabled: false,
     localPath: 'Autobackups',
     retentionCount: 10,
+    usbEnabled: false,
+    usbPath: '',
     remoteEnabled: false,
     remoteProtocol: 'sftp',
     remoteHost: '',
@@ -624,9 +630,24 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
     remotePath: '/backups',
     lastRunAt: null,
     lastStatusLocal: '',
+    lastStatusUsb: '',
     lastStatusRemote: '',
     lastErrorMessage: null,
   });
+
+  const loadDrives = async () => {
+    setLoadingDrives(true);
+    try {
+      const res = await apiFetch('/api/backup/auto/drives', { headers: actingHeaders() });
+      if (!res.ok) throw new Error('Laufwerke konnten nicht geladen werden.');
+      const data = await res.json();
+      setAvailableDrives(data?.drives || []);
+    } catch (err) {
+      console.warn('[auto-backup] Fehler beim Erkennen von USB-Laufwerken:', err);
+    } finally {
+      setLoadingDrives(false);
+    }
+  };
 
   const loadConfig = async () => {
     setLoading(true);
@@ -651,6 +672,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
   useEffect(() => {
     if (expanded) {
       loadConfig();
+      loadDrives();
     }
   }, [expanded]);
 
@@ -663,6 +685,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
         enabled: form.enabled,
         localPath: form.localPath,
         retentionCount: Number(form.retentionCount) || 10,
+        usbEnabled: form.usbEnabled,
+        usbPath: form.usbPath,
         remoteEnabled: form.remoteEnabled,
         remoteProtocol: form.remoteProtocol,
         remoteHost: form.remoteHost,
@@ -736,7 +760,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
 
   const handleRunNow = async () => {
     const ok = await showConfirm(
-      'Möchten Sie jetzt sofort ein automatisches Backup (lokal und ggf. remote) ausführen?',
+      'Möchten Sie jetzt sofort ein automatisches Backup (lokal und ggf. USB / Remote) ausführen?',
       { title: 'Auto-Backup sofort starten', danger: false },
     );
     if (!ok) return;
@@ -753,12 +777,19 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
         throw new Error(data?.error || 'Backup fehlgeschlagen.');
       }
       let msg = `Auto-Backup erfolgreich erstellt: ${data.filename}`;
-      if (data.lastStatusRemote === 'success') {
-        msg += ' (Lokal & Remote gespeichert)';
-      } else if (data.lastStatusRemote === 'error') {
-        msg += ` (Lokal gespeichert, Remote-Fehler: ${data.lastErrorMessage || 'Upload fehlgeschlagen'})`;
+      const savedPlaces = ['Lokal'];
+      if (data.lastStatusUsb === 'success') savedPlaces.push('USB');
+      if (data.lastStatusRemote === 'success') savedPlaces.push('Remote');
+      msg += ` (${savedPlaces.join(' & ')} gespeichert)`;
+
+      if (data.lastStatusUsb === 'error') {
+        msg += ` | USB-Fehler: ${data.lastErrorMessage || 'Fehler beim Schreiben auf USB'}`;
       }
-      onFeedback(data.lastStatusRemote === 'error' ? 'err' : 'ok', msg);
+      if (data.lastStatusRemote === 'error') {
+        msg += ` | Remote-Fehler: ${data.lastErrorMessage || 'Upload fehlgeschlagen'}`;
+      }
+      const hasErrors = data.lastStatusUsb === 'error' || data.lastStatusRemote === 'error';
+      onFeedback(hasErrors ? 'err' : 'ok', msg);
       await loadConfig();
     } catch (err) {
       onFeedback('err', `Fehler beim Ausführen des Backups: ${err?.message}`);
@@ -861,7 +892,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
           <div className="auto-backup-status-panel">
             <div className="auto-backup-status-row">
               <span><strong>Letzte Ausführung:</strong> {formatLastRun(form.lastRunAt)}</span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 {form.lastStatusLocal === 'success' && (
                   <span className="auto-backup-badge auto-backup-badge--success" title="Lokales Backup erfolgreich">
                     <CheckCircle2 size={13} /> Lokal: OK
@@ -870,6 +901,21 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 {form.lastStatusLocal === 'error' && (
                   <span className="auto-backup-badge auto-backup-badge--error" title="Lokales Backup fehlgeschlagen">
                     <XCircle size={13} /> Lokal: Fehler
+                  </span>
+                )}
+                {form.lastStatusUsb === 'success' && (
+                  <span className="auto-backup-badge auto-backup-badge--success" title="USB-Backup erfolgreich">
+                    <CheckCircle2 size={13} /> USB: OK
+                  </span>
+                )}
+                {form.lastStatusUsb === 'error' && (
+                  <span className="auto-backup-badge auto-backup-badge--error" title="USB-Backup fehlgeschlagen">
+                    <AlertTriangle size={13} /> USB: Fehler
+                  </span>
+                )}
+                {form.lastStatusUsb === 'skipped' && (
+                  <span className="auto-backup-badge auto-backup-badge--skipped" title="USB-Backup deaktiviert">
+                    USB: Aus
                   </span>
                 )}
                 {form.lastStatusRemote === 'success' && (
@@ -993,6 +1039,81 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     ))}
                   </div>
                 )}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Dritter Speicherort: USB-Speichermedium */}
+          <div className="auto-backup-card">
+            <label className="auto-backup-toggle-row">
+              <input
+                type="checkbox"
+                checked={form.usbEnabled}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setForm((p) => ({ ...p, usbEnabled: checked }));
+                  if (checked && availableDrives.length === 0) {
+                    loadDrives();
+                  }
+                }}
+              />
+              <span className="auto-backup-toggle-label">
+                Dritten Speicherort aktivieren (USB-Speichermedium)
+              </span>
+            </label>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>
+              Legt nach jedem Backup eine Kopie direkt und ohne Unterverzeichnis in das Hauptverzeichnis des ausgewählten USB-Speichermediums ab.
+            </p>
+
+            {form.usbEnabled ? (
+              <div className="auto-backup-grid">
+                <div className="auto-backup-field" style={{ gridColumn: 'span 2' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <label style={{ margin: 0 }}>Erkanntes USB-Laufwerk auswählen</label>
+                    <button
+                      type="button"
+                      className="tab secondary backup-action-btn"
+                      title="Laufwerke erneut scannen"
+                      onClick={loadDrives}
+                      disabled={loadingDrives}
+                      style={{ padding: '3px 8px', height: '28px', fontSize: '0.78rem', margin: 0 }}
+                    >
+                      <RefreshCw size={12} className={loadingDrives ? 'spin' : ''} />
+                      <span style={{ marginLeft: '4px' }}>Laufwerke suchen</span>
+                    </button>
+                  </div>
+                  <select
+                    className="program-user-mgmt-input"
+                    value={form.usbPath}
+                    onChange={(e) => setForm((p) => ({ ...p, usbPath: e.target.value }))}
+                  >
+                    <option value="">— Bitte USB-Laufwerk auswählen —</option>
+                    {availableDrives.map((d) => (
+                      <option key={d.path} value={d.path}>
+                        {d.label}
+                      </option>
+                    ))}
+                    {form.usbPath && !availableDrives.some((d) => d.path === form.usbPath) && (
+                      <option value={form.usbPath}>
+                        {form.usbPath} (Benutzerdefinierter Pfad)
+                      </option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="auto-backup-field" style={{ gridColumn: 'span 2' }}>
+                  <label>Pfad zum USB-Hauptverzeichnis (oder manuell anpassen)</label>
+                  <input
+                    type="text"
+                    className="program-user-mgmt-input"
+                    value={form.usbPath}
+                    onChange={(e) => setForm((p) => ({ ...p, usbPath: e.target.value }))}
+                    placeholder="z. B. E:\ (Windows) oder /media/benutzer/STICK (Linux)"
+                  />
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted, #888)', marginTop: '0.25rem', display: 'block' }}>
+                    Backups werden direkt als <code>phix-autobackup-*.json</code> in dieses Hauptverzeichnis abgelegt.
+                  </span>
+                </div>
               </div>
             ) : null}
           </div>

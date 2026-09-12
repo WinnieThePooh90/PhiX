@@ -25,6 +25,7 @@ const {
   getLocalBackupFilePath,
   deleteLocalBackup,
 } = require('./lib/auto-backup-service');
+const { listAvailableDrives } = require('./lib/drive-detector');
 const { testRemoteConnection } = require('./lib/ftp-transport');
 const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
@@ -3411,6 +3412,8 @@ app.put('/api/backup/auto/config', async (req, res) => {
       enabled: b.enabled === true,
       localPath: typeof b.localPath === 'string' && b.localPath.trim() ? b.localPath.trim() : 'Autobackups',
       retentionCount: Number.isInteger(b.retentionCount) && b.retentionCount > 0 ? b.retentionCount : 10,
+      usbEnabled: b.usbEnabled === true,
+      usbPath: typeof b.usbPath === 'string' ? b.usbPath.trim() : '',
       remoteEnabled: b.remoteEnabled === true,
       remoteProtocol: (b.remoteProtocol === 'ftps' ? 'ftps' : 'sftp'),
       remoteHost: typeof b.remoteHost === 'string' ? b.remoteHost.trim() : '',
@@ -3432,6 +3435,19 @@ app.put('/api/backup/auto/config', async (req, res) => {
   } catch (err) {
     console.error('[auto-backup] Konfiguration speichern fehlgeschlagen:', err);
     res.status(500).json({ error: 'Konfiguration konnte nicht gespeichert werden: ' + err.message });
+  }
+});
+
+/** Erkannte USB- / Wechsellaufwerke auflisten (nur Administrator). */
+app.get('/api/backup/auto/drives', async (req, res) => {
+  const acting = await assertAdminUser(req, res);
+  if (!acting) return;
+  try {
+    const drives = listAvailableDrives();
+    res.json({ ok: true, drives });
+  } catch (err) {
+    console.error('[auto-backup] Laufwerkserkennung fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Laufwerke konnten nicht ermittelt werden.' });
   }
 });
 

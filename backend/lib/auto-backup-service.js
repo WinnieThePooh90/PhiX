@@ -162,6 +162,35 @@ function rotateLocalBackups(dirPath, retentionCount) {
 }
 
 /**
+ * Bereinigt alte Backups im Hauptverzeichnis des USB-Laufwerks.
+ */
+function rotateUsbBackups(usbPath, retentionCount) {
+  if (retentionCount <= 0 || !usbPath || !fs.existsSync(usbPath)) return 0;
+  try {
+    const files = fs.readdirSync(usbPath)
+      .filter((f) => f.startsWith(FILENAME_PREFIX) && f.endsWith('.json'))
+      .sort((a, b) => b.localeCompare(a)); // Neueste zuerst
+
+    let deleted = 0;
+    if (files.length > retentionCount) {
+      const toDelete = files.slice(retentionCount);
+      for (const file of toDelete) {
+        try {
+          fs.unlinkSync(path.join(usbPath, file));
+          deleted++;
+        } catch (e) {
+          console.warn('[auto-backup] Konnte altes USB-Backup nicht löschen:', file, e.message);
+        }
+      }
+    }
+    return deleted;
+  } catch (err) {
+    console.error('[auto-backup] Fehler bei USB-Rotation:', err.message);
+    return 0;
+  }
+}
+
+/**
  * Prüft, ob seit dem letzten Sonntag 00:00 Uhr bereits ein Backup gelaufen ist.
  */
 function isSundayBackupDue(lastRunAt) {
@@ -202,6 +231,8 @@ async function getOrCreateConfig(prisma) {
         remoteEnabled: false,
         remoteProtocol: 'sftp',
         remotePort: 22,
+        usbEnabled: false,
+        usbPath: '',
       },
     });
   }
@@ -209,7 +240,7 @@ async function getOrCreateConfig(prisma) {
 }
 
 /**
- * Führt ein vollständiges automatisches Backup durch (lokal + optional remote).
+ * Führt ein vollständiges automatisches Backup durch (lokal + optional USB + optional remote).
  */
 async function executeAutoBackup(prisma, trigger = 'scheduled') {
   if (isBackupRunning) {
@@ -249,7 +280,7 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
     const localFilePath = path.join(localDir, filename);
     const tempFilePath = `${localFilePath}.tmp`;
 
-    // Atomares Schreiben
+    // Atomares Schreiben lokal
     fs.writeFileSync(tempFilePath, jsonStr, 'utf8');
     fs.renameSync(tempFilePath, localFilePath);
 
@@ -258,10 +289,43 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
     console.log(`[auto-backup] Lokal gespeichert: ${localFilePath} (Alte gelöscht: ${localDeleted})`);
 
     let lastStatusLocal = 'success';
-    let lastStatusRemote = 'skipped';
+    let lastStatusUsb = config.usbEnabled ? 'skipped' : 'skipped';
+    let lastStatusRemote = config.remoteEnabled ? 'skipped' : 'skipped';
     let lastErrorMessage = null;
 
-    // 3. Remote-Upload via (S)FTP (falls aktiviert)
+    // 3. USB-Speicherung direkt ins Hauptverzeichnis (Root) des USB-Mediums (falls aktiviert)
+    if (config.usbEnabled) {
+      if (!config.usbPath || !config.usbPath.trim()) {
+        lastStatusUsb = 'error';
+        const msg = 'USB-Pfad ist nicht konfiguriert.';
+        lastErrorMessage = lastErrorMessage ? `${lastErrorMessage} | ${msg}` : msg;
+        console.error('[auto-backup]', msg);
+      } else {
+        const targetUsbDir = config.usbPath.trim();
+        try {
+          if (!fs.existsSync(targetUsbDir)) {
+            throw new Error(`USB-Laufwerk/Pfad existiert nicht oder ist getrennt: ${targetUsbDir}`);
+          }
+          const usbFilePath = path.join(targetUsbDir, filename);
+          const tempUsbPath = `${usbFilePath}.tmp`;
+
+          // Atomar direkt im Hauptverzeichnis des USB-Laufwerks ablegen (ohne Unterverzeichnis)
+          fs.writeFileSync(tempUsbPath, jsonStr, 'utf8');
+          fs.renameSync(tempUsbPath, usbFilePath);
+
+          const usbDeleted = rotateUsbBackups(targetUsbDir, config.retentionCount);
+          lastStatusUsb = 'success';
+          console.log(`[auto-backup] Auf USB-Hauptverzeichnis gespeichert: ${usbFilePath} (Alte gelöscht: ${usbDeleted})`);
+        } catch (usbErr) {
+          lastStatusUsb = 'error';
+          const msg = `USB-Fehler: ${usbErr.message}`;
+          lastErrorMessage = lastErrorMessage ? `${lastErrorMessage} | ${msg}` : msg;
+          console.error('[auto-backup] Fehler beim USB-Backup:', usbErr.message);
+        }
+      }
+    }
+
+    // 4. Remote-Upload via (S)FTP (falls aktiviert)
     if (config.remoteEnabled) {
       try {
         console.log(`[auto-backup] Lade auf Remote-Server (${config.remoteProtocol}://${config.remoteHost}) hoch…`);
@@ -271,17 +335,19 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
         console.log(`[auto-backup] Remote-Upload erfolgreich. Remote bereinigt: ${remoteRotated.deletedCount}`);
       } catch (remoteErr) {
         lastStatusRemote = 'error';
-        lastErrorMessage = `Remote-Fehler: ${remoteErr.message}`;
+        const msg = `Remote-Fehler: ${remoteErr.message}`;
+        lastErrorMessage = lastErrorMessage ? `${lastErrorMessage} | ${msg}` : msg;
         console.error('[auto-backup] Fehler beim Remote-Upload:', remoteErr.message);
       }
     }
 
-    // 4. Status in DB aktualisieren
+    // 5. Status in DB aktualisieren
     await prisma.autoBackupConfig.update({
       where: { id: 1 },
       data: {
         lastRunAt: new Date(),
         lastStatusLocal,
+        lastStatusUsb,
         lastStatusRemote,
         lastErrorMessage,
       },
@@ -292,6 +358,7 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
       filename,
       localPath: localFilePath,
       lastStatusLocal,
+      lastStatusUsb,
       lastStatusRemote,
       lastErrorMessage,
     };
@@ -304,6 +371,7 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
           data: {
             lastRunAt: new Date(),
             lastStatusLocal: 'error',
+            lastStatusUsb: config.usbEnabled ? 'error' : 'skipped',
             lastStatusRemote: config.remoteEnabled ? 'error' : 'skipped',
             lastErrorMessage: `Lokal-Fehler: ${err.message}`,
           },
@@ -359,6 +427,7 @@ module.exports = {
   getLocalBackupFilePath,
   deleteLocalBackup,
   rotateLocalBackups,
+  rotateUsbBackups,
   isSundayBackupDue,
   getOrCreateConfig,
   executeAutoBackup,

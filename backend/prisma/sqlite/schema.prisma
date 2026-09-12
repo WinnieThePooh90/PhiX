@@ -83,8 +83,11 @@ model AutoBackupConfig {
   remotePath       String    @default("/backups")
   lastRunAt        DateTime?
   lastStatusLocal  String    @default("")
+  lastStatusUsb    String    @default("")
   lastStatusRemote String    @default("")
   lastErrorMessage String?
+  usbEnabled       Boolean   @default(false)
+  usbPath          String    @default("")
   updatedAt        DateTime  @default(now()) @updatedAt
 }
 
