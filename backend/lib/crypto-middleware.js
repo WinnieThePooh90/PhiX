@@ -19,9 +19,13 @@ const CRYPTO_EXEMPT = new Set([
   '/api/setup/work-user',
   '/api/setup/factory-reset',
   '/api/backup/full/restore',
+  '/api/backup/auto/config',
+  '/api/backup/auto/test',
+  '/api/backup/auto/run-now',
 ]);
 
 function isCryptoExempt(path) {
+  if (path.startsWith('/api/backup/auto/')) return true;
   return CRYPTO_EXEMPT.has(path);
 }
 

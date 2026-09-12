@@ -872,7 +872,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 onChange={(e) => setForm((p) => ({ ...p, remoteEnabled: e.target.checked }))}
               />
               <span className="auto-backup-toggle-label">
-                Zweiten Speicherort aktivieren ((S)FTP)
+                Zweiten Speicherort aktivieren (SFTP)
               </span>
             </label>
             <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>

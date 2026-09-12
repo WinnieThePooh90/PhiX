@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { exportPhixDatabase, serializeBackupPayload } = require('./phix-backup');
+const { runWithCryptoContext } = require('./crypto-context');
 const { testRemoteConnection, uploadRemoteBackup, rotateRemoteBackups } = require('./ftp-transport');
 
 const FILENAME_PREFIX = 'phix-autobackup-';
@@ -121,12 +122,14 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
 
     console.log(`[auto-backup] Starte Backup (Trigger: ${trigger})…`);
 
-    // 1. JSON-Backup erstellen
-    const payload = await exportPhixDatabase(prisma, {
-      source: 'auto-backup',
-      trigger,
-      createdAt: new Date().toISOString(),
-    });
+    // 1. JSON-Backup erstellen (mit bypassCrypto: true für rohen Export verschlüsselter Daten)
+    const payload = await runWithCryptoContext({ bypassCrypto: true }, () =>
+      exportPhixDatabase(prisma, {
+        source: 'auto-backup',
+        trigger,
+        createdAt: new Date().toISOString(),
+      }),
+    );
     const jsonStr = serializeBackupPayload(payload);
 
     // 2. Lokalen Speicherordner vorbereiten
