@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 509 (2026-09-12)
+
+Lokales Auto-Backup-Verzeichnis fest auf `Autobackups/` im PhiX-Wurzelverzeichnis fixiert: Host-Volume-Mount in `docker-compose.yml` (`./Autobackups:/app/Autobackups`) hinzugefügt, automatische Pfadauflösung im Backend für Desktop und Server angepasst und das Formular in `BackupView` vereinfacht.
+
 ## Build 508 (2026-09-12)
 
 Fehlerbehebung in `exportPhixDatabase`: Die Variable `autoBackupConfig` wurde im Destructuring-Array des `Promise.all`-Aufrufs nachgetragen, um einen `ReferenceError` beim Zusammenstellen des Backup-Payloads zu beheben.

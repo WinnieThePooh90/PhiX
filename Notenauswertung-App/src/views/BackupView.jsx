@@ -773,7 +773,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
   return (
     <BackupSection
       sectionId="auto-backup"
-      title="Automatisches Backup & (S)FTP-Speicher (Administrator)"
+      title="Automatisches Backup"
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -837,29 +837,20 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 Automatisches wöchentliches Backup aktivieren
               </span>
             </label>
+            <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem' }}>
+              Speicherort: Ordner <code>Autobackups/</code> direkt im Verzeichnis der PhiX-Installation.
+            </p>
 
-            <div className="auto-backup-grid">
-              <div className="auto-backup-field">
-                <label>Lokaler Speicherordner</label>
-                <input
-                  type="text"
-                  className="program-user-mgmt-input"
-                  value={form.localPath}
-                  onChange={(e) => setForm((p) => ({ ...p, localPath: e.target.value }))}
-                  placeholder="Autobackups"
-                />
-              </div>
-              <div className="auto-backup-field">
-                <label>Anzahl vorzuhaltender Backups (Rotation)</label>
-                <input
-                  type="number"
-                  min={2}
-                  max={52}
-                  className="program-user-mgmt-input"
-                  value={form.retentionCount}
-                  onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
-                />
-              </div>
+            <div className="auto-backup-field" style={{ maxWidth: '320px' }}>
+              <label>Anzahl vorzuhaltender Backups (Rotation)</label>
+              <input
+                type="number"
+                min={2}
+                max={52}
+                className="program-user-mgmt-input"
+                value={form.retentionCount}
+                onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
+              />
             </div>
           </div>
 

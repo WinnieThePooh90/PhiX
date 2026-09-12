@@ -14,16 +14,36 @@ let schedulerInterval = null;
 let isBackupRunning = false;
 
 /**
- * Ermittelt den absoluten Pfad zum lokalen Backup-Ordner.
+ * Ermittelt den absoluten Pfad zum lokalen Backup-Ordner (fest "Autobackups" im PhiX-Verzeichnis).
  */
-function resolveLocalBackupDir(configuredPath = 'Autobackups') {
-  const p = configuredPath.trim() || 'Autobackups';
-  if (path.isAbsolute(p)) {
-    return p;
+function resolveLocalBackupDir() {
+  const folderName = 'Autobackups';
+
+  // 1. Electron Desktop: Datenordner ist bekannt
+  if (process.env.PHI_X_USERDATA_DIR) {
+    const parentDir = path.dirname(process.env.PHI_X_USERDATA_DIR);
+    if (path.basename(process.env.PHI_X_USERDATA_DIR).toLowerCase() === 'data') {
+      return path.join(parentDir, folderName);
+    }
+    return path.join(process.env.PHI_X_USERDATA_DIR, folderName);
   }
-  // Standardmäßig im aktuellen Arbeitsverzeichnis oder Datenordner
-  const base = process.env.PHIX_DATA_DIR || process.cwd();
-  return path.resolve(base, p);
+
+  // 2. Explizit konfigurierter Datenpfad
+  if (process.env.PHIX_DATA_DIR) {
+    return path.join(process.env.PHIX_DATA_DIR, folderName);
+  }
+
+  // 3. Monorepo-Entwicklung (falls Node im backend/ Ordner gestartet wurde)
+  const repoParent = path.resolve(process.cwd(), '..');
+  if (
+    fs.existsSync(path.join(repoParent, 'Notenauswertung-App')) &&
+    fs.existsSync(path.join(repoParent, 'backend'))
+  ) {
+    return path.join(repoParent, folderName);
+  }
+
+  // 4. Docker / Standard-Arbeitsverzeichnis
+  return path.resolve(process.cwd(), folderName);
 }
 
 /**
@@ -133,7 +153,7 @@ async function executeAutoBackup(prisma, trigger = 'scheduled') {
     const jsonStr = serializeBackupPayload(payload);
 
     // 2. Lokalen Speicherordner vorbereiten
-    const localDir = resolveLocalBackupDir(config.localPath);
+    const localDir = resolveLocalBackupDir();
     if (!fs.existsSync(localDir)) {
       fs.mkdirSync(localDir, { recursive: true });
     }
