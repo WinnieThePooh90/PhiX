@@ -614,6 +614,7 @@ function AdminUserRestorePanel({
 function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(''); // 'saving' | 'saved' | 'error'
   const [testing, setTesting] = useState(false);
   const [running, setRunning] = useState(false);
 
@@ -623,6 +624,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
 
   const [availableDrives, setAvailableDrives] = useState([]);
   const [loadingDrives, setLoadingDrives] = useState(false);
+
+  const saveTimeoutRef = useRef(null);
 
   const [form, setForm] = useState({
     enabled: false,
@@ -685,26 +688,25 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
     }
   }, [expanded]);
 
-  const handleSave = async (e) => {
-    e?.preventDefault();
+  const persistConfig = async (currentForm) => {
     setSaving(true);
-    onFeedback('', '');
+    setSaveStatus('saving');
     try {
       const payload = {
-        enabled: form.enabled,
-        localPath: form.localPath,
-        retentionCount: Number(form.retentionCount) || 10,
-        usbEnabled: form.usbEnabled,
-        usbPath: form.usbPath,
-        remoteEnabled: form.remoteEnabled,
-        remoteProtocol: form.remoteProtocol,
-        remoteHost: form.remoteHost,
-        remotePort: Number(form.remotePort) || (form.remoteProtocol === 'ftps' ? 21 : 22),
-        remoteUser: form.remoteUser,
-        remotePath: form.remotePath,
+        enabled: currentForm.enabled === true,
+        localPath: currentForm.localPath || 'Autobackups',
+        retentionCount: Number(currentForm.retentionCount) || 10,
+        usbEnabled: currentForm.usbEnabled === true,
+        usbPath: currentForm.usbPath || '',
+        remoteEnabled: currentForm.remoteEnabled === true,
+        remoteProtocol: currentForm.remoteProtocol || 'sftp',
+        remoteHost: currentForm.remoteHost || '',
+        remotePort: Number(currentForm.remotePort) || (currentForm.remoteProtocol === 'ftps' ? 21 : 22),
+        remoteUser: currentForm.remoteUser || '',
+        remotePath: currentForm.remotePath || '/backups',
       };
-      if (form.remotePassword) {
-        payload.remotePassword = form.remotePassword;
+      if (currentForm.remotePassword) {
+        payload.remotePassword = currentForm.remotePassword;
       }
 
       const res = await apiFetch('/api/backup/auto/config', {
@@ -721,16 +723,44 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || 'Speichern fehlgeschlagen.');
       }
-      onFeedback('ok', 'Auto-Backup-Einstellungen erfolgreich gespeichert.');
-      await loadConfig();
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus((s) => (s === 'saved' ? '' : s)), 2500);
     } catch (err) {
-      onFeedback('err', err?.message || 'Fehler beim Speichern der Einstellungen.');
+      setSaveStatus('error');
+      console.error('[auto-backup] Auto-Save Fehler:', err);
     } finally {
       setSaving(false);
     }
   };
 
+  const updateFormAndSave = (updater, debounceMs = 0) => {
+    setForm((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (debounceMs > 0) {
+        saveTimeoutRef.current = setTimeout(() => {
+          persistConfig(next);
+        }, debounceMs);
+      } else {
+        persistConfig(next);
+      }
+      return next;
+    });
+  };
+
+  const flushSave = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+      persistConfig(form);
+    }
+  };
+
   const handleTestRemote = async () => {
+    flushSave();
     setTesting(true);
     onFeedback('', '');
     try {
@@ -768,6 +798,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
   };
 
   const handleRunNow = async () => {
+    flushSave();
     const ok = await showConfirm(
       'Möchten Sie jetzt sofort ein automatisches Backup (lokal und ggf. USB / Remote) ausführen?',
       { title: 'Auto-Backup sofort starten', danger: false },
@@ -918,7 +949,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
       {loading ? (
         <p className="program-view-panel-text text-muted">Lade Einstellungen …</p>
       ) : (
-        <form onSubmit={handleSave}>
+        <div>
           {/* Status Panel */}
           <div className="auto-backup-status-panel">
             <div className="auto-backup-status-row">
@@ -979,7 +1010,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
               <input
                 type="checkbox"
                 checked={form.enabled}
-                onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
+                onChange={(e) => updateFormAndSave({ enabled: e.target.checked })}
               />
               <span className="auto-backup-toggle-label">
                 Automatisches wöchentliches Backup aktivieren
@@ -998,7 +1029,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                   max={52}
                   className="program-user-mgmt-input"
                   value={form.retentionCount}
-                  onChange={(e) => setForm((p) => ({ ...p, retentionCount: e.target.value }))}
+                  onChange={(e) => updateFormAndSave({ retentionCount: e.target.value }, 600)}
+                  onBlur={flushSave}
                 />
               </div>
               <button
@@ -1074,7 +1106,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
             ) : null}
           </div>
 
-          {/* Dritter Speicherort: USB-Speichermedium */}
+          {/* Zweiter Speicherort: USB-Speichermedium */}
           <div className="auto-backup-card">
             <label className="auto-backup-toggle-row">
               <input
@@ -1082,7 +1114,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 checked={form.usbEnabled}
                 onChange={(e) => {
                   const checked = e.target.checked;
-                  setForm((p) => ({ ...p, usbEnabled: checked }));
+                  updateFormAndSave({ usbEnabled: checked });
                   if (checked && availableDrives.length === 0) {
                     loadDrives();
                   }
@@ -1116,7 +1148,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                   <select
                     className="program-user-mgmt-input"
                     value={form.usbPath}
-                    onChange={(e) => setForm((p) => ({ ...p, usbPath: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ usbPath: e.target.value })}
                   >
                     <option value="">— Bitte USB-Laufwerk auswählen —</option>
                     {availableDrives.map((d) => (
@@ -1138,7 +1170,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="text"
                     className="program-user-mgmt-input"
                     value={form.usbPath}
-                    onChange={(e) => setForm((p) => ({ ...p, usbPath: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ usbPath: e.target.value }, 600)}
+                    onBlur={flushSave}
                     placeholder="z. B. E:\ (Windows) oder /media/benutzer/STICK (Linux)"
                   />
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted, #888)', marginTop: '0.25rem', display: 'block' }}>
@@ -1149,13 +1182,13 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
             ) : null}
           </div>
 
-          {/* Remote (S)FTP Konfiguration */}
+          {/* Dritter Speicherort: Remote (S)FTP Konfiguration */}
           <div className="auto-backup-card">
             <label className="auto-backup-toggle-row">
               <input
                 type="checkbox"
                 checked={form.remoteEnabled}
-                onChange={(e) => setForm((p) => ({ ...p, remoteEnabled: e.target.checked }))}
+                onChange={(e) => updateFormAndSave({ remoteEnabled: e.target.checked })}
               />
               <span className="auto-backup-toggle-label">
                 Dritten Speicherort aktivieren (SFTP)
@@ -1174,7 +1207,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     value={form.remoteProtocol}
                     onChange={(e) => {
                       const proto = e.target.value;
-                      setForm((p) => ({
+                      updateFormAndSave((p) => ({
                         ...p,
                         remoteProtocol: proto,
                         remotePort: proto === 'ftps' ? (p.remotePort === 22 ? 21 : p.remotePort) : (p.remotePort === 21 ? 22 : p.remotePort),
@@ -1192,7 +1225,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="text"
                     className="program-user-mgmt-input"
                     value={form.remoteHost}
-                    onChange={(e) => setForm((p) => ({ ...p, remoteHost: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ remoteHost: e.target.value }, 600)}
+                    onBlur={flushSave}
                     placeholder="backup.meineschule.de oder IP"
                   />
                 </div>
@@ -1203,7 +1237,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="number"
                     className="program-user-mgmt-input"
                     value={form.remotePort}
-                    onChange={(e) => setForm((p) => ({ ...p, remotePort: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ remotePort: e.target.value }, 600)}
+                    onBlur={flushSave}
                   />
                 </div>
 
@@ -1213,7 +1248,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="text"
                     className="program-user-mgmt-input"
                     value={form.remoteUser}
-                    onChange={(e) => setForm((p) => ({ ...p, remoteUser: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ remoteUser: e.target.value }, 600)}
+                    onBlur={flushSave}
                     placeholder="sftp-user"
                   />
                 </div>
@@ -1224,7 +1260,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="password"
                     className="program-user-mgmt-input"
                     value={form.remotePassword}
-                    onChange={(e) => setForm((p) => ({ ...p, remotePassword: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ remotePassword: e.target.value }, 600)}
+                    onBlur={flushSave}
                     placeholder="Neues Passwort eingeben oder leer lassen"
                     autoComplete="new-password"
                   />
@@ -1236,7 +1273,8 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                     type="text"
                     className="program-user-mgmt-input"
                     value={form.remotePath}
-                    onChange={(e) => setForm((p) => ({ ...p, remotePath: e.target.value }))}
+                    onChange={(e) => updateFormAndSave({ remotePath: e.target.value }, 600)}
+                    onBlur={flushSave}
                     placeholder="/backups/phix"
                   />
                 </div>
@@ -1245,39 +1283,53 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
           </div>
 
           {/* Aktionsschaltflächen */}
-          <div className="auto-backup-actions-row">
-            <button
-              type="submit"
-              className="tab primary backup-action-btn"
-              disabled={saving || testing || running}
-            >
-              <Save size={16} aria-hidden />
-              {saving ? 'Speichert …' : 'Einstellungen speichern'}
-            </button>
+          <div className="auto-backup-actions-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted, #888)' }}>
+              {saveStatus === 'saving' && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-primary, #38bdf8)' }}>
+                  <RefreshCw size={12} className="spin" /> Speichert automatisch …
+                </span>
+              )}
+              {saveStatus === 'saved' && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a' }}>
+                  <CheckCircle2 size={13} /> Automatisch gespeichert
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#dc2626' }}>
+                  <AlertTriangle size={13} /> Speichern fehlgeschlagen
+                </span>
+              )}
+              {!saveStatus && (
+                <span>Änderungen werden automatisch gespeichert</span>
+              )}
+            </div>
 
-            {form.remoteEnabled ? (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {form.remoteEnabled ? (
+                <button
+                  type="button"
+                  className="tab secondary backup-action-btn"
+                  disabled={saving || testing || running || !form.remoteHost || !form.remoteUser}
+                  onClick={handleTestRemote}
+                >
+                  <Server size={16} aria-hidden />
+                  {testing ? 'Verbindung wird getestet …' : 'Remote-Verbindung testen'}
+                </button>
+              ) : null}
+
               <button
                 type="button"
                 className="tab secondary backup-action-btn"
-                disabled={saving || testing || running || !form.remoteHost || !form.remoteUser}
-                onClick={handleTestRemote}
+                disabled={saving || testing || running}
+                onClick={handleRunNow}
               >
-                <Server size={16} aria-hidden />
-                {testing ? 'Verbindung wird getestet …' : 'Remote-Verbindung testen'}
+                <Play size={16} aria-hidden />
+                {running ? 'Backup wird ausgeführt …' : 'Backup jetzt sofort ausführen'}
               </button>
-            ) : null}
-
-            <button
-              type="button"
-              className="tab secondary backup-action-btn"
-              disabled={saving || testing || running}
-              onClick={handleRunNow}
-            >
-              <Play size={16} aria-hidden />
-              {running ? 'Backup wird ausgeführt …' : 'Backup jetzt sofort ausführen'}
-            </button>
+            </div>
           </div>
-        </form>
+        </div>
       )}
     </BackupSection>
   );

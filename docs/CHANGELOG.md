@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 519 (2026-09-13)
+
+Automatisches Speichern im Auto-Backup-Bereich: Alle Änderungen an Einstellungen (Schalter, Dropdowns, Text- und Zahleneingaben) werden nun unmittelbar und debounced im Hintergrund gespeichert. Der manuelle Button „Einstellungen speichern“ wurde durch eine dezente Statusanzeige („Änderungen werden automatisch gespeichert“ / „Automatisch gespeichert“) ersetzt.
+
 ## Build 518 (2026-09-13)
 
 Fehlerbehebung in `BackupView`: Die Hilfsfunktion `isSectionOpen` zur Bestimmung des Aufklappzustands der Backup-Bereiche wurde wiederhergestellt.
