@@ -321,6 +321,8 @@ export default function BackupView() {
     });
   };
 
+  const isSectionOpen = (sectionId) => expandedSections.has(sectionId);
+
   const onFeedback = (type, msg) => {
     setFeedback({ type: type || '', msg: msg || '' });
     if (msg) {

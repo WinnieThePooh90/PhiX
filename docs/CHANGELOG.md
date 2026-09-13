@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 518 (2026-09-13)
+
+Fehlerbehebung in `BackupView`: Die Hilfsfunktion `isSectionOpen` zur Bestimmung des Aufklappzustands der Backup-Bereiche wurde wiederhergestellt.
+
 ## Build 517 (2026-09-13)
 
 Feedback-Meldungen als modales Popup: Erfolgs- und Fehlermeldungen (z. B. nach Ausführen des Auto-Backups, Speichern der Einstellungen, Verbindungstests oder Löschen von Sicherungen) in `BackupView` werden nun über ein modales Dialog-Popup (`showAlert`) mit OK-Button und Klick-außerhalb-Schließen angezeigt.
