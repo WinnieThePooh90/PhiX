@@ -6,6 +6,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 515 (2026-09-13)
+
+USB- und Wechselmedien-Mounts für Docker bereitgestellt: Host-Mounts für `/media`, `/run/media` und `/mnt` im `backend`-Dienst in [`docker-compose.yml`](../docker-compose.yml) ergänzt, sodass am Host angeschlossene USB-Speichermedien (z. B. `/media/karsten/USBFORPI`) auch innerhalb des Docker-Containers erkannt und für das Auto-Backup genutzt werden können.
+
 ## Build 514 (2026-09-12)
 
 Fehlerbehebung beim Ausführen des USB-Auto-Backups: 
