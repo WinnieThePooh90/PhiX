@@ -321,9 +321,16 @@ export default function BackupView() {
     });
   };
 
-  const isSectionOpen = (sectionId) => expandedSections.has(sectionId);
-
-  const onFeedback = (type, msg) => setFeedback({ type, msg });
+  const onFeedback = (type, msg) => {
+    setFeedback({ type: type || '', msg: msg || '' });
+    if (msg) {
+      if (type === 'ok') {
+        showAlert(msg, { title: 'Erfolg' });
+      } else if (type === 'err') {
+        showAlert(msg, { title: 'Fehler' });
+      }
+    }
+  };
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
@@ -1080,7 +1087,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 }}
               />
               <span className="auto-backup-toggle-label">
-                Dritten Speicherort aktivieren (USB-Speichermedium)
+                Zweiten Speicherort aktivieren (USB-Speichermedium)
               </span>
             </label>
             <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>
@@ -1149,7 +1156,7 @@ function AutoBackupAdminSection({ expanded, onToggle, onFeedback, showConfirm })
                 onChange={(e) => setForm((p) => ({ ...p, remoteEnabled: e.target.checked }))}
               />
               <span className="auto-backup-toggle-label">
-                Zweiten Speicherort aktivieren (SFTP)
+                Dritten Speicherort aktivieren (SFTP)
               </span>
             </label>
             <p className="program-view-panel-text text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>

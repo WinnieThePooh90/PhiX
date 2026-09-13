@@ -6,6 +6,14 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 517 (2026-09-13)
+
+Feedback-Meldungen als modales Popup: Erfolgs- und Fehlermeldungen (z. B. nach Ausführen des Auto-Backups, Speichern der Einstellungen, Verbindungstests oder Löschen von Sicherungen) in `BackupView` werden nun über ein modales Dialog-Popup (`showAlert`) mit OK-Button und Klick-außerhalb-Schließen angezeigt.
+
+## Build 516 (2026-09-13)
+
+Verbesserte Lesbarkeit der Status-Badges: Schriftfarbe in den grünen Erfolgs-Badges (`.auto-backup-badge--success`) im Bereich „Letzte Ausführung“ der Auto-Backup-Verwaltung auf Schwarz (`#000000`) gesetzt.
+
 ## Build 515 (2026-09-13)
 
 USB- und Wechselmedien-Mounts für Docker bereitgestellt: Host-Mounts für `/media`, `/run/media` und `/mnt` im `backend`-Dienst in [`docker-compose.yml`](../docker-compose.yml) ergänzt, sodass am Host angeschlossene USB-Speichermedien (z. B. `/media/karsten/USBFORPI`) auch innerhalb des Docker-Containers erkannt und für das Auto-Backup genutzt werden können.
