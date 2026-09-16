@@ -6,6 +6,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 522 (2026-09-16)
+
+Kontrastverbesserung im Wunschnachbarn-Dialog:
+- Schriftfarbe der ausgewählten Wunschnachbarn in den Chips (`.seating-plan-wish-filled-chip`) auf Schwarz (`#000000`, Schriftstärke 600) angepasst, um optimale Lesbarkeit auf dem hellen Hintergrund zu gewährleisten.
+- Design des Löschen-Buttons (`.seating-plan-wish-clear-btn`) für bessere Sichtbarkeit auf dunklen Text und dezenten Hintergrund abgestimmt.
+
 ## Build 521 (2026-09-16)
 
 Wunschnachbarn-Generator für den Sitzplan:

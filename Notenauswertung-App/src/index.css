@@ -7751,10 +7751,14 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   border-radius: 6px;
   background: var(--primary-alpha, rgba(99, 102, 241, 0.15));
   border: 1px solid var(--primary, #6366f1);
-  color: var(--text-heading, #fff);
-  font-weight: 500;
+  color: #000000;
+  font-weight: 600;
   font-size: 0.8125rem;
   width: 100%;
+}
+
+.seating-plan-wish-chip-text {
+  color: inherit;
 }
 
 .seating-plan-wish-clear-btn {
@@ -7765,8 +7769,8 @@ tbody tr:hover td.gfs-gehalten-td--checked {
   height: 18px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: currentColor;
+  background: rgba(0, 0, 0, 0.12);
+  color: #000000;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -7775,7 +7779,7 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
 .seating-plan-wish-clear-btn:hover {
   background: var(--danger, #ef4444);
-  color: #fff;
+  color: #ffffff;
 }
 
 .seating-plan-wish-modal-footer {
