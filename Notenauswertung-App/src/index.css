@@ -7573,16 +7573,24 @@ tbody tr:hover td.gfs-gehalten-td--checked {
 
 .seating-plan-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.seating-plan-actions-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(130px, 1fr);
   gap: 0.5rem;
 }
 
 .seating-plan-action-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
   padding: 0.4rem 0.75rem;
+  white-space: nowrap;
 }
 
 /* Unplatzierte Schüler Tray */

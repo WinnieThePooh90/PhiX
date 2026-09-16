@@ -6,6 +6,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 520 (2026-09-16)
+
+Sitzplan-Erweiterungen:
+- Neuer Button „Zufällig verteilen“ ergänzt: Verteilt alle Schüler des aktuellen Kurses per Zufallsauswahl lückenlos auf die eingestellte Sitzordnung, beginnend ab Reihe 1 Platz 1 (unten links).
+- Toolbar-Layout im Sitzplan überarbeitet: Die Aktionen sind nun zweizeilig angeordnet. „Sitzplan leeren“ befindet sich in der zweiten Zeile unter „Maximieren“, links daneben der neue Button „Zufällig verteilen“.
+
 ## Build 519 (2026-09-13)
 
 Automatisches Speichern im Auto-Backup-Bereich: Alle Änderungen an Einstellungen (Schalter, Dropdowns, Text- und Zahleneingaben) werden nun unmittelbar und debounced im Hintergrund gespeichert. Der manuelle Button „Einstellungen speichern“ wurde durch eine dezente Statusanzeige („Änderungen werden automatisch gespeichert“ / „Automatisch gespeichert“) ersetzt.

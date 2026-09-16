@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2, X } from 'lucide-react';
+import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2, X, Shuffle, Trash2 } from 'lucide-react';
 import MaximizableTableSection from '../components/MaximizableTableSection';
 
 const PRESET_LAYOUTS = [
@@ -177,6 +177,45 @@ export default function SeatingPlanView({ onOpenExport }) {
     if (!ok) return;
 
     const newAssignments = buildAlphabeticalAssignments(rows, cols);
+    updateConfig({
+      seatingPlan: {
+        rows,
+        cols,
+        assignments: newAssignments,
+      },
+    });
+  };
+
+  const handleRandomizeSeatingPlan = async () => {
+    if (!students || students.length === 0) {
+      showAlert('Keine Schüler vorhanden, die verteilt werden können.', { title: 'Zufällig verteilen' });
+      return;
+    }
+    const ok = await showConfirm(
+      'Möchtest du die Schüler wirklich zufällig auf die Sitzplätze verteilen?\n\nAlle Schüler werden gemischt und ab Reihe 1 Platz 1 (links unten) lückenlos angeordnet.',
+      { title: 'Sitzplan zufällig verteilen', danger: false },
+    );
+    if (!ok) return;
+
+    const shuffled = [...students];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const newAssignments = {};
+    let idx = 0;
+    // Zeilen von unten (rows - 1) bis oben (0)
+    for (let r = rows - 1; r >= 0; r--) {
+      // Spalten von links (0) bis rechts (cols - 1)
+      for (let c = 0; c < cols; c++) {
+        if (idx < shuffled.length) {
+          newAssignments[`${r}_${c}`] = Number(shuffled[idx].id);
+          idx++;
+        }
+      }
+    }
+
     updateConfig({
       seatingPlan: {
         rows,
@@ -406,38 +445,53 @@ export default function SeatingPlanView({ onOpenExport }) {
           )}
 
           <div className="seating-plan-actions">
-            <button
-              type="button"
-              className="tab secondary seating-plan-action-btn"
-              onClick={handleResetAlphabetical}
-              disabled={courseArchived}
-              title="Schüler alphabetisch von unten links nach oben rechts einordnen"
-            >
-              <RotateCcw size={16} strokeWidth={2} aria-hidden />
-              Alphabetisch anordnen
-            </button>
-            <button
-              type="button"
-              className="tab secondary seating-plan-action-btn"
-              onClick={handleClearSeatingPlan}
-              disabled={courseArchived}
-              title="Alle Plätze leeren"
-            >
-              Plätze leeren
-            </button>
-            <button
-              type="button"
-              className="tab secondary seating-plan-action-btn"
-              onClick={() => setIsMaximized((m) => !m)}
-              title={isMaximized ? 'Sitzplan verkleinern (Esc oder M)' : 'Sitzplan maximieren (M)'}
-            >
-              {isMaximized ? (
-                <Minimize2 size={16} strokeWidth={2} aria-hidden />
-              ) : (
-                <Maximize2 size={16} strokeWidth={2} aria-hidden />
-              )}
-              {isMaximized ? 'Verkleinern' : 'Maximieren'}
-            </button>
+            <div className="seating-plan-actions-row">
+              <button
+                type="button"
+                className="tab secondary seating-plan-action-btn"
+                onClick={handleResetAlphabetical}
+                disabled={courseArchived}
+                title="Schüler alphabetisch von unten links nach oben rechts einordnen"
+              >
+                <RotateCcw size={16} strokeWidth={2} aria-hidden />
+                Alphabetisch anordnen
+              </button>
+              <button
+                type="button"
+                className="tab secondary seating-plan-action-btn"
+                onClick={() => setIsMaximized((m) => !m)}
+                title={isMaximized ? 'Sitzplan verkleinern (Esc oder M)' : 'Sitzplan maximieren (M)'}
+              >
+                {isMaximized ? (
+                  <Minimize2 size={16} strokeWidth={2} aria-hidden />
+                ) : (
+                  <Maximize2 size={16} strokeWidth={2} aria-hidden />
+                )}
+                {isMaximized ? 'Verkleinern' : 'Maximieren'}
+              </button>
+            </div>
+            <div className="seating-plan-actions-row">
+              <button
+                type="button"
+                className="tab secondary seating-plan-action-btn"
+                onClick={handleRandomizeSeatingPlan}
+                disabled={courseArchived}
+                title="Schüler zufällig ab Reihe 1 Platz 1 (links unten) verteilen"
+              >
+                <Shuffle size={16} strokeWidth={2} aria-hidden />
+                Zufällig verteilen
+              </button>
+              <button
+                type="button"
+                className="tab secondary seating-plan-action-btn"
+                onClick={handleClearSeatingPlan}
+                disabled={courseArchived}
+                title="Alle Plätze leeren"
+              >
+                <Trash2 size={16} strokeWidth={2} aria-hidden />
+                Sitzplan leeren
+              </button>
+            </div>
           </div>
         </div>
       </div>
