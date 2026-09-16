@@ -6,6 +6,14 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 521 (2026-09-16)
+
+Wunschnachbarn-Generator für den Sitzplan:
+- Neuer Button „Wunschnachbarn“ links neben „Zufällig verteilen“ in der Sitzplan-Toolbar.
+- Modaler Dialog mit übersichtlicher Tabelle: Spalte 1 (Nr.), Spalte 2 (Schülerliste als ziehbare Elemente), Spalten 3 & 4 (Wunschnachbar 1 und Wunschnachbar 2).
+- Drag & Drop-Zuweisung von Schülernamen aus Spalte 2 in die Wunschspalten (mit Unterstützung für Mehrfachnennungen sowie Schnellauswahl per Dropdown und Einzel-Löschung).
+- Intelligenter Optimierungsalgorithmus (Simulated Annealing): Berechnet beim Klick auf „Generieren“ eine optimale Sitzordnung, die ein Maximum der Wunschnachbarschaften (direkte Tischnachbarn sowie Vorder-/Hinter-/Diagonalnachbarn) lückenlos ab Reihe 1 Platz 1 (unten links) erfüllt.
+
 ## Build 520 (2026-09-16)
 
 Sitzplan-Erweiterungen:

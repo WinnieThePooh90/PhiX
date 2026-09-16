@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2, X, Shuffle, Trash2 } from 'lucide-react';
+import { FileSpreadsheet, Grid, RotateCcw, Users, Armchair, Maximize2, Minimize2, X, Shuffle, Trash2, HeartHandshake } from 'lucide-react';
 import MaximizableTableSection from '../components/MaximizableTableSection';
+import SeatingPlanWishModal from '../components/SeatingPlanWishModal';
 
 const PRESET_LAYOUTS = [
   { label: '8 × 3 (24 Plätze)', rows: 8, cols: 3 },
@@ -62,6 +63,7 @@ export default function SeatingPlanView({ onOpenExport }) {
   });
 
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isWishModalOpen, setIsWishModalOpen] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverCellKey, setDragOverCellKey] = useState(null);
 
@@ -239,6 +241,25 @@ export default function SeatingPlanView({ onOpenExport }) {
         assignments: {},
       },
     });
+  };
+
+  const handleApplyWishes = (newAssignments, savedWishes, stats) => {
+    updateConfig({
+      seatingPlan: {
+        rows,
+        cols,
+        assignments: newAssignments,
+        wishNeighbors: savedWishes,
+      },
+    });
+    if (stats?.totalWishes > 0) {
+      showAlert(
+        `Sitzordnung erfolgreich generiert!\n\n${stats.fulfilledTotal} von ${stats.totalWishes} Wünschen konnten als Nachbarn platziert werden (${stats.fulfilledDirect} direkte Tischnachbarn, ${stats.fulfilledAdjacent} Vor-/Hinter-/Diagonalnachbarn).`,
+        { title: 'Wunschnachbarn angewendet' },
+      );
+    } else {
+      showAlert('Sitzordnung erfolgreich generiert!', { title: 'Sitzplan generiert' });
+    }
   };
 
   // --- Drag & Drop Handlers ---
@@ -474,6 +495,16 @@ export default function SeatingPlanView({ onOpenExport }) {
               <button
                 type="button"
                 className="tab secondary seating-plan-action-btn"
+                onClick={() => setIsWishModalOpen(true)}
+                disabled={courseArchived}
+                title="Wunschnachbarn für Schüler festlegen und optimale Sitzordnung generieren"
+              >
+                <HeartHandshake size={16} strokeWidth={2} aria-hidden />
+                Wunschnachbarn
+              </button>
+              <button
+                type="button"
+                className="tab secondary seating-plan-action-btn"
                 onClick={handleRandomizeSeatingPlan}
                 disabled={courseArchived}
                 title="Schüler zufällig ab Reihe 1 Platz 1 (links unten) verteilen"
@@ -618,6 +649,17 @@ export default function SeatingPlanView({ onOpenExport }) {
           </div>
         </div>
       </MaximizableTableSection>
+
+      <SeatingPlanWishModal
+        isOpen={isWishModalOpen}
+        onClose={() => setIsWishModalOpen(false)}
+        students={students || []}
+        rows={rows}
+        cols={cols}
+        initialWishes={savedSeatingPlan?.wishNeighbors || {}}
+        onApplyWishes={handleApplyWishes}
+        formatStudentDisplayName={formatStudentDisplayName}
+      />
     </div>
   );
 }
