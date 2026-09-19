@@ -350,6 +350,7 @@ export default function SchoolRosterView() {
       >
         <div
           className="program-user-mgmt-modal-dialog glass-panel"
+          style={{ maxWidth: '32rem', width: '100%' }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="school-roster-new-year-title"
@@ -383,10 +384,11 @@ export default function SchoolRosterView() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: '0.5rem',
+                  gap: '0.65rem',
                   cursor: 'pointer',
-                  marginTop: '0.5rem',
+                  marginTop: '0.75rem',
                   fontSize: '0.875rem',
+                  whiteSpace: 'normal',
                 }}
               >
                 <input
@@ -394,6 +396,7 @@ export default function SchoolRosterView() {
                   checked={newYearIsGlobal}
                   onChange={(e) => setNewYearIsGlobal(e.target.checked)}
                   disabled={creatingYear}
+                  style={{ flexShrink: 0 }}
                 />
                 <span>Zentrales Schuljahr (schulweit für alle Lehrkräfte sichtbar)</span>
               </label>

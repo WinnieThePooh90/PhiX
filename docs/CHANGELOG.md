@@ -6,6 +6,11 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 525 (2026-09-19)
+
+Layout-Optimierung des Dialogs zur Schuljahres-Anlage:
+- Maximale Breite des Dialogs „Neues Schuljahr anlegen“ vergrößert und Zeilenumbruch der Beschriftung („Zentrales Schuljahr“) flexibilisiert, um horizontales Scrollen zu vermeiden.
+
 ## Build 524 (2026-09-19)
 
 Automatische Entschlüsselung & Migration bestehender Schuljahre und Stammschüler:
