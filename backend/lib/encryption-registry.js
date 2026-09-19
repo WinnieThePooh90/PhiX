@@ -17,8 +17,6 @@ const ENCRYPTED_FIELDS = {
     'seatingPlan',
   ],
   Student: ['firstName', 'lastName', 'summaryEndNote', 'summaryHJ1Note', 'summaryNotes'],
-  SchoolRosterYear: ['label'],
-  SchoolRosterStudent: ['firstName', 'lastName'],
   Exam: ['name', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'scores'],
   Project: ['name', 'description', 'date', 'halbjahr', 'keyType', 'fieldMaxPoints', 'fieldNames', 'groups', 'scores'],
   Test: ['name', 'date', 'halbjahr', 'keyType', 'scores'],

@@ -619,10 +619,9 @@ app.delete('/api/users/:id', async (req, res) => {
     return res.status(400).json({ error: 'Der Benutzer „admin“ kann nicht gelöscht werden.' });
   }
 
-  const username = target.username;
-
   await prisma.course.deleteMany({ where: { ownerUsername: username } });
-  await prisma.schoolRosterYear.deleteMany({ where: { ownerUsername: username } });
+  await prisma.schoolRosterYear.deleteMany({ where: { ownerUsername: username, isGlobal: false } });
+  await prisma.schoolRosterStudent.deleteMany({ where: { ownerUsername: username, isGlobal: false } });
   await prisma.appUser.delete({ where: { id } });
 
   res.status(204).send();
@@ -1132,11 +1131,16 @@ async function assertRosterYearAccess(req, res, yearId) {
     return null;
   }
   const year = await prisma.schoolRosterYear.findUnique({ where: { id } });
-  if (!year || year.ownerUsername !== acting) {
+  if (!year) {
+    res.status(404).json({ error: 'Schuljahr nicht gefunden.' });
+    return null;
+  }
+  const isAdmin = await resolveAdminRights(prisma, acting);
+  if (!year.isGlobal && year.ownerUsername !== acting) {
     res.status(403).json({ error: 'Kein Zugriff auf dieses Schuljahr.' });
     return null;
   }
-  return { acting, year };
+  return { acting, isAdmin, year };
 }
 
 // Schuljahre (Schülerverwaltung)
@@ -1144,11 +1148,26 @@ app.get('/api/school-roster-years', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
   const rows = await prisma.schoolRosterYear.findMany({
-    where: { ownerUsername: acting },
-    include: { _count: { select: { students: true } } },
+    where: {
+      OR: [
+        { isGlobal: true },
+        { ownerUsername: acting, isGlobal: false },
+      ],
+    },
+    include: {
+      students: {
+        where: {
+          OR: [
+            { isGlobal: true },
+            { ownerUsername: acting },
+          ],
+        },
+        select: { id: true },
+      },
+    },
   });
   const out = sortSchoolRosterYears(
-    rows.map(({ _count, ...y }) => ({ ...y, studentCount: _count.students })),
+    rows.map(({ students, ...y }) => ({ ...y, studentCount: students.length })),
   );
   res.json(out);
 });
@@ -1158,9 +1177,28 @@ app.post('/api/school-roster-years', async (req, res) => {
   if (!acting) return;
   const norm = normalizeSchoolYearLabel(req.body?.label);
   if (norm.error) return res.status(400).json({ error: norm.error });
+  const isAdmin = await resolveAdminRights(prisma, acting);
+  const isGlobal = isAdmin && req.body?.isGlobal !== undefined ? Boolean(req.body.isGlobal) : isAdmin;
+
+  if (isGlobal) {
+    const existing = await prisma.schoolRosterYear.findFirst({
+      where: { label: norm.label, isGlobal: true },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Dieses zentrale Schuljahr existiert bereits.' });
+    }
+  } else {
+    const existing = await prisma.schoolRosterYear.findFirst({
+      where: { label: norm.label, ownerUsername: acting, isGlobal: false },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Dieses Schuljahr existiert bei dir bereits.' });
+    }
+  }
+
   try {
     const row = await prisma.schoolRosterYear.create({
-      data: { label: norm.label, ownerUsername: acting },
+      data: { label: norm.label, isGlobal, ownerUsername: acting },
     });
     res.json({ ...row, studentCount: 0 });
   } catch (e) {
@@ -1174,6 +1212,9 @@ app.delete('/api/school-roster-years/:id', async (req, res) => {
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
   const access = await assertRosterYearAccess(req, res, id);
   if (!access) return;
+  if (access.year.isGlobal && !access.isAdmin) {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen zentrale Schuljahre löschen.' });
+  }
   try {
     await prisma.schoolRosterYear.delete({ where: { id } });
     res.status(204).send();
@@ -1189,8 +1230,17 @@ app.get('/api/school-roster-students', async (req, res) => {
   if (!schoolYearId) return res.json([]);
   const access = await assertRosterYearAccess(req, res, schoolYearId);
   if (!access) return;
+  const where = access.year.isGlobal
+    ? {
+        schoolYearId,
+        OR: [{ isGlobal: true }, { ownerUsername: access.acting }],
+      }
+    : {
+        schoolYearId,
+        ownerUsername: access.acting,
+      };
   const rows = await prisma.schoolRosterStudent.findMany({
-    where: { schoolYearId },
+    where,
     orderBy: [{ gradeLevel: 'asc' }, { classSection: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
   });
   res.json(rows);
@@ -1201,6 +1251,12 @@ app.post('/api/school-roster-students', async (req, res) => {
   if (norm.error) return res.status(400).json({ error: norm.error });
   const access = await assertRosterYearAccess(req, res, norm.schoolYearId);
   if (!access) return;
+
+  let isGlobal = false;
+  if (access.year.isGlobal && access.isAdmin) {
+    isGlobal = req.body?.isGlobal !== undefined ? Boolean(req.body.isGlobal) : true;
+  }
+
   const row = await prisma.schoolRosterStudent.create({
     data: {
       gradeLevel: norm.gradeLevel,
@@ -1208,6 +1264,8 @@ app.post('/api/school-roster-students', async (req, res) => {
       firstName: norm.firstName,
       lastName: norm.lastName,
       schoolYearId: norm.schoolYearId,
+      isGlobal,
+      ownerUsername: access.acting,
     },
   });
   res.json(row);
@@ -1218,8 +1276,30 @@ app.put('/api/school-roster-students/:id', async (req, res) => {
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
   const norm = normalizeSchoolRosterPayload(req.body);
   if (norm.error) return res.status(400).json({ error: norm.error });
-  const access = await assertRosterYearAccess(req, res, norm.schoolYearId);
-  if (!access) return;
+
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const isAdmin = await resolveAdminRights(prisma, acting);
+
+  const existing = await prisma.schoolRosterStudent.findUnique({
+    where: { id },
+    include: { schoolYear: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'Schüler nicht gefunden.' });
+
+  if (existing.isGlobal && !isAdmin) {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen zentrale Schüler bearbeiten.' });
+  }
+  if (!existing.isGlobal && existing.ownerUsername !== acting && !isAdmin) {
+    return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten dieses Schülers.' });
+  }
+
+  const targetYear = await prisma.schoolRosterYear.findUnique({ where: { id: norm.schoolYearId } });
+  if (!targetYear) return res.status(404).json({ error: 'Ziel-Schuljahr nicht gefunden.' });
+  if (!targetYear.isGlobal && targetYear.ownerUsername !== acting) {
+    return res.status(403).json({ error: 'Kein Zugriff auf das Ziel-Schuljahr.' });
+  }
+
   const row = await prisma.schoolRosterStudent.update({
     where: { id },
     data: {
@@ -1239,13 +1319,38 @@ app.delete('/api/school-roster-students', async (req, res) => {
   if (!schoolYearId) return res.status(400).json({ error: 'schoolYearId fehlt.' });
   const access = await assertRosterYearAccess(req, res, schoolYearId);
   if (!access) return;
-  await prisma.schoolRosterStudent.deleteMany({ where: { schoolYearId } });
+
+  if (access.year.isGlobal) {
+    if (access.isAdmin) {
+      await prisma.schoolRosterStudent.deleteMany({ where: { schoolYearId } });
+    } else {
+      await prisma.schoolRosterStudent.deleteMany({
+        where: { schoolYearId, isGlobal: false, ownerUsername: access.acting },
+      });
+    }
+  } else {
+    await prisma.schoolRosterStudent.deleteMany({ where: { schoolYearId } });
+  }
   res.status(204).send();
 });
 
 app.delete('/api/school-roster-students/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const isAdmin = await resolveAdminRights(prisma, acting);
+
+  const existing = await prisma.schoolRosterStudent.findUnique({ where: { id } });
+  if (!existing) return res.status(204).send();
+
+  if (existing.isGlobal && !isAdmin) {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen zentrale Schüler löschen.' });
+  }
+  if (!existing.isGlobal && existing.ownerUsername !== acting && !isAdmin) {
+    return res.status(403).json({ error: 'Keine Berechtigung zum Löschen dieses Schülers.' });
+  }
+
   await prisma.schoolRosterStudent.delete({ where: { id } });
   res.status(204).send();
 });

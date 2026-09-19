@@ -6,6 +6,15 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 523 (2026-09-19)
+
+Zentrale Schülerverwaltung für Administratoren & persönliche Schüler-Ergänzungen:
+- **Zentrale Stammliste**: Administratoren können zentrale Schuljahre und Stammschüler für die gesamte Schule pflegen (auch per Excel-/CSV-Import).
+- **Schulweiter Zugriff**: Alle angemeldeten Benutzer (Lehrkräfte) haben Lesezugriff auf zentrale Schuljahre und können Schüler direkt in ihre Fächer/Kurse übernehmen.
+- **Persönliche Schüler**: Jede Lehrkraft kann in zentralen oder eigenen Schuljahren weiterhin eigene persönliche Schüler ergänzen (nur für den jeweiligen Benutzer sichtbar).
+- **Visuelle Kennzeichnung**: Klare Unterscheidung von zentralen Stammschülern und persönlichen Schülern über Badges („Zentral“ / „Eigener Schüler“) in der Schülerverwaltung und den Kurseinstellungen.
+- **Berechtigungen**: Zentrale Schuljahre und Stammschüler können ausschließlich von Administratoren bearbeitet oder gelöscht werden; persönliche Schüler bleiben durch den jeweiligen Benutzer editierbar.
+
 ## Build 522 (2026-09-16)
 
 Kontrastverbesserung im Wunschnachbarn-Dialog:

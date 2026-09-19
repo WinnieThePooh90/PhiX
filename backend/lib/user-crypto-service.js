@@ -128,16 +128,6 @@ async function migratePlaintextForOwner(prisma, dek, ownerUsername) {
     updated += await encryptModelRows(prisma, 'AlbumPhoto', albumPhotos, dek);
   }
 
-  const years = await prisma.schoolRosterYear.findMany({ where: { ownerUsername } });
-  updated += await encryptModelRows(prisma, 'SchoolRosterYear', years, dek);
-  const yearIds = years.map((y) => y.id);
-  if (yearIds.length) {
-    const rosterStudents = await prisma.schoolRosterStudent.findMany({
-      where: { schoolYearId: { in: yearIds } },
-    });
-    updated += await encryptModelRows(prisma, 'SchoolRosterStudent', rosterStudents, dek);
-  }
-
   const userRow = await prisma.appUser.findFirst({
     where: { username: ownerUsername },
     select: { id: true },

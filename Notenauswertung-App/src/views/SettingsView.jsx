@@ -1026,9 +1026,16 @@ export default function SettingsView() {
                   <tbody>
                     {rosterCandidates.map((r) => (
                       <tr key={r.id}>
-                        <td>{r.lastName}</td>
-                        <td>{r.firstName}</td>
-                        <td className="text-center">{formatRosterClassLabel(r.gradeLevel, r.classSection)}</td>
+                        <td style={{ verticalAlign: 'middle' }}>
+                          <span>{r.lastName}</span>
+                          {r.isGlobal ? (
+                            <span className="school-roster-badge school-roster-badge--global" title="Zentraler Stammschüler">Zentral</span>
+                          ) : (
+                            <span className="school-roster-badge school-roster-badge--private" title="Persönlicher Schüler (nur für dich)">Eigener Schüler</span>
+                          )}
+                        </td>
+                        <td style={{ verticalAlign: 'middle' }}>{r.firstName}</td>
+                        <td className="text-center" style={{ verticalAlign: 'middle' }}>{formatRosterClassLabel(r.gradeLevel, r.classSection)}</td>
                         <td className="text-right">
                           <button
                             type="button"

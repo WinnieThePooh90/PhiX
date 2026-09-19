@@ -155,13 +155,15 @@ model Course {
 model SchoolRosterYear {
   id            Int      @id @default(autoincrement())
   label         String
+  isGlobal      Boolean  @default(false)
   ownerUsername String   @default("admin")
   createdAt     DateTime @default(now())
 
   students SchoolRosterStudent[]
 
-  @@unique([ownerUsername, label])
+  @@unique([isGlobal, ownerUsername, label])
   @@index([ownerUsername])
+  @@index([isGlobal])
 }
 
 model SchoolRosterStudent {
@@ -171,12 +173,15 @@ model SchoolRosterStudent {
   classSection String @default("")
   firstName  String
   lastName   String
+  isGlobal   Boolean  @default(false)
+  ownerUsername String?
   createdAt  DateTime @default(now())
 
   schoolYearId Int
   schoolYear   SchoolRosterYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
 
   @@index([schoolYearId, gradeLevel])
+  @@index([schoolYearId, isGlobal, ownerUsername])
 }
 
 model Student {

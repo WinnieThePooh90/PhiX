@@ -2188,8 +2188,8 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/homework-lists/${listId}/entries`, 'PUT', { studentId, checks, completed });
   };
 
-  const addSchoolRosterYear = async (label) => {
-    const created = await apiCall('/api/school-roster-years', 'POST', { label });
+  const addSchoolRosterYear = async (label, { isGlobal } = {}) => {
+    const created = await apiCall('/api/school-roster-years', 'POST', { label, isGlobal });
     if (created?.error) return created;
     if (created?.id != null) {
       setSchoolRosterYears((prev) => sortSchoolYears([...prev, created]));
@@ -2211,7 +2211,7 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const addSchoolRosterStudent = async ({ gradeLevel, classSection, firstName, lastName, schoolYearId }) => {
+  const addSchoolRosterStudent = async ({ gradeLevel, classSection, firstName, lastName, schoolYearId, isGlobal }) => {
     const yearId = schoolYearId ?? activeSchoolRosterYearId;
     if (!yearId) return { error: 'Bitte zuerst ein Schuljahr anlegen oder auswählen.' };
     const created = await apiCall('/api/school-roster-students', 'POST', {
@@ -2220,6 +2220,7 @@ export const DataProvider = ({ children }) => {
       firstName,
       lastName,
       schoolYearId: yearId,
+      isGlobal,
     });
     if (created && created.id != null && Number(created.schoolYearId) === Number(activeSchoolRosterYearId)) {
       setSchoolRosterStudents((prev) => sortSchoolRosterRows([...prev, created]));

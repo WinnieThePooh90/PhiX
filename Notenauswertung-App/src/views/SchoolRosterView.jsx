@@ -1,6 +1,8 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
+import { useAuth } from '../store/AuthContext';
+import { userHasAdminRights } from '../utils/userAdmin';
 import { useDialog } from '../components/PhixDialog';
 import { parseSchoolRosterImportFile, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
 import { CLASS_SECTION_OPTIONS, distinctClassSections, formatRosterClassLabel } from '../utils/schoolRosterClass';
@@ -22,12 +24,15 @@ export default function SchoolRosterView() {
     removeSchoolRosterStudent,
     clearSchoolRosterStudents,
   } = useData();
+  const { currentUser } = useAuth();
+  const isAdmin = userHasAdminRights(currentUser);
   const { showConfirm, showAlert } = useDialog();
 
   const activeYear = schoolRosterYears.find((y) => y.id === activeSchoolRosterYearId) ?? null;
 
   const [newYearModalOpen, setNewYearModalOpen] = useState(false);
   const [newYearLabel, setNewYearLabel] = useState(() => defaultSchoolYear());
+  const [newYearIsGlobal, setNewYearIsGlobal] = useState(true);
   const [newYearModalError, setNewYearModalError] = useState('');
   const [creatingYear, setCreatingYear] = useState(false);
   const [deletingYear, setDeletingYear] = useState(false);
@@ -37,6 +42,7 @@ export default function SchoolRosterView() {
   const [classSection, setClassSection] = useState('');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [addIsGlobal, setAddIsGlobal] = useState(true);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -98,6 +104,7 @@ export default function SchoolRosterView() {
 
   const openNewYearModal = () => {
     setNewYearLabel(defaultSchoolYear());
+    setNewYearIsGlobal(isAdmin);
     setNewYearModalError('');
     setNewYearModalOpen(true);
   };
@@ -131,7 +138,7 @@ export default function SchoolRosterView() {
     setNewYearModalError('');
     setCreatingYear(true);
     try {
-      const res = await addSchoolRosterYear(norm.label);
+      const res = await addSchoolRosterYear(norm.label, { isGlobal: isAdmin ? newYearIsGlobal : false });
       if (res?.error) {
         setNewYearModalError(res.error);
         return;
@@ -147,6 +154,10 @@ export default function SchoolRosterView() {
 
   const handleDeleteYear = async () => {
     if (!activeYear) return;
+    if (activeYear.isGlobal && !isAdmin) {
+      await showAlert('Zentrale Schuljahre können nur von Administratoren gelöscht werden.', { title: 'Hinweis' });
+      return;
+    }
     const n = activeYear.studentCount ?? schoolRosterStudents.length;
     const msg =
       n > 0
@@ -185,6 +196,7 @@ export default function SchoolRosterView() {
         firstName: fn,
         lastName: ln,
         schoolYearId: activeSchoolRosterYearId,
+        isGlobal: isAdmin && activeYear?.isGlobal ? addIsGlobal : false,
       });
       if (res?.error) {
         await showAlert(res.error, { title: 'Fehler' });
@@ -225,6 +237,10 @@ export default function SchoolRosterView() {
   };
 
   const handleDelete = async (row) => {
+    if (row.isGlobal && !isAdmin) {
+      await showAlert('Zentrale Schüler können nur von Administratoren gelöscht werden.', { title: 'Hinweis' });
+      return;
+    }
     if (!(await showConfirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${formatRosterClassLabel(row.gradeLevel, row.classSection)}) wirklich löschen?`, { title: 'Eintrag löschen', danger: true }))) return;
     await removeSchoolRosterStudent(row.id);
     if (editingId === row.id) cancelEdit();
@@ -259,6 +275,7 @@ export default function SchoolRosterView() {
       const { rows, skipped = [] } = parsed;
       let ok = 0;
       const apiErrors = [];
+      const targetIsGlobal = Boolean(isAdmin && activeYear?.isGlobal);
       for (const r of rows) {
         const res = await addSchoolRosterStudent({
           gradeLevel: r.gradeLevel,
@@ -266,6 +283,7 @@ export default function SchoolRosterView() {
           firstName: r.firstName,
           lastName: r.lastName,
           schoolYearId: activeSchoolRosterYearId,
+          isGlobal: targetIsGlobal,
         });
         if (res?.error) apiErrors.push(`Zeile ${r._sheetRow}: ${res.error}`);
         else ok++;
@@ -297,7 +315,14 @@ export default function SchoolRosterView() {
     if (!activeSchoolRosterYearId || !activeYear) return;
     const n = schoolRosterStudents.length;
     if (n === 0) return;
-    const clearOk = await showConfirm(`Alle ${n} Schüler des Schuljahres „${activeYear.label}“ unwiderruflich löschen?\n\nEinzelne Fächer/Kurse sind davon nicht betroffen.`, { title: 'Alle Schüler löschen', danger: true });
+    const isGlobalYear = Boolean(activeYear.isGlobal);
+    const msg = isGlobalYear && !isAdmin
+      ? `Möchtest du alle deine persönlich hinzugefügten Schüler aus „${activeYear.label}“ löschen?\n\nZentrale Stammschüler der Schule bleiben erhalten.`
+      : `Alle ${n} Schüler des Schuljahres „${activeYear.label}“ unwiderruflich löschen?\n\nEinzelne Fächer/Kurse sind davon nicht betroffen.`;
+    const clearOk = await showConfirm(msg, {
+      title: isGlobalYear && !isAdmin ? 'Eigene Schüler löschen' : 'Alle Schüler löschen',
+      danger: true,
+    });
     if (!clearOk) return;
     setClearing(true);
     try {
@@ -352,6 +377,27 @@ export default function SchoolRosterView() {
                 autoComplete="off"
               />
             </label>
+            {isAdmin ? (
+              <label
+                className="program-user-mgmt-label"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  marginTop: '0.5rem',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={newYearIsGlobal}
+                  onChange={(e) => setNewYearIsGlobal(e.target.checked)}
+                  disabled={creatingYear}
+                />
+                <span>Zentrales Schuljahr (schulweit für alle Lehrkräfte sichtbar)</span>
+              </label>
+            ) : null}
             {newYearModalError ? (
               <p className="program-user-mgmt-error" role="alert">
                 {newYearModalError}
@@ -393,8 +439,9 @@ export default function SchoolRosterView() {
             <button
               type="button"
               className="danger school-roster-control-btn"
-              disabled={busy || deletingYear}
+              disabled={busy || deletingYear || (activeYear.isGlobal && !isAdmin)}
               onClick={handleDeleteYear}
+              title={activeYear.isGlobal && !isAdmin ? 'Zentrale Schuljahre können nur von Administratoren gelöscht werden.' : 'Schuljahr löschen'}
             >
               {deletingYear ? '…' : 'Schuljahr löschen'}
             </button>
@@ -425,6 +472,7 @@ export default function SchoolRosterView() {
                 {schoolRosterYears.map((y) => (
                   <option key={y.id} value={y.id}>
                     {y.label}
+                    {y.isGlobal ? ' [Zentral]' : ''}
                     {y.studentCount != null ? ` (${y.studentCount})` : ''}
                   </option>
                 ))}
@@ -451,7 +499,7 @@ export default function SchoolRosterView() {
       <div className="glass-panel mb-6" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1.05rem' }}>
           Neuen Schüler anlegen
-          {activeYear ? ` (${activeYear.label})` : ''}
+          {activeYear ? ` (${activeYear.label}${activeYear.isGlobal ? ' — Zentral' : ''})` : ''}
         </h3>
         <form onSubmit={handleAdd} className="school-roster-add-form">
           <div className="school-roster-add-form__grade">
@@ -534,6 +582,22 @@ export default function SchoolRosterView() {
               </div>
             </div>
           </div>
+          {isAdmin && activeYear?.isGlobal ? (
+            <div style={{ flex: '1 1 100%', marginTop: '0.25rem' }}>
+              <label
+                className="text-muted flex items-center gap-2"
+                style={{ fontSize: '0.85rem', cursor: 'pointer', margin: 0 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={addIsGlobal}
+                  onChange={(e) => setAddIsGlobal(e.target.checked)}
+                  disabled={busy}
+                />
+                <span>Als zentralen Stammschüler anlegen (schulweit für alle Lehrkräfte sichtbar)</span>
+              </label>
+            </div>
+          ) : null}
         </form>
       </div>
 
@@ -555,7 +619,11 @@ export default function SchoolRosterView() {
             disabled={busy || schoolRosterStudents.length === 0}
             onClick={handleClearList}
           >
-            {clearing ? 'Leere…' : 'Liste leeren'}
+            {clearing
+              ? 'Leere…'
+              : activeYear?.isGlobal && !isAdmin
+                ? 'Eigene Schüler leeren'
+                : 'Liste leeren'}
           </button>
         </div>
         {schoolRosterStudents.length === 0 ? (
@@ -642,8 +710,9 @@ export default function SchoolRosterView() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSchoolRoster.map((row) =>
-                  editingId === row.id ? (
+                {filteredSchoolRoster.map((row) => {
+                  const canManage = !row.isGlobal || isAdmin;
+                  return editingId === row.id ? (
                     <tr key={row.id}>
                       <td className="text-center" style={{ verticalAlign: 'middle' }}>
                         <div className="flex flex-wrap gap-1" style={{ justifyContent: 'center' }}>
@@ -710,30 +779,39 @@ export default function SchoolRosterView() {
                       <td className="text-center" style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                         {formatRosterClassLabel(row.gradeLevel, row.classSection)}
                       </td>
-                      <td>{row.lastName}</td>
-                      <td>{row.firstName}</td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <span>{row.lastName}</span>
+                        {row.isGlobal ? (
+                          <span className="school-roster-badge school-roster-badge--global" title="Zentraler Stammschüler (schulweit)">Zentral</span>
+                        ) : (
+                          <span className="school-roster-badge school-roster-badge--private" title="Persönlicher Schüler (nur für dich sichtbar)">Eigener Schüler</span>
+                        )}
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>{row.firstName}</td>
                       <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
                         <button
                           type="button"
                           className="tab secondary"
                           style={{ marginRight: '0.35rem' }}
-                          disabled={saving || importing || clearing}
+                          disabled={saving || importing || clearing || !canManage}
                           onClick={() => startEdit(row)}
+                          title={!canManage ? 'Zentrale Schüler können nur von Administratoren bearbeitet werden.' : 'Schüler bearbeiten'}
                         >
                           Bearbeiten
                         </button>
                         <button
                           type="button"
                           className="danger"
-                          disabled={saving || importing || clearing}
+                          disabled={saving || importing || clearing || !canManage}
                           onClick={() => handleDelete(row)}
+                          title={!canManage ? 'Zentrale Schüler können nur von Administratoren gelöscht werden.' : 'Schüler löschen'}
                         >
                           Löschen
                         </button>
                       </td>
                     </tr>
-                  ),
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
