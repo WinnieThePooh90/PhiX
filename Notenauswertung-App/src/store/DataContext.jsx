@@ -16,6 +16,7 @@ import {
 } from '../utils/calculator';
 import { getOralExtendedMode } from '../utils/oralExtendedMode';
 import { sortSchoolYears } from '../utils/schoolYear';
+import { userHasAdminRights } from '../utils/userAdmin';
 import { apiFetch } from '../utils/apiBase';
 import { applyCryptoHeader } from '../utils/cryptoSession';
 import { checkCryptoApiResponse } from '../utils/apiAuth';
@@ -2275,11 +2276,26 @@ export const DataProvider = ({ children }) => {
   const clearSchoolRosterStudents = async (schoolYearId) => {
     const yearId = schoolYearId ?? activeSchoolRosterYearId;
     if (!yearId) return;
-    await apiFetch(`/api/school-roster-students?schoolYearId=${encodeURIComponent(yearId)}`, { method: 'DELETE' });
+    await apiCall(`/api/school-roster-students?schoolYearId=${encodeURIComponent(yearId)}`, 'DELETE');
+    const year = schoolRosterYears.find((y) => y.id === yearId);
+    const isAdmin = userHasAdminRights(currentUser);
     if (Number(yearId) === Number(activeSchoolRosterYearId)) {
-      setSchoolRosterStudents([]);
+      if (year?.isGlobal && !isAdmin) {
+        setSchoolRosterStudents((prev) => prev.filter((s) => s.isGlobal));
+      } else {
+        setSchoolRosterStudents([]);
+      }
     }
-    setSchoolRosterYears((prev) => prev.map((y) => (y.id === yearId ? { ...y, studentCount: 0 } : y)));
+    setSchoolRosterYears((prev) =>
+      prev.map((y) => {
+        if (y.id !== yearId) return y;
+        if (y.isGlobal && !isAdmin) {
+          const remainingCount = schoolRosterStudents.filter((s) => s.isGlobal).length;
+          return { ...y, studentCount: remainingCount };
+        }
+        return { ...y, studentCount: 0 };
+      }),
+    );
   };
 
   const contextValue = {

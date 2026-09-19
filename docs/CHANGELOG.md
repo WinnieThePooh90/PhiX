@@ -6,6 +6,16 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 527 (2026-09-19)
+
+Krypto-Authentifizierung beim Leeren der Schülerliste korrigiert:
+- Behebt ein Problem, bei dem der Aufruf zum Löschen der Schülerliste eines Schuljahres ohne Authentifizierungs-Token an das Backend gesendet wurde und dadurch fälschlicherweise ein Krypto-Session-Verlust („Sitzung abgelaufen“) mit Logout ausgelöst wurde.
+
+## Build 526 (2026-09-19)
+
+Fortschritts-Overlay für den Schülerlisten-Import:
+- Beim Datei-Import von Schülerlisten (CSV/Excel) wird ein zentriertes Fortschritts-Overlay mit Lade-Animation, Fortschrittsbalken in Prozent, Zähler (`X von Y`) und Name des aktuell verarbeiteten Schülers angezeigt.
+
 ## Build 525 (2026-09-19)
 
 Layout-Optimierung des Dialogs zur Schuljahres-Anlage:

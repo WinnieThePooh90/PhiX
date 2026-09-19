@@ -87,90 +87,50 @@ export default function SchoolRosterView() {
     });
   }, [schoolRosterStudents, rosterSearch, rosterGradeFilter, rosterSectionFilter]);
 
-  const startEdit = (row) => {
-    setEditingId(row.id);
-    setEditGrade(row.gradeLevel);
-    setEditClassSection(row.classSection ?? '');
-    setEditLast(row.lastName);
-    setEditFirst(row.firstName);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditClassSection('');
-    setEditLast('');
-    setEditFirst('');
-  };
-
-  const openNewYearModal = () => {
-    setNewYearLabel(defaultSchoolYear());
-    setNewYearIsGlobal(isAdmin);
-    setNewYearModalError('');
-    setNewYearModalOpen(true);
-  };
-
-  const closeNewYearModal = () => {
-    if (creatingYear) return;
-    setNewYearModalOpen(false);
-    setNewYearModalError('');
-  };
-
-  useEffect(() => {
-    if (!newYearModalOpen) return undefined;
-    const t = window.setTimeout(() => newYearInputRef.current?.focus(), 0);
-    const onKey = (e) => {
-      if (e.key === 'Escape') closeNewYearModal();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.clearTimeout(t);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [newYearModalOpen, creatingYear]);
+  const busy = saving || importing || clearing;
 
   const handleCreateYear = async (e) => {
     e.preventDefault();
-    const norm = normalizeSchoolYearLabel(newYearLabel);
-    if (norm.error) {
-      setNewYearModalError(norm.error);
+    const clean = newYearLabel.trim();
+    if (!clean) {
+      setNewYearModalError('Bitte eine Bezeichnung eingeben (z. B. 2025/2026).');
       return;
     }
-    setNewYearModalError('');
     setCreatingYear(true);
+    setNewYearModalError('');
     try {
-      const res = await addSchoolRosterYear(norm.label, { isGlobal: isAdmin ? newYearIsGlobal : false });
+      const res = await addSchoolRosterYear(clean, { isGlobal: isAdmin ? newYearIsGlobal : false });
       if (res?.error) {
         setNewYearModalError(res.error);
         return;
       }
-      setNewYearModalOpen(false);
-      setNewYearLabel(defaultSchoolYear());
+      closeNewYearModal();
+    } catch (err) {
+      setNewYearModalError(err?.message || 'Fehler beim Anlegen des Schuljahres.');
     } finally {
       setCreatingYear(false);
     }
   };
 
-  const hasSchoolYears = schoolRosterYears.length > 0;
-
   const handleDeleteYear = async () => {
-    if (!activeYear) return;
+    if (!activeSchoolRosterYearId || !activeYear) return;
     if (activeYear.isGlobal && !isAdmin) {
       await showAlert('Zentrale Schuljahre können nur von Administratoren gelöscht werden.', { title: 'Hinweis' });
       return;
     }
-    const n = activeYear.studentCount ?? schoolRosterStudents.length;
-    const msg =
-      n > 0
-        ? `Schuljahr „${activeYear.label}“ mit ${n} Schüler(n) unwiderruflich löschen?`
-        : `Schuljahr „${activeYear.label}“ löschen?`;
-    if (!(await showConfirm(msg, { title: 'Schuljahr löschen', danger: true }))) return;
+    const n = schoolRosterStudents.length;
+    const extra = n > 0 ? `\n\nDabei werden auch alle ${n} hinterlegten Schüler gelöscht.` : '';
+    const ok = await showConfirm(
+      `Schuljahr „${activeYear.label}“ wirklich löschen?${extra}\n\nEinzelne Fächer/Kurse sind davon nicht betroffen.`,
+      { title: 'Schuljahr löschen', danger: true },
+    );
+    if (!ok) return;
     setDeletingYear(true);
     try {
-      await removeSchoolRosterYear(activeYear.id);
-      cancelEdit();
-    } catch (err) {
-      console.error(err);
-      await showAlert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
+      const res = await removeSchoolRosterYear(activeSchoolRosterYearId);
+      if (res?.error) {
+        await showAlert(res.error, { title: 'Fehler' });
+      }
     } finally {
       setDeletingYear(false);
     }
@@ -179,24 +139,24 @@ export default function SchoolRosterView() {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!activeSchoolRosterYearId) {
-      await showAlert('Bitte zuerst ein Schuljahr anlegen oder auswählen.', { title: 'Hinweis' });
+      await showAlert('Bitte zuerst ein Schuljahr auswählen.', { title: 'Hinweis' });
       return;
     }
-    const ln = lastName.trim();
-    const fn = firstName.trim();
-    if (!ln || !fn) {
-      await showAlert('Bitte Vor- und Nachnamen eintragen.', { title: 'Hinweis' });
+    const last = lastName.trim();
+    const first = firstName.trim();
+    if (!last || !first) {
+      await showAlert('Bitte Nachname und Vorname ausfüllen.', { title: 'Pflichtfelder' });
       return;
     }
     setSaving(true);
     try {
       const res = await addSchoolRosterStudent({
         gradeLevel,
-        classSection,
-        firstName: fn,
-        lastName: ln,
+        classSection: classSection.trim(),
+        firstName: first,
+        lastName: last,
         schoolYearId: activeSchoolRosterYearId,
-        isGlobal: isAdmin && activeYear?.isGlobal ? addIsGlobal : false,
+        isGlobal: Boolean(isAdmin && activeYear?.isGlobal && addIsGlobal),
       });
       if (res?.error) {
         await showAlert(res.error, { title: 'Fehler' });
@@ -209,21 +169,38 @@ export default function SchoolRosterView() {
     }
   };
 
+  const startEdit = (row) => {
+    if (row.isGlobal && !isAdmin) {
+      showAlert('Zentrale Schüler können nur von Administratoren bearbeitet werden.', { title: 'Hinweis' });
+      return;
+    }
+    setEditingId(row.id);
+    setEditGrade(row.gradeLevel);
+    setEditClassSection(row.classSection || '');
+    setEditLast(row.lastName || '');
+    setEditFirst(row.firstName || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditLast('');
+    setEditFirst('');
+  };
+
   const handleSaveEdit = async (id) => {
-    if (!activeSchoolRosterYearId) return;
-    const ln = editLast.trim();
-    const fn = editFirst.trim();
-    if (!ln || !fn) {
-      await showAlert('Bitte Vor- und Nachnamen eintragen.', { title: 'Hinweis' });
+    const last = editLast.trim();
+    const first = editFirst.trim();
+    if (!last || !first) {
+      await showAlert('Nachname und Vorname dürfen nicht leer sein.', { title: 'Pflichtfelder' });
       return;
     }
     setSaving(true);
     try {
       const res = await updateSchoolRosterStudent(id, {
         gradeLevel: editGrade,
-        classSection: editClassSection,
-        firstName: fn,
-        lastName: ln,
+        classSection: editClassSection.trim(),
+        firstName: first,
+        lastName: last,
         schoolYearId: activeSchoolRosterYearId,
       });
       if (res?.error) {
@@ -241,7 +218,11 @@ export default function SchoolRosterView() {
       await showAlert('Zentrale Schüler können nur von Administratoren gelöscht werden.', { title: 'Hinweis' });
       return;
     }
-    if (!(await showConfirm(`Eintrag „${row.lastName}, ${row.firstName}“ (Klasse ${formatRosterClassLabel(row.gradeLevel, row.classSection)}) wirklich löschen?`, { title: 'Eintrag löschen', danger: true }))) return;
+    const ok = await showConfirm(
+      `Eintrag „${row.lastName}, ${row.firstName}“ (${formatRosterClassLabel(row.gradeLevel, row.classSection)}) wirklich löschen?`,
+      { title: 'Schüler löschen', danger: true },
+    );
+    if (!ok) return;
     await removeSchoolRosterStudent(row.id);
     if (editingId === row.id) cancelEdit();
   };
@@ -273,10 +254,36 @@ export default function SchoolRosterView() {
         return;
       }
       const { rows, skipped = [] } = parsed;
+      const total = rows.length;
       let ok = 0;
       const apiErrors = [];
       const targetIsGlobal = Boolean(isAdmin && activeYear?.isGlobal);
-      for (const r of rows) {
+
+      setImportProgress({
+        current: 0,
+        total,
+        percent: 0,
+        currentStudentName: 'Vorbereitung…',
+        currentClass: '',
+        yearLabel: activeYear?.label ?? 'Schuljahr',
+        isGlobal: targetIsGlobal,
+      });
+
+      for (let i = 0; i < total; i++) {
+        const r = rows[i];
+        const studentName = [r.lastName, r.firstName].filter(Boolean).join(', ');
+        const classLabel = formatRosterClassLabel(r.gradeLevel, r.classSection);
+
+        setImportProgress({
+          current: i + 1,
+          total,
+          percent: Math.round(((i + 1) / total) * 100),
+          currentStudentName: studentName,
+          currentClass: classLabel,
+          yearLabel: activeYear?.label ?? 'Schuljahr',
+          isGlobal: targetIsGlobal,
+        });
+
         const res = await addSchoolRosterStudent({
           gradeLevel: r.gradeLevel,
           classSection: r.classSection ?? '',
@@ -288,6 +295,7 @@ export default function SchoolRosterView() {
         if (res?.error) apiErrors.push(`Zeile ${r._sheetRow}: ${res.error}`);
         else ok++;
       }
+
       let msg = `${ok} Schüler in „${activeYear?.label ?? 'Schuljahr'}“ importiert.`;
       if (skipped.length) {
         msg += `\n\n${skipped.length} Zeile(n) übersprungen:`;
@@ -307,6 +315,7 @@ export default function SchoolRosterView() {
       console.error(err);
       await showAlert(`Import fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
+      setImportProgress(null);
       setImporting(false);
     }
   };
@@ -328,101 +337,160 @@ export default function SchoolRosterView() {
     try {
       await clearSchoolRosterStudents(activeSchoolRosterYearId);
       cancelEdit();
-    } catch (err) {
-      console.error(err);
-      await showAlert(`Löschen fehlgeschlagen: ${err?.message || String(err)}`, { title: 'Fehler' });
     } finally {
       setClearing(false);
     }
   };
 
-  const busy = saving || importing || clearing || creatingYear || deletingYear;
+  const openNewYearModal = () => {
+    setNewYearLabel(defaultSchoolYear());
+    setNewYearIsGlobal(true);
+    setNewYearModalError('');
+    setNewYearModalOpen(true);
+  };
+
+  const closeNewYearModal = () => {
+    if (creatingYear) return;
+    setNewYearModalOpen(false);
+    setNewYearModalError('');
+  };
+
+  useEffect(() => {
+    if (newYearModalOpen) {
+      const id = window.setTimeout(() => {
+        newYearInputRef.current?.focus();
+        newYearInputRef.current?.select();
+      }, 50);
+      return () => window.clearTimeout(id);
+    }
+  }, [newYearModalOpen]);
 
   const newYearModal =
-    newYearModalOpen &&
-    createPortal(
-      <div
-        className="program-user-mgmt-modal-backdrop"
-        role="presentation"
-        onMouseDown={(ev) => {
-          if (ev.target === ev.currentTarget) closeNewYearModal();
-        }}
-      >
-        <div
-          className="program-user-mgmt-modal-dialog glass-panel"
-          style={{ maxWidth: '32rem', width: '100%' }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="school-roster-new-year-title"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <h2 id="school-roster-new-year-title" className="program-user-mgmt-modal-title">
-            Neues Schuljahr anlegen
-          </h2>
-          <p className="text-muted" style={{ fontSize: '0.875rem', margin: '0 0 1rem' }}>
-            Bezeichnung z.&nbsp;B. <strong>2026/2027</strong>
-          </p>
-          <form className="program-user-mgmt-form" onSubmit={handleCreateYear}>
-            <label className="program-user-mgmt-label">
-              Schuljahr
-              <input
-                ref={newYearInputRef}
-                className="program-user-mgmt-input"
-                value={newYearLabel}
-                onChange={(e) => {
-                  setNewYearLabel(e.target.value);
-                  if (newYearModalError) setNewYearModalError('');
-                }}
-                placeholder="2026/2027"
-                disabled={creatingYear}
-                autoComplete="off"
-              />
-            </label>
-            {isAdmin ? (
-              <label
-                className="program-user-mgmt-label"
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: '0.65rem',
-                  cursor: 'pointer',
-                  marginTop: '0.75rem',
-                  fontSize: '0.875rem',
-                  whiteSpace: 'normal',
-                }}
-              >
+    newYearModalOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="program-user-mgmt-modal-backdrop"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeNewYearModal();
+            }}
+          >
+            <div
+              className="program-user-mgmt-modal-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="new-school-roster-year-title"
+              style={{ maxWidth: '32rem', width: '92vw' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 id="new-school-roster-year-title" className="program-user-mgmt-modal-title">
+                Neues Schuljahr anlegen
+              </h3>
+              <form onSubmit={handleCreateYear}>
+                <label
+                  htmlFor="new-school-roster-year-input"
+                  className="text-muted"
+                  style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}
+                >
+                  Bezeichnung
+                </label>
                 <input
-                  type="checkbox"
-                  checked={newYearIsGlobal}
-                  onChange={(e) => setNewYearIsGlobal(e.target.checked)}
+                  id="new-school-roster-year-input"
+                  ref={newYearInputRef}
+                  value={newYearLabel}
+                  onChange={(e) => setNewYearLabel(e.target.value)}
+                  placeholder="z. B. 2025/2026"
+                  style={{ width: '100%', marginBottom: '0.75rem', boxSizing: 'border-box' }}
                   disabled={creatingYear}
-                  style={{ flexShrink: 0 }}
+                  autoComplete="off"
                 />
-                <span>Zentrales Schuljahr (schulweit für alle Lehrkräfte sichtbar)</span>
-              </label>
-            ) : null}
-            {newYearModalError ? (
-              <p className="program-user-mgmt-error" role="alert">
-                {newYearModalError}
-              </p>
-            ) : null}
-            <div className="program-user-mgmt-modal-actions">
-              <button type="submit" className="program-user-mgmt-submit" disabled={creatingYear}>
-                {creatingYear ? 'Anlegen…' : 'Anlegen'}
-              </button>
-              <button type="button" className="secondary" onClick={closeNewYearModal} disabled={creatingYear}>
-                Abbrechen
-              </button>
+                {isAdmin ? (
+                  <label
+                    className="text-muted flex items-center gap-2"
+                    style={{ fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1rem' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newYearIsGlobal}
+                      onChange={(e) => setNewYearIsGlobal(e.target.checked)}
+                      disabled={creatingYear}
+                    />
+                    <span>Zentrales Schuljahr (schulweit für alle Lehrkräfte sichtbar)</span>
+                  </label>
+                ) : null}
+                {newYearModalError ? (
+                  <p className="program-user-mgmt-error" role="alert">
+                    {newYearModalError}
+                  </p>
+                ) : null}
+                <div className="program-user-mgmt-modal-actions">
+                  <button type="submit" className="program-user-mgmt-submit" disabled={creatingYear}>
+                    {creatingYear ? 'Anlegen…' : 'Anlegen'}
+                  </button>
+                  <button type="button" className="secondary" onClick={closeNewYearModal} disabled={creatingYear}>
+                    Abbrechen
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>,
-      document.body,
-    );
+          </div>,
+          document.body,
+        )
+      : null;
+
+  const importProgressModal =
+    importProgress && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="school-roster-progress-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Import-Fortschritt"
+          >
+            <div className="school-roster-progress-dialog">
+              <div className="school-roster-progress-header">
+                <div className="school-roster-progress-spinner" aria-hidden="true" />
+                <h3 className="school-roster-progress-title">Schülerliste wird importiert…</h3>
+              </div>
+
+              <div className="school-roster-progress-info">
+                <span className="school-roster-progress-target">
+                  {importProgress.yearLabel}
+                  {importProgress.isGlobal ? ' [Zentral]' : ' [Eigener Bestand]'}
+                </span>
+                <span className="school-roster-progress-count">
+                  {importProgress.current} von {importProgress.total} ({importProgress.percent} %)
+                </span>
+              </div>
+
+              <div className="school-roster-progress-bar-track">
+                <div
+                  className="school-roster-progress-bar-fill"
+                  style={{ width: `${importProgress.percent}%` }}
+                />
+              </div>
+
+              {importProgress.currentStudentName ? (
+                <div className="school-roster-progress-item">
+                  <span className="text-muted">Aktuell:</span>
+                  <strong>{importProgress.currentStudentName}</strong>
+                  {importProgress.currentClass ? (
+                    <span className="school-roster-progress-class-tag">
+                      {importProgress.currentClass}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className="view-generic-scroll program-view" style={{ paddingBottom: '2rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {newYearModal}
+      {importProgressModal}
       <input
         ref={fileInputRef}
         type="file"
