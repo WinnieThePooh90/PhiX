@@ -6,6 +6,11 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 528 (2026-09-19)
+
+Fix State-Deklaration in der Schülerverwaltung:
+- Behebt einen `ReferenceError: importProgress is not defined` beim Laden der Schülerverwaltungs-Ansicht.
+
 ## Build 527 (2026-09-19)
 
 Krypto-Authentifizierung beim Leeren der Schülerliste korrigiert:

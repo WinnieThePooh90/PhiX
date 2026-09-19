@@ -45,6 +45,7 @@ export default function SchoolRosterView() {
   const [addIsGlobal, setAddIsGlobal] = useState(true);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(null);
   const [clearing, setClearing] = useState(false);
   const fileInputRef = useRef(null);
 
