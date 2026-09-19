@@ -38,7 +38,7 @@ const {
   changeUserPasswordCrypto,
   unlockDekWithPassword,
 } = require('./lib/user-crypto-service');
-const { unwrapDekFromRecovery } = require('./lib/phix-crypto');
+const { unwrapDekFromRecovery, decryptField, isEncryptedValue } = require('./lib/phix-crypto');
 const { placeholderPasswordHash, BCRYPT_ROUNDS } = require('./lib/app-user-password');
 const { createInitialSetupToken, verifyInitialSetupToken } = require('./lib/initial-setup-token');
 const { clientIp, checkRateLimit } = require('./lib/rate-limit');
@@ -1143,10 +1143,20 @@ async function assertRosterYearAccess(req, res, yearId) {
   return { acting, isAdmin, year };
 }
 
+function tryDecryptField(dek, value) {
+  if (!dek || value == null || !isEncryptedValue(value)) return value;
+  try {
+    return decryptField(dek, value);
+  } catch {
+    return value;
+  }
+}
+
 // Schuljahre (Schülerverwaltung)
 app.get('/api/school-roster-years', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
+  const dek = getDekFromContext();
   const rows = await prisma.schoolRosterYear.findMany({
     where: {
       OR: [
@@ -1166,9 +1176,24 @@ app.get('/api/school-roster-years', async (req, res) => {
       },
     },
   });
-  const out = sortSchoolRosterYears(
-    rows.map(({ students, ...y }) => ({ ...y, studentCount: students.length })),
-  );
+
+  const migratedRows = [];
+  for (const { students, ...y } of rows) {
+    let label = y.label;
+    if (dek && isEncryptedValue(label)) {
+      const dec = tryDecryptField(dek, label);
+      if (dec && dec !== label) {
+        label = dec;
+        prisma.schoolRosterYear.update({
+          where: { id: y.id },
+          data: { label: dec },
+        }).catch((err) => console.warn('[school-roster] auto-migrate year label failed:', err?.message));
+      }
+    }
+    migratedRows.push({ ...y, label, studentCount: students.length });
+  }
+
+  const out = sortSchoolRosterYears(migratedRows);
   res.json(out);
 });
 
@@ -1230,6 +1255,7 @@ app.get('/api/school-roster-students', async (req, res) => {
   if (!schoolYearId) return res.json([]);
   const access = await assertRosterYearAccess(req, res, schoolYearId);
   if (!access) return;
+  const dek = getDekFromContext();
   const where = access.year.isGlobal
     ? {
         schoolYearId,
@@ -1243,7 +1269,38 @@ app.get('/api/school-roster-students', async (req, res) => {
     where,
     orderBy: [{ gradeLevel: 'asc' }, { classSection: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
   });
-  res.json(rows);
+
+  const out = [];
+  for (const s of rows) {
+    let firstName = s.firstName;
+    let lastName = s.lastName;
+    let needsUpdate = false;
+    if (dek) {
+      if (isEncryptedValue(firstName)) {
+        const dec = tryDecryptField(dek, firstName);
+        if (dec && dec !== firstName) {
+          firstName = dec;
+          needsUpdate = true;
+        }
+      }
+      if (isEncryptedValue(lastName)) {
+        const dec = tryDecryptField(dek, lastName);
+        if (dec && dec !== lastName) {
+          lastName = dec;
+          needsUpdate = true;
+        }
+      }
+      if (needsUpdate) {
+        prisma.schoolRosterStudent.update({
+          where: { id: s.id },
+          data: { firstName, lastName },
+        }).catch((err) => console.warn('[school-roster] auto-migrate student name failed:', err?.message));
+      }
+    }
+    out.push({ ...s, firstName, lastName });
+  }
+
+  res.json(out);
 });
 
 app.post('/api/school-roster-students', async (req, res) => {

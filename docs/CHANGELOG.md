@@ -6,6 +6,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 524 (2026-09-19)
+
+Automatische Entschlüsselung & Migration bestehender Schuljahre und Stammschüler:
+- Beim Laden von Schuljahren und Stammschülern werden bestehende, verschlüsselte Einträge (`enc:v1:...`) transparent mit dem DEK der Krypto-Session entschlüsselt und automatisch in Klartext überführt.
+- Verhindert kryptische Darstellungen von Schuljahres-Labels und Schülernamen aus vorherigen Versionen.
+
 ## Build 523 (2026-09-19)
 
 Zentrale Schülerverwaltung für Administratoren & persönliche Schüler-Ergänzungen:
