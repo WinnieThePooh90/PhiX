@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, Trash2, Users, GripVertical } from 'lucide-react';
 import { solveSeatingPlanWishes } from '../utils/seatingPlanSolver';
@@ -14,20 +14,23 @@ export default function SeatingPlanWishModal({
   cols = 3,
   initialWishes = {},
   onApplyWishes,
+  onUpdateWishes,
   formatStudentDisplayName,
 }) {
-  const [wishes, setWishes] = useState({});
+  const [wishes, setWishes] = useState(() => (initialWishes && typeof initialWishes === 'object' ? { ...initialWishes } : {}));
   const [draggedStudentId, setDraggedStudentId] = useState(null);
   const [dragOverCell, setDragOverCell] = useState(null); // format: `${studentId}_${slotIndex}`
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
   // Initialisiere Wünsche beim Öffnen
-  useEffect(() => {
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setWishes(initialWishes && typeof initialWishes === 'object' ? { ...initialWishes } : {});
       setDraggedStudentId(null);
       setDragOverCell(null);
     }
-  }, [isOpen, initialWishes]);
+  }
 
   // Esc-Taste zum Schließen
   useEffect(() => {
@@ -91,7 +94,9 @@ export default function SeatingPlanWishModal({
           const parsed = JSON.parse(raw);
           if (parsed?.studentId) incomingId = Number(parsed.studentId);
         }
-      } catch {}
+      } catch {
+        // Ungültige Payload ignorieren
+      }
     }
 
     if (!incomingId) return;
@@ -100,53 +105,60 @@ export default function SeatingPlanWishModal({
       return;
     }
 
-    setWishes((prev) => {
-      const current = prev[targetStudentId] || {};
-      const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
-      return {
-        ...prev,
-        [targetStudentId]: {
-          ...current,
-          [slotKey]: Number(incomingId),
-        },
-      };
-    });
+    const current = wishes[targetStudentId] || {};
+    const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
+    const nextWishes = {
+      ...wishes,
+      [targetStudentId]: {
+        ...current,
+        [slotKey]: Number(incomingId),
+      },
+    };
+    setWishes(nextWishes);
+    if (onUpdateWishes) onUpdateWishes(nextWishes);
     setDraggedStudentId(null);
   };
 
   const handleRemoveWish = (targetStudentId, slotIndex) => {
-    setWishes((prev) => {
-      const current = prev[targetStudentId] || {};
-      const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
-      const updated = { ...current };
-      delete updated[slotKey];
-      return {
-        ...prev,
-        [targetStudentId]: updated,
-      };
-    });
+    const current = wishes[targetStudentId] || {};
+    const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
+    const updated = { ...current };
+    delete updated[slotKey];
+    const nextWishes = {
+      ...wishes,
+      [targetStudentId]: updated,
+    };
+    if (!updated.wish1 && !updated.wish2) {
+      delete nextWishes[targetStudentId];
+    }
+    setWishes(nextWishes);
+    if (onUpdateWishes) onUpdateWishes(nextWishes);
   };
 
   const handleSelectWish = (targetStudentId, slotIndex, value) => {
     const chosenId = value ? Number(value) : null;
-    setWishes((prev) => {
-      const current = prev[targetStudentId] || {};
-      const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
-      const updated = { ...current };
-      if (chosenId) {
-        updated[slotKey] = chosenId;
-      } else {
-        delete updated[slotKey];
-      }
-      return {
-        ...prev,
-        [targetStudentId]: updated,
-      };
-    });
+    const current = wishes[targetStudentId] || {};
+    const slotKey = slotIndex === 1 ? 'wish1' : 'wish2';
+    const updated = { ...current };
+    if (chosenId) {
+      updated[slotKey] = chosenId;
+    } else {
+      delete updated[slotKey];
+    }
+    const nextWishes = {
+      ...wishes,
+      [targetStudentId]: updated,
+    };
+    if (!updated.wish1 && !updated.wish2) {
+      delete nextWishes[targetStudentId];
+    }
+    setWishes(nextWishes);
+    if (onUpdateWishes) onUpdateWishes(nextWishes);
   };
 
   const handleClearAllWishes = () => {
     setWishes({});
+    if (onUpdateWishes) onUpdateWishes({});
   };
 
   const handleGenerate = () => {

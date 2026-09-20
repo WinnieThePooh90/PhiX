@@ -148,6 +148,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows: newR,
         cols: newC,
         assignments: assignments || buildAlphabeticalAssignments(newR, newC),
@@ -164,6 +165,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows: validR,
         cols: validC,
         assignments: assignments || buildAlphabeticalAssignments(validR, validC),
@@ -181,6 +183,7 @@ export default function SeatingPlanView({ onOpenExport }) {
     const newAssignments = buildAlphabeticalAssignments(rows, cols);
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: newAssignments,
@@ -220,6 +223,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: newAssignments,
@@ -236,6 +240,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: {},
@@ -246,6 +251,7 @@ export default function SeatingPlanView({ onOpenExport }) {
   const handleApplyWishes = (newAssignments, savedWishes, stats) => {
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: newAssignments,
@@ -261,6 +267,21 @@ export default function SeatingPlanView({ onOpenExport }) {
       showAlert('Sitzordnung erfolgreich generiert!', { title: 'Sitzplan generiert' });
     }
   };
+
+  const handleUpdateWishes = useCallback(
+    (updatedWishes) => {
+      updateConfig({
+        seatingPlan: {
+          ...(savedSeatingPlan || {}),
+          rows,
+          cols,
+          assignments,
+          wishNeighbors: updatedWishes,
+        },
+      });
+    },
+    [savedSeatingPlan, rows, cols, assignments, updateConfig],
+  );
 
   // --- Drag & Drop Handlers ---
 
@@ -303,7 +324,9 @@ export default function SeatingPlanView({ onOpenExport }) {
       try {
         const raw = e.dataTransfer.getData('text/plain');
         if (raw) dragData = JSON.parse(raw);
-      } catch {}
+      } catch {
+        // Ungültige Payload ignorieren
+      }
     }
     if (!dragData) return;
 
@@ -328,6 +351,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: nextAssignments,
@@ -346,7 +370,9 @@ export default function SeatingPlanView({ onOpenExport }) {
       try {
         const raw = e.dataTransfer.getData('text/plain');
         if (raw) dragData = JSON.parse(raw);
-      } catch {}
+      } catch {
+        // Ungültige Payload ignorieren
+      }
     }
     if (!dragData || dragData.type !== 'cell') return;
 
@@ -355,6 +381,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: nextAssignments,
@@ -372,6 +399,7 @@ export default function SeatingPlanView({ onOpenExport }) {
 
     updateConfig({
       seatingPlan: {
+        ...(savedSeatingPlan || {}),
         rows,
         cols,
         assignments: nextAssignments,
@@ -658,6 +686,7 @@ export default function SeatingPlanView({ onOpenExport }) {
         cols={cols}
         initialWishes={savedSeatingPlan?.wishNeighbors || {}}
         onApplyWishes={handleApplyWishes}
+        onUpdateWishes={handleUpdateWishes}
         formatStudentDisplayName={formatStudentDisplayName}
       />
     </div>
