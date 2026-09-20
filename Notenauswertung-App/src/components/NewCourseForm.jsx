@@ -861,6 +861,8 @@ export default function NewCourseForm() {
         style={{
           paddingTop: '1.25rem',
           borderTop: '1px solid var(--border)',
+          display: 'flex',
+          justifyContent: 'flex-end',
         }}
       >
         <button type="button" onClick={handleCreateCourse}>
