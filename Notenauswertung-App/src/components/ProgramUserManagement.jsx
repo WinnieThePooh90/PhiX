@@ -5,6 +5,7 @@ import { useDialog } from './PhixDialog';
 import PhixCheckboxOption from './PhixCheckboxOption';
 import { isReservedAdminUsername, userHasAdminRights } from '../utils/userAdmin';
 import { copyToClipboard } from '../utils/clipboard';
+import { exportUserTokensXlsx } from '../utils/userTokenExport';
 
 export default function ProgramUserManagement() {
   const { usersList, addUser, setPasswordForUser, setUserAdmin, deleteUser, currentUser } = useAuth();
@@ -187,6 +188,11 @@ export default function ProgramUserManagement() {
     }
   };
 
+  const exportTokenList = () => {
+    if (!createdBatch?.created?.length) return;
+    exportUserTokensXlsx(createdBatch.created);
+  };
+
   const passwordModal =
     passwordUserId &&
     createPortal(
@@ -325,6 +331,16 @@ export default function ProgramUserManagement() {
           )}
 
           <div className="program-user-mgmt-modal-actions" style={{ marginTop: '1.25rem' }}>
+            {createdBatch.created?.length > 0 && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={exportTokenList}
+                title="Token-Liste als Excel-Datei exportieren"
+              >
+                Liste exportieren
+              </button>
+            )}
             {createdBatch.created?.length > 1 && (
               <button type="button" className="program-user-mgmt-submit" onClick={copyAllTokens}>
                 {copiedAll ? 'Alle Tokens kopiert!' : 'Alle Tokens kopieren'}

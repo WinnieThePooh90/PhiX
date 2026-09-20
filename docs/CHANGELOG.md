@@ -6,6 +6,13 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 534 (2026-09-20)
+
+Excel-Export für Einrichtungs-Tokens in der Benutzerverwaltung:
+- Neuer Button „Liste exportieren“ im Dialog nach der Benutzererstellung hinzugefügt.
+- Exportiert die generierten Einrichtungs-Tokens als formatierte `.xlsx`-Datei mit Spalte 1 (Benutzername) und Spalte 2 (Token).
+- Jede Tabellenzeile ist auf 2 cm Höhe (~56,7 pt) skaliert und vertikal zentriert formatiert (optimal zum Ausdrucken und Zerschneiden in Übergabestreifen).
+
 ## Build 529 (2026-09-20)
 
 Fix Initialisierung der Schülerverwaltung:
