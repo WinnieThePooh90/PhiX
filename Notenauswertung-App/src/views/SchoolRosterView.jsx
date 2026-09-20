@@ -7,7 +7,7 @@ import { useDialog } from '../components/PhixDialog';
 import { parseSchoolRosterImportFile, SCHOOL_ROSTER_IMPORT_HELP } from '../utils/schoolRosterXlsxImport';
 import { CLASS_SECTION_OPTIONS, distinctClassSections, formatRosterClassLabel } from '../utils/schoolRosterClass';
 import GradingKeyHelpButton from '../components/GradingKeyHelpButton';
-import { defaultSchoolYear, normalizeSchoolYearLabel } from '../utils/schoolYear';
+import { defaultSchoolYear } from '../utils/schoolYear';
 
 const GRADE_OPTIONS = [5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -29,6 +29,7 @@ export default function SchoolRosterView() {
   const { showConfirm, showAlert } = useDialog();
 
   const activeYear = schoolRosterYears.find((y) => y.id === activeSchoolRosterYearId) ?? null;
+  const hasSchoolYears = schoolRosterYears.length > 0;
 
   const [newYearModalOpen, setNewYearModalOpen] = useState(false);
   const [newYearLabel, setNewYearLabel] = useState(() => defaultSchoolYear());
@@ -65,19 +66,17 @@ export default function SchoolRosterView() {
     [schoolRosterStudents, rosterGradeFilter],
   );
 
-  useEffect(() => {
-    if (rosterSectionFilter && !rosterSectionFilterOptions.includes(rosterSectionFilter)) {
-      setRosterSectionFilter('');
-    }
-  }, [rosterSectionFilter, rosterSectionFilterOptions]);
+  const effectiveSectionFilter = rosterSectionFilterOptions.includes(rosterSectionFilter)
+    ? rosterSectionFilter
+    : '';
 
   const filteredSchoolRoster = useMemo(() => {
     let rows = schoolRosterStudents;
     if (rosterGradeFilter !== null) {
       rows = rows.filter((row) => row.gradeLevel === rosterGradeFilter);
     }
-    if (rosterSectionFilter) {
-      rows = rows.filter((row) => String(row.classSection ?? '').toLowerCase() === rosterSectionFilter);
+    if (effectiveSectionFilter) {
+      rows = rows.filter((row) => String(row.classSection ?? '').toLowerCase() === effectiveSectionFilter);
     }
     const raw = rosterSearch.trim().toLowerCase();
     if (!raw) return rows;
@@ -86,7 +85,7 @@ export default function SchoolRosterView() {
       const hay = `${formatRosterClassLabel(row.gradeLevel, row.classSection)} ${String(row.lastName ?? '')} ${String(row.firstName ?? '')}`.toLowerCase();
       return tokens.every((t) => hay.includes(t));
     });
-  }, [schoolRosterStudents, rosterSearch, rosterGradeFilter, rosterSectionFilter]);
+  }, [schoolRosterStudents, rosterSearch, rosterGradeFilter, effectiveSectionFilter]);
 
   const busy = saving || importing || clearing;
 

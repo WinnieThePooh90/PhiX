@@ -6,6 +6,11 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 529 (2026-09-20)
+
+Fix Initialisierung der Schülerverwaltung:
+- Behebt einen `ReferenceError: hasSchoolYears is not defined` beim Rendern der Schülerverwaltung.
+
 ## Build 528 (2026-09-19)
 
 Fix State-Deklaration in der Schülerverwaltung:
