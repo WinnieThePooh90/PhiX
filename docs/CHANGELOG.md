@@ -6,6 +6,11 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 535 (2026-09-20)
+
+Kompaktere Einrichtungs-Tokens für neue Benutzer:
+- Die Länge neu erstellter Einrichtungs-Tokens (`createInitialSetupToken`) wurde auf handliche 10 Zeichen festgelegt.
+
 ## Build 534 (2026-09-20)
 
 Excel-Export für Einrichtungs-Tokens in der Benutzerverwaltung:

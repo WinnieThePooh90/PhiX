@@ -5,8 +5,12 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { BCRYPT_ROUNDS } = require('./app-user-password');
 
-async function createInitialSetupToken() {
-  const token = crypto.randomBytes(24).toString('base64url');
+const DEFAULT_SETUP_TOKEN_LENGTH = 10;
+
+async function createInitialSetupToken(length = DEFAULT_SETUP_TOKEN_LENGTH) {
+  const token = crypto.randomBytes(Math.ceil((length * 3) / 4) + 2)
+    .toString('base64url')
+    .slice(0, length);
   const hash = await bcrypt.hash(token, BCRYPT_ROUNDS);
   return { token, hash };
 }

@@ -10,7 +10,7 @@ const {
 describe('initial-setup-token', () => {
   it('createInitialSetupToken liefert verifizierbaren Token', async () => {
     const { token, hash } = await createInitialSetupToken();
-    assert.ok(token.length >= 20);
+    assert.equal(token.length, 10);
     assert.ok(hash.startsWith('$2'));
     assert.equal(await verifyInitialSetupToken(token, hash), true);
     assert.equal(await verifyInitialSetupToken('falsch', hash), false);
