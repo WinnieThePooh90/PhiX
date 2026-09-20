@@ -863,6 +863,7 @@ export default function NewCourseForm() {
           borderTop: '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'flex-end',
+          paddingRight: 'min(4rem, 10vw)',
         }}
       >
         <button type="button" onClick={handleCreateCourse}>
