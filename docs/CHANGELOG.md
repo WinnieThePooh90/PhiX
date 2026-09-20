@@ -6,6 +6,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 536 (2026-09-20)
+
+Druckoptimierung des Excel-Exports für Einrichtungs-Tokens:
+- Die Seiteneinrichtung des Excel-Exports wurde auf DIN A4 Hochformat mit automatischer 1-Seiten-Skalierung (`fitToWidth: 1`, `fitToHeight: 1`, `fitToPage: true`) und abgestimmten Seitenrändern angepasst.
+- Spaltenbreiten und Layout sorgen dafür, dass die Tabelle beim Drucken nahtlos und ohne Umbruch auf ein einzelnes DIN-A4-Blatt passt.
+
 ## Build 535 (2026-09-20)
 
 Kompaktere Einrichtungs-Tokens für neue Benutzer:

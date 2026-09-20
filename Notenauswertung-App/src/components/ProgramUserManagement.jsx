@@ -188,9 +188,9 @@ export default function ProgramUserManagement() {
     }
   };
 
-  const exportTokenList = () => {
+  const exportTokenList = async () => {
     if (!createdBatch?.created?.length) return;
-    exportUserTokensXlsx(createdBatch.created);
+    await exportUserTokensXlsx(createdBatch.created);
   };
 
   const passwordModal =
