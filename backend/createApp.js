@@ -1000,7 +1000,7 @@ app.get('/api/courses', async (req, res) => {
 app.post('/api/courses', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
-  const { ownerUsername: _ignoreOwner, ...rest } = req.body;
+  const { ownerUsername: _ignoreOwner, students, ...rest } = req.body;
   const kursstufe = rest.kursstufe === true || rest.kursstufe === 'true';
   const gradeSystem = kursstufe ? 'points' : (rest.gradeSystem || 'classic');
   const course = await prisma.course.create({
@@ -1023,6 +1023,31 @@ app.post('/api/courses', async (req, res) => {
       courseId: course.id,
     },
   });
+
+  if (Array.isArray(students) && students.length > 0) {
+    const validStudents = students
+      .filter((s) => s && (typeof s.firstName === 'string' || typeof s.lastName === 'string'))
+      .map((s, idx) => ({
+        firstName: String(s.firstName || '').trim(),
+        lastName: String(s.lastName || '').trim(),
+        courseId: course.id,
+        studentNumber: idx + 1,
+        frontendId: s.frontendId ? BigInt(s.frontendId) : null,
+      }))
+      .filter((s) => s.firstName || s.lastName);
+
+    if (validStudents.length > 0) {
+      for (const s of validStudents) {
+        await prisma.student.create({ data: s });
+      }
+      await syncCourseStudentNumbers(course.id);
+      await syncMoneyListEntriesForCourse(course.id);
+      await syncAttendanceListEntriesForCourse(course.id);
+      await syncCollectionListEntriesForCourse(course.id);
+      await syncNotesListEntriesForCourse(course.id);
+    }
+  }
+
   res.json(course);
 });
 

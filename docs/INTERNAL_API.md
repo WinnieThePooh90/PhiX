@@ -188,7 +188,7 @@ Weitere Details: [`ENCRYPTION.md`](ENCRYPTION.md), [`SECURITY.md`](SECURITY.md).
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
 | GET | `/api/courses` | Alle Kurse des angemeldeten Benutzers |
-| POST | `/api/courses` | Kurs anlegen (legt Standard-Klausuren, Mündlich, inaktiven Test an) |
+| POST | `/api/courses` | Kurs anlegen (legt Standard-Klausuren, Mündlich, inaktiven Test an; optional `students: [{ firstName, lastName }]` für initiales Anlegen) |
 | PUT | `/api/courses/:id` | Kurs aktualisieren (`ownerUsername` nicht änderbar) |
 | DELETE | `/api/courses/:id` | Kurs inkl. aller abhängigen Daten löschen |
 
