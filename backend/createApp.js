@@ -619,12 +619,107 @@ app.delete('/api/users/:id', async (req, res) => {
     return res.status(400).json({ error: 'Der Benutzer „admin“ kann nicht gelöscht werden.' });
   }
 
-  await prisma.course.deleteMany({ where: { ownerUsername: username } });
-  await prisma.schoolRosterYear.deleteMany({ where: { ownerUsername: username, isGlobal: false } });
-  await prisma.schoolRosterStudent.deleteMany({ where: { ownerUsername: username, isGlobal: false } });
-  await prisma.appUser.delete({ where: { id } });
+  try {
+    const userCourses = await prisma.course.findMany({
+      where: { ownerUsername: target.username },
+      select: { id: true },
+    });
+    const courseIds = userCourses.map((c) => c.id);
+    if (courseIds.length > 0) {
+      if (prisma.homeworkListEntry?.deleteMany) {
+        await prisma.homeworkListEntry.deleteMany({
+          where: { homeworkList: { courseId: { in: courseIds } } },
+        });
+      }
+      if (prisma.homeworkList?.deleteMany) {
+        await prisma.homeworkList.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.moneyListEntry?.deleteMany) {
+        await prisma.moneyListEntry.deleteMany({
+          where: { moneyList: { courseId: { in: courseIds } } },
+        });
+      }
+      if (prisma.moneyList?.deleteMany) {
+        await prisma.moneyList.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.attendanceListEntry?.deleteMany) {
+        await prisma.attendanceListEntry.deleteMany({
+          where: { attendanceList: { courseId: { in: courseIds } } },
+        });
+      }
+      if (prisma.attendanceList?.deleteMany) {
+        await prisma.attendanceList.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.collectionListEntry?.deleteMany) {
+        await prisma.collectionListEntry.deleteMany({
+          where: { collectionList: { courseId: { in: courseIds } } },
+        });
+      }
+      if (prisma.collectionList?.deleteMany) {
+        await prisma.collectionList.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.notesListEntry?.deleteMany) {
+        await prisma.notesListEntry.deleteMany({
+          where: { notesList: { courseId: { in: courseIds } } },
+        });
+      }
+      if (prisma.notesList?.deleteMany) {
+        await prisma.notesList.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.student?.deleteMany) {
+        await prisma.student.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.exam?.deleteMany) {
+        await prisma.exam.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.oral?.deleteMany) {
+        await prisma.oral.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.test?.deleteMany) {
+        await prisma.test.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.project?.deleteMany) {
+        await prisma.project.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.gfsEntry?.deleteMany) {
+        await prisma.gfsEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.referatEntry?.deleteMany) {
+        await prisma.referatEntry.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      if (prisma.albumPhoto?.deleteMany) {
+        await prisma.albumPhoto.deleteMany({ where: { courseId: { in: courseIds } } });
+      }
+      await prisma.course.deleteMany({ where: { id: { in: courseIds } } });
+    }
 
-  res.status(204).send();
+    if (prisma.schoolRosterStudent?.deleteMany) {
+      await prisma.schoolRosterStudent.deleteMany({
+        where: { ownerUsername: target.username, isGlobal: false },
+      });
+    }
+    if (prisma.schoolRosterYear?.deleteMany) {
+      await prisma.schoolRosterYear.deleteMany({
+        where: { ownerUsername: target.username, isGlobal: false },
+      });
+    }
+
+    if (prisma.userCrypto?.deleteMany) {
+      await prisma.userCrypto.deleteMany({ where: { userId: target.id } });
+    }
+    if (prisma.userSettings?.deleteMany) {
+      await prisma.userSettings.deleteMany({ where: { userId: target.id } });
+    }
+    if (prisma.userAuswertungshilfe?.deleteMany) {
+      await prisma.userAuswertungshilfe.deleteMany({ where: { userId: target.id } });
+    }
+    await prisma.appUser.delete({ where: { id: target.id } });
+
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    return res.status(500).json({ error: 'Löschen fehlgeschlagen.' });
+  }
 });
 
 app.patch('/api/users/:id/admin', async (req, res) => {

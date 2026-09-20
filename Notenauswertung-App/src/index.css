@@ -1537,6 +1537,10 @@ p {
   max-height: min(90vh, 100%);
   overflow: auto;
   padding: 1.25rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
 }
 
 .program-user-mgmt-modal-title {

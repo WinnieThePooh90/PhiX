@@ -376,7 +376,7 @@ export default function SchoolRosterView() {
             }}
           >
             <div
-              className="program-user-mgmt-modal-dialog"
+              className="program-user-mgmt-modal-dialog glass-panel"
               role="dialog"
               aria-modal="true"
               aria-labelledby="new-school-roster-year-title"
