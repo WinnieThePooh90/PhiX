@@ -23,3 +23,8 @@ Thumbs.db
 # Lokale Umgebung (nicht committen)
 .env
 backend/.env
+
+# Lokale Generatoren & Dokumente
+KeyGen/
+schnellstart.html
+

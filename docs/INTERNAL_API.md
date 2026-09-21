@@ -280,7 +280,8 @@ Alle folgenden Routen erfordern **Kurszugriff** (`courseId` muss dem angemeldete
 
 | Methode | Pfad | Query / Body |
 |---------|------|--------------|
-| GET | `/api/album-photos` | `?courseId=` |
+| GET | `/api/album-photos` | `?courseId=` (liefert nur Metadaten ohne `imageData`) |
+| GET | `/api/album-photos/:id/image` | — (liefert `{ id, mimeType, imageData }`) |
 | POST | `/api/album-photos` | Foto-Metadaten + Bilddaten |
 | PUT | `/api/album-photos/:id` | — |
 | DELETE | `/api/album-photos/:id` | — |

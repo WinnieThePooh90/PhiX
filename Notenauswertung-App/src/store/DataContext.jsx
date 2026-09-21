@@ -130,6 +130,8 @@ export const DataProvider = ({ children }) => {
   const [notesLists, setNotesLists] = useState([]);
   const [homeworkLists, setHomeworkLists] = useState([]);
   const [albumPhotos, setAlbumPhotos] = useState([]);
+  const [albumPhotosLoading, setAlbumPhotosLoading] = useState(false);
+  const [photoImageCache, setPhotoImageCache] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Fetch initial courses
@@ -235,7 +237,6 @@ export const DataProvider = ({ children }) => {
           collectionListsRes,
           notesListsRes,
           homeworkListsRes,
-          albumPhotosRes,
         ] = await Promise.all([
           safeFetchJson(`/api/students?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/exams?courseId=${activeCourseId}`, {}),
@@ -249,7 +250,6 @@ export const DataProvider = ({ children }) => {
           safeFetchJson(`/api/collection-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/notes-lists?courseId=${activeCourseId}`, []),
           safeFetchJson(`/api/homework-lists?courseId=${activeCourseId}`, []),
-          safeFetchJson(`/api/album-photos?courseId=${activeCourseId}`, []),
         ]);
         setStudents(Array.isArray(studentsRes) ? sortCourseStudents(studentsRes) : []);
         setExams(examsRes);
@@ -263,7 +263,8 @@ export const DataProvider = ({ children }) => {
         setCollectionLists(Array.isArray(collectionListsRes) ? collectionListsRes : []);
         setNotesLists(Array.isArray(notesListsRes) ? notesListsRes : []);
         setHomeworkLists(Array.isArray(homeworkListsRes) ? homeworkListsRes : []);
-        setAlbumPhotos(Array.isArray(albumPhotosRes) ? albumPhotosRes : []);
+        setAlbumPhotos([]);
+        setPhotoImageCache({});
       } catch (err) {
         console.error("Failed to fetch course data", err);
       } finally {
@@ -1750,6 +1751,48 @@ export const DataProvider = ({ children }) => {
     apiCall(`/api/referate/${entryId}`, 'DELETE');
   };
 
+  const loadAlbumPhotos = useCallback(async (courseId = activeCourseId) => {
+    const targetCourseId = courseId || activeCourseId;
+    if (!targetCourseId) {
+      setAlbumPhotos([]);
+      return [];
+    }
+    setAlbumPhotosLoading(true);
+    try {
+      const res = await fetchWithActing(`/api/album-photos?courseId=${targetCourseId}`).then((r) =>
+        r && r.ok ? r.json() : [],
+      );
+      const photos = Array.isArray(res) ? res : [];
+      setAlbumPhotos(photos);
+      return photos;
+    } catch (err) {
+      console.error('Failed to fetch album photos', err);
+      return [];
+    } finally {
+      setAlbumPhotosLoading(false);
+    }
+  }, [activeCourseId, fetchWithActing]);
+
+  const fetchAlbumPhotoImage = useCallback(async (photoId) => {
+    if (!photoId) return null;
+    if (photoImageCache[photoId]) {
+      return photoImageCache[photoId];
+    }
+    try {
+      const res = await fetchWithActing(`/api/album-photos/${photoId}/image`).then((r) =>
+        r && r.ok ? r.json() : null,
+      );
+      if (res?.imageData) {
+        setPhotoImageCache((prev) => ({ ...prev, [photoId]: res }));
+        return res;
+      }
+      return null;
+    } catch (err) {
+      console.error(`Failed to fetch album photo image ${photoId}`, err);
+      return null;
+    }
+  }, [fetchWithActing, photoImageCache]);
+
   const addAlbumPhoto = async ({ title, description, mimeType, imageData }) => {
     const created = await apiCall('/api/album-photos', 'POST', {
       courseId: activeCourseId,
@@ -1760,12 +1803,23 @@ export const DataProvider = ({ children }) => {
     });
     if (created?.id) {
       setAlbumPhotos((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+      if (created.imageData) {
+        setPhotoImageCache((prev) => ({
+          ...prev,
+          [created.id]: { id: created.id, mimeType: created.mimeType, imageData: created.imageData },
+        }));
+      }
     }
     return created;
   };
 
   const removeAlbumPhoto = (photoId) => {
     setAlbumPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    setPhotoImageCache((prev) => {
+      const next = { ...prev };
+      delete next[photoId];
+      return next;
+    });
     apiCall(`/api/album-photos/${photoId}`, 'DELETE');
   };
 
@@ -1776,7 +1830,7 @@ export const DataProvider = ({ children }) => {
     });
     if (updated?.id) {
       setAlbumPhotos((prev) =>
-        prev.map((p) => (p.id === photoId ? updated : p)).sort((a, b) => a.id - b.id),
+        prev.map((p) => (p.id === photoId ? { ...p, ...updated } : p)).sort((a, b) => a.id - b.id),
       );
     }
     return updated;
@@ -2315,7 +2369,7 @@ export const DataProvider = ({ children }) => {
       updateProjectGroupMemberCounted, updateProjectGroupMemberManualGrade, updateProjectGroupMemberManualGradeValue,
       gfsEntries, addGfsEntry, updateGfsEntry, removeGfsEntry,
       referatEntries, addReferatEntry, updateReferatEntry, removeReferatEntry,
-      albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto,
+      albumPhotos, albumPhotosLoading, loadAlbumPhotos, fetchAlbumPhotoImage, photoImageCache, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto,
       moneyLists, createMoneyList, updateMoneyList, deleteMoneyList, updateMoneyListEntryPaid,
       addMoneyListExternalEntry, removeMoneyListEntry,
       attendanceLists, createAttendanceList, updateAttendanceList, deleteAttendanceList,

@@ -2147,9 +2147,31 @@ app.get('/api/album-photos', async (req, res) => {
   if (!ok) return;
   const rows = await prisma.albumPhoto.findMany({
     where: { courseId },
+    select: {
+      id: true,
+      courseId: true,
+      title: true,
+      description: true,
+      mimeType: true,
+      sortOrder: true,
+      createdAt: true,
+    },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   });
   res.json(rows);
+});
+
+app.get('/api/album-photos/:id/image', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'id required' });
+  const photo = await prisma.albumPhoto.findUnique({
+    where: { id },
+    select: { id: true, courseId: true, mimeType: true, imageData: true },
+  });
+  if (!photo) return res.status(404).json({ error: 'not found' });
+  const ok = await assertCourseAccess(req, res, photo.courseId);
+  if (!ok) return;
+  res.json({ id: photo.id, mimeType: photo.mimeType, imageData: photo.imageData });
 });
 
 app.post('/api/album-photos', async (req, res) => {

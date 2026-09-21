@@ -35,8 +35,12 @@ function readFileAsBase64(file) {
 }
 
 function AlbumPhotoPreviewModal({ photo, onClose }) {
+  const { fetchAlbumPhotoImage, photoImageCache } = useData();
   const [zoom, setZoom] = useState(PREVIEW_MIN_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [imgData, setImgData] = useState(photo?.imageData || photoImageCache[photo?.id]?.imageData || '');
+  const [mimeType, setMimeType] = useState(photo?.mimeType || photoImageCache[photo?.id]?.mimeType || 'image/jpeg');
+  const [loading, setLoading] = useState(!photo?.imageData && !photoImageCache[photo?.id]?.imageData);
   const dragRef = useRef(null);
   const viewportRef = useRef(null);
 
@@ -48,7 +52,33 @@ function AlbumPhotoPreviewModal({ photo, onClose }) {
   useEffect(() => {
     if (!photo) return;
     resetView();
-  }, [photo, resetView]);
+    if (photo.imageData) {
+      setImgData(photo.imageData);
+      setMimeType(photo.mimeType || 'image/jpeg');
+      setLoading(false);
+      return;
+    }
+    const cached = photoImageCache[photo.id];
+    if (cached?.imageData) {
+      setImgData(cached.imageData);
+      setMimeType(cached.mimeType || photo.mimeType || 'image/jpeg');
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchAlbumPhotoImage(photo.id).then((res) => {
+      if (cancelled) return;
+      if (res?.imageData) {
+        setImgData(res.imageData);
+        setMimeType(res.mimeType || photo.mimeType || 'image/jpeg');
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [photo, photoImageCache, fetchAlbumPhotoImage, resetView]);
 
   useEffect(() => {
     if (!photo) return undefined;
@@ -84,7 +114,7 @@ function AlbumPhotoPreviewModal({ photo, onClose }) {
 
   if (!photo) return null;
 
-  const src = photoSrc(photo);
+  const src = photoSrc({ imageData: imgData, mimeType });
   const canPan = zoom > PREVIEW_MIN_ZOOM;
 
   const handlePointerDown = (e) => {
@@ -176,20 +206,120 @@ function AlbumPhotoPreviewModal({ photo, onClose }) {
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
         >
-          <img
-            src={src}
-            alt={photo.title || 'Albumfoto'}
-            className="album-preview-image"
-            style={{
-              transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-            }}
-            draggable={false}
-          />
+          {loading ? (
+            <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>
+              Bild wird geladen…
+            </div>
+          ) : (
+            <img
+              src={src}
+              alt={photo.title || 'Albumfoto'}
+              className="album-preview-image"
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+              }}
+              draggable={false}
+            />
+          )}
         </div>
         <p className="album-preview-hint">Mausrad zum Zoomen · bei Vergrößerung ziehen zum Verschieben</p>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function AlbumPhotoCard({
+  photo,
+  courseArchived,
+  onEdit,
+  onRemove,
+  onPreview,
+  fetchAlbumPhotoImage,
+  photoImageCache,
+}) {
+  const cached = photoImageCache[photo.id];
+  const [loading, setLoading] = useState(!photo.imageData && !cached?.imageData);
+  const [imgData, setImgData] = useState(photo.imageData || cached?.imageData || '');
+  const [mimeType, setMimeType] = useState(photo.mimeType || cached?.mimeType || 'image/jpeg');
+
+  useEffect(() => {
+    if (photo.imageData) {
+      setImgData(photo.imageData);
+      setMimeType(photo.mimeType || 'image/jpeg');
+      setLoading(false);
+      return;
+    }
+    if (cached?.imageData) {
+      setImgData(cached.imageData);
+      setMimeType(cached.mimeType || photo.mimeType || 'image/jpeg');
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchAlbumPhotoImage(photo.id).then((res) => {
+      if (cancelled) return;
+      if (res?.imageData) {
+        setImgData(res.imageData);
+        setMimeType(res.mimeType || photo.mimeType || 'image/jpeg');
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [photo.id, photo.imageData, photo.mimeType, cached, fetchAlbumPhotoImage]);
+
+  const fullPhoto = { ...photo, imageData: imgData, mimeType };
+
+  return (
+    <article className="album-photo-card">
+      <div className="album-photo-card-head">
+        <h2 className="album-photo-title">{photo.title || 'Ohne Titel'}</h2>
+        {!courseArchived ? (
+          <div className="album-photo-actions">
+            <button
+              type="button"
+              className="tab secondary album-photo-icon-btn"
+              onClick={() => onEdit(fullPhoto)}
+              title="Titel und Beschreibung bearbeiten"
+              aria-label={`Bearbeiten: ${photo.title || 'Albumfoto'}`}
+            >
+              <Wrench size={16} strokeWidth={2.25} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="danger secondary album-photo-icon-btn"
+              onClick={() => onRemove(photo)}
+              title="Foto entfernen"
+              aria-label={`Foto entfernen: ${photo.title || 'Albumfoto'}`}
+            >
+              <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        className="album-photo-image-wrap course-archived-allow"
+        onClick={() => onPreview(fullPhoto)}
+        aria-label={`${photo.title || 'Albumfoto'} vergrößern`}
+      >
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '140px', color: 'var(--text-muted, #888)', fontSize: '0.9rem' }}>
+            Lädt…
+          </div>
+        ) : (
+          <img src={photoSrc(fullPhoto)} alt="" loading="lazy" />
+        )}
+      </button>
+      {photo.description ? (
+        <p className="album-photo-description">{photo.description}</p>
+      ) : (
+        <p className="album-photo-description album-photo-description--empty">Keine Beschreibung</p>
+      )}
+    </article>
   );
 }
 
@@ -422,7 +552,18 @@ function AlbumUploadModal({ open, onClose, onUpload, uploading }) {
 }
 
 export default function AlbumView() {
-  const { albumPhotos, addAlbumPhoto, updateAlbumPhoto, removeAlbumPhoto, courseArchived } = useData();
+  const {
+    albumPhotos,
+    albumPhotosLoading,
+    loadAlbumPhotos,
+    fetchAlbumPhotoImage,
+    photoImageCache,
+    addAlbumPhoto,
+    updateAlbumPhoto,
+    removeAlbumPhoto,
+    courseArchived,
+    activeCourseId,
+  } = useData();
   const { showAlert, showConfirm } = useDialog();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -430,6 +571,10 @@ export default function AlbumView() {
   const [previewPhoto, setPreviewPhoto] = useState(null);
   const [editPhoto, setEditPhoto] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    loadAlbumPhotos(activeCourseId);
+  }, [activeCourseId, loadAlbumPhotos]);
 
   const handleUpload = async (payload) => {
     setUploading(true);
@@ -468,7 +613,7 @@ export default function AlbumView() {
         return;
       }
       if (previewPhoto?.id === editPhoto.id) {
-        setPreviewPhoto(updated);
+        setPreviewPhoto((prev) => (prev ? { ...prev, ...updated } : null));
       }
     } finally {
       setSavingEdit(false);
@@ -505,7 +650,9 @@ export default function AlbumView() {
         </div>
       </div>
 
-      {!hasPhotos ? (
+      {albumPhotosLoading && albumPhotos.length === 0 ? (
+        <p className="album-view-empty">Album wird geladen…</p>
+      ) : !hasPhotos ? (
         <p className="album-view-empty">Noch keine Fotos im Album. Klicke auf „Hochladen“, um ein Foto hinzuzufügen.</p>
       ) : !photosVisible ? (
         <div className="album-photo-placeholder" role="status" aria-live="polite">
@@ -514,46 +661,16 @@ export default function AlbumView() {
       ) : (
         <div className="album-photo-grid">
           {albumPhotos.map((photo) => (
-            <article key={photo.id} className="album-photo-card">
-              <div className="album-photo-card-head">
-                <h2 className="album-photo-title">{photo.title || 'Ohne Titel'}</h2>
-                {!courseArchived ? (
-                <div className="album-photo-actions">
-                  <button
-                    type="button"
-                    className="tab secondary album-photo-icon-btn"
-                    onClick={() => setEditPhoto(photo)}
-                    title="Titel und Beschreibung bearbeiten"
-                    aria-label={`Bearbeiten: ${photo.title || 'Albumfoto'}`}
-                  >
-                    <Wrench size={16} strokeWidth={2.25} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="danger secondary album-photo-icon-btn"
-                    onClick={() => handleRemove(photo)}
-                    title="Foto entfernen"
-                    aria-label={`Foto entfernen: ${photo.title || 'Albumfoto'}`}
-                  >
-                    <Trash2 size={16} strokeWidth={2.25} aria-hidden />
-                  </button>
-                </div>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="album-photo-image-wrap course-archived-allow"
-                onClick={() => setPreviewPhoto(photo)}
-                aria-label={`${photo.title || 'Albumfoto'} vergrößern`}
-              >
-                <img src={photoSrc(photo)} alt="" loading="lazy" />
-              </button>
-              {photo.description ? (
-                <p className="album-photo-description">{photo.description}</p>
-              ) : (
-                <p className="album-photo-description album-photo-description--empty">Keine Beschreibung</p>
-              )}
-            </article>
+            <AlbumPhotoCard
+              key={photo.id}
+              photo={photo}
+              courseArchived={courseArchived}
+              onEdit={(p) => setEditPhoto(p)}
+              onRemove={handleRemove}
+              onPreview={(p) => setPreviewPhoto(p)}
+              fetchAlbumPhotoImage={fetchAlbumPhotoImage}
+              photoImageCache={photoImageCache}
+            />
           ))}
         </div>
       )}
