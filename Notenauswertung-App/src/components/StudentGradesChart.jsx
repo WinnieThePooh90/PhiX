@@ -274,20 +274,20 @@ export default function StudentGradesChart({
     );
   }, [seriesData]);
 
-  // Y-Skala
-  // Bei Noten (1-6): 1 ist oben (padTop), 6 ist unten (padTop + plotH)
-  // Bei Notenpunkten (0-15): 15 ist oben (padTop), 0 ist unten (padTop + plotH)
+  // Y-Skala: Von unten nach oben
+  // Bei Noten (1-6): 1 ist ganz unten (padTop + plotH), 6 ist ganz oben (padTop)
+  // Bei Notenpunkten (0-15): 0 ist ganz unten (padTop + plotH), 15 ist ganz oben (padTop)
   const getY = (grade) => {
     if (isPoints) {
       const clamped = Math.max(0, Math.min(15, grade));
-      return padTop + ((15 - clamped) / 15) * plotH;
+      return padTop + plotH - (clamped / 15) * plotH;
     }
     const clamped = Math.max(1, Math.min(6, grade));
-    return padTop + ((clamped - 1) / 5) * plotH;
+    return padTop + plotH - ((clamped - 1) / 5) * plotH;
   };
 
   const yTicks = isPoints
-    ? [15, 12, 9, 6, 3, 0]
+    ? [0, 3, 6, 9, 12, 15]
     : [1, 2, 3, 4, 5, 6];
 
   // X-Koordinate für xIndex (1, 2, ...)
@@ -305,7 +305,7 @@ export default function StudentGradesChart({
     return ticks;
   }, [maxX]);
 
-  // Alle Punkte mit Koordinaten und Überlappungs-Offset
+  // Alle Punkte mit Koordinaten und dynamischem Überlappungs-Offset (Cluster-Erkennung bei dicht beieinander liegenden Noten)
   const pointsWithCoords = useMemo(() => {
     const all = [
       ...seriesData.exam,
@@ -315,33 +315,62 @@ export default function StudentGradesChart({
       ...seriesData.project,
     ];
 
-    // Gruppierung nach (xIndex, gerundete Note), um Überlappungen nebeneinander zu staffeln
-    const groups = new Map();
+    // Gruppierung nach xIndex
+    const byXIndex = new Map();
     all.forEach((p) => {
-      const key = `${p.xIndex}_${p.grade.toFixed(2)}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(p);
+      if (!byXIndex.has(p.xIndex)) byXIndex.set(p.xIndex, []);
+      byXIndex.get(p.xIndex).push(p);
     });
 
     const result = [];
-    groups.forEach((items) => {
-      const m = items.length;
-      items.forEach((item, idx) => {
-        let xOffset = 0;
-        if (m === 2) {
-          xOffset = idx === 0 ? -5 : 5;
-        } else if (m === 3) {
-          xOffset = (idx - 1) * 7;
-        } else if (m >= 4) {
-          xOffset = (idx - (m - 1) / 2) * 6;
-        }
+    const Y_COLLISION_THRESHOLD = 16; // Pixel-Abstand, unter dem Noten als dicht beieinander gelten
 
-        result.push({
-          ...item,
-          baseX: getX(item.xIndex),
-          x: getX(item.xIndex) + xOffset,
-          y: getY(item.grade),
-          formattedGrade: formatGrade(item.grade, gradeSys),
+    byXIndex.forEach((itemsAtX) => {
+      // Nach Y-Position sortieren
+      const sorted = [...itemsAtX].sort((a, b) => getY(a.grade) - getY(b.grade));
+
+      // Cluster von dicht beieinander liegenden Punkten bilden
+      const clusters = [];
+      let currentCluster = [];
+
+      sorted.forEach((item) => {
+        if (currentCluster.length === 0) {
+          currentCluster.push(item);
+        } else {
+          const lastItem = currentCluster[currentCluster.length - 1];
+          const dist = Math.abs(getY(item.grade) - getY(lastItem.grade));
+          if (dist < Y_COLLISION_THRESHOLD) {
+            currentCluster.push(item);
+          } else {
+            clusters.push(currentCluster);
+            currentCluster = [item];
+          }
+        }
+      });
+      if (currentCluster.length > 0) {
+        clusters.push(currentCluster);
+      }
+
+      // Für jedes Cluster horizontale Offsets (links / rechts) zuweisen
+      clusters.forEach((cluster) => {
+        const m = cluster.length;
+        cluster.forEach((item, idx) => {
+          let xOffset = 0;
+          if (m === 2) {
+            xOffset = idx === 0 ? -7 : 7;
+          } else if (m === 3) {
+            xOffset = (idx - 1) * 8;
+          } else if (m >= 4) {
+            xOffset = (idx - (m - 1) / 2) * 8;
+          }
+
+          result.push({
+            ...item,
+            baseX: getX(item.xIndex),
+            x: getX(item.xIndex) + xOffset,
+            y: getY(item.grade),
+            formattedGrade: formatGrade(item.grade, gradeSys),
+          });
         });
       });
     });
@@ -434,7 +463,7 @@ export default function StudentGradesChart({
               rx="4"
             />
 
-            {/* Horizontale Y-Grid-Linien & Beschriftung */}
+            {/* Horizontale Y-Grid-Linien & Beschriftung (1 unten ... 6 oben bzw. 0 unten ... 15 oben) */}
             {yTicks.map((val) => {
               const y = getY(val);
               return (
