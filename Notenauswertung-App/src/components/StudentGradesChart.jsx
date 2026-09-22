@@ -16,7 +16,7 @@ const LEGEND_ITEMS = [
   { key: 'exam', label: 'Klausuren (KA)', color: '#f97316' },
   { key: 'oral', label: 'Mündliche Noten', color: '#3b82f6' },
   { key: 'test', label: 'Tests', color: '#22c55e' },
-  { key: 'gfs_referat', label: 'GFS und Referate', color: '#d97706' },
+  { key: 'gfs_referat', label: 'GFS und Referate', color: '#eab308' },
   { key: 'project', label: 'Projekte', color: '#a855f7' },
 ];
 
@@ -153,7 +153,7 @@ export default function StudentGradesChart({
               shortLabel: `GFS${xIndex}`,
               xIndex,
               grade: gNum,
-              color: '#d97706',
+              color: '#eab308',
               halbjahr: e.halbjahr || '1',
             });
           }
@@ -185,7 +185,7 @@ export default function StudentGradesChart({
               shortLabel: `Ref.${xIndex}`,
               xIndex,
               grade: gNum,
-              color: '#d97706',
+              color: '#eab308',
               halbjahr: e.halbjahr || '1',
             });
           }
@@ -384,7 +384,7 @@ export default function StudentGradesChart({
       { key: 'exam', items: seriesData.exam, color: '#f97316' },
       { key: 'oral', items: seriesData.oral, color: '#3b82f6' },
       { key: 'test', items: seriesData.test, color: '#22c55e' },
-      { key: 'gfs_referat', items: seriesData.gfs_referat, color: '#d97706' },
+      { key: 'gfs_referat', items: seriesData.gfs_referat, color: '#eab308' },
       { key: 'project', items: seriesData.project, color: '#a855f7' },
     ];
 
