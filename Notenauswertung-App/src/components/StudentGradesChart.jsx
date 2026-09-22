@@ -13,7 +13,7 @@ import {
 } from '../utils/calculator';
 
 const LEGEND_ITEMS = [
-  { key: 'exam', label: 'Klausuren', color: '#f97316' },
+  { key: 'exam', label: 'Klausuren (KA)', color: '#f97316' },
   { key: 'oral', label: 'Mündliche Noten', color: '#3b82f6' },
   { key: 'test', label: 'Tests', color: '#22c55e' },
   { key: 'gfs_referat', label: 'GFS und Referate', color: '#d97706' },
@@ -43,11 +43,24 @@ export default function StudentGradesChart({
 
   const isPoints = gradeSys === 'points';
 
-  const gradePoints = useMemo(() => {
-    if (!student) return [];
-    const list = [];
+  const seriesData = useMemo(() => {
+    if (!student) {
+      return {
+        exam: [],
+        oral: [],
+        test: [],
+        gfs_referat: [],
+        project: [],
+      };
+    }
 
-    // Klausuren
+    const examList = [];
+    const testList = [];
+    const oralList = [];
+    const gfsReferatList = [];
+    const projectList = [];
+
+    // Klausuren: gezählt von 1 aufwärts
     Object.entries(exams || {})
       .filter(([_, e]) => e && e.active)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -58,20 +71,22 @@ export default function StudentGradesChart({
         );
         const gr = getExamGradeForStudent(e, student.id, customGradingKeys, gradeSys);
         if (counted && gr !== null && Number.isFinite(gr)) {
-          list.push({
+          const xIndex = examList.length + 1;
+          examList.push({
             id: `exam-${id}`,
             type: 'exam',
             category: 'Klausur',
             name: e.name ? `${e.name}` : `KA ${id}`,
+            shortLabel: `KA${xIndex}`,
+            xIndex,
             grade: gr,
             color: '#f97316',
             halbjahr: e.halbjahr || '1',
-            orderKey: (e.halbjahr === '2' ? 200 : 100) + Number(id),
           });
         }
       });
 
-    // Tests
+    // Tests: gezählt von 1 aufwärts
     if (testsWritten !== false) {
       Object.entries(tests || {})
         .filter(([_, t]) => t && t.active)
@@ -81,21 +96,23 @@ export default function StudentGradesChart({
           const { counted } = getNormalizedTestScore(sm?.[student.id]);
           const gr = counted ? getTestGradeForStudent(t, student.id, customGradingKeys, gradeSys) : null;
           if (counted && gr !== null && Number.isFinite(gr)) {
-            list.push({
+            const xIndex = testList.length + 1;
+            testList.push({
               id: `test-${id}`,
               type: 'test',
               category: 'Test',
               name: t.name ? `${t.name}` : `Test ${id}`,
+              shortLabel: `Test${xIndex}`,
+              xIndex,
               grade: gr,
               color: '#22c55e',
               halbjahr: t.halbjahr || '1',
-              orderKey: (t.halbjahr === '2' ? 200 : 100) + 20 + Number(id),
             });
           }
         });
     }
 
-    // Mündlich
+    // Mündliche Noten: gezählt von 1 aufwärts
     Object.entries(orals || {})
       .filter(([_, o]) => o && o.active !== false)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -103,20 +120,22 @@ export default function StudentGradesChart({
         const { value, counted } = getNormalizedOralGrade(o.grades?.[student.id]);
         const oralG = counted && value ? storedGradeStringToClassic(String(value), gradeSys) : null;
         if (counted && oralG !== null && Number.isFinite(oralG)) {
-          list.push({
+          const xIndex = oralList.length + 1;
+          oralList.push({
             id: `oral-${id}`,
             type: 'oral',
             category: 'Mündlich',
             name: o.name ? `${o.name}` : `Mündlich ${id}`,
+            shortLabel: `Mündl.${xIndex}`,
+            xIndex,
             grade: oralG,
             color: '#3b82f6',
             halbjahr: o.halbjahr || '1',
-            orderKey: (o.halbjahr === '2' ? 200 : 100) + 40 + Number(id),
           });
         }
       });
 
-    // GFS
+    // GFS & Referate: gezählt von 1 aufwärts
     if (showGfs && Array.isArray(gfsEntries)) {
       gfsEntries
         .filter((e) => e && e.studentId === student.id)
@@ -124,22 +143,23 @@ export default function StudentGradesChart({
           const gNum = storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
+            const xIndex = gfsReferatList.length + 1;
             const thema = String(e.thema ?? '').trim();
-            list.push({
+            gfsReferatList.push({
               id: `gfs-${e.id}`,
               type: 'gfs_referat',
               category: 'GFS',
               name: thema ? `GFS: ${thema}` : 'GFS',
+              shortLabel: `GFS${xIndex}`,
+              xIndex,
               grade: gNum,
               color: '#d97706',
               halbjahr: e.halbjahr || '1',
-              orderKey: (e.halbjahr === '2' ? 200 : 100) + 60,
             });
           }
         });
     }
 
-    // Referate
     if (
       showReferate &&
       (referatCountsAsExam ||
@@ -155,22 +175,24 @@ export default function StudentGradesChart({
           const gNum = storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
+            const xIndex = gfsReferatList.length + 1;
             const thema = String(e.thema ?? '').trim();
-            list.push({
+            gfsReferatList.push({
               id: `referat-${e.id}`,
               type: 'gfs_referat',
               category: 'Referat',
               name: thema ? `Referat: ${thema}` : 'Referat',
+              shortLabel: `Ref.${xIndex}`,
+              xIndex,
               grade: gNum,
               color: '#d97706',
               halbjahr: e.halbjahr || '1',
-              orderKey: (e.halbjahr === '2' ? 200 : 100) + 70,
             });
           }
         });
     }
 
-    // Projekte
+    // Projekte: gezählt von 1 aufwärts
     Object.entries(projects || {})
       .filter(([_, p]) => p && p.active)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -178,21 +200,28 @@ export default function StudentGradesChart({
         const counted = isProjectScoreCountedForStudent(p, student.id);
         const gr = getProjectGradeForStudent(p, student.id, customGradingKeys, gradeSys);
         if (counted && gr !== null && Number.isFinite(gr)) {
-          list.push({
+          const xIndex = projectList.length + 1;
+          projectList.push({
             id: `proj-${id}`,
             type: 'project',
             category: 'Projekt',
             name: p.name ? `${p.name}` : `Projekt ${id}`,
+            shortLabel: `Proj.${xIndex}`,
+            xIndex,
             grade: gr,
             color: '#a855f7',
             halbjahr: p.halbjahr || '1',
-            orderKey: (p.halbjahr === '2' ? 200 : 100) + 80 + Number(id),
           });
         }
       });
 
-    list.sort((a, b) => a.orderKey - b.orderKey);
-    return list;
+    return {
+      exam: examList,
+      oral: oralList,
+      test: testList,
+      gfs_referat: gfsReferatList,
+      project: projectList,
+    };
   }, [
     student,
     exams,
@@ -223,6 +252,28 @@ export default function StudentGradesChart({
   const plotW = vbWidth - padLeft - padRight;
   const plotH = vbHeight - padTop - padBottom;
 
+  // Maximaler X-Index
+  const maxX = useMemo(() => {
+    const counts = [
+      seriesData.exam.length,
+      seriesData.oral.length,
+      seriesData.test.length,
+      seriesData.gfs_referat.length,
+      seriesData.project.length,
+    ];
+    return Math.max(1, ...counts);
+  }, [seriesData]);
+
+  const totalPointsCount = useMemo(() => {
+    return (
+      seriesData.exam.length +
+      seriesData.oral.length +
+      seriesData.test.length +
+      seriesData.gfs_referat.length +
+      seriesData.project.length
+    );
+  }, [seriesData]);
+
   // Y-Skala
   // Bei Noten (1-6): 1 ist oben (padTop), 6 ist unten (padTop + plotH)
   // Bei Notenpunkten (0-15): 15 ist oben (padTop), 0 ist unten (padTop + plotH)
@@ -239,26 +290,93 @@ export default function StudentGradesChart({
     ? [15, 12, 9, 6, 3, 0]
     : [1, 2, 3, 4, 5, 6];
 
-  const count = gradePoints.length;
-
-  // X-Koordinaten berechnen
-  const getX = (idx) => {
-    if (count <= 1) {
-      return padLeft + plotW / 2;
-    }
-    const step = plotW / (count + 1);
-    return padLeft + (idx + 1) * step;
+  // X-Koordinate für xIndex (1, 2, ...)
+  const getX = (xIndex) => {
+    const step = plotW / (maxX + 1);
+    return padLeft + xIndex * step;
   };
 
-  const pointsWithCoords = gradePoints.map((item, idx) => ({
-    ...item,
-    xIndex: idx + 1,
-    x: getX(idx),
-    y: getY(item.grade),
-    formattedGrade: formatGrade(item.grade, gradeSys),
-  }));
+  // Liste aller Ticks auf der X-Achse
+  const xTicks = useMemo(() => {
+    const ticks = [];
+    for (let i = 1; i <= maxX; i++) {
+      ticks.push(i);
+    }
+    return ticks;
+  }, [maxX]);
 
-  const polylinePoints = pointsWithCoords.map((p) => `${p.x},${p.y}`).join(' ');
+  // Alle Punkte mit Koordinaten und Überlappungs-Offset
+  const pointsWithCoords = useMemo(() => {
+    const all = [
+      ...seriesData.exam,
+      ...seriesData.test,
+      ...seriesData.oral,
+      ...seriesData.gfs_referat,
+      ...seriesData.project,
+    ];
+
+    // Gruppierung nach (xIndex, gerundete Note), um Überlappungen nebeneinander zu staffeln
+    const groups = new Map();
+    all.forEach((p) => {
+      const key = `${p.xIndex}_${p.grade.toFixed(2)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    });
+
+    const result = [];
+    groups.forEach((items) => {
+      const m = items.length;
+      items.forEach((item, idx) => {
+        let xOffset = 0;
+        if (m === 2) {
+          xOffset = idx === 0 ? -5 : 5;
+        } else if (m === 3) {
+          xOffset = (idx - 1) * 7;
+        } else if (m >= 4) {
+          xOffset = (idx - (m - 1) / 2) * 6;
+        }
+
+        result.push({
+          ...item,
+          baseX: getX(item.xIndex),
+          x: getX(item.xIndex) + xOffset,
+          y: getY(item.grade),
+          formattedGrade: formatGrade(item.grade, gradeSys),
+        });
+      });
+    });
+
+    return result;
+  }, [seriesData, maxX, gradeSys, isPoints]);
+
+  // Serien-Linien (jeder Notentyp bekommt seine eigene Linie über x=1, x=2, etc.)
+  const seriesLines = useMemo(() => {
+    const categories = [
+      { key: 'exam', items: seriesData.exam, color: '#f97316' },
+      { key: 'oral', items: seriesData.oral, color: '#3b82f6' },
+      { key: 'test', items: seriesData.test, color: '#22c55e' },
+      { key: 'gfs_referat', items: seriesData.gfs_referat, color: '#d97706' },
+      { key: 'project', items: seriesData.project, color: '#a855f7' },
+    ];
+
+    return categories
+      .filter((cat) => cat.items.length > 1)
+      .map((cat) => {
+        const pointsStr = cat.items
+          .map((item) => {
+            const found = pointsWithCoords.find((p) => p.id === item.id);
+            const x = found ? found.x : getX(item.xIndex);
+            const y = found ? found.y : getY(item.grade);
+            return `${x},${y}`;
+          })
+          .join(' ');
+        return {
+          key: cat.key,
+          color: cat.color,
+          pointsStr,
+        };
+      });
+  }, [seriesData, pointsWithCoords, maxX, isPoints]);
 
   return (
     <div
@@ -281,7 +399,7 @@ export default function StudentGradesChart({
             color: 'var(--text-main)',
           }}
         >
-          Notenverlauf ({count} {count === 1 ? 'Note' : 'Noten'})
+          Notenverlauf nach Nr. ({totalPointsCount} {totalPointsCount === 1 ? 'Note' : 'Noten'})
         </h4>
       </div>
 
@@ -344,41 +462,47 @@ export default function StudentGradesChart({
               );
             })}
 
-            {/* Vertikale X-Grid-Linien & Beschriftung (Note 1..N) */}
-            {pointsWithCoords.map((p) => (
-              <g key={`xtick-${p.id}`}>
-                <line
-                  x1={p.x}
-                  x2={p.x}
-                  y1={padTop}
-                  y2={padTop + plotH}
-                  stroke="hsl(var(--foreground) / 0.06)"
-                  strokeWidth="1"
-                />
-                <text
-                  x={p.x}
-                  y={padTop + plotH + 18}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fontWeight="600"
-                  fill="var(--text-muted)"
-                >
-                  {p.xIndex}
-                </text>
-              </g>
-            ))}
+            {/* Vertikale X-Grid-Linien & Beschriftung (x = 1, 2, 3...) */}
+            {xTicks.map((tickVal) => {
+              const x = getX(tickVal);
+              return (
+                <g key={`xtick-${tickVal}`}>
+                  <line
+                    x1={x}
+                    x2={x}
+                    y1={padTop}
+                    y2={padTop + plotH}
+                    stroke="hsl(var(--foreground) / 0.06)"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={x}
+                    y={padTop + plotH + 18}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill="var(--text-muted)"
+                  >
+                    {tickVal}
+                  </text>
+                </g>
+              );
+            })}
 
-            {/* Verbindungslinie */}
-            {count > 1 && (
+            {/* Kategorien-Verbindungslinien */}
+            {seriesLines.map((line) => (
               <polyline
+                key={`line-${line.key}`}
                 fill="none"
-                stroke="hsl(var(--foreground) / 0.25)"
-                strokeWidth="2"
+                stroke={line.color}
+                strokeWidth="1.75"
+                strokeOpacity="0.45"
+                strokeDasharray="3 3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                points={polylinePoints}
+                points={line.pointsStr}
               />
-            )}
+            ))}
 
             {/* Datenpunkte */}
             {pointsWithCoords.map((p) => {
@@ -390,7 +514,7 @@ export default function StudentGradesChart({
                   onMouseEnter={() => setHoveredPoint(p)}
                   onMouseLeave={() => setHoveredPoint(null)}
                 >
-                  <title>{`${p.name}: ${p.formattedGrade} (${p.category}, HJ ${p.halbjahr})`}</title>
+                  <title>{`${p.name}: ${p.formattedGrade} (${p.category} ${p.xIndex}, HJ ${p.halbjahr})`}</title>
                   {isHovered && (
                     <circle
                       cx={p.x}
@@ -412,7 +536,7 @@ export default function StudentGradesChart({
                   {/* Note über/unter dem Punkt */}
                   <text
                     x={p.x}
-                    y={p.y - 10}
+                    y={p.y - 9}
                     textAnchor="middle"
                     fontSize="10"
                     fontWeight="700"
@@ -425,7 +549,7 @@ export default function StudentGradesChart({
             })}
 
             {/* Leerer Zustand */}
-            {count === 0 && (
+            {totalPointsCount === 0 && (
               <text
                 x={padLeft + plotW / 2}
                 y={padTop + plotH / 2 + 4}
@@ -446,7 +570,7 @@ export default function StudentGradesChart({
               fontWeight="600"
               fill="var(--text-muted)"
             >
-              Anzahl Noten →
+              Note Nr. (x) →
             </text>
             <text
               x={padLeft - 2}
@@ -491,7 +615,7 @@ export default function StudentGradesChart({
               <strong>{hoveredPoint.name}:</strong>
               <span>{hoveredPoint.formattedGrade}</span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                ({hoveredPoint.category}, HJ {hoveredPoint.halbjahr})
+                (x={hoveredPoint.xIndex}, {hoveredPoint.category}, HJ {hoveredPoint.halbjahr})
               </span>
             </div>
           )}
@@ -522,31 +646,48 @@ export default function StudentGradesChart({
           >
             Legende
           </div>
-          {LEGEND_ITEMS.map((item) => (
-            <div
-              key={item.key}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.825rem',
-                color: 'var(--foreground)',
-              }}
-            >
-              <span
+          {LEGEND_ITEMS.map((item) => {
+            const count = seriesData[item.key]?.length || 0;
+            return (
+              <div
+                key={item.key}
                 style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: item.color,
-                  display: 'inline-block',
-                  flexShrink: 0,
-                  boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  fontSize: '0.825rem',
+                  color: 'var(--foreground)',
                 }}
-              />
-              <span>{item.label}</span>
-            </div>
-          ))}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: item.color,
+                      display: 'inline-block',
+                      flexShrink: 0,
+                      boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
+                    }}
+                  />
+                  <span>{item.label}</span>
+                </div>
+                {count > 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    ({count})
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
