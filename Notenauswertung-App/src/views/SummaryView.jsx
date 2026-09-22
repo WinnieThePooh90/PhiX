@@ -18,6 +18,7 @@ import {
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
+import StudentGradesChart from '../components/StudentGradesChart';
 import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
 import { focusAdjacentSummaryGradeInput, isEnterAsTabKey } from '../utils/tableEnterAsTab';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
@@ -1258,6 +1259,25 @@ export default function SummaryView({
                           testsAsHalfExam={testsAsHalfExam}
                           testsAsOral={testsAsOral}
                           kursstufe={isKursstufe}
+                        />
+                        <StudentGradesChart
+                          student={s}
+                          exams={exams}
+                          orals={orals}
+                          tests={tests}
+                          projects={projects}
+                          gfsEntries={gfsEntries}
+                          referatEntries={referatEntries}
+                          referatCountsAsExam={referatCountsAsExam}
+                          referatCountsAsOral={referatCountsAsOral}
+                          referatCountsAsPartialWritten={referatCountsAsPartialWritten}
+                          referatCountsAsPartialOral={referatCountsAsPartialOral}
+                          referatCountsAsFinalPercent={referatCountsAsFinalPercent}
+                          showGfs={showGfs}
+                          showReferate={showReferate}
+                          customGradingKeys={customGradingKeys}
+                          gradeSys={gradeSys}
+                          testsWritten={config.testsWritten !== false}
                         />
                         {hasSummaryNotes(s) && (
                           <div
