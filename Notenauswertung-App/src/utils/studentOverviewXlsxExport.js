@@ -27,7 +27,6 @@ import {
   usesReferatFinalPercent,
   resolveCourseWeighting,
 } from './courseWeightingOptions';
-import { buildSummaryOverviewExportData } from './summaryOverviewExport';
 import { uniqueSheetName } from './phixXlsxExport';
 import { buildStudentGradesChartSvg, STUDENT_CHART_WIDTH, STUDENT_CHART_HEIGHT } from './studentGradesChartSvg';
 import { rasterizeSvgStringToPngDataUrl, pngDataUrlToBase64 } from './gradingKeyChartRaster';
@@ -390,49 +389,6 @@ export async function exportAllStudentsOverviewXlsx({
   const wb = await createWorkbook();
   const usedNames = new Set();
 
-  // 1. Erstes Blatt: Komplette Klassenübersicht
-  const overviewData = buildSummaryOverviewExportData({
-    students: sortedStudents,
-    exams,
-    orals,
-    tests,
-    projects,
-    gfsEntries,
-    referatEntries,
-    config,
-  });
-
-  const wsOverview = wb.addWorksheet(uniqueSheetName('Übersicht', usedNames));
-  const hRow = wsOverview.addRow(overviewData.headers);
-  hRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E293B' } };
-  hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-  hRow.height = 22;
-
-  overviewData.rows.forEach((rowCells) => {
-    const r = wsOverview.addRow(rowCells);
-    r.height = 18;
-    r.font = { name: 'Calibri', size: 10 };
-  });
-
-  if (Array.isArray(overviewData.layout?.colWidths)) {
-    wsOverview.columns = overviewData.layout.colWidths.map((w) => ({
-      width: Math.max(w, 8),
-    }));
-  }
-  const centerCols = new Set(overviewData.layout?.centerColumnIndexes ?? []);
-  for (let r = 1; r <= wsOverview.rowCount; r++) {
-    const row = wsOverview.getRow(r);
-    for (let c = 1; c <= overviewData.headers.length; c++) {
-      const cell = row.getCell(c);
-      const isCenter = r === 1 || centerCols.has(c - 1);
-      cell.alignment = {
-        horizontal: isCenter ? 'center' : 'left',
-        vertical: 'middle',
-      };
-    }
-  }
-
-  // 2. Weitere Blätter: Für jeden Schüler ein eigenes Tabellenblatt inkl. Diagramm
   const resolvedGradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const resolvedCustomKeys = getCourseGradingKeysLookup(config?.customGradingKeys);
   const resolvedWeighting = resolveCourseWeighting(config?.weighting, config, exams, tests);
