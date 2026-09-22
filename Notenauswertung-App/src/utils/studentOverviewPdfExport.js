@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { triggerPdfDownload } from './phixPdfExport';
-import { studentOverviewExportFilename } from './exportFilenames';
+import { studentOverviewExportFilename, summaryOverviewDetailsExportFilename } from './exportFilenames';
 import {
   calculateStudentGrades,
   formatGrade,
@@ -13,12 +13,21 @@ import {
   getNormalizedOralGrade,
   getNormalizedTestScore,
   getProjectGradeForStudent,
-  getProjectPillarWeightPercent,
   isProjectScoreCountedForStudent,
   storedGradeStringToClassic,
   storedGradeStringToNotenpunkte,
   normalizeCourseGradeSystem,
 } from './calculator';
+import { getCourseGradingKeysLookup } from './courseArchive';
+import {
+  usesTestsAsHalfExam,
+  usesTestsAsOral,
+  usesReferatAsExam,
+  usesReferatAsOral,
+  usesReferatWrittenPercent,
+  usesReferatOralPercent,
+  usesReferatFinalPercent,
+} from './courseWeightingOptions';
 
 const GRADE_OVERVIEW_CATEGORIES = [
   { label: 'Halbjahr 1', filter: '1' },
@@ -40,9 +49,9 @@ const COLORS = {
 };
 
 /**
- * Exportiert eine detaillierte Schülerübersicht als DIN A4 PDF im Querformat auf genau 1 Seite.
+ * Rendert genau 1 DIN A4 Querformat Seite für einen Schüler auf das gegebene jsPDF Dokument.
  */
-export function exportStudentOverviewPdf({
+export function renderStudentOverviewPage(doc, {
   student,
   config,
   exams = {},
@@ -68,15 +77,8 @@ export function exportStudentOverviewPdf({
   testsAsHalfExam = false,
   testsAsOral = false,
   kursstufe = false,
-  filename,
 }) {
   if (!student) return;
-
-  const doc = new jsPDF({
-    orientation: 'landscape',
-    unit: 'mm',
-    format: 'a4',
-  });
 
   const pw = 297;
   const ph = 210;
@@ -617,8 +619,122 @@ export function exportStudentOverviewPdf({
     const textLines = doc.splitTextToSize(notesText, notesW - 7);
     doc.text(textLines, notesX + 3.5, y + 10);
   }
+}
 
-  // PDF Herunterladen / Öffnen
+/**
+ * Exportiert eine detaillierte Schülerübersicht als DIN A4 PDF im Querformat auf genau 1 Seite für einen Einzelschüler.
+ */
+export function exportStudentOverviewPdf(options) {
+  const { student, config, filename } = options;
+  if (!student) return;
+
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  renderStudentOverviewPage(doc, options);
+
   const outFilename = filename || studentOverviewExportFilename(config, student, 'pdf');
+  triggerPdfDownload(doc, outFilename);
+}
+
+/**
+ * Exportiert die detaillierte Schülerübersicht für ALLE Schüler in ein einziges PDF-Dokument (1 Seite pro Schüler).
+ */
+export function exportAllStudentsOverviewPdf({
+  students = [],
+  config,
+  exams = {},
+  orals = {},
+  tests = {},
+  projects = {},
+  gfsEntries = [],
+  referatEntries = [],
+  referatCountsAsExam,
+  referatCountsAsOral,
+  referatCountsAsPartialWritten,
+  referatWrittenPercent,
+  referatCountsAsPartialOral,
+  referatOralPercent,
+  referatCountsAsFinalPercent,
+  referatFinalPercent,
+  showGfs,
+  showReferate,
+  weighting,
+  customGradingKeys,
+  gradeSys,
+  testsWritten,
+  testsAsHalfExam,
+  testsAsOral,
+  kursstufe,
+  filename,
+}) {
+  const sortedStudents = [...students].sort((a, b) =>
+    (a.lastName || '').localeCompare(b.lastName || '', 'de') ||
+    (a.firstName || '').localeCompare(b.firstName || '', 'de')
+  );
+
+  if (sortedStudents.length === 0) return;
+
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const resolvedGradeSys = gradeSys || normalizeCourseGradeSystem(config?.gradeSystem);
+  const resolvedCustomKeys = customGradingKeys || getCourseGradingKeysLookup(config?.customGradingKeys);
+  const resolvedWeighting = weighting || config?.weighting;
+  const resolvedTestsWritten = testsWritten !== undefined ? testsWritten : config?.testsWritten !== false;
+  const resolvedTestsAsHalfExam = testsAsHalfExam !== undefined ? testsAsHalfExam : usesTestsAsHalfExam(config);
+  const resolvedTestsAsOral = testsAsOral !== undefined ? testsAsOral : usesTestsAsOral(config);
+  const resolvedShowGfs = showGfs !== undefined ? showGfs : config?.gfsAccepted !== false;
+  const resolvedShowReferate = showReferate !== undefined ? showReferate : config?.referateAccepted === true;
+  const resolvedReferatCountsAsExam = referatCountsAsExam !== undefined ? referatCountsAsExam : usesReferatAsExam(config);
+  const resolvedReferatCountsAsOral = referatCountsAsOral !== undefined ? referatCountsAsOral : usesReferatAsOral(config);
+  const resolvedReferatCountsAsPartialWritten = referatCountsAsPartialWritten !== undefined ? referatCountsAsPartialWritten : usesReferatWrittenPercent(config);
+  const resolvedReferatWrittenPercent = referatWrittenPercent ?? config?.referatWrittenPercent ?? 100;
+  const resolvedReferatCountsAsPartialOral = referatCountsAsPartialOral !== undefined ? referatCountsAsPartialOral : usesReferatOralPercent(config);
+  const resolvedReferatOralPercent = referatOralPercent ?? config?.referatOralPercent ?? 100;
+  const resolvedReferatCountsAsFinalPercent = referatCountsAsFinalPercent !== undefined ? referatCountsAsFinalPercent : usesReferatFinalPercent(config);
+  const resolvedReferatFinalPercent = referatFinalPercent ?? config?.referatFinalPercent ?? 100;
+  const resolvedKursstufe = kursstufe !== undefined ? kursstufe : config?.kursstufe === true;
+
+  sortedStudents.forEach((student, index) => {
+    if (index > 0) {
+      doc.addPage('a4', 'landscape');
+    }
+    renderStudentOverviewPage(doc, {
+      student,
+      config,
+      exams,
+      orals,
+      tests,
+      projects,
+      gfsEntries,
+      referatEntries,
+      referatCountsAsExam: resolvedReferatCountsAsExam,
+      referatCountsAsOral: resolvedReferatCountsAsOral,
+      referatCountsAsPartialWritten: resolvedReferatCountsAsPartialWritten,
+      referatWrittenPercent: resolvedReferatWrittenPercent,
+      referatCountsAsPartialOral: resolvedReferatCountsAsPartialOral,
+      referatOralPercent: resolvedReferatOralPercent,
+      referatCountsAsFinalPercent: resolvedReferatCountsAsFinalPercent,
+      referatFinalPercent: resolvedReferatFinalPercent,
+      showGfs: resolvedShowGfs,
+      showReferate: resolvedShowReferate,
+      weighting: resolvedWeighting,
+      customGradingKeys: resolvedCustomKeys,
+      gradeSys: resolvedGradeSys,
+      testsWritten: resolvedTestsWritten,
+      testsAsHalfExam: resolvedTestsAsHalfExam,
+      testsAsOral: resolvedTestsAsOral,
+      kursstufe: resolvedKursstufe,
+    });
+  });
+
+  const outFilename = filename || summaryOverviewDetailsExportFilename(config, 'pdf');
   triggerPdfDownload(doc, outFilename);
 }

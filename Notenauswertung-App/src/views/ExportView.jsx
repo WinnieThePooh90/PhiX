@@ -37,6 +37,7 @@ import {
   exportSingleGradingKey,
 } from '../utils/gradingKeysListExport';
 import { exportSeatingPlanXlsx, exportSeatingPlanPdf } from '../utils/seatingPlanExport';
+import { exportAllStudentsOverviewPdf } from '../utils/studentOverviewPdfExport';
 
 function courseLabel(course) {
   if (!course) return '';
@@ -216,6 +217,25 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
 
   const exportSummary = (format, withDetails = false) =>
     runExport(`summary${withDetails ? '-details' : ''}-${format}`, async () => {
+      const filename = withDetails
+        ? summaryOverviewDetailsExportFilename(config, format)
+        : summaryOverviewExportFilename(config, format);
+
+      if (withDetails && format === 'pdf') {
+        exportAllStudentsOverviewPdf({
+          students,
+          config,
+          exams,
+          orals,
+          tests,
+          projects,
+          gfsEntries,
+          referatEntries,
+          filename,
+        });
+        return filename;
+      }
+
       const buildData = withDetails ? buildSummaryOverviewWithDetailsExportData : buildSummaryOverviewExportData;
       const { headers, rows, layout } = buildData({
         students,
@@ -228,9 +248,6 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
         config,
       });
       const sheetData = { headers, rows };
-      const filename = withDetails
-        ? summaryOverviewDetailsExportFilename(config, format)
-        : summaryOverviewExportFilename(config, format);
       if (format === 'pdf') {
         downloadSheetDataPdf(sheetData, 'Übersicht', filename);
       } else {
