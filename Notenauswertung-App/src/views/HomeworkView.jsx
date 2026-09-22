@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Calendar, Trash2, Edit2, ArrowUpDown } from 'lucide-react';
+import { Plus, Calendar, Trash2, Edit2, ArrowUpDown, Download } from 'lucide-react';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
+import { exportHomeworkListPdf } from '../utils/homeworkListExport';
 
 function getTodayFormatted() {
   const d = new Date();
@@ -262,6 +263,17 @@ export default function HomeworkView() {
     updateHomeworkListEntry(activeList.id, studentId, { checks: nextChecks });
   };
 
+  // PDF Export
+  const handleExportPdf = () => {
+    if (!activeList) return;
+    exportHomeworkListPdf({
+      list: activeList,
+      students: sortedStudents,
+      config,
+      sortMode,
+    });
+  };
+
   const columns = activeList?.columns || [{ id: 'col_1', label: 'Stunde 1', date: null }];
 
   return (
@@ -311,14 +323,21 @@ export default function HomeworkView() {
             </div>
           </div>
 
-          {activeList && !courseArchived ? (
+          {activeList ? (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button type="button" className="tab secondary" onClick={openEditModal} title="Liste umbenennen">
-                <Edit2 size={15} style={{ marginRight: '0.3rem' }} /> Umbenennen
+              {!courseArchived ? (
+                <button type="button" className="tab secondary" onClick={openEditModal} title="Liste umbenennen">
+                  <Edit2 size={15} style={{ marginRight: '0.3rem' }} /> Umbenennen
+                </button>
+              ) : null}
+              <button type="button" className="tab secondary" onClick={handleExportPdf} title="Liste als PDF exportieren">
+                <Download size={15} style={{ marginRight: '0.3rem' }} /> Export
               </button>
-              <button type="button" className="tab danger" onClick={handleDeleteList} title="Liste löschen">
-                <Trash2 size={15} style={{ marginRight: '0.3rem' }} /> Löschen
-              </button>
+              {!courseArchived ? (
+                <button type="button" className="tab danger" onClick={handleDeleteList} title="Liste löschen">
+                  <Trash2 size={15} style={{ marginRight: '0.3rem' }} /> Löschen
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

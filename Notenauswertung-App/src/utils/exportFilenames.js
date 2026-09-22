@@ -83,3 +83,9 @@ export function klassenlehrerListExportFilename(course, type, subject, ext = 'pd
   const subjectPart = subject?.trim() || typeLabel;
   return buildExportFilename(['KL', typeLabel, subjectPart, course?.subject, course?.className, course?.year], ext);
 }
+
+export function homeworkListExportFilename(course, title, ext = 'pdf') {
+  const titlePart = title?.trim() || 'Hausaufgaben';
+  return buildExportFilename(['Hausaufgaben', titlePart, course?.subject, course?.className, course?.year], ext);
+}
+
