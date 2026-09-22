@@ -20,6 +20,7 @@ import MaximizableTableSection, { TableMaximizeToggle } from '../components/Maxi
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
 import StudentGradesChart from '../components/StudentGradesChart';
 import StudentSummaryNotesModal from '../components/StudentSummaryNotesModal';
+import { exportStudentOverviewPdf } from '../utils/studentOverviewPdfExport';
 import { focusAdjacentSummaryGradeInput, isEnterAsTabKey } from '../utils/tableEnterAsTab';
 import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 
@@ -1366,6 +1367,43 @@ export default function SummaryView({
                           </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                          <button
+                            type="button"
+                            className="tab secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              exportStudentOverviewPdf({
+                                student: s,
+                                config,
+                                exams,
+                                orals,
+                                tests,
+                                projects,
+                                gfsEntries,
+                                referatEntries,
+                                referatCountsAsExam,
+                                referatCountsAsOral,
+                                referatCountsAsPartialWritten,
+                                referatWrittenPercent: config?.referatWrittenPercent ?? 100,
+                                referatCountsAsPartialOral,
+                                referatOralPercent: config?.referatOralPercent ?? 100,
+                                referatCountsAsFinalPercent,
+                                referatFinalPercent: config?.referatFinalPercent ?? 100,
+                                showGfs,
+                                showReferate,
+                                weighting,
+                                customGradingKeys,
+                                gradeSys,
+                                testsWritten: config.testsWritten !== false,
+                                testsAsHalfExam,
+                                testsAsOral,
+                                kursstufe: isKursstufe,
+                              });
+                            }}
+                            title="Notenübersicht für diesen Schüler als DIN A4 PDF exportieren"
+                          >
+                            Übersicht exportieren
+                          </button>
                           {!hasSummaryNotes(s) && (
                             <button
                               type="button"

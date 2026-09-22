@@ -89,3 +89,8 @@ export function homeworkListExportFilename(course, title, ext = 'pdf') {
   return buildExportFilename(['Hausaufgaben', titlePart, course?.subject, course?.className, course?.year], ext);
 }
 
+export function studentOverviewExportFilename(course, student, ext = 'pdf') {
+  const studentName = `${student?.lastName || ''}-${student?.firstName || ''}`.trim() || 'Schueler';
+  return buildExportFilename(['Schueleruebersicht', studentName, course?.subject, course?.className, course?.year], ext);
+}
+
