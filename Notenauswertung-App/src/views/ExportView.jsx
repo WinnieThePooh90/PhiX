@@ -38,6 +38,7 @@ import {
 } from '../utils/gradingKeysListExport';
 import { exportSeatingPlanXlsx, exportSeatingPlanPdf } from '../utils/seatingPlanExport';
 import { exportAllStudentsOverviewPdf } from '../utils/studentOverviewPdfExport';
+import { exportAllStudentsOverviewXlsx } from '../utils/studentOverviewXlsxExport';
 
 function courseLabel(course) {
   if (!course) return '';
@@ -221,18 +222,32 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
         ? summaryOverviewDetailsExportFilename(config, format)
         : summaryOverviewExportFilename(config, format);
 
-      if (withDetails && format === 'pdf') {
-        exportAllStudentsOverviewPdf({
-          students,
-          config,
-          exams,
-          orals,
-          tests,
-          projects,
-          gfsEntries,
-          referatEntries,
-          filename,
-        });
+      if (withDetails) {
+        if (format === 'pdf') {
+          exportAllStudentsOverviewPdf({
+            students,
+            config,
+            exams,
+            orals,
+            tests,
+            projects,
+            gfsEntries,
+            referatEntries,
+            filename,
+          });
+        } else {
+          exportAllStudentsOverviewXlsx({
+            students,
+            config,
+            exams,
+            orals,
+            tests,
+            projects,
+            gfsEntries,
+            referatEntries,
+            filename,
+          });
+        }
         return filename;
       }
 
