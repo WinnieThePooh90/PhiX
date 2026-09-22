@@ -61,7 +61,6 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
       const label = col.label || `Stunde ${idx + 1}`;
       return col.date ? `${label}\n${col.date}` : label;
     }),
-    'Gesamt',
   ];
 
   // Eintrags-Map für schnellen Lookup
@@ -78,17 +77,12 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
       ? `${student.firstName} ${student.lastName}`
       : (student.firstName || '—');
 
-    let totalChecked = 0;
     const colCells = columns.map((col) => {
       const isChecked = Boolean(checks[col.id]);
-      if (isChecked) {
-        totalChecked += 1;
-        return 'x';
-      }
-      return '';
+      return isChecked ? 'x' : '';
     });
 
-    return [studentName, ...colCells, String(totalChecked)];
+    return [studentName, ...colCells];
   });
 
   // Dynamische Skalierung für 1 DIN A4-Seite
@@ -125,7 +119,6 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
   for (let i = 1; i <= columns.length; i++) {
     columnStyles[i] = { halign: 'center', fontStyle: 'bold' };
   }
-  columnStyles[columns.length + 1] = { halign: 'center', fontStyle: 'bold', cellWidth: 18 };
 
   autoTable(doc, {
     head: [headRow],
