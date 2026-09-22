@@ -121,6 +121,7 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
   }
 
   autoTable(doc, {
+    theme: 'grid',
     head: [headRow],
     body: bodyRows,
     startY: y,
@@ -135,6 +136,8 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
       valign: 'middle',
       overflow: 'linebreak',
       textColor: [31, 41, 55],
+      lineWidth: 0.15,
+      lineColor: [203, 213, 225],
     },
     headStyles: {
       fillColor: [55, 65, 81],
@@ -144,6 +147,8 @@ export function exportHomeworkListPdf({ list, students = [], config, sortMode = 
       valign: 'middle',
       fontSize: headFontSize,
       cellPadding: Math.max(1, cellPadding),
+      lineWidth: 0.15,
+      lineColor: [71, 85, 105],
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252],
