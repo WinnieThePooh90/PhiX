@@ -10,6 +10,7 @@ import {
   getProjectGradeForStudent,
   isProjectScoreCountedForStudent,
   storedGradeStringToClassic,
+  storedGradeStringToNotenpunkte,
 } from '../utils/calculator';
 
 const LEGEND_ITEMS = [
@@ -60,7 +61,7 @@ export default function StudentGradesChart({
     const gfsReferatList = [];
     const projectList = [];
 
-    // Klausuren: gezählt von 1 aufwärts
+    // Klausuren: gezählt von 1 aufwärts (liefert bereits Notenpunkte wenn gradeSys === 'points')
     Object.entries(exams || {})
       .filter(([_, e]) => e && e.active)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -86,7 +87,7 @@ export default function StudentGradesChart({
         }
       });
 
-    // Tests: gezählt von 1 aufwärts
+    // Tests: gezählt von 1 aufwärts (liefert bereits Notenpunkte wenn gradeSys === 'points')
     if (testsWritten !== false) {
       Object.entries(tests || {})
         .filter(([_, t]) => t && t.active)
@@ -118,7 +119,12 @@ export default function StudentGradesChart({
       .sort(([a], [b]) => Number(a) - Number(b))
       .forEach(([id, o]) => {
         const { value, counted } = getNormalizedOralGrade(o.grades?.[student.id]);
-        const oralG = counted && value ? storedGradeStringToClassic(String(value), gradeSys) : null;
+        const oralG =
+          counted && value !== undefined && value !== null && value !== ''
+            ? isPoints
+              ? storedGradeStringToNotenpunkte(String(value), 'points')
+              : storedGradeStringToClassic(String(value), 'classic')
+            : null;
         if (counted && oralG !== null && Number.isFinite(oralG)) {
           const xIndex = oralList.length + 1;
           oralList.push({
@@ -135,12 +141,14 @@ export default function StudentGradesChart({
         }
       });
 
-    // GFS & Referate: gezählt von 1 aufwärts
+    // GFS: gezählt von 1 aufwärts
     if (showGfs && Array.isArray(gfsEntries)) {
       gfsEntries
         .filter((e) => e && e.studentId === student.id)
         .forEach((e) => {
-          const gNum = storedGradeStringToClassic(e.note, gradeSys);
+          const gNum = isPoints
+            ? storedGradeStringToNotenpunkte(e.note, 'points')
+            : storedGradeStringToClassic(e.note, 'classic');
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
             const xIndex = gfsReferatList.length + 1;
@@ -160,6 +168,7 @@ export default function StudentGradesChart({
         });
     }
 
+    // Referate: gezählt von 1 aufwärts
     if (
       showReferate &&
       (referatCountsAsExam ||
@@ -172,7 +181,9 @@ export default function StudentGradesChart({
       referatEntries
         .filter((e) => e && e.studentId === student.id)
         .forEach((e) => {
-          const gNum = storedGradeStringToClassic(e.note, gradeSys);
+          const gNum = isPoints
+            ? storedGradeStringToNotenpunkte(e.note, 'points')
+            : storedGradeStringToClassic(e.note, 'classic');
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
             const xIndex = gfsReferatList.length + 1;
@@ -239,6 +250,7 @@ export default function StudentGradesChart({
     showReferate,
     customGradingKeys,
     gradeSys,
+    isPoints,
     testsWritten,
   ]);
 
@@ -369,7 +381,11 @@ export default function StudentGradesChart({
             baseX: getX(item.xIndex),
             x: getX(item.xIndex) + xOffset,
             y: getY(item.grade),
-            formattedGrade: formatGrade(item.grade, gradeSys),
+            formattedGrade: formatGrade(
+              item.grade,
+              gradeSys,
+              isPoints ? { inputScale: 'notenpunkte' } : undefined
+            ),
           });
         });
       });
