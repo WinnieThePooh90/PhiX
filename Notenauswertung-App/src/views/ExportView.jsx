@@ -236,7 +236,7 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
             filename,
           });
         } else {
-          exportAllStudentsOverviewXlsx({
+          await exportAllStudentsOverviewXlsx({
             students,
             config,
             exams,
