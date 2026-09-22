@@ -328,8 +328,8 @@ export function exportStudentOverviewPdf({
   const hasNotes = String(student?.summaryNotes ?? '').trim() !== '';
   const bottomH = ph - margin - y - 1; // ca. 75mm
 
-  const chartW = hasNotes ? contentW * 0.65 : contentW * 0.72;
-  const notesW = contentW - chartW - 4;
+  const chartW = hasNotes ? contentW * 0.65 : contentW;
+  const notesW = hasNotes ? contentW - chartW - 4 : 0;
   const chartX = margin;
   const notesX = chartX + chartW + 4;
 
@@ -347,7 +347,7 @@ export function exportStudentOverviewPdf({
 
   // Diagramm-Rechteck
   const diagPadL = 12;
-  const diagPadR = 38; // Platz für Legende rechts im Diagrammfeld
+  const diagPadR = hasNotes ? 38 : 48; // Platz für Legende rechts im Diagrammfeld
   const diagPadT = 9;
   const diagPadB = 10;
   const plotX = chartX + diagPadL;
@@ -597,28 +597,25 @@ export function exportStudentOverviewPdf({
     legY += 3.8;
   });
 
-  // --- B. NOTIZEN-BEREICH (RECHTS) ---
-  doc.setFillColor(...COLORS.bgMuted);
-  doc.setDrawColor(...COLORS.border);
-  doc.setLineWidth(0.25);
-  doc.roundedRect(notesX, y, notesW, bottomH, 1.5, 1.5, 'FD');
+  // --- B. NOTIZEN-BEREICH (NUR WENN VORHANDEN) ---
+  if (hasNotes) {
+    doc.setFillColor(...COLORS.bgMuted);
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(notesX, y, notesW, bottomH, 1.5, 1.5, 'FD');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.textDark);
-  doc.text('NOTIZEN', notesX + 3.5, y + 5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textDark);
+    doc.text('NOTIZEN', notesX + 3.5, y + 5);
 
-  const notesText = String(student?.summaryNotes ?? '').trim();
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...COLORS.textDark);
+    const notesText = String(student?.summaryNotes ?? '').trim();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.textDark);
 
-  if (notesText) {
     const textLines = doc.splitTextToSize(notesText, notesW - 7);
     doc.text(textLines, notesX + 3.5, y + 10);
-  } else {
-    doc.setTextColor(...COLORS.textMuted);
-    doc.text('Keine Notizen vorhanden.', notesX + 3.5, y + 10);
   }
 
   // PDF Herunterladen / Öffnen
