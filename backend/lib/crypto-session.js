@@ -48,6 +48,11 @@ function peekCryptoSession(token) {
   return row;
 }
 
+/** Verlängert TTL bei aktiver Nutzung (Touch/Keep-Alive). */
+function touchCryptoSession(token) {
+  return getCryptoSession(token);
+}
+
 function updateSessionTtl(token, ttlMs) {
   if (!token) return;
   const row = sessions.get(String(token));
@@ -65,6 +70,8 @@ module.exports = {
   createCryptoSession,
   getCryptoSession,
   peekCryptoSession,
+  touchCryptoSession,
   updateSessionTtl,
   destroyCryptoSession,
 };
+

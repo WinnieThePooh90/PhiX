@@ -52,6 +52,8 @@ export const AuthProvider = ({ children }) => {
   const [setupWizardNeeded, setSetupWizardNeeded] = useState(null);
   const [bootstrapError, setBootstrapError] = useState(null);
   const usersListNonce = useRef(0);
+  const lastActivityRef = useRef(Date.now());
+  const lastServerTouchRef = useRef(Date.now());
 
   const applyCryptoGateFromStatus = useCallback((username, statusRes, statusBody) => {
     if (statusBody?.needsSetup) {
@@ -372,6 +374,9 @@ export const AuthProvider = ({ children }) => {
 
     let timeoutMs = getUserSettingsFromStorage().inactivityTimeoutMin * 60 * 1000 || INACTIVITY_LOGOUT_MS;
     let timerId = null;
+    lastActivityRef.current = Date.now();
+    lastServerTouchRef.current = Date.now();
+
     const scheduleLogout = () => {
       if (timerId != null) clearTimeout(timerId);
       timerId = setTimeout(() => {
@@ -379,25 +384,50 @@ export const AuthProvider = ({ children }) => {
       }, timeoutMs);
     };
 
-    const onActivity = () => scheduleLogout();
+    let lastHandled = 0;
+    const onActivity = () => {
+      const now = Date.now();
+      lastActivityRef.current = now;
+      if (now - lastHandled < 1000) return;
+      lastHandled = now;
+
+      scheduleLogout();
+
+      // Proaktiver Keepalive: Wenn seit dem letzten Server-Touch mehr als ein Heartbeat-Intervall vergangen ist,
+      // die Server-Krypto-Session sofort im Hintergrund verlängern (z. B. beim Ausfüllen von Formularen)
+      if (now - lastServerTouchRef.current >= SESSION_HEARTBEAT_MS) {
+        lastServerTouchRef.current = now;
+        void apiFetch('/api/auth/crypto/status?touch=1', { headers: authHeaders() }).catch(() => {});
+      }
+    };
+
     const onSettingsChanged = (ev) => {
       if (ev.detail?.inactivityTimeoutMin) {
         timeoutMs = ev.detail.inactivityTimeoutMin * 60 * 1000;
         scheduleLogout();
       }
     };
-    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'click', 'wheel', 'scroll'];
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'pointermove',
+      'keydown',
+      'touchstart',
+      'click',
+      'wheel',
+      'scroll',
+    ];
 
     scheduleLogout();
     for (const ev of activityEvents) {
-      window.addEventListener(ev, onActivity, { passive: true });
+      window.addEventListener(ev, onActivity, { passive: true, capture: true });
     }
     window.addEventListener('phix-settings-changed', onSettingsChanged);
 
     return () => {
       if (timerId != null) clearTimeout(timerId);
       for (const ev of activityEvents) {
-        window.removeEventListener(ev, onActivity);
+        window.removeEventListener(ev, onActivity, { capture: true });
       }
       window.removeEventListener('phix-settings-changed', onSettingsChanged);
     };
@@ -417,7 +447,22 @@ export const AuthProvider = ({ children }) => {
           void logout();
           return;
         }
-        const statusRes = await apiFetch('/api/auth/crypto/status', {
+
+        const timeoutMs =
+          getUserSettingsFromStorage().inactivityTimeoutMin * 60 * 1000 || INACTIVITY_LOGOUT_MS;
+        const now = Date.now();
+        const wasActive = now - lastActivityRef.current < timeoutMs;
+        const shouldTouch =
+          wasActive &&
+          (lastActivityRef.current > lastServerTouchRef.current ||
+            now - lastServerTouchRef.current >= SESSION_HEARTBEAT_MS);
+
+        if (shouldTouch) {
+          lastServerTouchRef.current = now;
+        }
+
+        const statusUrl = shouldTouch ? '/api/auth/crypto/status?touch=1' : '/api/auth/crypto/status';
+        const statusRes = await apiFetch(statusUrl, {
           headers: authHeaders(),
         });
         if (cancelled) return;

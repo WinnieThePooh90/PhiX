@@ -27,7 +27,7 @@ const {
 } = require('./lib/auto-backup-service');
 const { listAvailableDrives } = require('./lib/drive-detector');
 const { testRemoteConnection } = require('./lib/ftp-transport');
-const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
+const { createCryptoSession, destroyCryptoSession, getCryptoSession, peekCryptoSession, touchCryptoSession, updateSessionTtl } = require('./lib/crypto-session');
 const { createCryptoMiddleware } = require('./lib/crypto-middleware');
 const { runWithCryptoContext } = require('./lib/crypto-context');
 const { getDekFromContext } = require('./lib/crypto-context');
@@ -433,7 +433,7 @@ app.get('/api/auth/session', async (req, res) => {
   res.json(toPublicAppUser(user));
 });
 
-/** Krypto-Status ohne gültige DEK-Session (für App-Start / Token-Prüfung). */
+/** Krypto-Status ohne gültige DEK-Session (für App-Start / Token-Prüfung / Keep-Alive). */
 app.get('/api/auth/crypto/status', async (req, res) => {
   const acting = await assertActingUser(req, res);
   if (!acting) return;
@@ -449,7 +449,8 @@ app.get('/api/auth/crypto/status', async (req, res) => {
   }
 
   const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
-  const session = peekCryptoSession(token);
+  const shouldTouch = req.query.touch === '1' || req.get('X-Phix-Touch') === '1';
+  const session = shouldTouch ? touchCryptoSession(token) : peekCryptoSession(token);
   if (!session || session.userId !== user.id) {
     return res.status(423).json({
       ok: false,
@@ -459,6 +460,29 @@ app.get('/api/auth/crypto/status', async (req, res) => {
   }
 
   return res.json({ ok: true, needsSetup: false, needsRelogin: false });
+});
+
+/** Verlängert DEK-Session bei aktiver Frontend-Nutzung (Inaktivitäts-Keepalive). */
+app.post('/api/auth/crypto/touch', async (req, res) => {
+  const acting = await assertActingUser(req, res);
+  if (!acting) return;
+  const user = await prisma.appUser.findFirst({
+    where: usernameWhere(acting),
+    select: { id: true, username: true },
+  });
+  if (!user) return res.status(401).json({ error: 'Unbekannter Benutzer' });
+
+  const token = String(req.get('X-Phix-Crypto-Token') || '').trim();
+  const session = touchCryptoSession(token);
+  if (!session || session.userId !== user.id) {
+    return res.status(423).json({
+      ok: false,
+      needsRelogin: true,
+      error: 'Bitte melde dich erneut an (Verschlüsselung).',
+    });
+  }
+
+  return res.json({ ok: true });
 });
 
 app.get('/api/users', async (req, res) => {

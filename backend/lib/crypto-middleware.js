@@ -13,6 +13,7 @@ const CRYPTO_EXEMPT = new Set([
   '/api/auth/session',
   '/api/auth/crypto/setup',
   '/api/auth/crypto/status',
+  '/api/auth/crypto/touch',
   '/api/auth/crypto/unlock-recovery',
   '/api/registration',
   '/api/setup/wizard-status',

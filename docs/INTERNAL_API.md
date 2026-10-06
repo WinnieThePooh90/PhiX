@@ -88,7 +88,7 @@ Ohne gültigen Krypto-Token (wenn Verschlüsselung eingerichtet): **HTTP 423** m
 - `/api/health`
 - `/api/setup/wizard-status`, `/api/setup/work-user`
 - `/api/auth/login`, `/api/auth/logout`, `/api/auth/initial-password`, `/api/auth/session`
-- `/api/auth/crypto/setup`, `/api/auth/crypto/status`, `/api/auth/crypto/unlock-recovery`
+- `/api/auth/crypto/setup`, `/api/auth/crypto/status`, `/api/auth/crypto/touch`, `/api/auth/crypto/unlock-recovery`
 - `/api/registration` (alle Methoden)
 
 ### Berechtigungen
@@ -147,7 +147,8 @@ Fehlerantworten: `{ "error": "…" }` (teilweise zusätzliche Felder wie `requir
 | POST | `/api/auth/logout` | Cookie | optional | Beendet Auth- und Krypto-Session |
 | GET | `/api/auth/session` | Cookie | — | Aktueller Benutzer oder **401** mit `{ error, needsWizard? }` |
 | POST | `/api/auth/initial-password` | — | — | Erstes Passwort; Body: `{ username, newPassword, setupToken }` |
-| GET | `/api/auth/crypto/status` | Cookie | — | `{ ok, needsSetup?, needsRelogin? }` |
+| GET | `/api/auth/crypto/status` | Cookie | — | `{ ok, needsSetup?, needsRelogin? }` (optional `?touch=1` verlängert TTL bei Aktivität) |
+| POST | `/api/auth/crypto/touch` | Cookie | — | Verlängert DEK-Session bei aktiver Frontend-Nutzung |
 | POST | `/api/auth/crypto/setup` | Cookie | — | Ersteinrichtung Verschlüsselung; Body: `{ password }` → `recoveryKey`, `cryptoSessionToken` |
 | POST | `/api/auth/crypto/unlock-recovery` | — | — | Passwort-Reset per Recovery-Key; setzt Cookie + Token |
 | GET | `/api/users` | Admin | ja | Benutzerliste |
