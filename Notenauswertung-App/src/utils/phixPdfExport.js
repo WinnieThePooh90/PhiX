@@ -439,11 +439,15 @@ export function exportNameTagsPdf(students, filename = 'Namensschilder.pdf') {
     doc.setFontSize(bestFontSize);
     doc.setTextColor(30, 41, 59);
 
-    // Obere Hälfte: Kopfstehend (um 180 Grad gedreht)
-    doc.text(fullName, midX, topCenterY, {
-      align: 'center',
-      baseline: 'middle',
+    const actualTextWidth = doc.getTextWidth(fullName);
+
+    // Obere Hälfte: Kopfstehend (um 180 Grad gedreht).
+    // Hinweis zu jsPDF: angle: 180 in Kombination mit align: 'center' führt in jsPDF zu einem
+    // fehlerhaften Versatz nach links aus dem sichtbaren Bereich heraus.
+    // Daher wird die X-Koordinate manuell auf (midX + actualTextWidth / 2) gesetzt.
+    doc.text(fullName, midX + actualTextWidth / 2, topCenterY, {
       angle: 180,
+      baseline: 'middle',
     });
 
     // Gestrichelte Faltlinie mittig quer
