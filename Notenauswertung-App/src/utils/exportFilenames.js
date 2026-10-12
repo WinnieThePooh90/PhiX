@@ -94,3 +94,7 @@ export function studentOverviewExportFilename(course, student, ext = 'pdf') {
   return buildExportFilename(['Schueleruebersicht', studentName, course?.subject, course?.className, course?.year], ext);
 }
 
+export function nameTagsExportFilename(course, ext = 'pdf') {
+  return buildExportFilename(['Namensschilder', course?.subject, course?.className, course?.year], ext);
+}
+

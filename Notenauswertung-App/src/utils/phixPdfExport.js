@@ -374,3 +374,92 @@ function renderGradingKeyFullPage(doc, gradingKey, chartPngDataUrl = null) {
     doc.addImage(chartPngDataUrl, 'PNG', PAGE_MARGIN, chartY, chartW, chartH);
   }
 }
+
+/**
+ * Erzeugt faltbare Namensschilder auf DIN A4 Querformat.
+ * Pro Schüler eine DIN A4 Seite.
+ * In der Mitte längs eine gestrichelte Faltlinie.
+ * Oberhalb der Faltlinie steht der Name auf dem Kopf (angle: 180).
+ * Unterhalb der Faltlinie steht der Name normal.
+ * Schriftgröße wird dynamisch berechnet, damit kein Zeilenumbruch erfolgt.
+ *
+ * @param {{ firstName?: string, lastName?: string, name?: string }[]} students
+ * @param {string} [filename]
+ */
+export function exportNameTagsPdf(students, filename = 'Namensschilder.pdf') {
+  const list = Array.isArray(students) ? students : [];
+  const validStudents = list.filter((s) => {
+    const full = `${s?.firstName || ''} ${s?.lastName || ''}`.trim() || String(s?.name || '').trim();
+    return full.length > 0;
+  });
+
+  if (!validStudents.length) {
+    throw new Error('Keine Schülernamen für die Namensschilder vorhanden.');
+  }
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const midX = pw / 2;
+  const midY = ph / 2;
+  const topCenterY = midY / 2;
+  const bottomCenterY = midY + midY / 2;
+
+  // Ränder / Sicherheitsabstände (Querformat: ca. 297mm x 210mm)
+  const maxTextWidth = pw - 30; // 15mm Rand links & rechts
+  const maxTextHeight = midY - 24; // 12mm Rand oben und zur Faltlinie
+
+  validStudents.forEach((student, index) => {
+    if (index > 0) {
+      doc.addPage('a4', 'landscape');
+    }
+
+    const fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || String(student.name || '').trim();
+
+    doc.setFont('helvetica', 'bold');
+
+    // Maximale Schriftgröße per binärer Suche ermitteln (zwischen 12 und 130 pt)
+    let low = 12;
+    let high = 130;
+    let bestFontSize = 12;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      doc.setFontSize(mid);
+      const textWidth = doc.getTextWidth(fullName);
+      const textDim = doc.getTextDimensions(fullName);
+      if (textWidth <= maxTextWidth && textDim.h <= maxTextHeight) {
+        bestFontSize = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    doc.setFontSize(bestFontSize);
+    doc.setTextColor(30, 41, 59);
+
+    // Obere Hälfte: Kopfstehend (um 180 Grad gedreht)
+    doc.text(fullName, midX, topCenterY, {
+      align: 'center',
+      baseline: 'middle',
+      angle: 180,
+    });
+
+    // Gestrichelte Faltlinie mittig quer
+    doc.saveGraphicsState();
+    doc.setLineDashPattern([4, 3], 0);
+    doc.setDrawColor(180, 185, 195);
+    doc.setLineWidth(0.4);
+    doc.line(10, midY, pw - 10, midY);
+    doc.restoreGraphicsState();
+
+    // Untere Hälfte: Normal lesbar
+    doc.text(fullName, midX, bottomCenterY, {
+      align: 'center',
+      baseline: 'middle',
+    });
+  });
+
+  triggerPdfDownload(doc, filename);
+}

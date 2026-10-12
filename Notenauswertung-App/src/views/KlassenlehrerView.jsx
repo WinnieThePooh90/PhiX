@@ -10,8 +10,8 @@ import {
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
 import { buildKlassenlehrerListExportData } from '../utils/klassenlehrerListExport';
-import { klassenlehrerListExportFilename } from '../utils/exportFilenames';
-import { downloadSheetDataPdf } from '../utils/phixPdfExport';
+import { klassenlehrerListExportFilename, nameTagsExportFilename } from '../utils/exportFilenames';
+import { downloadSheetDataPdf, exportNameTagsPdf } from '../utils/phixPdfExport';
 
 function formatEuro(amount) {
   if (!Number.isFinite(amount)) return '—';
@@ -1085,10 +1085,39 @@ export default function KlassenlehrerView() {
     removeNotesListEntry,
     courseArchived,
     config,
+    students,
   } = useData();
   const { showConfirm, showAlert } = useDialog();
 
   const [exportBusy, setExportBusy] = useState(false);
+  const [nameTagsBusy, setNameTagsBusy] = useState(false);
+
+  const handleExportNameTags = useCallback(async () => {
+    if (nameTagsBusy) return;
+    const validStudents = (students || []).filter((s) => {
+      const full = `${s?.firstName || ''} ${s?.lastName || ''}`.trim() || String(s?.name || '').trim();
+      return full.length > 0;
+    });
+
+    if (validStudents.length === 0) {
+      await showAlert('Keine Schüler im aktuellen Kurs vorhanden, um Namensschilder zu erstellen.', {
+        title: 'Namensschilder',
+      });
+      return;
+    }
+
+    setNameTagsBusy(true);
+    try {
+      const filename = nameTagsExportFilename(config, 'pdf');
+      exportNameTagsPdf(validStudents, filename);
+    } catch (err) {
+      await showAlert(err?.message || 'Fehler beim Erstellen der Namensschilder.', {
+        title: 'Namensschilder',
+      });
+    } finally {
+      setNameTagsBusy(false);
+    }
+  }, [students, config, nameTagsBusy, showAlert]);
 
   const handleExportListPdf = useCallback(async (list, type) => {
     if (exportBusy) return;
@@ -1712,6 +1741,15 @@ export default function KlassenlehrerView() {
           </button>
           <button type="button" className="tab secondary" onClick={openCreateNotesModal}>
             + Notizenliste erstellen
+          </button>
+          <button
+            type="button"
+            className="tab secondary"
+            onClick={handleExportNameTags}
+            disabled={nameTagsBusy}
+            title="Druckbare, faltbare Namensschilder für alle Schüler im Querformat (DIN A4) als PDF herunterladen"
+          >
+            {nameTagsBusy ? 'Wird erstellt…' : '+ Namensschilder'}
           </button>
         </div>
       </div>
