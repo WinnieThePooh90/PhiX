@@ -402,13 +402,13 @@ export function exportNameTagsPdf(students, filename = 'Namensschilder.pdf') {
   const ph = doc.internal.pageSize.getHeight();
   const midX = pw / 2;
   const midY = ph / 2;
-  // Der kopfstehende obere Name wird weiter nach oben platziert (großer Abstand zur Trennlinie)
-  const topCenterY = midY * 0.28;
+  // Der kopfstehende obere Name wird noch weiter nach oben platziert
+  const topCenterY = midY * 0.20;
   const bottomCenterY = midY + midY / 2;
 
   // Ränder / Sicherheitsabstände (Querformat: ca. 297mm x 210mm)
   const maxTextWidth = pw - 30; // 15mm Rand links & rechts
-  const maxTextHeight = midY * 0.50; // Ausreichend vertikaler Abstand zu Rändern und Faltlinie
+  const maxTextHeight = midY * 0.38; // Ausreichend vertikaler Abstand zu Rändern und Faltlinie
 
   validStudents.forEach((student, index) => {
     if (index > 0) {
