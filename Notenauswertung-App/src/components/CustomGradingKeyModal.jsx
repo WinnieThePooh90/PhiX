@@ -11,43 +11,59 @@ import GradingKeyChart from './GradingKeyChart';
 import DeferredNumberInput from './DeferredNumberInput';
 import { isAbiBaWue2026KeyFamilyId } from '../data/kmBwAbiPhysik2026GradingKey';
 import { isAbiBaWue2026Mathematik100BeFamilyId } from '../data/abiBaWu2026Mathematik100BeGradingKey';
+import { FORMULA_QUARTER_GRADES } from '../data/formulaGradingKey';
 
 function parseLocalizedNumber(raw) {
+  if (raw === '' || raw == null) return null;
   const n = parseFloat(String(raw).replace(',', '.'));
   return Number.isFinite(n) ? n : null;
 }
 
-function pointsToPercentWhole(ref, points) {
+function formatPercentDisplay(val) {
+  if (val === '' || val == null) return '';
+  const n = parseLocalizedNumber(val);
+  if (n === null) return '';
+  const rounded = Math.round(n * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded).replace('.', ',');
+}
+
+function pointsToPercent(ref, points) {
   if (!(ref > 0)) return null;
   const p = Number(points);
   if (!Number.isFinite(p)) return null;
-  return Math.round(Math.min(100, Math.max(0, (p / ref) * 100)));
+  const pct = Math.min(100, Math.max(0, (p / ref) * 100));
+  return Math.round(pct * 100) / 100;
 }
 
 function getDisplayPktBounds(row, part, ref, pktIntegerDisplay) {
-  const loN = Number(row.lo);
-  const hiN = Number(row.hi);
-  if (!(ref > 0) || !Number.isFinite(loN) || !Number.isFinite(hiN)) {
+  const loN = parseLocalizedNumber(row.lo);
+  const hiN = parseLocalizedNumber(row.hi);
+  if (!(ref > 0) || (loN === null && hiN === null)) {
     return { minPkt: '', maxPkt: '' };
   }
-  if (pktIntegerDisplay) {
-    return {
-      minPkt: String(Math.max(0, Math.min(ref, Math.ceil((ref * loN) / 100 - 1e-9)))),
-      maxPkt: String(Math.max(0, Math.min(ref, Math.floor((ref * hiN) / 100 + 1e-9)))),
-    };
+  let minPkt = '';
+  let maxPkt = '';
+  if (loN !== null) {
+    if (pktIntegerDisplay) {
+      minPkt = String(Math.max(0, Math.min(ref, Math.ceil((ref * loN) / 100 - 1e-9))));
+    } else if (part) {
+      minPkt = formatPointsHalfStepDisplay(part.pktLo);
+    } else {
+      const loPkt = Math.round(((ref * loN) / 100) * 2) / 2;
+      minPkt = formatPointsHalfStepDisplay(loPkt);
+    }
   }
-  if (part) {
-    return {
-      minPkt: formatPointsHalfStepDisplay(part.pktLo),
-      maxPkt: formatPointsHalfStepDisplay(part.pktHi),
-    };
+  if (hiN !== null) {
+    if (pktIntegerDisplay) {
+      maxPkt = String(Math.max(0, Math.min(ref, Math.floor((ref * hiN) / 100 + 1e-9))));
+    } else if (part) {
+      maxPkt = formatPointsHalfStepDisplay(part.pktHi);
+    } else {
+      const hiPkt = Math.round(((ref * hiN) / 100) * 2) / 2;
+      maxPkt = formatPointsHalfStepDisplay(hiPkt);
+    }
   }
-  const loPkt = Math.round(((ref * loN) / 100) * 2) / 2;
-  const hiPkt = Math.round(((ref * hiN) / 100) * 2) / 2;
-  return {
-    minPkt: formatPointsHalfStepDisplay(loPkt),
-    maxPkt: formatPointsHalfStepDisplay(hiPkt),
-  };
+  return { minPkt, maxPkt };
 }
 
 function cellDraftKey(gradeVal, field) {
@@ -62,19 +78,23 @@ function formatPointsHalfStepDisplay(n) {
 }
 
 function cloneBands(bands) {
-  return (bands || []).map((row) => ({
-    g: Number(row.g),
-    lo: Number(row.lo),
-    hi: Number(row.hi),
-  }));
+  return (bands || []).map((row) => {
+    const loN = parseLocalizedNumber(row.lo);
+    const hiN = parseLocalizedNumber(row.hi);
+    return {
+      g: Number(row.g),
+      lo: loN !== null ? Math.round(loN * 100) / 100 : null,
+      hi: hiN !== null ? Math.round(hiN * 100) / 100 : null,
+    };
+  });
 }
 
-/** Prozentgrenzen für Anzeige und Speicherung auf ganze Zahlen */
-function normalizeBandPercentsWhole(bandList) {
+/** Prozentgrenzen für Anzeige mit bis zu 2 Dezimalstellen formatieren */
+function normalizeBandPercents(bandList) {
   return (bandList || []).map((row) => ({
     g: Number(row.g),
-    lo: Math.round(Number(row.lo)),
-    hi: Math.round(Number(row.hi)),
+    lo: formatPercentDisplay(row.lo),
+    hi: formatPercentDisplay(row.hi),
   }));
 }
 
@@ -82,7 +102,9 @@ function validateBands(bands) {
   if (!bands?.length) return 'Mindestens ein Intervall erforderlich.';
   const rows = cloneBands(bands);
   for (const r of rows) {
-    if (!Number.isFinite(r.g) || !Number.isFinite(r.lo) || !Number.isFinite(r.hi)) return 'Alle Felder müssen gültige Zahlen sein.';
+    if (r.lo === null || r.hi === null || !Number.isFinite(r.g) || !Number.isFinite(r.lo) || !Number.isFinite(r.hi)) {
+      return 'Alle Prozentfelder müssen ausgefüllt sein und gültige Zahlen sein.';
+    }
     if (r.lo > r.hi) return 'Bei jeder Note muss die untere Prozentgrenze ≤ der oberen sein.';
   }
   const sorted = [...rows].sort((a, b) => a.lo - b.lo);
@@ -125,7 +147,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
     if (initialKey?.bands?.length) {
       setName(initialKey.name || '');
       setRefMax(Number(initialKey.referenceMaxPoints) > 0 ? Number(initialKey.referenceMaxPoints) : 50);
-      setBands(normalizeBandPercentsWhole(cloneBands(initialKey.bands)));
+      setBands(normalizeBandPercents(cloneBands(initialKey.bands)));
       setPktIntegerDisplay(
         !!initialKey.pktIntegerDisplay ||
           isAbiBaWue2026KeyFamilyId(initialKey.id) ||
@@ -145,7 +167,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
         50,
         8000,
       );
-      setBands(normalizeBandPercentsWhole(built || []));
+      setBands(normalizeBandPercents(built || []));
       setAnchorP1('95');
       setAnchorP2('75');
       setAnchorP4('45');
@@ -153,6 +175,22 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
       setAnchorBad('');
     }
   }, [open, initialKey?.id]);
+
+  const handleClearAll = () => {
+    setName('');
+    setRefMax('');
+    setAnchorP1('');
+    setAnchorP2('');
+    setAnchorP4('');
+    setAnchorGood('');
+    setAnchorBad('');
+    setCellDraft({});
+    setError(null);
+    setBands((prev) => {
+      const grades = (prev?.length ? prev : FORMULA_QUARTER_GRADES.map((g) => ({ g }))).map((b) => Number(b.g));
+      return grades.map((g) => ({ g, lo: '', hi: '' }));
+    });
+  };
 
   const applyAnchors = () => {
     setError(null);
@@ -174,7 +212,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
       setError('Intervalle konnten nicht berechnet werden.');
       return;
     }
-    setBands(normalizeBandPercentsWhole([...built].sort((a, b) => Number(a.g) - Number(b.g))));
+    setBands(normalizeBandPercents([...built].sort((a, b) => Number(a.g) - Number(b.g))));
   };
 
   const updateBandField = (gradeVal, key, raw) => {
@@ -182,19 +220,32 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
   };
 
   const commitBandNumber = (gradeVal, key, raw) => {
-    const n = parseFloat(String(raw).replace(',', '.'));
+    const trimmed = String(raw ?? '').trim();
+    if (trimmed === '') {
+      setBands((prev) =>
+        prev.map((b) => (Number(b.g) === Number(gradeVal) ? { ...b, [key]: '' } : b)),
+      );
+      return;
+    }
+    const n = parseLocalizedNumber(trimmed);
+    if (n === null) return;
+    const v = Math.round(Math.min(100, Math.max(0, n)) * 100) / 100;
+    const formatted = formatPercentDisplay(v);
     setBands((prev) =>
       prev.map((b) => {
         if (Number(b.g) !== Number(gradeVal)) return b;
-        if (!Number.isFinite(n)) return b;
-        const v = key === 'lo' || key === 'hi' ? Math.round(n) : n;
-        return { ...b, [key]: v };
+        return { ...b, [key]: formatted };
       }),
     );
   };
 
   const commitBandPoints = (gradeVal, bound, raw) => {
-    let pkt = parseLocalizedNumber(raw);
+    const trimmed = String(raw ?? '').trim();
+    if (trimmed === '') {
+      commitBandNumber(gradeVal, bound, '');
+      return;
+    }
+    let pkt = parseLocalizedNumber(trimmed);
     if (pkt === null) return;
     const refVal = Math.max(1, Number(refMax) || 50);
     if (pktIntegerDisplay) {
@@ -203,7 +254,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
       pkt = Math.round(pkt * 2) / 2;
     }
     pkt = Math.min(refVal, Math.max(0, pkt));
-    const pct = pointsToPercentWhole(refVal, pkt);
+    const pct = pointsToPercent(refVal, pkt);
     if (pct === null) return;
     commitBandNumber(gradeVal, bound, pct);
   };
@@ -230,7 +281,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
       setError(msg);
       return;
     }
-    const sorted = normalizeBandPercentsWhole(cloneBands(bands).sort((a, b) => a.lo - b.lo));
+    const sorted = cloneBands(bands).sort((a, b) => a.lo - b.lo);
     onSave({
       id: initialKey?.id || `ck_${Date.now()}`,
       name: trimmed,
@@ -244,8 +295,17 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
   const ref = Math.max(1, Number(refMax) || 50);
   const pktByGrade = useMemo(() => {
     if (pktIntegerDisplay || !bands?.length || ref <= 0) return new Map();
+    const allValid = bands.every(
+      (b) => parseLocalizedNumber(b.lo) !== null && parseLocalizedNumber(b.hi) !== null,
+    );
+    if (!allValid) return new Map();
+    const cleanBands = bands.map((b) => ({
+      g: Number(b.g),
+      lo: parseLocalizedNumber(b.lo),
+      hi: parseLocalizedNumber(b.hi),
+    }));
     const m = new Map();
-    for (const r of displayPointIntervalsHalfSteps(ref, bands)) {
+    for (const r of displayPointIntervalsHalfSteps(ref, cleanBands)) {
       m.set(normalizeQuarterGrade(r.g), r);
     }
     return m;
@@ -288,30 +348,54 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <h2 id="custom-key-modal-title" style={{ marginTop: 0, marginBottom: 0, paddingRight: '2.75rem' }}>
+          <h2 id="custom-key-modal-title" style={{ marginTop: 0, marginBottom: 0, paddingRight: '8.5rem' }}>
             {initialKey ? 'Notenschlüssel bearbeiten' : 'Neuen Notenschlüssel erstellen'}
           </h2>
-          <button
-            type="button"
-            className="tab secondary"
-            onClick={onClose}
-            aria-label="Schließen ohne Speichern"
-            title="Schließen"
+          <div
             style={{
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '2rem',
-              height: '2rem',
-              minWidth: '2rem',
-              padding: 0,
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '0.5rem',
             }}
           >
-            <X size={18} strokeWidth={2.25} aria-hidden />
-          </button>
+            <button
+              type="button"
+              className="tab secondary"
+              onClick={handleClearAll}
+              title="Alle Eingabefelder leeren"
+              style={{
+                height: '2rem',
+                padding: '0 0.75rem',
+                fontSize: '0.85rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              Leeren
+            </button>
+            <button
+              type="button"
+              className="tab secondary"
+              onClick={onClose}
+              aria-label="Schließen ohne Speichern"
+              title="Schließen"
+              style={{
+                width: '2rem',
+                height: '2rem',
+                minWidth: '2rem',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={18} strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -336,7 +420,7 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
               <DeferredNumberInput
                 min={1}
                 value={refMax}
-                defaultValue={50}
+                defaultValue=""
                 onChange={setRefMax}
                 style={{ width: '5rem', padding: '0.35rem' }}
               />
@@ -432,18 +516,24 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
                       <td style={{ padding: '0.35rem' }}>{gLabel}</td>
                       <td style={{ padding: '0.35rem' }}>
                         <input
-                          value={row.lo}
+                          type="text"
+                          inputMode="decimal"
+                          value={row.lo ?? ''}
                           onChange={(e) => updateBandField(b.g, 'lo', e.target.value)}
                           onBlur={(e) => commitBandNumber(b.g, 'lo', e.target.value)}
                           style={{ width: '4.5rem', padding: '0.25rem' }}
+                          aria-label={`Minimale Prozent für Note ${gLabel}`}
                         />
                       </td>
                       <td style={{ padding: '0.35rem' }}>
                         <input
-                          value={row.hi}
+                          type="text"
+                          inputMode="decimal"
+                          value={row.hi ?? ''}
                           onChange={(e) => updateBandField(b.g, 'hi', e.target.value)}
                           onBlur={(e) => commitBandNumber(b.g, 'hi', e.target.value)}
                           style={{ width: '4.5rem', padding: '0.25rem' }}
+                          aria-label={`Maximale Prozent für Note ${gLabel}`}
                         />
                       </td>
                     </tr>
@@ -465,8 +555,20 @@ export default function CustomGradingKeyModal({ open, onClose, initialKey, onSav
             <p className="text-muted" style={{ margin: '0 0 0.5rem', fontSize: '0.85rem' }}>
               Diagramm des eingestellten Schlüssels (Referenz: {ref} Maximalpunkte)
             </p>
-            {bands?.length > 0 && ref > 0 ? (
-              <GradingKeyChart type="1" maxPoints={ref} customBands={bands} />
+            {bands?.length > 0 &&
+            ref > 0 &&
+            bands.every(
+              (b) => parseLocalizedNumber(b.lo) !== null && parseLocalizedNumber(b.hi) !== null,
+            ) ? (
+              <GradingKeyChart
+                type="1"
+                maxPoints={ref}
+                customBands={bands.map((b) => ({
+                  g: Number(b.g),
+                  lo: parseLocalizedNumber(b.lo),
+                  hi: parseLocalizedNumber(b.hi),
+                }))}
+              />
             ) : (
               <p className="text-muted" style={{ margin: 0, fontSize: '0.82rem' }}>
                 Sobald Intervalle vorhanden sind, erscheint hier der Verlauf Punkte → Note.

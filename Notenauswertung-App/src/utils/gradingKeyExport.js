@@ -76,7 +76,13 @@ export function buildGradingKeyTableRows({
     return sorted.map((s) => {
       const lo = Number(s.lo);
       const hi = Number(s.hi);
-      const pct = `${Math.round(lo)}–${Math.round(hi)}%`;
+      const fmtPct = (v) => {
+        const x = Number(v);
+        if (!Number.isFinite(x)) return '–';
+        if (Math.abs(x - Math.round(x)) < 1e-6) return String(Math.round(x));
+        return x.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+      };
+      const pct = `${fmtPct(lo)}–${fmtPct(hi)}%`;
       const gq = normalizeQuarterGrade(s.g);
       const part = customPktByGrade.get(gq);
       let pkt = '–';

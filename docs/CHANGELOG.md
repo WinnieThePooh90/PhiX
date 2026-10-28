@@ -6,6 +6,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 562 (2026-10-28)
+
+Erweiterung des Overlays für benutzerdefinierte Notenschlüssel:
+- Im Dialog für eigene Notenschlüssel wurde oben rechts links neben dem Schließen-Button eine Schaltfläche „Leeren“ hinzugefügt, die alle Eingabefelder (Name, Referenzpunkte, Anker und Intervallgrenzen) zurücksetzt.
+- Die Prozentgrenzen (Min % und Max %) unterstützen nun zweistellige Dezimalzahlen (z. B. 95,25) bei Eingabe, Berechnung, Tabellenansicht und Export.
+
 ## Build 536 (2026-09-20)
 
 Druckoptimierung des Excel-Exports für Einrichtungs-Tokens:
