@@ -28,7 +28,7 @@ import {
 import { buildProjectTableExport, projectExportSheetName } from '../utils/projectTableExport';
 import { buildReferatTableExportData, referatExportSheetName } from '../utils/referatTableExport';
 import { isOralExtendedActive } from '../utils/oralExtendedMode';
-import { buildTestTableExportAoa, testExportSheetName } from '../utils/testTableExport';
+import { buildTestTableExport, testExportSheetName } from '../utils/testTableExport';
 import { downloadAoaXlsx, downloadMultiSheetXlsx, downloadSheetDataXlsx } from '../utils/phixXlsxExport';
 import { downloadAoaPdf, downloadMultiSectionPdf, downloadSheetDataPdf } from '../utils/phixPdfExport';
 import {
@@ -292,13 +292,13 @@ export default function ExportView({ focusSection, onFocusConsumed }) {
       const test = tests[testId];
       if (!test) throw new Error('missing test');
       if (test.active === false) return null;
-      const aoa = buildTestTableExportAoa({ test, testId, students, config });
+      const { aoa, layout, gradingKey } = buildTestTableExport({ test, testId, students, config });
       const sheetName = testExportSheetName(testId, test.name);
       const filename = testExportFilename(config, testId, test.name, format);
       if (format === 'pdf') {
-        downloadAoaPdf(aoa, sheetName, filename);
+        downloadAoaPdf(aoa, sheetName, filename, { gradingKey });
       } else {
-        downloadAoaXlsx(aoa, sheetName, filename);
+        downloadAoaXlsx(aoa, sheetName, filename, layout, gradingKey);
       }
       return filename;
     });

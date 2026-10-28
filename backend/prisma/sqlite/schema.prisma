@@ -426,17 +426,19 @@ model Oral {
 }
 
 model Test {
-  id         Int      @id @default(autoincrement())
-  testNumber Int
-  active     Boolean
-  maxPoints  Float    @default(10)
-  keyType    String
-  date       String   @default("")
-  halbjahr   String   @default("1")
-  name       String
-  scores     Json
-  courseId   Int?
-  course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id             Int      @id @default(autoincrement())
+  testNumber     Int
+  active         Boolean
+  maxPoints      Float    @default(10)
+  numFields      Int      @default(1)
+  fieldMaxPoints Json     @default("{}")
+  keyType        String
+  date           String   @default("")
+  halbjahr       String   @default("1")
+  name           String
+  scores         Json
+  courseId       Int?
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model Project {

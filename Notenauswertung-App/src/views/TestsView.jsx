@@ -18,11 +18,18 @@ import {
   isGradeWorseThan4,
   getGradeCellBackground,
   getGradeTextColor,
-  getNormalizedTestScore,
+  getNormalizedExamScore,
+  getStudentEffectiveExamFieldCount,
+  getStudentExamMaxPointsForGrade,
+  getExamDisplayFieldCount,
+  parseScorePointsValue,
+  getExamTaskMaxRuleForStudent,
+  isExamScoreFieldOutOfRange,
+  getNachschreiberFieldMaxPoints,
+  EXAM_ABS_MAX_FIELDS,
   normalizeCourseGradeSystem,
   getCustomKeyDefinition,
   getTestGradeForStudent,
-  getEffectiveTestMaxPoints,
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
   gradingKeyResultDisplayOpts,
@@ -40,19 +47,10 @@ import {
   scoreTaskInputDataAttr,
 } from '../utils/scoreTaskTabNavigation';
 import DeferredNumberInput from '../components/DeferredNumberInput';
+import { useDialog } from '../components/PhixDialog';
+import { handleTableEnterAsTab } from '../utils/tableEnterAsTab';
 
 const TEST_INDEX_COL_PX = 52;
-const TEST_DETAIL_COL_SPAN = 5;
-
-function isTestPointsOutOfRange(rawValue, maxPts) {
-  if (rawValue === '' || rawValue === undefined || rawValue === null) return false;
-  const n = parseFloat(String(rawValue).replace(',', '.'));
-  if (!Number.isFinite(n)) return false;
-  if (n < 0) return true;
-  const max = Number(maxPts);
-  if (!Number.isFinite(max) || max <= 0) return false;
-  return n > max;
-}
 
 /** variant: 'nach' = Nachschreiber (gelb), 'absent' = nicht teilgenommen / „Teilgenommen“ aus (rot) — wie Klausuren */
 function TestRowBookmark({ variant }) {
@@ -84,18 +82,23 @@ function TestRowBookmark({ variant }) {
 export default function TestsView({ studentIdFilterSet = null }) {
   const {
     tests,
+    addTest,
+    removeTest,
+    updateTest,
     updateTestScore,
+    updateTestFieldMaxPoints,
     updateTestCounted,
     updateTestStudentNachschreiber,
-    updateTestNachschreiberMaxPoints,
+    updateTestStudentNachschreiberFields,
+    updateTestStudentNachschreiberFieldMaxPoints,
     updateTestStudentManualGrade,
     updateTestStudentManualGradeValue,
-    updateTest,
     students,
-    addTest,
     config,
     courseArchived,
   } = useData();
+
+  const { showConfirm } = useDialog();
 
   const displayStudents = useMemo(() => {
     if (studentIdFilterSet == null) return students;
@@ -158,22 +161,6 @@ export default function TestsView({ studentIdFilterSet = null }) {
   }, [testIndexTooltip]);
 
   const customKeysList = getCourseGradingKeysLookup(config);
-  const testRowStats = useCallback(
-    (studentId) => {
-      if (!test) return { counted: false, grade: null, value: '', isManual: false, manualGradeInput: '' };
-      const map = test.scores ?? test.errors;
-      const raw = map?.[studentId];
-      const { value, counted } = getNormalizedTestScore(raw);
-      const isManual = isExamManualGradeActive(raw);
-      const grade = counted ? getTestGradeForStudent(test, studentId, customKeysList, gradeSys) : null;
-      const manualGradeInput = getExamManualGradeStoredValue(raw);
-      return { counted, grade, value, isManual, manualGradeInput };
-    },
-    [test, customKeysList, gradeSys],
-  );
-
-  const examStubForCharts = useMemo(() => ({ fieldMaxPoints: {} }), []);
-
   const testClassAverage = useMemo(
     () => (test ? computeTestClassAverage(test, displayStudents, customKeysList, gradeSys) : null),
     [test, displayStudents, customKeysList, gradeSys],
@@ -209,20 +196,48 @@ export default function TestsView({ studentIdFilterSet = null }) {
     );
   }
 
+  const numFields = test.numFields || 1;
+  const displayFieldCount = getExamDisplayFieldCount(test, displayStudents);
   const sidebarCustomDef = getCustomKeyDefinition(customKeysList, test.keyType || '1');
-  const maxPtsDisplay = Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0 ? parseFloat(test.maxPoints) : 10;
   const scoreInputScope = `test-${activeTest}`;
+
+  const testRowStats = useCallback(
+    (studentId) => {
+      const rawSc = test.scores?.[studentId] ?? test.errors?.[studentId];
+      const effN = getStudentEffectiveExamFieldCount(test, studentId);
+      const { fields, counted, total, value } = getNormalizedExamScore(rawSc, effN);
+      const maxPts = getStudentExamMaxPointsForGrade(test, studentId);
+      const isManual = isExamManualGradeActive(rawSc);
+      const grade = counted ? getTestGradeForStudent(test, studentId, customKeysList, gradeSys) : null;
+      const manualGradeInput = getExamManualGradeStoredValue(rawSc);
+      return { effN, fields, counted, total, maxPts, grade, isManual, manualGradeInput, value };
+    },
+    [test, customKeysList, gradeSys],
+  );
 
   const toggleStudentRow = (studentId) => {
     setExpandedStudentId((prev) => (prev === studentId ? null : studentId));
   };
 
-  const handlePointsChange = (studentId, value) => {
-    updateTestScore(activeTest, studentId, value);
+  const handleScoreChange = (studentId, fieldIndex, value) => {
+    updateTestScore(activeTest, studentId, fieldIndex, value);
   };
 
-  const handleMaxPointsChange = (v) => {
-    updateTest(activeTest, 'maxPoints', v > 0 ? v : 10);
+  const handleMaxPointsChange = (fieldIndex, value) => {
+    updateTestFieldMaxPoints(activeTest, fieldIndex, value);
+  };
+
+  const handleDeleteTest = async () => {
+    const ok = await showConfirm(
+      'Diesen Test wirklich endgültig löschen? Alle eingetragenen Punktwerte und Einstellungen zu diesem Test gehen verloren.',
+      { title: 'Test löschen', danger: true },
+    );
+    if (!ok) return;
+    const id = activeTest;
+    const remaining = testNumbers.filter((n) => n !== id);
+    const nextActive = remaining[0] ?? null;
+    if (nextActive) setActiveTest(nextActive);
+    await removeTest(id);
   };
 
   return (
@@ -271,10 +286,36 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 />
                 <span className="slider" />
               </label>
+              {!test.active && (
+                <button
+                  type="button"
+                  className="tab secondary course-meta-inline-btn"
+                  onClick={handleDeleteTest}
+                  title="Test dauerhaft aus diesem Kurs entfernen"
+                >
+                  Test löschen
+                </button>
+              )}
             </div>
           </div>
           {test.active && (
             <>
+              <div className="course-meta-field">
+                <label className="course-meta-field__label" htmlFor={`test-numfields-${activeTest}`}>
+                  Aufgabenfelder
+                </label>
+                <DeferredNumberInput
+                  id={`test-numfields-${activeTest}`}
+                  className="course-meta-control"
+                  integer
+                  min={1}
+                  max={EXAM_ABS_MAX_FIELDS}
+                  defaultValue={1}
+                  value={numFields}
+                  onChange={(n) => updateTest(activeTest, 'numFields', n)}
+                  style={{ width: '70px' }}
+                />
+              </div>
               <div className="course-meta-field">
                 <label className="course-meta-field__label" htmlFor={`test-date-${activeTest}`}>
                   Datum
@@ -304,21 +345,6 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 </div>
               )}
               <div className="course-meta-field">
-                <label className="course-meta-field__label" htmlFor={`test-max-${activeTest}`}>
-                  Maximalpunktzahl
-                </label>
-                <DeferredNumberInput
-                  id={`test-max-${activeTest}`}
-                  className="course-meta-control"
-                  min={0.5}
-                  defaultValue={10}
-                  title="Obergrenze für die Summe der erreichbaren Punkte in der Tabelle (wie Klausur-Maximum)."
-                  value={maxPtsDisplay}
-                  onChange={handleMaxPointsChange}
-                  style={{ width: '88px' }}
-                />
-              </div>
-              <div className="course-meta-field">
                 <label className="course-meta-field__label" htmlFor={`test-key-${activeTest}`}>
                   Notenschlüssel
                 </label>
@@ -328,7 +354,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   value={test.keyType || '1'}
                   onChange={(v) => updateTest(activeTest, 'keyType', v)}
                   course={config}
-                  maxPoints={maxPtsDisplay}
+                  maxPoints={test.maxPoints}
                   showNotenpunkte={gradeSys === 'points'}
                 />
               </div>
@@ -395,11 +421,13 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         >
                           NAME
                         </th>
-                        <th className="text-center exam-th-r1 test-points-col" style={{ width: '88px', minWidth: '80px' }}>
-                          PUNKTE
-                        </th>
+                        {[...Array(displayFieldCount)].map((_, i) => (
+                          <th key={i} className="text-center exam-th-r1 exam-task-col" style={{ width: '80px', minWidth: '80px' }}>
+                            A{i + 1}
+                          </th>
+                        ))}
                         <th
-                          className="text-center exam-th-r1 test-gesamt-col"
+                          className="text-center"
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -415,7 +443,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                           GESAMT
                         </th>
                         <th
-                          className="text-center exam-th-r1"
+                          className="text-center"
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -443,9 +471,29 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         >
                           Maximalpunkte
                         </th>
-                        <th className="text-center exam-th-r2" style={{ textTransform: 'none' }} />
+                        {[...Array(displayFieldCount)].map((_, i) => (
+                          <th
+                            key={i}
+                            className="text-center exam-th-r2 exam-task-col"
+                            style={{ textTransform: 'none', background: i >= numFields ? 'hsl(var(--brand-hsl) / 0.06)' : undefined }}
+                            title={i >= numFields ? 'Maximalpunkte bei Nachschreibern in der jeweiligen Schülerzeile' : undefined}
+                          >
+                            {i < numFields ? (
+                              <DeferredNumberInput
+                                value={parseScorePointsValue(test.fieldMaxPoints?.[i] ?? (numFields === 1 && test.maxPoints ? test.maxPoints : ''))}
+                                defaultValue={0}
+                                onChange={(n) => handleMaxPointsChange(i, n)}
+                                onKeyDown={handleTableEnterAsTab}
+                                placeholder="0"
+                                style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0, fontWeight: 'bold', background: 'var(--surface)' }}
+                              />
+                            ) : (
+                              <span className="text-muted" aria-hidden="true">—</span>
+                            )}
+                          </th>
+                        ))}
                         <th
-                          className="text-center exam-th-r2 test-gesamt-col"
+                          className="text-center"
                           style={{
                             width: '100px',
                             minWidth: '100px',
@@ -459,7 +507,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                             textTransform: 'none',
                           }}
                         >
-                          {maxPtsDisplay}
+                          {test.maxPoints}
                         </th>
                         <th
                           style={{
@@ -494,7 +542,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                       {displayStudents.length === 0 && students.length > 0 && (
                         <tr>
                           <td
-                            colSpan={TEST_DETAIL_COL_SPAN}
+                            colSpan={4 + displayFieldCount}
                             className="text-center text-muted"
                             style={{ padding: '2rem' }}
                           >
@@ -503,35 +551,23 @@ export default function TestsView({ studentIdFilterSet = null }) {
                         </tr>
                       )}
                       {displayStudents.map((s, idx) => {
-                        const scoreMap = test.scores ?? test.errors;
-                        const rawSc = scoreMap?.[s.id];
+                        const rawSc = test.scores?.[s.id] ?? test.errors?.[s.id];
                         const {
-                          value: pointsStr,
+                          effN,
+                          fields,
                           counted,
+                          total: totalPoints,
+                          maxPts,
                           grade,
                           isManual,
                           manualGradeInput,
                         } = testRowStats(s.id);
-                        const isNach = typeof rawSc === 'object' && rawSc !== null && rawSc._nachschreiber === true;
+                        const isNach = typeof rawSc === 'object' && rawSc !== null && !!rawSc._nachschreiber;
                         const showAbsentFlag = !counted;
                         const showNachFlag = counted && isNach;
                         const showIndexFlag = showAbsentFlag || showNachFlag;
                         const isExpanded = expandedStudentId === s.id;
-                        const effectiveMax = getEffectiveTestMaxPoints(test, rawSc);
-                        const pointsOut = isTestPointsOutOfRange(pointsStr, effectiveMax);
-                        const ptsNum = parseFloat(String(pointsStr).replace(',', '.'));
-                        const gesamtDisplay =
-                          pointsStr !== '' && Number.isFinite(ptsNum) ? (
-                            <>
-                              {ptsNum}
-                              <span className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.8rem' }}>
-                                {' '}
-                                / {effectiveMax}
-                              </span>
-                            </>
-                          ) : (
-                            '—'
-                          );
+                        const detailColSpan = 4 + displayFieldCount;
 
                         return (
                           <React.Fragment key={s.id}>
@@ -611,45 +647,141 @@ export default function TestsView({ studentIdFilterSet = null }) {
                               >
                                 {s.lastName}, {s.firstName}
                               </td>
-                              <td className="text-center test-points-col" style={{ verticalAlign: 'middle' }}>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, 0)}
-                                  value={pointsStr === undefined ? '' : pointsStr}
-                                  onChange={(e) => handlePointsChange(s.id, e.target.value)}
-                                  onKeyDown={createScoreTaskTabHandler({
-                                    scopeKey: scoreInputScope,
-                                    rowKey: s.id,
-                                    fieldIndex: 0,
-                                    effectiveFieldCount: 1,
-                                    onTabForwardFromLastField: () => {
-                                      const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
-                                      const nextStudent = displayStudents[rowIdx + 1];
-                                      if (nextStudent) {
-                                        focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
-                                      }
-                                    },
-                                    onShiftTabFromFirstField: () => {
-                                      const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
-                                      const prevStudent = displayStudents[rowIdx - 1];
-                                      if (prevStudent) {
-                                        focusScoreTaskInput(scoreInputScope, prevStudent.id, 0);
-                                      }
-                                    },
-                                  })}
-                                  placeholder="0"
-                                  className={pointsOut ? 'exam-score-input--out-of-range' : undefined}
-                                  title={
-                                    pointsOut
-                                      ? 'Wert muss zwischen 0 und der Maximalpunktzahl liegen.'
-                                      : undefined
-                                  }
-                                  style={{ textAlign: 'center', width: '80px', minWidth: 'auto', borderRadius: 0 }}
-                                />
-                              </td>
+                              {[...Array(displayFieldCount)].map((_, fieldIndex) => {
+                                const beyond = fieldIndex >= effN;
+                                const val = fields[fieldIndex] !== undefined ? fields[fieldIndex] : '';
+                                const maxRule = getExamTaskMaxRuleForStudent(test, s.id, fieldIndex);
+                                const scoreOutOfRange = !beyond && isExamScoreFieldOutOfRange(val, maxRule);
+                                const nachFieldMax = getNachschreiberFieldMaxPoints(rawSc);
+                                const nachMaxKeyStr = String(fieldIndex);
+                                const hasNachMaxKey =
+                                  Object.prototype.hasOwnProperty.call(nachFieldMax, fieldIndex) ||
+                                  Object.prototype.hasOwnProperty.call(nachFieldMax, nachMaxKeyStr);
+                                const nachMaxVal = parseScorePointsValue(
+                                  hasNachMaxKey
+                                    ? nachFieldMax[fieldIndex] ?? nachFieldMax[nachMaxKeyStr]
+                                    : test.fieldMaxPoints?.[fieldIndex] ?? test.fieldMaxPoints?.[nachMaxKeyStr] ?? (numFields === 1 && test.maxPoints ? test.maxPoints : ''),
+                                );
+                                return (
+                                  <td key={fieldIndex} className="text-center exam-task-col" style={{ opacity: beyond ? 0.45 : 1, verticalAlign: 'middle' }}>
+                                    {beyond ? (
+                                      <span className="text-muted" title="Für diesen Schüler nicht gewertet">—</span>
+                                    ) : isNach ? (
+                                      <div className="exam-nach-task-cell">
+                                        <DeferredNumberInput
+                                          defaultValue={0}
+                                          value={nachMaxVal}
+                                          disabled={courseArchived}
+                                          onChange={(n) =>
+                                            updateTestStudentNachschreiberFieldMaxPoints(
+                                              activeTest,
+                                              s.id,
+                                              fieldIndex,
+                                              n,
+                                            )
+                                          }
+                                          onKeyDown={handleTableEnterAsTab}
+                                          style={{
+                                            width: '70px',
+                                            textAlign: 'center',
+                                            padding: '0.15rem',
+                                            fontSize: '0.75rem',
+                                            borderRadius: 0,
+                                            marginBottom: '0.2rem',
+                                          }}
+                                          title={`Maximalpunkte A${fieldIndex + 1} (Nachschreiber)`}
+                                          aria-label={`Maximalpunkte A${fieldIndex + 1} für ${s.lastName}, ${s.firstName}`}
+                                        />
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, fieldIndex)}
+                                          value={val}
+                                          onChange={e => handleScoreChange(s.id, fieldIndex, e.target.value)}
+                                          onKeyDown={createScoreTaskTabHandler({
+                                            scopeKey: scoreInputScope,
+                                            rowKey: s.id,
+                                            fieldIndex,
+                                            effectiveFieldCount: effN,
+                                            onTabForwardFromLastField: () => {
+                                              const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                              const nextStudent = displayStudents[rowIdx + 1];
+                                              if (!nextStudent) return;
+                                              const nextEffN = getStudentEffectiveExamFieldCount(test, nextStudent.id);
+                                              if (nextEffN > 0) {
+                                                focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
+                                              }
+                                            },
+                                            onShiftTabFromFirstField: () => {
+                                              const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                              const prevStudent = displayStudents[rowIdx - 1];
+                                              if (!prevStudent) return;
+                                              const prevEffN = getStudentEffectiveExamFieldCount(test, prevStudent.id);
+                                              if (prevEffN > 0) {
+                                                focusScoreTaskInput(scoreInputScope, prevStudent.id, prevEffN - 1);
+                                              }
+                                            },
+                                          })}
+                                          placeholder="0"
+                                          className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
+                                          title={
+                                            scoreOutOfRange
+                                              ? maxRule.configured
+                                                ? 'Wert muss zwischen 0 und den Maximalpunkten dieser Aufgabe liegen.'
+                                                : 'Bitte zuerst Maximalpunkte eintragen oder hier 0 Punkte eintragen.'
+                                              : undefined
+                                          }
+                                          style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}
+                                        />
+                                      </div>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        data-score-task-input={scoreTaskInputDataAttr(scoreInputScope, s.id, fieldIndex)}
+                                        value={val}
+                                        onChange={e => handleScoreChange(s.id, fieldIndex, e.target.value)}
+                                        onKeyDown={createScoreTaskTabHandler({
+                                          scopeKey: scoreInputScope,
+                                          rowKey: s.id,
+                                          fieldIndex,
+                                          effectiveFieldCount: effN,
+                                          onTabForwardFromLastField: () => {
+                                            const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                            const nextStudent = displayStudents[rowIdx + 1];
+                                            if (!nextStudent) return;
+                                            const nextEffN = getStudentEffectiveExamFieldCount(test, nextStudent.id);
+                                            if (nextEffN > 0) {
+                                              focusScoreTaskInput(scoreInputScope, nextStudent.id, 0);
+                                            }
+                                          },
+                                          onShiftTabFromFirstField: () => {
+                                            const rowIdx = displayStudents.findIndex((st) => st.id === s.id);
+                                            const prevStudent = displayStudents[rowIdx - 1];
+                                            if (!prevStudent) return;
+                                            const prevEffN = getStudentEffectiveExamFieldCount(test, prevStudent.id);
+                                            if (prevEffN > 0) {
+                                              focusScoreTaskInput(scoreInputScope, prevStudent.id, prevEffN - 1);
+                                            }
+                                          },
+                                        })}
+                                        placeholder="0"
+                                        className={scoreOutOfRange ? 'exam-score-input--out-of-range' : undefined}
+                                        title={
+                                          scoreOutOfRange
+                                            ? maxRule.configured
+                                              ? 'Wert muss zwischen 0 und den Maximalpunkten dieser Aufgabe liegen.'
+                                              : 'Bitte zuerst Maximalpunkte eintragen oder hier 0 Punkte eintragen.'
+                                            : undefined
+                                        }
+                                        style={{ textAlign: 'center', width: '70px', minWidth: 'auto', borderRadius: 0 }}
+                                      />
+                                    )}
+                                  </td>
+                                );
+                              })}
                               <td
-                                className="text-center test-gesamt-col"
+                                className="text-center"
                                 style={{
                                   width: '100px',
                                   minWidth: '100px',
@@ -663,7 +795,8 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                   verticalAlign: 'middle',
                                 }}
                               >
-                                {gesamtDisplay}
+                                {totalPoints}
+                                <span className="text-muted" style={{ fontWeight: 'normal', fontSize: '0.8rem' }}> / {maxPts}</span>
                               </td>
                               <td
                                 className="text-center"
@@ -719,7 +852,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                             {isExpanded && (
                               <tr style={{ background: 'rgba(15, 23, 42, 0.015)' }}>
                                 <td
-                                  colSpan={TEST_DETAIL_COL_SPAN}
+                                  colSpan={detailColSpan}
                                   style={{
                                     padding: 0,
                                     borderBottom: '1px solid var(--border)',
@@ -756,7 +889,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                     <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>
                                       Nachschreiber:
                                     </span>
-                                    <label className="switch switch--table-row" title="Kennzeichnung wie bei Klausuren">
+                                    <label className="switch switch--table-row" title="Eigene Aufgabenfelder-Anzahl für diesen Schüler (auch mehr als der Test)">
                                       <input
                                         type="checkbox"
                                         checked={isNach}
@@ -768,32 +901,23 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                       />
                                       <span className="slider" />
                                     </label>
-                                    {isNach ? (
+                                    {isNach && (
                                       <>
-                                        <span
-                                          className="text-muted"
-                                          style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}
-                                        >
-                                          Max. Punkte (Nachschreiber):
+                                        <span className="text-muted" style={{ fontSize: '0.875rem' }}>
+                                          Aufgabenfelder (dieser Schüler):
                                         </span>
                                         <DeferredNumberInput
-                                          min={0.5}
-                                          defaultValue={Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0 ? parseFloat(test.maxPoints) : 10}
-                                          className="course-meta-control"
-                                          style={{
-                                            width: '84px',
-                                            height: 'var(--course-meta-control-height)',
-                                            minHeight: 'var(--course-meta-control-height)',
-                                            boxSizing: 'border-box',
-                                          }}
-                                          value={effectiveMax}
-                                          onChange={(n) =>
-                                            updateTestNachschreiberMaxPoints(activeTest, s.id, n)
-                                          }
-                                          title="Nur für diesen Schüler — Note aus erreichte Punkte geteilt durch dieses Maximum und dem gewählten Schlüssel."
+                                          integer
+                                          min={1}
+                                          max={EXAM_ABS_MAX_FIELDS}
+                                          defaultValue={numFields}
+                                          value={effN}
+                                          onChange={(n) => updateTestStudentNachschreiberFields(activeTest, s.id, n)}
+                                          style={{ width: '56px', textAlign: 'center', padding: '0.2rem' }}
+                                          title={`1–${EXAM_ABS_MAX_FIELDS}; Standard ist der Test (${numFields} Felder). Maximalpunkte pro Aufgabe in der Zeile darüber eintragen.`}
                                         />
                                       </>
-                                    ) : null}
+                                    )}
                                     <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>
                                       Manuelle Note:
                                     </span>
@@ -839,7 +963,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
             <div className="sidebar exams-key-sidebar">
               <GradingKeyTable
                 type={sidebarCustomDef ? '1' : test.keyType || '1'}
-                maxPoints={maxPtsDisplay}
+                maxPoints={test.maxPoints}
                 title={
                   sidebarCustomDef
                     ? sidebarCustomDef.name
@@ -848,11 +972,11 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 desc={
                   sidebarCustomDef
                     ? (isVorlage1KeyFamilyId(sidebarCustomDef.id)
-                        ? getPlateauKeyShortDesc('1', maxPtsDisplay)
+                        ? getPlateauKeyShortDesc('1', test.maxPoints)
                         : sidebarCustomDef.name)
                     : test.keyType === 'abi'
                       ? 'ABI BaWü 2026 120 BE'
-                      : getBuiltinGradingKeyShortDesc(test.keyType, maxPtsDisplay) || `Schlüssel ${test.keyType || '1'}`
+                      : getBuiltinGradingKeyShortDesc(test.keyType, test.maxPoints) || `Schlüssel ${test.keyType || '1'}`
                 }
                 titleHelpText={
                   sidebarCustomDef
@@ -862,7 +986,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 customBands={
                   sidebarCustomDef
                     ? (isVorlage1KeyFamilyId(sidebarCustomDef.id)
-                        ? buildVorlage1Bands(maxPtsDisplay)
+                        ? buildVorlage1Bands(test.maxPoints)
                         : sidebarCustomDef.bands)
                     : (test.keyType === 'abi' ? ABI_BAWUE_2026_120_BE_KEY.bands : undefined)
                 }
@@ -873,7 +997,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                     (isAbiBaWue2026KeyFamilyId(sidebarCustomDef.id) ||
                       isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                 }
-                titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(sidebarCustomDef?.id, maxPtsDisplay)}
+                titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(sidebarCustomDef?.id, test.maxPoints)}
                 showNotenpunkte={gradeSys === 'points'}
               />
             </div>
@@ -922,15 +1046,14 @@ export default function TestsView({ studentIdFilterSet = null }) {
                 <div className="exam-charts-modal-body exam-charts-modal-body--charts">
                   <ExamChartsPanels
                     students={displayStudents}
-                    exam={examStubForCharts}
+                    exam={test}
                     examRowStats={testRowStats}
                     tooltipGrade={tooltipGrade}
                     setTooltipGrade={setTooltipGrade}
                     pieTooltip={pieTooltip}
                     setPieTooltip={setPieTooltip}
-                    displayFieldCount={0}
+                    displayFieldCount={displayFieldCount}
                     gradeSystem={gradeSys}
-                    showTaskAnalysis={false}
                   />
                 </div>
               </div>

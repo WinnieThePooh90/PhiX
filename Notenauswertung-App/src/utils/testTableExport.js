@@ -1,14 +1,18 @@
 import {
-  formatGrade,
   computeTestClassAverage,
   formatExamClassAverageDisplay,
-  getEffectiveTestMaxPoints,
-  getNormalizedTestScore,
+  formatGrade,
+  getExamDisplayFieldCount,
+  getNormalizedExamScore,
+  getStudentEffectiveExamFieldCount,
+  getStudentExamMaxPointsForGrade,
   getTestGradeForStudent,
-  normalizeCourseGradeSystem,
   gradingKeyResultDisplayOpts,
+  normalizeCourseGradeSystem,
 } from './calculator';
 import { expandRowsWithStudentNotes } from './studentNotesExport';
+import { buildExamTableExportLayout } from './examTableExport';
+import { resolveExamGradingKeyForExport } from './gradingKeyExport';
 
 function studentNameCell(s) {
   return `${s.lastName ?? ''}, ${s.firstName ?? ''}`.replace(/^,\s*|,\s*$/g, '').trim() || '—';
@@ -21,45 +25,66 @@ function studentNameCell(s) {
 export function buildTestTableExportAoa({ test, testId, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
-  const maxPtsDisplay =
-    Number.isFinite(parseFloat(test?.maxPoints)) && parseFloat(test.maxPoints) > 0
-      ? parseFloat(test.maxPoints)
-      : 10;
-
+  const displayFieldCount = getExamDisplayFieldCount(test, students);
   const classAverage = computeTestClassAverage(test, students, customGradingKeys, gradeSys);
   const avgDisplay = formatExamClassAverageDisplay(classAverage, gradeSys);
   const noteMaxCell = avgDisplay ? `Ø\n${avgDisplay}` : 'Ø';
 
-  const header1 = ['#', 'NAME', 'PUNKTE', 'GESAMT', 'NOTE'];
-  const maxRow = ['Max', 'Maximalpunkte', '', maxPtsDisplay, noteMaxCell];
+  const header1 = [
+    '#',
+    'NAME',
+    ...Array.from({ length: displayFieldCount }, (_, i) => `A${i + 1}`),
+    'GESAMT',
+    'NOTE',
+  ];
+
+  const maxRow = [
+    'Max',
+    'Maximalpunkte',
+    ...Array.from({ length: displayFieldCount }, (_, i) => {
+      const v = test?.fieldMaxPoints?.[i];
+      return v !== undefined && v !== null && v !== '' ? v : (displayFieldCount === 1 && test?.maxPoints ? test.maxPoints : '');
+    }),
+    test?.maxPoints ?? '',
+    noteMaxCell,
+  ];
 
   const dataRows = expandRowsWithStudentNotes(
     students,
     (s, idx) => {
-      const scoreMap = test.scores ?? test.errors;
-      const rawSc = scoreMap?.[s.id];
-      const { value: pointsStr, counted } = getNormalizedTestScore(rawSc);
+      const rawSc = test?.scores?.[s.id] ?? test?.errors?.[s.id];
+      const effN = getStudentEffectiveExamFieldCount(test, s.id);
+      const { fields, counted, total } = getNormalizedExamScore(rawSc, effN);
+      const maxPts = getStudentExamMaxPointsForGrade(test, s.id);
       const grade = counted ? getTestGradeForStudent(test, s.id, customGradingKeys, gradeSys) : null;
-      const effectiveMax = getEffectiveTestMaxPoints(test, rawSc);
-      const ptsNum = parseFloat(String(pointsStr).replace(',', '.'));
 
-      const punkte =
-        pointsStr !== '' && pointsStr !== undefined && pointsStr !== null ? String(pointsStr) : '';
-      const gesamt =
-        pointsStr !== '' && Number.isFinite(ptsNum) ? `${ptsNum} / ${effectiveMax}` : '—';
+      const taskCells = Array.from({ length: displayFieldCount }, (_, fieldIndex) => {
+        if (fieldIndex >= effN) return '—';
+        const val = fields[fieldIndex];
+        return val !== undefined && val !== null && val !== '' ? val : '';
+      });
 
+      const gesamt = counted ? `${total} / ${maxPts}` : '—';
       let note = '-';
       if (counted && grade !== null) {
         note = formatGrade(grade, gradeSys, gradingKeyResultDisplayOpts(gradeSys));
       }
 
-      return [s.studentNumber ?? idx + 1, studentNameCell(s), punkte, gesamt, note];
+      return [s.studentNumber ?? idx + 1, studentNameCell(s), ...taskCells, gesamt, note];
     },
     header1.length,
     { textColumnIndex: 1 },
   );
 
   return [header1, maxRow, ...dataRows];
+}
+
+export function buildTestTableExport({ test, testId, students, config }) {
+  const aoa = buildTestTableExportAoa({ test, testId, students, config });
+  const displayFieldCount = getExamDisplayFieldCount(test, students);
+  const layout = buildExamTableExportLayout(displayFieldCount);
+  const gradingKey = resolveExamGradingKeyForExport(test, config);
+  return { aoa, layout, gradingKey };
 }
 
 export function testExportSheetName(testId, testName) {

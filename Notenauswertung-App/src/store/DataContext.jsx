@@ -1183,6 +1183,8 @@ export const DataProvider = ({ children }) => {
       testNumber: nextNumber, 
       active: true, 
       maxPoints: 10,
+      numFields: 1,
+      fieldMaxPoints: {},
       keyType: '1', 
       date: '', 
       halbjahr: '1',
@@ -1201,6 +1203,16 @@ export const DataProvider = ({ children }) => {
     return nextNumber;
   };
 
+  const removeTest = async (testId) => {
+    const key = String(testId);
+    setTests((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    await apiCall(`/api/tests/${testId}?courseId=${activeCourseId}`, 'DELETE');
+  };
+
   const updateTest = (id, field, value) => {
     setTests(prev => {
       const nextTests = { ...prev, [id]: { ...prev[id], [field]: value } };
@@ -1209,19 +1221,46 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const updateTestScore = (testId, studentId, pointsValue) => {
-    setTests((prev) => {
-      const prevTest = prev[testId];
-      const map = prevTest.scores ?? prevTest.errors ?? {};
-      const prevData = map[studentId];
-      const newData =
-        typeof prevData === 'object' && prevData !== null
-          ? { ...prevData, value: pointsValue }
-          : { value: pointsValue, _counted: true };
+  const updateTestFieldMaxPoints = (testId, fieldIndex, points) => {
+    setTests(prev => {
+      const test = prev[testId];
+      if (!test) return prev;
+      const prevFieldMax = test.fieldMaxPoints || {};
+      const newFieldMax = { ...prevFieldMax, [fieldIndex]: points };
+      const nf = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, test.numFields || 1));
+      let totalMax = 0;
+      for (let i = 0; i < nf; i += 1) {
+        totalMax += parseScorePointsValue(newFieldMax[i]);
+      }
 
       const newTest = {
-        ...prevTest,
-        scores: { ...map, [studentId]: newData },
+        ...test,
+        fieldMaxPoints: newFieldMax,
+        maxPoints: totalMax > 0 ? totalMax : test.maxPoints
+      };
+
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
+
+  const updateTestScore = (testId, studentId, fieldIndexOrPoints, maybePoints) => {
+    const hasFieldIndex = maybePoints !== undefined;
+    const fieldIndex = hasFieldIndex ? fieldIndexOrPoints : 0;
+    const points = hasFieldIndex ? maybePoints : fieldIndexOrPoints;
+
+    setTests((prev) => {
+      const test = prev[testId];
+      if (!test) return prev;
+      const map = test.scores ?? test.errors ?? {};
+      const prevStudentScores = map[studentId];
+      const newScores = typeof prevStudentScores === 'object' && prevStudentScores !== null
+        ? { ...prevStudentScores, [fieldIndex]: points }
+        : { 0: prevStudentScores !== undefined && prevStudentScores !== null ? prevStudentScores : '', [fieldIndex]: points };
+
+      const newTest = {
+        ...test,
+        scores: { ...map, [studentId]: newScores },
       };
       delete newTest.errors;
       apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
@@ -1232,16 +1271,16 @@ export const DataProvider = ({ children }) => {
   const updateTestCounted = (testId, studentId, counted) => {
     setTests((prev) => {
       const prevTest = prev[testId];
+      if (!prevTest) return prev;
       const map = prevTest.scores ?? prevTest.errors ?? {};
-      const prevData = map[studentId];
-      const newData =
-        typeof prevData === 'object' && prevData !== null
-          ? { ...prevData, _counted: counted }
-          : { value: prevData, _counted: counted };
+      const prevStudentScores = map[studentId];
+      const newScores = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
+        ? { ...prevStudentScores, _counted: counted }
+        : { 0: prevStudentScores, _counted: counted };
 
       const newTest = {
         ...prevTest,
-        scores: { ...map, [studentId]: newData },
+        scores: { ...map, [studentId]: newScores },
       };
       delete newTest.errors;
       apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
@@ -1251,44 +1290,63 @@ export const DataProvider = ({ children }) => {
 
   const updateTestStudentNachschreiber = (testId, studentId, active) => {
     setTests((prev) => {
-      const prevTest = prev[testId];
-      const map = prevTest.scores ?? prevTest.errors ?? {};
-      const prevData = map[studentId];
+      const test = prev[testId];
+      if (!test) return prev;
+      const cap = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, test.numFields || 1));
+      const map = test.scores ?? test.errors ?? {};
+      const prevStudentScores = map[studentId];
       const defaultNachMax =
-        Number.isFinite(parseFloat(prevTest.maxPoints)) && parseFloat(prevTest.maxPoints) > 0
-          ? parseFloat(prevTest.maxPoints)
+        Number.isFinite(parseFloat(test.maxPoints)) && parseFloat(test.maxPoints) > 0
+          ? parseFloat(test.maxPoints)
           : 10;
-      let newData;
-      if (typeof prevData === 'object' && prevData !== null) {
+      let newScores;
+      if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
         if (active) {
-          const existingNachMax = parseFloat(String(prevData._nachschreiberMaxPoints).replace(',', '.'));
-          newData = {
-            ...prevData,
+          const fieldCount = Math.max(
+            1,
+            Math.min(
+              EXAM_ABS_MAX_FIELDS,
+              parseInt(prevStudentScores._nachschreiberFields, 10) || cap,
+            ),
+          );
+          const existingMax = getNachschreiberFieldMaxPoints(prevStudentScores);
+          const existingNachMax = parseFloat(String(prevStudentScores._nachschreiberMaxPoints).replace(',', '.'));
+          newScores = {
+            ...prevStudentScores,
             _nachschreiber: true,
+            _nachschreiberFields: fieldCount,
             _nachschreiberMaxPoints:
               Number.isFinite(existingNachMax) && existingNachMax > 0 ? existingNachMax : defaultNachMax,
+            _nachschreiberFieldMaxPoints:
+              Object.keys(existingMax).length > 0
+                ? existingMax
+                : buildInitialNachschreiberFieldMaxPoints(test, fieldCount),
           };
         } else {
-          const { _nachschreiber, ...rest } = prevData;
-          newData = rest;
+          const { _nachschreiber, _nachschreiberFields, _nachschreiberFieldMaxPoints, _nachschreiberMaxPoints, ...rest } = prevStudentScores;
+          newScores = rest;
         }
       } else if (active) {
-        newData =
-          prevData !== undefined && prevData !== null
-            ? {
-                value: String(prevData),
-                _counted: true,
-                _nachschreiber: true,
-                _nachschreiberMaxPoints: defaultNachMax,
-              }
-            : { value: '', _counted: true, _nachschreiber: true, _nachschreiberMaxPoints: defaultNachMax };
+        const base =
+          prevStudentScores !== undefined && prevStudentScores !== null
+            ? { 0: prevStudentScores, _counted: true }
+            : { _counted: true };
+        newScores = {
+          ...base,
+          _nachschreiber: true,
+          _nachschreiberFields: cap,
+          _nachschreiberMaxPoints: defaultNachMax,
+          _nachschreiberFieldMaxPoints: buildInitialNachschreiberFieldMaxPoints(test, cap),
+        };
       } else {
-        newData = prevData;
+        newScores = prevStudentScores !== undefined && prevStudentScores !== null
+          ? { 0: prevStudentScores }
+          : {};
       }
 
       const newTest = {
-        ...prevTest,
-        scores: { ...map, [studentId]: newData },
+        ...test,
+        scores: { ...map, [studentId]: newScores },
       };
       delete newTest.errors;
       apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
@@ -1296,14 +1354,82 @@ export const DataProvider = ({ children }) => {
     });
   };
 
-  const ensureTestStudentScoreObject = (prevData) => {
-    if (typeof prevData === 'object' && prevData !== null) {
-      return { ...prevData };
+  const updateTestStudentNachschreiberFields = (testId, studentId, rawN) => {
+    setTests(prev => {
+      const test = prev[testId];
+      if (!test) return prev;
+      const n = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, typeof rawN === 'number' ? rawN : (parseInt(rawN, 10) || 1)));
+      const map = test.scores ?? test.errors ?? {};
+      const prevStudentScores = map[studentId];
+      const base = (typeof prevStudentScores === 'object' && prevStudentScores !== null)
+        ? { ...prevStudentScores, _nachschreiber: true, _nachschreiberFields: n }
+        : { 0: prevStudentScores, _counted: true, _nachschreiber: true, _nachschreiberFields: n };
+
+      const newScores = { ...base };
+      Object.keys(newScores).forEach((k) => {
+        if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete newScores[k];
+      });
+
+      const prevMax = { ...getNachschreiberFieldMaxPoints(newScores) };
+      for (let i = 0; i < n; i += 1) {
+        const keyStr = String(i);
+        if (
+          !Object.prototype.hasOwnProperty.call(prevMax, i) &&
+          !Object.prototype.hasOwnProperty.call(prevMax, keyStr)
+        ) {
+          const fromTest = test.fieldMaxPoints?.[i] ?? test.fieldMaxPoints?.[keyStr];
+          prevMax[i] = fromTest !== undefined && fromTest !== null ? fromTest : '';
+        }
+      }
+      Object.keys(prevMax).forEach((k) => {
+        if (/^\d+$/.test(k) && parseInt(k, 10) >= n) delete prevMax[k];
+      });
+      newScores._nachschreiberFieldMaxPoints = prevMax;
+
+      const newTest = {
+        ...test,
+        scores: { ...map, [studentId]: newScores },
+      };
+      delete newTest.errors;
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
+
+  const updateTestStudentNachschreiberFieldMaxPoints = (testId, studentId, fieldIndex, points) => {
+    setTests((prev) => {
+      const test = prev[testId];
+      if (!test) return prev;
+      const map = test.scores ?? test.errors ?? {};
+      const prevStudentScores = map[studentId];
+      const base =
+        typeof prevStudentScores === 'object' && prevStudentScores !== null
+          ? { ...prevStudentScores, _nachschreiber: true }
+          : { 0: prevStudentScores, _counted: true, _nachschreiber: true };
+      const prevMax = { ...getNachschreiberFieldMaxPoints(base) };
+      prevMax[fieldIndex] = points;
+      const newScores = {
+        ...base,
+        _nachschreiberFieldMaxPoints: prevMax,
+      };
+      const newTest = {
+        ...test,
+        scores: { ...map, [studentId]: newScores },
+      };
+      delete newTest.errors;
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
+
+  const ensureTestStudentScoreObject = (prevStudentScores) => {
+    if (typeof prevStudentScores === 'object' && prevStudentScores !== null) {
+      return { ...prevStudentScores };
     }
-    if (prevData !== undefined && prevData !== null) {
-      return { value: String(prevData), _counted: true };
+    if (prevStudentScores !== undefined && prevStudentScores !== null) {
+      return { 0: prevStudentScores, _counted: true };
     }
-    return { value: '', _counted: true };
+    return { _counted: true };
   };
 
   const updateTestStudentManualGrade = (testId, studentId, active, seedValue = undefined) => {
@@ -1368,6 +1494,16 @@ export const DataProvider = ({ children }) => {
       const newData =
         typeof prevData === 'object' && prevData !== null
           ? { ...prevData, _nachschreiber: true, _nachschreiberMaxPoints: maxVal }
+          : { 0: prevData, _counted: true, _nachschreiber: true, _nachschreiberMaxPoints: maxVal };
+      const newTest = {
+        ...prevTest,
+        scores: { ...map, [studentId]: newData },
+      };
+      delete newTest.errors;
+      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
+      return { ...prev, [testId]: newTest };
+    });
+  };
           : {
               value: prevData !== undefined && prevData !== null ? String(prevData) : '',
               _counted: true,
@@ -2362,8 +2498,9 @@ export const DataProvider = ({ children }) => {
       updateExamStudentNachschreiberFieldMaxPoints,
       updateExamStudentManualGrade, updateExamStudentManualGradeValue,
       orals, addOral, removeOral, updateOral, updateOralGrade, updateOralCounted, updateOralWeekPoints, updateOralWeekGrade, updateOralWeekLabel, addOralWeekColumn, removeOralWeekColumn,
-      tests, addTest, updateTestScore, updateTest, updateTestCounted, updateTestStudentNachschreiber, updateTestNachschreiberMaxPoints,
-      updateTestStudentManualGrade, updateTestStudentManualGradeValue,
+      tests, addTest, removeTest, updateTestScore, updateTest, updateTestFieldMaxPoints, updateTestCounted,
+      updateTestStudentNachschreiber, updateTestStudentNachschreiberFields, updateTestStudentNachschreiberFieldMaxPoints,
+      updateTestNachschreiberMaxPoints, updateTestStudentManualGrade, updateTestStudentManualGradeValue,
       projects, addProject, removeProject, updateProject, setProjectGradeMode, updateProjectFields, updateProjectScore, updateProjectFieldNames, updateProjectFieldMaxPoints, updateProjectCounted,
       updateProjectStudentManualGrade, updateProjectStudentManualGradeValue,
       updateProjectGroupMemberCounted, updateProjectGroupMemberManualGrade, updateProjectGroupMemberManualGradeValue,

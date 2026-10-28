@@ -48,10 +48,16 @@ export const parseScorePointsValue = (raw) => {
  * @param {number|null|undefined} maxFieldCount — nur Felder 0 .. maxFieldCount-1 in die Summe (Nachschreiber); weglassen = alle numerischen Feldschlüssel wie bisher
  */
 export const getNormalizedExamScore = (scoreData, maxFieldCount = null) => {
-  if (scoreData === undefined || scoreData === null || scoreData === '') return { fields: {}, counted: true, total: 0 };
+  if (scoreData === undefined || scoreData === null || scoreData === '') return { fields: {}, counted: true, total: 0, value: '' };
   if (typeof scoreData === 'object') {
     const counted = scoreData._counted !== false;
-    const total = Object.entries(scoreData)
+    let fields = { ...scoreData };
+    const hasNumericKey = Object.keys(scoreData).some(isExamFieldIndexKey);
+    if (!hasNumericKey && scoreData.value !== undefined && scoreData.value !== null && scoreData.value !== '') {
+      fields[0] = scoreData.value;
+    }
+    const hasAnyValidField = Object.entries(fields).some(([k, v]) => isExamFieldIndexKey(k) && v !== '' && v !== null && v !== undefined);
+    const total = Object.entries(fields)
       .filter(([k]) => !EXAM_SCORE_META_KEYS.has(k))
       .filter(([k]) => isExamFieldIndexKey(k))
       .filter(([k]) => {
@@ -59,15 +65,15 @@ export const getNormalizedExamScore = (scoreData, maxFieldCount = null) => {
         return parseInt(k, 10) < maxFieldCount;
       })
       .reduce((sum, [_, v]) => sum + parseScorePointsValue(v), 0);
-    return { fields: scoreData, counted, total };
+    return { fields, counted, total, value: hasAnyValidField ? total : '' };
   }
-  return { fields: { 0: scoreData }, counted: true, total: parseScorePointsValue(scoreData) };
+  return { fields: { 0: scoreData }, counted: true, total: parseScorePointsValue(scoreData), value: scoreData };
 };
 
 /** Anzahl Aufgabenfelder für die Berechnung (Nachschreiber kann über exam.numFields hinausgehen) */
 export const getStudentEffectiveExamFieldCount = (exam, studentId) => {
-  const baseN = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam.numFields || 1));
-  const sc = exam.scores?.[studentId];
+  const baseN = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam?.numFields || 1));
+  const sc = exam?.scores?.[studentId] ?? exam?.errors?.[studentId];
   if (sc && typeof sc === 'object' && sc._nachschreiber) {
     const n = parseInt(sc._nachschreiberFields, 10);
     if (!Number.isNaN(n)) return Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, n));
@@ -78,7 +84,7 @@ export const getStudentEffectiveExamFieldCount = (exam, studentId) => {
 
 /** Tabellenbreite: genug Spalten für jeden Schüler (inkl. Nachschreiber mit mehr Feldern) */
 export const getExamDisplayFieldCount = (exam, studentsList) => {
-  let m = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam.numFields || 1));
+  let m = Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, exam?.numFields || 1));
   (studentsList || []).forEach((s) => {
     m = Math.max(m, getStudentEffectiveExamFieldCount(exam, s.id));
   });
@@ -819,13 +825,10 @@ export const roundOralNoteToQuarter = (grade) => {
   return Math.min(6, Math.max(1, q));
 };
 
-/** @param {unknown} scoreData — Zahl/Text oder `{ value, _counted?, _nachschreiber?, _nachschreiberMaxPoints? }` */
-export const getNormalizedTestScore = (scoreData) => {
-  if (scoreData === undefined || scoreData === null || scoreData === '') return { value: '', counted: true };
-  if (typeof scoreData === 'object') {
-    return { value: scoreData.value ?? '', counted: scoreData._counted !== false };
-  }
-  return { value: scoreData, counted: true };
+/** @param {unknown} scoreData — Zahl/Text oder `{ value, _counted?, _nachschreiber?, _nachschreiberMaxPoints? }` oder Aufgabenfeld-Objekt */
+export const getNormalizedTestScore = (scoreData, maxFieldCount = null) => {
+  if (scoreData === undefined || scoreData === null || scoreData === '') return { value: '', counted: true, fields: {}, total: 0 };
+  return getNormalizedExamScore(scoreData, maxFieldCount);
 };
 
 // Notenschlüssel Parameter: Schlüssel 1–3 = Formel; 4–6 = frühere lineare Schlüssel 1–3
@@ -1086,20 +1089,37 @@ export const calculateGradeFromThresholds = (points, maxPoints, type, overrideTh
 };
 
 /**
- * Effektive Maximalpunktzahl für einen Schüler-Testeintrag (global oder bei Nachschreiber `_nachschreiberMaxPoints`).
+ * Effektive Maximalpunktzahl für einen Schüler-Testeintrag (global oder bei Nachschreiber `_nachschreiberMaxPoints` bzw. `_nachschreiberFieldMaxPoints`).
  * @param {object} test
  * @param {unknown} scoreData
+ * @param {string|number|null} [studentId]
  */
-export const getEffectiveTestMaxPoints = (test, scoreData) => {
-  const fallback = () => {
-    const maxRaw = parseFloat(test?.maxPoints);
-    return Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 10;
-  };
-  if (typeof scoreData === 'object' && scoreData !== null && scoreData._nachschreiber === true) {
-    const o = parseFloat(String(scoreData._nachschreiberMaxPoints).replace(',', '.'));
-    if (Number.isFinite(o) && o > 0) return o;
+export const getEffectiveTestMaxPoints = (test, scoreData, studentId = null) => {
+  if (studentId !== null && studentId !== undefined) {
+    return getStudentExamMaxPointsForGrade(test, studentId);
   }
-  return fallback();
+  if (typeof scoreData === 'object' && scoreData !== null) {
+    const nachFieldMax = getNachschreiberFieldMaxPoints(scoreData);
+    if (Object.keys(nachFieldMax).length > 0) {
+      const n = parseInt(scoreData._nachschreiberFields, 10) || Math.max(1, Math.min(EXAM_ABS_MAX_FIELDS, test?.numFields || 1));
+      let sum = 0;
+      for (let i = 0; i < n; i += 1) {
+        const keyStr = String(i);
+        if (Object.prototype.hasOwnProperty.call(nachFieldMax, i) || Object.prototype.hasOwnProperty.call(nachFieldMax, keyStr)) {
+          sum += parseScorePointsValue(nachFieldMax[i] ?? nachFieldMax[keyStr]);
+        } else {
+          sum += parseScorePointsValue(test?.fieldMaxPoints?.[i]);
+        }
+      }
+      if (sum > 0) return sum;
+    }
+    if (scoreData._nachschreiber === true) {
+      const o = parseFloat(String(scoreData._nachschreiberMaxPoints).replace(',', '.'));
+      if (Number.isFinite(o) && o > 0) return o;
+    }
+  }
+  const maxRaw = parseFloat(test?.maxPoints);
+  return Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 10;
 };
 
 /**
@@ -1136,7 +1156,8 @@ export const calculateTestGradeForStudentEntry = (
 export const getTestGradeForStudent = (test, studentId, customGradingKeys = null, gradeSystem = 'classic') => {
   const scoreMap = test.scores ?? test.errors;
   const raw = scoreMap?.[studentId];
-  const { value, counted } = getNormalizedTestScore(raw);
+  const effN = getStudentEffectiveExamFieldCount(test, studentId);
+  const { fields, counted, total, value } = getNormalizedExamScore(raw, effN);
   if (!counted) return null;
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
@@ -1148,9 +1169,24 @@ export const getTestGradeForStudent = (test, studentId, customGradingKeys = null
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(raw), gradeSystem);
   }
 
-  const pointsForGrade = value === '' ? '0' : value;
-  if (value === '' && test?.active === false) return null;
-  return calculateTestGradeForStudentEntry(test, pointsForGrade, customGradingKeys, raw, gs);
+  const hasAnyEntry = typeof raw === 'object' && raw !== null
+    ? Object.entries(raw).some(([k, v]) => isExamFieldIndexKey(k) && v !== '' && v !== null && v !== undefined) || (raw.value !== undefined && raw.value !== '')
+    : raw !== '' && raw !== null && raw !== undefined;
+
+  if (!hasAnyEntry && test?.active === false) return null;
+
+  const maxPts = getStudentExamMaxPointsForGrade(test, studentId) || (parseFloat(test?.maxPoints) > 0 ? parseFloat(test?.maxPoints) : 10);
+  const rawKt = String(test?.keyType ?? '1');
+  const kt = rawKt === '10' ? '1' : rawKt || '1';
+  const customDef = getCustomKeyDefinition(customGradingKeys, kt);
+
+  const pts = Math.min(maxPts, Math.max(0, total));
+
+  if (gs === 'points') {
+    return notenpunkteFromGradingKeyPoints(pts, maxPts, kt, null, customDef);
+  }
+  const calculated = calculateGradeFromThresholds(pts, maxPts, kt, null, customDef);
+  return Number.isFinite(calculated) ? calculated : null;
 };
 
 /** GFS-Notentext wie mündlich (z. B. 1,25); Komma als Dezimaltrenner erlaubt. */

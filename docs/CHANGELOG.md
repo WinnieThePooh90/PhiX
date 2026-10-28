@@ -6,6 +6,16 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 563 (2026-10-28)
+
+Aufgabenfelder für Tests (analog zu Klausuren):
+- In der Test-Ansicht können über das neue Metadaten-Feld „Aufgabenfelder“ beliebig viele Aufgabenfelder (A1, A2, ...) wie bei Klausuren hinzugefügt und konfiguriert werden.
+- Die Tabelle zeigt für jedes Aufgabenfeld die Maximalpunkte in der Kopfzeile an; die Gesamtpunktzahl wird automatisch aus den Aufgabenfeldern errechnet.
+- Nachschreiber-Unterstützung analog zu Klausuren mit individueller Aufgabenfelder-Anzahl und aufgabenspezifischen Maximalpunkten.
+- Volle Rückwärtskompatibilität für bestehende Tests und Einzelpunkteinträge.
+- Tabellen- und Gesamtexport (Excel & PDF) sowie Auswertungsdiagramme (Aufgabenanalyse) für Tests analog zu Klausuren erweitert.
+- Datenmodell und Prisma-Schemas (PostgreSQL & SQLite) um `numFields` und `fieldMaxPoints` für Tests ergänzt.
+
 ## Build 562 (2026-10-28)
 
 Erweiterung des Overlays für benutzerdefinierte Notenschlüssel:

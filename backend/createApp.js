@@ -1134,6 +1134,8 @@ app.post('/api/courses', async (req, res) => {
       testNumber: 1,
       active: false,
       maxPoints: 10,
+      numFields: 1,
+      fieldMaxPoints: {},
       keyType: '1',
       date: '',
       halbjahr: '1',
@@ -1875,6 +1877,18 @@ app.put('/api/tests/:id', async (req, res) => {
     });
     res.json(test);
   }
+});
+
+app.delete('/api/tests/:id', async (req, res) => {
+  const testNumber = Number(req.params.id);
+  const courseId = Number(req.query.courseId);
+  if (!courseId) return res.status(400).json({ error: 'courseId required' });
+  const ok = await assertCourseWritable(req, res, courseId);
+  if (!ok) return;
+  const existing = await prisma.test.findFirst({ where: { testNumber, courseId } });
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  await prisma.test.delete({ where: { id: existing.id } });
+  res.status(204).send();
 });
 
 // PROJECTS
