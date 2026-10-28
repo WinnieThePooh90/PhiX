@@ -1504,21 +1504,6 @@ export const DataProvider = ({ children }) => {
       return { ...prev, [testId]: newTest };
     });
   };
-          : {
-              value: prevData !== undefined && prevData !== null ? String(prevData) : '',
-              _counted: true,
-              _nachschreiber: true,
-              _nachschreiberMaxPoints: maxVal,
-            };
-      const newTest = {
-        ...prevTest,
-        scores: { ...map, [studentId]: newData },
-      };
-      delete newTest.errors;
-      apiCall(`/api/tests/${testId}`, 'PUT', { ...newTest, courseId: activeCourseId });
-      return { ...prev, [testId]: newTest };
-    });
-  };
 
   // Projects Helpers
   const addProject = async ({

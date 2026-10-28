@@ -6,6 +6,11 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 ---
 
+## Build 564 (2026-10-28)
+
+Syntax-Korrektur im Frontend-Build:
+- Ein verbliebenes Codefragment in `DataContext.jsx` nach der Funktion `updateTestNachschreiberMaxPoints` wurde entfernt, welches den Vite-Produktionsbuild im Docker-Container verhinderte.
+
 ## Build 563 (2026-10-28)
 
 Aufgabenfelder für Tests (analog zu Klausuren):
