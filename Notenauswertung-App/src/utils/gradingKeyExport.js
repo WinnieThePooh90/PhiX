@@ -13,6 +13,7 @@ import {
   displayPointIntervalsHalfSteps,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   normalizeQuarterGrade,
   pointsFromPercentHalfStep,
   resolveGradingThresholds,
@@ -327,7 +328,7 @@ export function buildCourseGradingKeysExportList(
   config,
   maxPoints = DEFAULT_GRADING_KEY_EXPORT_MAX_POINTS,
 ) {
-  const showNotenpunkte = normalizeCourseGradeSystem(config?.gradeSystem) === 'points';
+  const showNotenpunkte = isPointsBasedGradeSystem(config?.gradeSystem);
   const withChartMode = (entry) => {
     if (!entry?.gradingKey?.chart) return entry;
     return {

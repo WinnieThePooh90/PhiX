@@ -11,6 +11,7 @@ import {
   storedGradeStringToClassic,
   storedGradeStringToNotenpunkte,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
 } from './calculator';
 
 export const STUDENT_CHART_WIDTH = 800;
@@ -56,7 +57,7 @@ export function extractStudentSeriesData({
     };
   }
 
-  const isPoints = normalizeCourseGradeSystem(gradeSys) === 'points';
+  const isPoints = isPointsBasedGradeSystem(gradeSys);
   const examList = [];
   const testList = [];
   const oralList = [];
@@ -124,8 +125,8 @@ export function extractStudentSeriesData({
       const oralG =
         counted && value !== undefined && value !== null && value !== ''
           ? isPoints
-            ? storedGradeStringToNotenpunkte(String(value), 'points')
-            : storedGradeStringToClassic(String(value), 'classic')
+            ? storedGradeStringToNotenpunkte(String(value), gradeSys)
+            : storedGradeStringToClassic(String(value), gradeSys)
           : null;
       if (counted && oralG !== null && Number.isFinite(oralG)) {
         const xIndex = oralList.length + 1;
@@ -149,8 +150,8 @@ export function extractStudentSeriesData({
       .filter((e) => e && e.studentId === student.id)
       .forEach((e) => {
         const gNum = isPoints
-          ? storedGradeStringToNotenpunkte(e.note, 'points')
-          : storedGradeStringToClassic(e.note, 'classic');
+          ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+          : storedGradeStringToClassic(e.note, gradeSys);
         const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
         if (counted) {
           const xIndex = gfsReferatList.length + 1;
@@ -184,8 +185,8 @@ export function extractStudentSeriesData({
       .filter((e) => e && e.studentId === student.id)
       .forEach((e) => {
         const gNum = isPoints
-          ? storedGradeStringToNotenpunkte(e.note, 'points')
-          : storedGradeStringToClassic(e.note, 'classic');
+          ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+          : storedGradeStringToClassic(e.note, gradeSys);
         const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
         if (counted) {
           const xIndex = gfsReferatList.length + 1;
@@ -248,7 +249,7 @@ export function buildStudentGradesChartSvg(ctx) {
     height = STUDENT_CHART_HEIGHT,
   } = ctx;
 
-  const isPoints = normalizeCourseGradeSystem(gradeSys) === 'points';
+  const isPoints = isPointsBasedGradeSystem(gradeSys);
   const seriesData = extractStudentSeriesData(ctx);
 
   const padLeft = 45;

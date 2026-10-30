@@ -36,6 +36,7 @@ import {
   EXAM_ABS_MAX_FIELDS,
   getCustomKeyDefinition,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   isExamManualGradeActive,
   getExamManualGradeStoredValue,
   gradingKeyResultDisplayOpts,
@@ -530,7 +531,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                         onChange={(v) => updateProject(activeProject, 'keyType', v)}
                         course={config}
                         maxPoints={project.maxPoints}
-                        showNotenpunkte={gradeSys === 'points'}
+                        showNotenpunkte={isPointsBasedGradeSystem(gradeSys)}
                       />
                     </div>
                     <div className="course-meta-field projects-meta-field--show-key">
@@ -800,7 +801,7 @@ export default function ProjectsView({ studentIdFilterSet = null }) {
                       (isAbiBaWue2026KeyFamilyId(sidebarCustomDef.id) ||
                         isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                   }
-                  showNotenpunkte={gradeSys === 'points'}
+                  showNotenpunkte={isPointsBasedGradeSystem(gradeSys)}
                 />
               </aside>
             )}

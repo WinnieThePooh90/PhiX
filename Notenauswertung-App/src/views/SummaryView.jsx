@@ -15,6 +15,8 @@ import {
   getGradeTextColor,
   storedGradeStringToClassic,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
+  isHalfPointsGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
@@ -109,6 +111,10 @@ function summaryEndNoteInputDisplay(raw) {
 
 function summaryEndNoteDraftFromStored(stored, gradeSystem) {
   if (stored === undefined || stored === null || stored === '') return '';
+  if (gradeSystem === 'points_half') {
+    const n = parseFloat(String(stored).replace(',', '.'));
+    return Number.isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : String(stored).trim();
+  }
   if (gradeSystem === 'points') return String(stored).trim();
   return summaryEndNoteInputDisplay(stored);
 }
@@ -341,7 +347,7 @@ function SummaryFormulaModal({ open, onClose, config, projects, gradeSys, exams,
             Fehlt ein Teildurchschnitt (keine zählenden Noten), entfällt die jeweilige Säule im Zähler und Nenner.
           </p>
 
-          {gradeSys === 'points' ? (
+          {isPointsBasedGradeSystem(gradeSys) ? (
             <>
               <div className="summary-formula-math-block">
                 {percentProjects.length > 0 ? (
@@ -801,6 +807,17 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
       setDraft('');
       return;
     }
+    if (gradeSystem === 'points_half') {
+      const np = Math.round(parseFloat(t.replace(/\s/g, '').replace(',', '.')) * 2) / 2;
+      if (!Number.isFinite(np) || np < 0 || np > 15) {
+        setDraft(summaryEndNoteDraftFromStored(stored, gradeSystem));
+        return;
+      }
+      const formatted = np.toFixed(1);
+      updateStudentConfig(student.id, field, formatted);
+      setDraft(formatted);
+      return;
+    }
     if (gradeSystem === 'points') {
       const np = Math.round(parseFloat(t.replace(/\s/g, '').replace(',', '.')));
       if (!Number.isFinite(np) || np < 0 || np > 15) {
@@ -836,7 +853,9 @@ function SummaryGradeInputCell({ student, field, updateStudentConfig, gradeSyste
       value={draft}
       placeholder="-"
       title={
-        gradeSystem === 'points'
+        gradeSystem === 'points_half'
+          ? 'Notenpunkte 0–15 in 0,5er Schritten (z. B. 10.0 oder 14.5)'
+          : gradeSystem === 'points'
           ? 'Notenpunkte 0–15 (werden so in der Datenbank gespeichert)'
           : undefined
       }
@@ -1044,27 +1063,27 @@ export default function SummaryView({
               <th
                 className="text-center"
                 style={{ width: '120px' }}
-                title={`Klausur-Noten inkl. gehaltener GFS (jede GFS-Note zählt wie eine Klausur im Durchschnitt, Gewicht „Schriftlich“)${gradeSys === 'points' ? ' — Anzeige Notenpunkte 0–15' : ''}`}
+                title={`Klausur-Noten inkl. gehaltener GFS (jede GFS-Note zählt wie eine Klausur im Durchschnitt, Gewicht „Schriftlich“)${isPointsBasedGradeSystem(gradeSys) ? ' — Anzeige Notenpunkte 0–15' : ''}`}
               >
                 Schriftlich
               </th>
-              <th className="text-center" style={{ width: '120px' }} title={`Nur mündliche Bereiche (Gewicht „Mündlich“)${gradeSys === 'points' ? ' — Anzeige Notenpunkte 0–15' : ''}`}>
+              <th className="text-center" style={{ width: '120px' }} title={`Nur mündliche Bereiche (Gewicht „Mündlich“)${isPointsBasedGradeSystem(gradeSys) ? ' — Anzeige Notenpunkte 0–15' : ''}`}>
                 Mündlich
               </th>
               {showTests && (
-                <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Anzeige Notenpunkte 0–15' : undefined}>
+                <th className="text-center" style={{ width: '120px' }} title={isPointsBasedGradeSystem(gradeSys) ? 'Anzeige Notenpunkte 0–15' : undefined}>
                   Tests
                 </th>
               )}
-              <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Gewichteter Mittelwert — Anzeige Notenpunkte 0–15' : undefined}>
+              <th className="text-center" style={{ width: '120px' }} title={isPointsBasedGradeSystem(gradeSys) ? 'Gewichteter Mittelwert — Anzeige Notenpunkte 0–15' : undefined}>
                 Endnote (Exakt)
               </th>
               {showHJ1 && (
-                <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Note Halbjahr 1 als Notenpunkte 0–15' : 'Manuell eintragbare Note Halbjahr 1'}>
+                <th className="text-center" style={{ width: '120px' }} title={isPointsBasedGradeSystem(gradeSys) ? 'Manuell — Note Halbjahr 1 als Notenpunkte 0–15' : 'Manuell eintragbare Note Halbjahr 1'}>
                   Note HJ1
                 </th>
               )}
-              <th className="text-center" style={{ width: '120px' }} title={gradeSys === 'points' ? 'Manuell — Speicherung als Notenpunkte 0–15' : 'Manuell eintragbare Endnote (z. B. 4,25)'}>
+              <th className="text-center" style={{ width: '120px' }} title={isPointsBasedGradeSystem(gradeSys) ? 'Manuell — Speicherung als Notenpunkte 0–15' : 'Manuell eintragbare Endnote (z. B. 4,25)'}>
                 Endnote
               </th>
             </tr>

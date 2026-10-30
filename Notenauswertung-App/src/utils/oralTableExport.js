@@ -9,6 +9,7 @@ import {
   getOralTotalWeekPoints,
   getOralWeekColumnLabel,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   normalizeOralSpreadBeta,
   oralExtendedCalculatedFormatOpts,
   storedGradeStringToClassic,
@@ -62,7 +63,7 @@ export function buildOralStandardTableExportData({ oral, students, config }) {
   if (!oral || isOralExtendedActive(oral)) return null;
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
-  const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
+  const npSuffix = isPointsBasedGradeSystem(gradeSys) ? ' (NP)' : '';
   const headers = ['#', 'Name', `Note${npSuffix}`];
 
   const rows = expandRowsWithStudentNotes(
@@ -136,7 +137,7 @@ export function buildOralExtendedTableExportData({ oral, students, config }) {
   if (!oral || !isOralExtendedActive(oral)) return null;
 
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
-  const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
+  const npSuffix = isPointsBasedGradeSystem(gradeSys) ? ' (NP)' : '';
   const weekCount = Math.max(0, Number(oral.weekCount) || 0);
   const gradesMode = isOralExtendedGrades(oral);
   const useAbiNotenpunkte = oral.notenpunkteAbi === true;

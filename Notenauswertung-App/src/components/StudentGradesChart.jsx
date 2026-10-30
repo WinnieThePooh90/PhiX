@@ -11,6 +11,7 @@ import {
   isProjectScoreCountedForStudent,
   storedGradeStringToClassic,
   storedGradeStringToNotenpunkte,
+  isPointsBasedGradeSystem,
 } from '../utils/calculator';
 
 const LEGEND_ITEMS = [
@@ -42,7 +43,7 @@ export default function StudentGradesChart({
 }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
-  const isPoints = gradeSys === 'points';
+  const isPoints = isPointsBasedGradeSystem(gradeSys);
 
   const seriesData = useMemo(() => {
     if (!student) {
@@ -122,8 +123,8 @@ export default function StudentGradesChart({
         const oralG =
           counted && value !== undefined && value !== null && value !== ''
             ? isPoints
-              ? storedGradeStringToNotenpunkte(String(value), 'points')
-              : storedGradeStringToClassic(String(value), 'classic')
+              ? storedGradeStringToNotenpunkte(String(value), gradeSys)
+              : storedGradeStringToClassic(String(value), gradeSys)
             : null;
         if (counted && oralG !== null && Number.isFinite(oralG)) {
           const xIndex = oralList.length + 1;
@@ -147,8 +148,8 @@ export default function StudentGradesChart({
         .filter((e) => e && e.studentId === student.id)
         .forEach((e) => {
           const gNum = isPoints
-            ? storedGradeStringToNotenpunkte(e.note, 'points')
-            : storedGradeStringToClassic(e.note, 'classic');
+            ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+            : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
             const xIndex = gfsReferatList.length + 1;
@@ -182,8 +183,8 @@ export default function StudentGradesChart({
         .filter((e) => e && e.studentId === student.id)
         .forEach((e) => {
           const gNum = isPoints
-            ? storedGradeStringToNotenpunkte(e.note, 'points')
-            : storedGradeStringToClassic(e.note, 'classic');
+            ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+            : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null && Number.isFinite(gNum);
           if (counted) {
             const xIndex = gfsReferatList.length + 1;

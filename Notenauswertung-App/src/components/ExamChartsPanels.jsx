@@ -6,6 +6,7 @@ import {
   getStudentEffectiveExamFieldCount,
   gradeToNotenpunkte,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   normalizeQuarterGrade,
   parseScorePointsValue,
 } from '../utils/calculator';
@@ -30,7 +31,7 @@ const CLASSIC_QUARTER_BUCKETS = Array.from({ length: 21 }, (_, i) => Math.round(
 /** Bestehensquote: klassisch ≤ 3,0; Punktesystem NP ≥ 5. */
 function isPassingForBestehensquote(grade, gradeSystem) {
   if (grade === null || grade === undefined) return false;
-  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
+  if (isPointsBasedGradeSystem(gradeSystem)) {
     const np = gradeToNotenpunkte(grade);
     return np !== null && np >= 5;
   }
@@ -56,13 +57,13 @@ export default function ExamChartsPanels({
   const gs = normalizeCourseGradeSystem(gradeSystem);
   const npBuckets = Array.from({ length: 16 }, (_, i) => i);
 
-  const distributionKeys = gs === 'points' ? npBuckets : CLASSIC_QUARTER_BUCKETS;
+  const distributionKeys = isPointsBasedGradeSystem(gs) ? npBuckets : CLASSIC_QUARTER_BUCKETS;
 
   const countForBucket = (key) =>
     students.reduce((acc, s) => {
       const { counted, grade: g } = examRowStats(s.id);
       if (!counted || g === null) return acc;
-      if (gs === 'points') {
+      if (isPointsBasedGradeSystem(gs)) {
         const np = gradeToNotenpunkte(g);
         return np === key ? acc + 1 : acc;
       }
@@ -124,7 +125,7 @@ export default function ExamChartsPanels({
     return students.filter((s) => {
       const { counted, grade: g } = examRowStats(s.id);
       if (!counted || g === null) return false;
-      if (gs === 'points') return gradeToNotenpunkte(g) === tooltipGrade;
+      if (isPointsBasedGradeSystem(gs)) return gradeToNotenpunkte(g) === tooltipGrade;
       return normalizeQuarterGrade(g) === tooltipGrade;
     });
   }, [tooltipGrade, students, examRowStats, gs]);
@@ -233,10 +234,10 @@ export default function ExamChartsPanels({
     setPieTooltip(null);
   };
 
-  const goodLabelShort = gs === 'points' ? 'NP ≥ 5' : '≤ 3.0';
-  const badLabelShort = gs === 'points' ? 'NP < 5' : '> 3.0';
-  const goodTooltipTitle = gs === 'points' ? 'Notenpunkte mindestens 5' : 'Besser/Gleich 3.0';
-  const badTooltipTitle = gs === 'points' ? 'Notenpunkte unter 5' : 'Schlechter als 3.0';
+  const goodLabelShort = isPointsBasedGradeSystem(gs) ? 'NP ≥ 5' : '≤ 3.0';
+  const badLabelShort = isPointsBasedGradeSystem(gs) ? 'NP < 5' : '> 3.0';
+  const goodTooltipTitle = isPointsBasedGradeSystem(gs) ? 'Notenpunkte mindestens 5' : 'Besser/Gleich 3.0';
+  const badTooltipTitle = isPointsBasedGradeSystem(gs) ? 'Notenpunkte unter 5' : 'Schlechter als 3.0';
 
   const showBarPortal =
     tooltipGrade !== null && tooltipGrade !== undefined && barPopoverStudents.length > 0 && barPopoverGeom;
@@ -244,12 +245,12 @@ export default function ExamChartsPanels({
   const showPiePortal = Boolean(pieTooltip && piePopoverGeom && pieList.length > 0);
 
   const barPortalBorder = showBarPortal
-    ? gs === 'points'
+    ? isPointsBasedGradeSystem(gs)
       ? barColorForNpBucket(tooltipGrade)
       : barColorForClassicQuarterGrade(tooltipGrade)
     : '';
   const barPortalTitle = showBarPortal
-    ? gs === 'points'
+    ? isPointsBasedGradeSystem(gs)
       ? `NP ${tooltipGrade}`
       : `Note ${formatQuarterAxisLabel(tooltipGrade)}`
     : '';
@@ -414,7 +415,7 @@ export default function ExamChartsPanels({
               alignItems: 'flex-end',
               justifyContent: 'space-between',
               height: chartAreaHeight,
-              gap: gs === 'points' ? '0.15rem' : '0.12rem',
+              gap: isPointsBasedGradeSystem(gs) ? '0.15rem' : '0.12rem',
               padding: '0.35rem 0.25rem 0',
               marginTop: '0.25rem',
               overflowX: 'auto',
@@ -425,10 +426,10 @@ export default function ExamChartsPanels({
               const counts = countForBucket(bucketKey);
               const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
               const barColor =
-                gs === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicQuarterGrade(bucketKey);
+                isPointsBasedGradeSystem(gs) ? barColorForNpBucket(bucketKey) : barColorForClassicQuarterGrade(bucketKey);
               const isTooltipActive = tooltipGrade === bucketKey;
 
-              const axisLabel = gs === 'points' ? String(bucketKey) : formatQuarterAxisLabel(bucketKey);
+              const axisLabel = isPointsBasedGradeSystem(gs) ? String(bucketKey) : formatQuarterAxisLabel(bucketKey);
 
               return (
                 <div
@@ -436,7 +437,7 @@ export default function ExamChartsPanels({
                   data-exam-distribution-anchor={String(bucketKey)}
                   style={{
                     flex: '0 0 auto',
-                    minWidth: gs === 'points' ? '1.1rem' : '1.35rem',
+                    minWidth: isPointsBasedGradeSystem(gs) ? '1.1rem' : '1.35rem',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -459,7 +460,7 @@ export default function ExamChartsPanels({
                     <div
                       onClick={() => setTooltipGrade(isTooltipActive ? null : bucketKey)}
                       style={{
-                        width: gs === 'points' ? '70%' : '75%',
+                        width: isPointsBasedGradeSystem(gs) ? '70%' : '75%',
                         height: heightPercent > 0 ? `${heightPercent}%` : '4px',
                         background: counts > 0 ? barColor : '#eee',
                         borderRadius: '4px 4px 0 0',
@@ -497,7 +498,7 @@ export default function ExamChartsPanels({
                       width: '100%',
                       textAlign: 'center',
                       paddingTop: '0.5rem',
-                      fontSize: gs === 'points' ? '0.65rem' : '0.55rem',
+                      fontSize: isPointsBasedGradeSystem(gs) ? '0.65rem' : '0.55rem',
                     }}
                   >
                     {axisLabel}

@@ -29,6 +29,8 @@ import {
   getNormalizedOralWeekGradesArray,
   formatStoredOralWeekGradeDisplay,
   oralExtendedCalculatedFormatOpts,
+  isPointsBasedGradeSystem,
+  isHalfPointsGradeSystem,
 } from '../utils/calculator';
 import {
   createOralWeekTabHandler,
@@ -273,7 +275,9 @@ export default function OralView({ studentIdFilterSet = null }) {
             gradeSystem: gradeSys,
           });
       if (calculatedGrade !== null && counted) {
-        if (gradeSys === 'points') {
+        if (gradeSys === 'points_half') {
+          updateOralGrade(activeOral, s.id, (Math.round(calculatedGrade * 2) / 2).toFixed(1));
+        } else if (gradeSys === 'points') {
           updateOralGrade(activeOral, s.id, String(Math.round(calculatedGrade)));
         } else {
           const q = roundOralNoteToQuarter(calculatedGrade);
@@ -461,9 +465,9 @@ export default function OralView({ studentIdFilterSet = null }) {
                 <>
               <div className="course-meta-field__row" style={{ flexWrap: 'nowrap' }}>
                 <span className="course-meta-field__label" style={{ whiteSpace: 'nowrap' }}>
-                  {gradeSys === 'points' ? 'Beste NP' : 'Beste Note'}
+                  {isPointsBasedGradeSystem(gradeSys) ? 'Beste NP' : 'Beste Note'}
                 </span>
-                {gradeSys === 'points' ? (
+                {isPointsBasedGradeSystem(gradeSys) ? (
                   <select
                     className="course-meta-control"
                     value={String(bestNoteValuePoints)}
@@ -504,9 +508,9 @@ export default function OralView({ studentIdFilterSet = null }) {
               </div>
               <div className="course-meta-field__row" style={{ flexWrap: 'nowrap' }}>
                 <span className="course-meta-field__label" style={{ whiteSpace: 'nowrap' }}>
-                  {gradeSys === 'points' ? 'Schlechteste NP' : 'Schlechteste Note'}
+                  {isPointsBasedGradeSystem(gradeSys) ? 'Schlechteste NP' : 'Schlechteste Note'}
                 </span>
-                {gradeSys === 'points' ? (
+                {isPointsBasedGradeSystem(gradeSys) ? (
                   <select
                     className="course-meta-control"
                     value={String(worstNoteValuePoints)}
@@ -701,7 +705,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                         ? 'Arithmetischer Mittelwert der Wochennoten'
                         : useAbiNotenpunkte
                         ? 'Abitur-Notenpunkte nach Vorlage PA: 15·H^β mit H = Summe/(max. Summe in der Klasse·BY(α))'
-                        : gradeSys === 'points'
+                        : isPointsBasedGradeSystem(gradeSys)
                           ? 'Notenpunkte aus Wochensummen: Normierung über Min/Max der Klasse; beste/schlechteste NP und Streuung wie eingestellt'
                           : 'Note aus Wochenpunkten: Min/Max = kleinste bzw. größte Summe in der Klasse; q, t, Formel wie eingestellt, gerundet auf ¼'
                     }
@@ -730,7 +734,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                           title={
                             isExtendedGradesMode
                               ? 'Für alle Schüler: berechneten Mittelwert in „Note“ übernehmen'
-                              : gradeSys === 'points'
+                              : isPointsBasedGradeSystem(gradeSys)
                               ? 'Für alle Schüler: berechnete Notenpunkte in „Note“ übernehmen'
                               : 'Für alle Schüler: gerundete Endnote (¼) in „Note“ übernehmen'
                           }
@@ -803,13 +807,7 @@ export default function OralView({ studentIdFilterSet = null }) {
               const manualNoteCellColors = gradeCellColorsFromResolved(manualNoteColorResolved, gradeSys);
               const calcColorResolved = (() => {
                 if (calculatedGrade === null) return null;
-                if (useAbiNotenpunkte) {
-                  return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
-                }
-                if (gradeSys === 'points' && (isExtendedPointsMode || isExtendedGradesMode)) {
-                  return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
-                }
-                if (gradeSys === 'points') {
+                if (useAbiNotenpunkte || isPointsBasedGradeSystem(gradeSys)) {
                   return { value: calculatedGrade, opts: { inputScale: 'notenpunkte' } };
                 }
                 return { value: calculatedGrade, opts: undefined };
@@ -940,7 +938,10 @@ export default function OralView({ studentIdFilterSet = null }) {
                                     value={displayVal}
                                     onFocus={() => {
                                       setOralWeekGradeEditingKey(weekEditKey);
-                                      if (gradeSys === 'points') {
+                                      if (gradeSys === 'points_half') {
+                                        const n = parseFloat(String(wg ?? '').replace(',', '.'));
+                                        setOralWeekGradeDraft(Number.isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : String(wg ?? '').trim());
+                                      } else if (gradeSys === 'points') {
                                         setOralWeekGradeDraft(String(wg ?? '').trim());
                                       } else {
                                         setOralWeekGradeDraft(String(wg ?? '').replace(',', '.'));
@@ -961,6 +962,11 @@ export default function OralView({ studentIdFilterSet = null }) {
                                       const t = oralWeekGradeDraft.trim().replace(',', '.');
                                       if (t === '') {
                                         updateOralWeekGrade(activeOral, s.id, wi, '');
+                                      } else if (gradeSys === 'points_half') {
+                                        const np = Math.round(parseFloat(t) * 2) / 2;
+                                        if (Number.isFinite(np) && np >= 0 && np <= 15) {
+                                          updateOralWeekGrade(activeOral, s.id, wi, np.toFixed(1));
+                                        }
                                       } else if (gradeSys === 'points') {
                                         const np = Math.round(parseFloat(t));
                                         if (Number.isFinite(np) && np >= 0 && np <= 15) {
@@ -1091,7 +1097,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                               ? 'Mittelwert der eingetragenen Wochennoten'
                               : useAbiNotenpunkte
                               ? 'Abitur-Notenpunkte (Vorlage PA): 15·H^β'
-                              : gradeSys === 'points'
+                              : isPointsBasedGradeSystem(gradeSys)
                                 ? 'Berechnete Notenpunkte: Normierung über Min/Max der Klasse, Streuung wie eingestellt'
                                 : 'Berechnete Note: Normierung über Min/Max der Klassensummen, t^(1+Streuung), ¼-Schritte'
                           }
@@ -1117,14 +1123,16 @@ export default function OralView({ studentIdFilterSet = null }) {
                                 title={
                                   isExtendedGradesMode
                                     ? 'Berechneten Mittelwert in „Note“ übernehmen'
-                                    : gradeSys === 'points'
+                                    : isPointsBasedGradeSystem(gradeSys)
                                     ? 'Berechnete Notenpunkte in „Note“ übernehmen'
                                     : 'Gerundete Endnote (¼) in „Note“ übernehmen'
                                 }
                                 aria-label="Berechnete Note in Note-Spalte übernehmen"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (gradeSys === 'points') {
+                                  if (gradeSys === 'points_half') {
+                                    updateOralGrade(activeOral, s.id, (Math.round(calculatedGrade * 2) / 2).toFixed(1));
+                                  } else if (gradeSys === 'points') {
                                     updateOralGrade(activeOral, s.id, String(Math.round(calculatedGrade)));
                                   } else {
                                     const q = roundOralNoteToQuarter(calculatedGrade);
@@ -1183,7 +1191,10 @@ export default function OralView({ studentIdFilterSet = null }) {
                         }
                         onFocus={() => {
                           setOralNoteEditingId(s.id);
-                          if (gradeSys === 'points') {
+                          if (gradeSys === 'points_half') {
+                            const n = parseFloat(String(gradeInput ?? '').replace(',', '.'));
+                            setOralNoteDraft(Number.isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : String(gradeInput ?? '').trim());
+                          } else if (gradeSys === 'points') {
                             setOralNoteDraft(String(gradeInput ?? '').trim());
                           } else {
                             setOralNoteDraft(String(gradeInput ?? '').replace(',', '.'));
@@ -1199,6 +1210,13 @@ export default function OralView({ studentIdFilterSet = null }) {
                           const t = oralNoteDraft.trim().replace(',', '.');
                           if (t === '') {
                             updateOralGrade(activeOral, s.id, '');
+                          } else if (gradeSys === 'points_half') {
+                            const np = Math.round(parseFloat(t) * 2) / 2;
+                            if (!Number.isFinite(np) || np < 0 || np > 15) {
+                              /* ungültig — gespeicherter Wert bleibt */
+                            } else {
+                              updateOralGrade(activeOral, s.id, np.toFixed(1));
+                            }
                           } else if (gradeSys === 'points') {
                             const np = Math.round(parseFloat(t));
                             if (!Number.isFinite(np) || np < 0 || np > 15) {
@@ -1300,7 +1318,7 @@ export default function OralView({ studentIdFilterSet = null }) {
               </div>
               <div className="oral-formula-modal-body text-muted" style={{ fontSize: '0.875rem', lineHeight: 1.55 }}>
                 {isExtendedGradesMode ? (
-                  gradeSys === 'points' ? (
+                  isPointsBasedGradeSystem(gradeSys) ? (
                     <>
                       <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
                         Im Modus <strong>Erweitert: Noten</strong> trägst du pro Woche{' '}
@@ -1380,7 +1398,7 @@ export default function OralView({ studentIdFilterSet = null }) {
                       </li>
                     </ul>
                   </>
-                ) : gradeSys === 'points' ? (
+                ) : isPointsBasedGradeSystem(gradeSys) ? (
                   <>
                     <p style={{ margin: '0 0 0.75rem', color: 'var(--text-main)' }}>
                       Im <strong>Punktesystem</strong> mappt die Spalte <strong>„Berechnet“</strong> die Wochensummen auf{' '}

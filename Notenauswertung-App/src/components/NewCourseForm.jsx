@@ -12,6 +12,7 @@ import { selectInputOnFocus } from '../utils/selectOnFocus';
 import { defaultSchoolYear } from '../utils/schoolYear';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import { distinctClassSections, formatRosterClassLabel, parseClassSectionFromClassCell } from '../utils/schoolRosterClass';
+import { isSportSubject, normalizeCourseGradeSystem } from '../utils/calculator';
 import { Trash2, Plus, Users, ClipboardList, UserPlus } from 'lucide-react';
 
 const ROSTER_GRADES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
@@ -150,20 +151,29 @@ export default function NewCourseForm() {
   const testsPerKlausurHint = describeTestsPerKlausurWeighting(newCourse, {}, {});
 
   const handleKursstufeChange = (checked) => {
-    setNewCourse((prev) => ({
-      ...prev,
-      kursstufe: checked,
-      ...(checked ? { gradeSystem: 'points' } : { gradeSystem: 'classic' }),
-    }));
+    setNewCourse((prev) => {
+      const targetPointsSystem = isSportSubject(prev.subject) ? 'points_half' : 'points';
+      return {
+        ...prev,
+        kursstufe: checked,
+        ...(checked ? { gradeSystem: targetPointsSystem } : { gradeSystem: 'classic' }),
+      };
+    });
   };
 
   const handleNewCourseGradeSystemChange = (e) => {
-    setNewCourse((prev) => ({ ...prev, gradeSystem: e.target.value }));
+    setNewCourse((prev) => ({ ...prev, gradeSystem: normalizeCourseGradeSystem(e.target.value) }));
   };
 
   const handleNewCourseChange = (e) => {
     const { name, value } = e.target;
-    setNewCourse((prev) => ({ ...prev, [name]: value }));
+    setNewCourse((prev) => {
+      let gradeSystem = prev.gradeSystem;
+      if (name === 'subject' && prev.kursstufe === true && isSportSubject(value)) {
+        gradeSystem = 'points_half';
+      }
+      return { ...prev, [name]: value, gradeSystem };
+    });
   };
 
   const setNewCourseWeightingField = (name, value) => {
@@ -481,6 +491,7 @@ export default function NewCourseForm() {
           >
             <option value="classic">Klassisches Notensystem</option>
             <option value="points">Punktesystem</option>
+            <option value="points_half">Punktesystem in 0,5er Schritten</option>
           </select>
           <NotensystemHelpButton />
         </div>

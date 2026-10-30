@@ -3,7 +3,8 @@ import { useDialog } from './PhixDialog';
 
 const NOTENSYSTEM_HELP_TEXT =
   'Klassisches Notensystem: Noten von 1 bis 6 in 0,25er Schritten für die Unter- und Mittelstufe.\n\n'
-  + 'Notenpunkte: Noten von 0-15 Notenpunkte für die Oberstufe.\n\n'
+  + 'Punktesystem: Noten von 0-15 Notenpunkte für die Oberstufe.\n\n'
+  + 'Punktesystem in 0,5er Schritten: Noten von 0-15 Notenpunkte in halben Schritten (z. B. für das Fach Sport in der Oberstufe).\n\n'
   + 'Das Notensystem kann auch später noch geändert werden.';
 
 /** Fragezeichen-Hilfe zum Notensystem (Popup). */

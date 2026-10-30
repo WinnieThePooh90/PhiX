@@ -1,6 +1,7 @@
 import {
   formatGrade,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
 
@@ -16,7 +17,7 @@ function studentNameById(students, studentId) {
  */
 export function buildReferatTableExportData({ referatEntries, students, config }) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
-  const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
+  const npSuffix = isPointsBasedGradeSystem(gradeSys) ? ' (NP)' : '';
   const isKursstufe = config?.kursstufe === true;
 
   const headers = isKursstufe

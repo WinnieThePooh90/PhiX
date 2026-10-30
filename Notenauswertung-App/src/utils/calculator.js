@@ -366,8 +366,8 @@ export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isExamManualGradeActive(rawScoreData)) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData));
@@ -377,7 +377,7 @@ export const getExamGradeForStudent = (exam, studentId, customGradingKeys = null
   const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
   const keyType = exam.keyType || '1';
 
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const np = notenpunkteFromGradingKeyPoints(total, maxPts, keyType, null, customDef);
     return np !== null ? np : null;
   }
@@ -397,10 +397,10 @@ export const computeExamClassAverage = (exam, students, customGradingKeys = null
     const { counted } = getNormalizedExamScore(rawSc, effN);
     if (!counted) continue;
     const customDef = getCustomKeyDefinition(customGradingKeys, exam.keyType || '1');
-    if (gs === 'points') {
+    if (isPointsBasedGradeSystem(gs)) {
       let np = null;
       if (isExamManualGradeActive(rawSc)) {
-        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawSc), 'points');
+        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawSc), gs);
       } else {
         const { total } = getNormalizedExamScore(rawSc, effN);
         const maxPts = getStudentExamMaxPointsForGrade(exam, s.id);
@@ -417,7 +417,7 @@ export const computeExamClassAverage = (exam, students, customGradingKeys = null
   }
   if (count === 0) return null;
   const avg = sum / count;
-  if (gs === 'points') return avg;
+  if (isPointsBasedGradeSystem(gs)) return avg;
   return Math.round(avg * 100) / 100;
 };
 
@@ -438,7 +438,7 @@ export const computeTestClassAverage = (test, students, customGradingKeys = null
   }
   if (count === 0) return null;
   const avg = sum / count;
-  if (gs === 'points') return avg;
+  if (isPointsBasedGradeSystem(gs)) return avg;
   return Math.round(avg * 100) / 100;
 };
 
@@ -448,7 +448,7 @@ export const formatExamClassAverageDisplay = (average, gradeSystem = 'classic') 
   const gradeSys = normalizeCourseGradeSystem(gradeSystem);
   const n = Number(average);
   if (!Number.isFinite(n)) return '';
-  if (gradeSys === 'points') {
+  if (isPointsBasedGradeSystem(gradeSys)) {
     return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   }
   return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -518,7 +518,7 @@ export function computeOralExtendedGradesAverage(gradeData, weekCount, gradeSyst
   for (const raw of weekGrades) {
     const t = String(raw ?? '').trim();
     if (!t) continue;
-    if (gs === 'points') {
+    if (isPointsBasedGradeSystem(gs)) {
       const np = storedGradeStringToNotenpunkte(t, gs);
       if (np !== null) values.push(np);
     } else {
@@ -530,6 +530,7 @@ export function computeOralExtendedGradesAverage(gradeData, weekCount, gradeSyst
   const sum = values.reduce((acc, v) => acc + v, 0);
   const avg = sum / values.length;
   if (gs === 'points') return Math.round(avg);
+  if (gs === 'points_half') return Math.round(avg * 2) / 2;
   return avg;
 }
 
@@ -538,9 +539,10 @@ export function formatStoredOralWeekGradeDisplay(raw, gradeSystem = 'classic') {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   const t = String(raw ?? '').trim();
   if (!t) return '';
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const np = storedGradeStringToNotenpunkte(t, gs);
-    return np === null ? '' : String(np);
+    if (np === null) return '';
+    return isHalfPointsGradeSystem(gs) ? np.toFixed(1) : String(np);
   }
   const classic = storedGradeStringToClassic(t, gs);
   return classic !== null ? formatGrade(classic, gs) : '';
@@ -552,7 +554,7 @@ export function oralExtendedCalculatedFormatOpts(
   { useAbiNotenpunkte = false, extendedGradesMode = false, extendedPointsMode = false } = {},
 ) {
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (useAbiNotenpunkte || (gs === 'points' && (extendedGradesMode || extendedPointsMode))) {
+  if (useAbiNotenpunkte || (isPointsBasedGradeSystem(gs) && (extendedGradesMode || extendedPointsMode))) {
     return { inputScale: 'notenpunkte' };
   }
   return undefined;
@@ -797,7 +799,7 @@ export const computeOralExtendedCalculatedGrade = ({
   const spread = normalizeOralSpreadBeta(weekSpread);
   const gs = normalizeCourseGradeSystem(gradeSystem);
 
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     let bestNp = normalizeOralBestNotePoints(bestNoteAlpha);
     let worstNp = normalizeOralWorstNotePoints(worstNote);
     if (worstNp > bestNp) [worstNp, bestNp] = [bestNp, worstNp];
@@ -1145,7 +1147,7 @@ export const calculateTestGradeForStudentEntry = (
   const pts = Math.min(max, Math.max(0, p));
   const customDef = getCustomKeyDefinition(customGradingKeys, kt);
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return notenpunkteFromGradingKeyPoints(pts, max, kt, null, customDef);
   }
   const calculated = calculateGradeFromThresholds(pts, max, kt, null, customDef);
@@ -1162,8 +1164,8 @@ export const getTestGradeForStudent = (test, studentId, customGradingKeys = null
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isExamManualGradeActive(raw)) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(raw), gradeSystem);
@@ -1182,7 +1184,7 @@ export const getTestGradeForStudent = (test, studentId, customGradingKeys = null
 
   const pts = Math.min(maxPts, Math.max(0, total));
 
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return notenpunkteFromGradingKeyPoints(pts, maxPts, kt, null, customDef);
   }
   const calculated = calculateGradeFromThresholds(pts, maxPts, kt, null, customDef);
@@ -1255,7 +1257,7 @@ function applyReferatFinalPercentContribution(
   let nextTotal = totalPercentWeight + pct;
   let nextClassic = percentClassicAcc;
   let nextNp = percentNpAcc;
-  if (normalizeCourseGradeSystem(gs) === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const npAvg = getHeldReferatNpAverage(studentId, entries, halbjahrFilter);
     if (npAvg !== null) nextNp += npAvg * (pct / 100);
   } else {
@@ -1268,7 +1270,7 @@ function applyReferatFinalPercentContribution(
   };
 }
 
-function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, npSum, npCount, unitWeight = 1) {
+function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, npSum, npCount, unitWeight = 1, gs = 'points') {
   let sum = npSum;
   let count = npCount;
   const w = Number.isFinite(unitWeight) && unitWeight > 0 ? unitWeight : 1;
@@ -1276,7 +1278,7 @@ function addHeldEntriesToWrittenNpAggregate(studentId, entries, halbjahrFilter, 
     if (entry.studentId !== studentId) return;
     if (entry.gehalten !== true) return;
     if (halbjahrFilter && entry.halbjahr !== halbjahrFilter) return;
-    const np = storedGradeStringToNotenpunkte(entry.note, 'points');
+    const np = storedGradeStringToNotenpunkte(entry.note, gs);
     if (np === null) return;
     sum += np * w;
     count += w;
@@ -1301,7 +1303,7 @@ function addHeldEntriesToClassicAggregate(studentId, entries, halbjahrFilter, gs
 }
 
 function appendHeldLeistungGradeItems(items, entries, studentId, halbjahrFilter, gs, prefix, defaultShort, unitWeight = 1) {
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
   const w = Number.isFinite(unitWeight) && unitWeight > 0 ? unitWeight : 1;
   const pct = w < 1 ? Math.round(w * 1000) / 10 : null;
   const suffix = pct !== null && pct < 100
@@ -1351,8 +1353,8 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
     const stored = isProjectGroupGradeMode(project)
       ? getProjectMemberManualGradeStoredValue(rawScoreData, studentId)
       : getExamManualGradeStoredValue(rawScoreData);
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(stored, 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(stored, gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(stored, gs);
@@ -1362,8 +1364,8 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
     ? isProjectGroupMemberManualGradeActive(rawScoreData, studentId)
     : isExamManualGradeActive(rawScoreData);
   if (manualActive) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(memberOv ?? rawScoreData), 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(memberOv ?? rawScoreData), gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(memberOv ?? rawScoreData), gs);
@@ -1371,7 +1373,7 @@ export const getProjectGradeForStudent = (project, studentId, customGradingKeys 
 
   const maxPts = getStudentProjectMaxPointsForGrade(project, studentId);
   const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return notenpunkteFromGradingKeyPoints(total, maxPts, project.keyType || '1', null, customDef);
   }
   const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
@@ -1387,16 +1389,16 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (isProjectManualGradeMode(project)) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
   }
 
   if (isExamManualGradeActive(rawScoreData)) {
-    if (gs === 'points') {
-      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), 'points');
+    if (isPointsBasedGradeSystem(gs)) {
+      const np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(rawScoreData), gs);
       return np !== null ? np : null;
     }
     return parseExamManualGradeToClassic(getExamManualGradeStoredValue(rawScoreData), gs);
@@ -1415,7 +1417,7 @@ export const getProjectGradeForScoreKey = (project, scoreKey, customGradingKeys 
     return sum;
   })();
   const customDef = getCustomKeyDefinition(customGradingKeys, project.keyType || '1');
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return notenpunkteFromGradingKeyPoints(total, maxPts, project.keyType || '1', null, customDef);
   }
   const calculatedGrade = calculateGradeFromThresholds(total, maxPts, project.keyType || '1', null, customDef);
@@ -1449,7 +1451,7 @@ const getExamLikeGradeContribution = (item, studentId, halbjahrFilter, customGra
   if (halbjahrFilter && item.halbjahr !== halbjahrFilter) return null;
 
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  const failGrade = gs === 'points' ? 0 : 6.0;
+  const failGrade = isPointsBasedGradeSystem(gs) ? 0 : 6.0;
   const isProject = item?.projectNumber !== undefined;
   const scoreKey = isProject && isProjectGroupGradeMode(item)
     ? getStudentProjectGroupId(item, studentId)
@@ -1529,7 +1531,7 @@ const getExamLikeNpContribution = (item, studentId, halbjahrFilter, customGradin
   const g = isProject
     ? getProjectGradeForStudent(item, studentId, customGradingKeys, gs)
     : getExamGradeForStudent(item, studentId, customGradingKeys, gs);
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return g !== null && Number.isFinite(g) ? g : NP_FAIL;
   }
   const np = thresholdClassicGradeToNotenpunkte(g);
@@ -1557,12 +1559,14 @@ function calculateStudentGradesInNotenpunkte(
   referatOralUnitWeight = 0,
   finalPercentReferatEntries = [],
   referatFinalPercent = 0,
+  gradeSystem = 'points',
 ) {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
   let examNpSum = 0;
   let examNpCount = 0;
 
   Object.values(exams).forEach((exam) => {
-    const np = getExamLikeNpContribution(exam, studentId, halbjahrFilter, customGradingKeys, 'points');
+    const np = getExamLikeNpContribution(exam, studentId, halbjahrFilter, customGradingKeys, gs);
     if (np === null) return;
     examNpSum += np;
     examNpCount += 1;
@@ -1570,7 +1574,7 @@ function calculateStudentGradesInNotenpunkte(
 
   Object.values(projects || {}).forEach((project) => {
     if (project.weightingMode !== 'written') return;
-    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, 'points');
+    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (np === null) return;
     const unitW = getProjectPillarUnitWeight(project);
     examNpSum += np * unitW;
@@ -1583,7 +1587,7 @@ function calculateStudentGradesInNotenpunkte(
       tests,
       halbjahrFilter,
       customGradingKeys,
-      'points',
+      gs,
       examNpSum,
       examNpCount,
     ));
@@ -1591,17 +1595,17 @@ function calculateStudentGradesInNotenpunkte(
 
   if (referatWrittenUnitWeight > 0) {
     ({ sum: examNpSum, count: examNpCount } = addHeldEntriesToWrittenNpAggregate(
-      studentId, partialWrittenReferatEntries, halbjahrFilter, examNpSum, examNpCount, referatWrittenUnitWeight,
+      studentId, partialWrittenReferatEntries, halbjahrFilter, examNpSum, examNpCount, referatWrittenUnitWeight, gs,
     ));
   }
 
   let heldNpSum = 0;
   let heldNpCount = 0;
   ({ sum: heldNpSum, count: heldNpCount } = addHeldEntriesToWrittenNpAggregate(
-    studentId, gfsEntries, halbjahrFilter, heldNpSum, heldNpCount,
+    studentId, gfsEntries, halbjahrFilter, heldNpSum, heldNpCount, 1, gs,
   ));
   ({ sum: heldNpSum, count: heldNpCount } = addHeldEntriesToWrittenNpAggregate(
-    studentId, referatEntries, halbjahrFilter, heldNpSum, heldNpCount,
+    studentId, referatEntries, halbjahrFilter, heldNpSum, heldNpCount, 1, gs,
   ));
 
   let examAvg = null;
@@ -1623,7 +1627,7 @@ function calculateStudentGradesInNotenpunkte(
       if (halbjahrFilter && oral.halbjahr !== halbjahrFilter) return;
       const { value, counted } = getNormalizedOralGrade(oral.grades[studentId]);
       if (counted) {
-        const np = storedGradeStringToNotenpunkte(value, 'points');
+        const np = storedGradeStringToNotenpunkte(value, gs);
         if (np !== null) {
           oralNpSum += np;
           oralNpCount += 1;
@@ -1634,7 +1638,7 @@ function calculateStudentGradesInNotenpunkte(
 
   Object.values(projects || {}).forEach((project) => {
     if (project.weightingMode !== 'oral') return;
-    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, 'points');
+    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (np === null) return;
     const unitW = getProjectPillarUnitWeight(project);
     oralNpSum += np * unitW;
@@ -1647,7 +1651,7 @@ function calculateStudentGradesInNotenpunkte(
       tests,
       halbjahrFilter,
       customGradingKeys,
-      'points',
+      gs,
       oralNpSum,
       oralNpCount,
       1,
@@ -1655,12 +1659,12 @@ function calculateStudentGradesInNotenpunkte(
   }
 
   ({ sum: oralNpSum, count: oralNpCount } = addHeldEntriesToWrittenNpAggregate(
-    studentId, oralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount,
+    studentId, oralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount, 1, gs,
   ));
 
   if (referatOralUnitWeight > 0) {
     ({ sum: oralNpSum, count: oralNpCount } = addHeldEntriesToWrittenNpAggregate(
-      studentId, partialOralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount, referatOralUnitWeight,
+      studentId, partialOralReferatEntries, halbjahrFilter, oralNpSum, oralNpCount, referatOralUnitWeight, gs,
     ));
   }
 
@@ -1679,9 +1683,9 @@ function calculateStudentGradesInNotenpunkte(
         if (counted) {
           let np = null;
           if (isExamManualGradeActive(raw)) {
-            np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
+            np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), gs);
           } else {
-            np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
+            np = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
           }
           if (np !== null) {
             testNpSum += np;
@@ -1707,13 +1711,13 @@ function calculateStudentGradesInNotenpunkte(
     if (project.weightingMode !== 'percent') return;
     const pct = Number(project.weightPercent);
     if (!Number.isFinite(pct) || pct <= 0) return;
-    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, 'points');
+    const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
     if (np === null) return;
     totalPercentWeight += pct;
     percentNpAcc += np * (pct / 100);
   });
   ({ totalPercentWeight, percentNpAcc } = applyReferatFinalPercentContribution(
-    studentId, finalPercentReferatEntries, halbjahrFilter, 'points', referatFinalPercent, totalPercentWeight, 0, percentNpAcc,
+    studentId, finalPercentReferatEntries, halbjahrFilter, gs, referatFinalPercent, totalPercentWeight, 0, percentNpAcc,
   ));
   const remainingFactor = Math.max(0, (100 - totalPercentWeight) / 100);
 
@@ -1777,7 +1781,7 @@ export const calculateStudentGrades = (
   referatFinalPercent = 0,
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return calculateStudentGradesInNotenpunkte(
       studentId,
       exams,
@@ -1799,6 +1803,7 @@ export const calculateStudentGrades = (
       referatOralUnitWeight,
       finalPercentReferatEntries,
       referatFinalPercent,
+      gs,
     );
   }
 
@@ -2144,9 +2149,9 @@ export const gradingKeyCalculatedStoredString = (
   gradeSystem = 'classic',
 ) => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const np = notenpunkteFromGradingKeyPoints(points, maxPoints, type, null, customKey);
-    return np !== null ? String(np) : '';
+    return np !== null ? (isHalfPointsGradeSystem(gs) ? np.toFixed(1) : String(np)) : '';
   }
   const g = calculateGradeFromThresholds(points, maxPoints, type, null, customKey);
   return Number.isFinite(g) ? g.toFixed(2) : '';
@@ -2156,7 +2161,7 @@ export const gradingKeyCalculatedStoredString = (
 export const formatThresholdCalculatedGrade = (value, gradeSystem = 'classic') => {
   if (value === null || value === undefined) return '-';
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     return formatGrade(value, gs, { inputScale: 'notenpunkte' });
   }
   return formatGrade(value, gs);
@@ -2164,15 +2169,21 @@ export const formatThresholdCalculatedGrade = (value, gradeSystem = 'classic') =
 
 /** `formatGrade`-Opts für aus Notenschlüsseln berechnete Werte (Punktesystem: bereits NP). */
 export const gradingKeyResultDisplayOpts = (gradeSystem = 'classic') =>
-  normalizeCourseGradeSystem(gradeSystem) === 'points' ? { inputScale: 'notenpunkte' } : undefined;
+  isPointsBasedGradeSystem(gradeSystem) ? { inputScale: 'notenpunkte' } : undefined;
 
 /** Berechnete Schlüsselnote → Speicherstring (manuell übernehmen). */
 export const gradingKeyResultToStoredString = (value, gradeSystem = 'classic') => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (value === null || value === undefined) return '';
-  if (gs === 'points') {
-    const n = Math.round(Math.min(15, Math.max(0, Number(value))));
-    return Number.isFinite(n) ? String(n) : '';
+  if (isPointsBasedGradeSystem(gs)) {
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return '';
+    const clamped = Math.min(15, Math.max(0, raw));
+    if (isHalfPointsGradeSystem(gs)) {
+      return (Math.round(clamped * 2) / 2).toFixed(1);
+    }
+    const n = Math.round(clamped);
+    return String(n);
   }
   return classicGradeToStoredString(value, gs);
 };
@@ -2207,7 +2218,7 @@ function addWeightedTestsToAggregate(
 ) {
   let nextSum = sum;
   let nextCount = count;
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
   Object.values(tests || {}).forEach((test) => {
     if (!test.active) return;
     if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
@@ -2219,9 +2230,9 @@ function addWeightedTestsToAggregate(
     if (isNp) {
       let np = null;
       if (isExamManualGradeActive(raw)) {
-        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), 'points');
+        np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), gs);
       } else {
-        np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
+        np = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
       }
       if (np !== null) {
         nextSum += np * unitWeight;
@@ -2252,8 +2263,8 @@ function addHalfWeightedTestsToWrittenAggregate(
   );
 }
 
-function formatWeightedGradePart(item, isNp) {
-  const g = fmtCalcNum(item.grade, isNp ? 0 : 4);
+function formatWeightedGradePart(item, isNp, gs) {
+  const g = isHalfPointsGradeSystem(gs) ? fmtCalcNum(item.grade, 1) : fmtCalcNum(item.grade, isNp ? 0 : 4);
   const w = item.weight ?? 1;
   if (w === 1) return g;
   if (w === 0.5) return `${g}·½`;
@@ -2281,12 +2292,13 @@ function averageLineFromItems(label, key, items, gs = 'classic') {
 
 function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
   if (weightedItems.length === 0) return null;
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
+  const isHalf = isHalfPointsGradeSystem(gs);
   const weightTotal = weightedItems.reduce((acc, item) => acc + item.weight, 0);
   if (weightTotal <= 0) return null;
   const sum = weightedItems.reduce((acc, item) => acc + item.grade * item.weight, 0);
   const avg = sum / weightTotal;
-  const gradesPart = weightedItems.map((item) => formatWeightedGradePart(item, isNp)).join(' + ');
+  const gradesPart = weightedItems.map((item) => formatWeightedGradePart(item, isNp, gs)).join(' + ');
   const denomFmt = Number.isInteger(weightTotal) ? String(weightTotal) : fmtCalcNum(weightTotal, 1);
   return {
     key,
@@ -2300,7 +2312,7 @@ function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
         key,
         items: weightedItems.map((item) => ({
           label: item.label,
-          grade: formatWeightedGradeSourceLabel(fmtCalcNum(item.grade, isNp ? 0 : 4), item.weight ?? 1),
+          grade: formatWeightedGradeSourceLabel(fmtCalcNum(item.grade, isNp ? (isHalf ? 1 : 0) : 4), item.weight ?? 1),
         })),
       },
       {
@@ -2308,7 +2320,7 @@ function averageLineWeighted(label, key, weightedItems, gs = 'classic') {
         label: key,
         numerator: gradesPart,
         denominator: denomFmt,
-        result: fmtCalcNum(avg, isNp ? 2 : 4),
+        result: fmtCalcNum(avg, isNp ? (isHalf ? 1 : 2) : 4),
       },
     ],
   };
@@ -2379,7 +2391,7 @@ function collectOralDetailWithOptionalTests(
 
 function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, referatEntries, partialWrittenReferatEntries, referatWrittenUnitWeight, halbjahrFilter, customGradingKeys, gs) {
   const items = [];
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
   Object.entries(exams || {}).forEach(([id, exam]) => {
     if (isNp) {
       const np = getExamLikeNpContribution(exam, studentId, halbjahrFilter, customGradingKeys, gs);
@@ -2426,7 +2438,7 @@ function collectWrittenGradeItems(studentId, exams, projects, gfsEntries, refera
 
 function collectOralGradeItems(studentId, orals, projects, halbjahrFilter, customGradingKeys, gs) {
   const items = [];
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
   Object.values(orals || {}).forEach((oral) => {
     if (oral.active === false) return;
     if (halbjahrFilter && oral.halbjahr !== halbjahrFilter) return;
@@ -2472,7 +2484,7 @@ function collectOralGradeItems(studentId, orals, projects, halbjahrFilter, custo
 
 function collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKeys, gs) {
   const items = [];
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
   Object.values(tests || {}).forEach((test) => {
     if (!test.active) return;
     if (halbjahrFilter && test.halbjahr !== halbjahrFilter) return;
@@ -2486,7 +2498,7 @@ function collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKe
       if (isExamManualGradeActive(raw)) {
         np = storedGradeStringToNotenpunkte(getExamManualGradeStoredValue(raw), gs);
       } else {
-        np = getTestGradeForStudent(test, studentId, customGradingKeys, 'points');
+        np = getTestGradeForStudent(test, studentId, customGradingKeys, gs);
       }
       if (np !== null) items.push({ label: test.name || 'Test', grade: np, np });
     } else {
@@ -2499,10 +2511,11 @@ function collectTestGradeItems(studentId, tests, halbjahrFilter, customGradingKe
 
 function averageLine(label, key, items, gs = 'classic') {
   if (items.length === 0) return null;
-  const isNp = normalizeCourseGradeSystem(gs) === 'points';
+  const isNp = isPointsBasedGradeSystem(gs);
+  const isHalf = isHalfPointsGradeSystem(gs);
   const sum = items.reduce((acc, item) => acc + item.grade, 0);
   const avg = sum / items.length;
-  const gradesPart = items.map((item) => fmtCalcNum(item.grade, isNp ? 0 : 4)).join(' + ');
+  const gradesPart = items.map((item) => fmtCalcNum(item.grade, isNp ? (isHalf ? 1 : 0) : 4)).join(' + ');
   return {
     key,
     label,
@@ -2515,7 +2528,7 @@ function averageLine(label, key, items, gs = 'classic') {
         key,
         items: items.map((item) => ({
           label: item.label,
-          grade: fmtCalcNum(item.grade, isNp ? 0 : 4),
+          grade: fmtCalcNum(item.grade, isNp ? (isHalf ? 1 : 0) : 4),
         })),
       },
       {
@@ -2523,7 +2536,7 @@ function averageLine(label, key, items, gs = 'classic') {
         label: key,
         numerator: gradesPart,
         denominator: String(items.length),
-        result: fmtCalcNum(avg, isNp ? 2 : 4),
+        result: fmtCalcNum(avg, isNp ? (isHalf ? 1 : 2) : 4),
       },
     ],
   };
@@ -2541,7 +2554,7 @@ function buildStudentGeneralFormula({
   const hasPercent = percentContributions.length > 0;
 
   let mode = 'none';
-  if (gradeSystem === 'points') {
+  if (isPointsBasedGradeSystem(gradeSystem)) {
     if (hasPillars) mode = hasPercent ? 'points_pillars_percent' : 'points_pillars';
     else if (hasPercent) mode = 'points_percent_only';
   } else if (hasPillars) {
@@ -2655,7 +2668,7 @@ export function getStudentGradeCalculationBreakdown(
     if (halbjahrFilter && project.halbjahr !== halbjahrFilter) return;
     const pct = Number(project.weightPercent);
     if (!Number.isFinite(pct) || pct <= 0) return;
-    if (gs === 'points') {
+    if (isPointsBasedGradeSystem(gs)) {
       const np = getExamLikeNpContribution(project, studentId, halbjahrFilter, customGradingKeys, gs);
       if (np === null) return;
       totalPercentWeight += pct;
@@ -2690,7 +2703,7 @@ export function getStudentGradeCalculationBreakdown(
     if (referatStats.gfsCount > 0) {
       const pct = referatFinalPercent;
       totalPercentWeight += pct;
-      if (gs === 'points') {
+      if (isPointsBasedGradeSystem(gs)) {
         const npAvg = getHeldReferatNpAverage(studentId, finalPercentReferatEntries, halbjahrFilter);
         if (npAvg !== null) {
           const npContribution = npAvg * (pct / 100);
@@ -2751,7 +2764,7 @@ export function getStudentGradeCalculationBreakdown(
     }`,
   });
 
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const npPillars = pillars.map((pillar) => ({
       ...pillar,
       np: pillar.value,
@@ -2904,15 +2917,35 @@ export function getStudentGradeCalculationBreakdown(
     testDetail,
     steps,
     gradeSystem: gs,
-    valuesAreNotenpunkte: gs === 'points',
+    valuesAreNotenpunkte: isPointsBasedGradeSystem(gs),
   };
 }
 
-/** Kurs-Notensystem aus API/State robust als `classic` | `points` erkennen. */
+/** Kurs-Notensystem aus API/State robust als `classic` | `points` | `points_half` erkennen. */
 export const normalizeCourseGradeSystem = (raw) => {
   const s = String(raw ?? 'classic').trim().toLowerCase();
+  if (s === 'points_half' || s === 'points-half' || s === 'punkte_halb' || s === 'punktesystem_halb' || s === 'np_halb') {
+    return 'points_half';
+  }
   if (s === 'points' || s === 'punkte' || s === 'punktesystem' || s === 'notenpunkte' || s === 'np') return 'points';
   return 'classic';
+};
+
+/** Prüft, ob ein Notenpunkte-System (ganzzahlig oder halbschrittig 0–15) vorliegt. */
+export const isPointsBasedGradeSystem = (gradeSystem) => {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  return gs === 'points' || gs === 'points_half';
+};
+
+/** Prüft, ob das halbschrittige Notenpunkte-System (0,5-Schritte) aktiv ist. */
+export const isHalfPointsGradeSystem = (gradeSystem) => {
+  return normalizeCourseGradeSystem(gradeSystem) === 'points_half';
+};
+
+/** Prüft, ob ein Fachname dem Fach Sport entspricht (case-insensitive). */
+export const isSportSubject = (subject) => {
+  const s = String(subject ?? '').trim();
+  return /^sport($|[\s\-_/(])/i.test(s);
 };
 
 /**
@@ -2922,6 +2955,11 @@ export const storedGradeStringToNotenpunkte = (raw, gradeSystem = 'classic') => 
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (raw === undefined || raw === null || raw === '') return null;
   const s = String(raw).trim().replace(',', '.');
+  if (gs === 'points_half') {
+    const n = parseFloat(s);
+    if (!Number.isFinite(n) || n < 0 || n > 15) return null;
+    return Math.round(n * 2) / 2;
+  }
   if (gs === 'points') {
     if (s.includes('.')) {
       const g = parseFloat(s);
@@ -2952,6 +2990,20 @@ export const storedGradeStringToClassic = (raw, gradeSystem = 'classic') => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (raw === undefined || raw === null || raw === '') return null;
   const s = String(raw).trim().replace(',', '.');
+  if (gs === 'points_half') {
+    const n = parseFloat(s);
+    if (!Number.isFinite(n) || n < 0 || n > 15) return null;
+    const np = Math.round(n * 2) / 2;
+    const floorNp = Math.floor(np);
+    const ceilNp = Math.ceil(np);
+    if (floorNp === ceilNp) {
+      return notenpunkteToGrade(floorNp);
+    }
+    const gFloor = notenpunkteToGrade(floorNp);
+    const gCeil = notenpunkteToGrade(ceilNp);
+    if (gFloor === null || gCeil === null) return null;
+    return (gFloor + gCeil) / 2;
+  }
   if (gs === 'points') {
     // Legacy: früher wurden hier noch Viertelnoten als Text gespeichert (z. B. "3,25")
     if (s.includes('.')) {
@@ -2971,8 +3023,25 @@ export const storedGradeStringToClassic = (raw, gradeSystem = 'classic') => {
 export const classicGradeToStoredString = (classic, gradeSystem = 'classic') => {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (classic === null || classic === undefined) return '';
-  const g = normalizeQuarterGrade(Number(classic));
-  if (!Number.isFinite(g)) return '';
+  const num = Number(classic);
+  if (!Number.isFinite(num)) return '';
+  if (gs === 'points_half') {
+    let bestNp = null;
+    let bestDiff = Infinity;
+    for (let np = 0; np <= 15; np += 0.5) {
+      const fl = Math.floor(np);
+      const ce = Math.ceil(np);
+      const gNp = fl === ce ? NOTENPUNKTE_TO_GRADE[fl] : (NOTENPUNKTE_TO_GRADE[fl] + NOTENPUNKTE_TO_GRADE[ce]) / 2;
+      if (gNp === undefined) continue;
+      const diff = Math.abs(gNp - num);
+      if (diff < bestDiff - 1e-12) {
+        bestDiff = diff;
+        bestNp = np;
+      }
+    }
+    return bestNp === null ? '' : bestNp.toFixed(1);
+  }
+  const g = normalizeQuarterGrade(num);
   if (gs === 'points') {
     const np = gradeToNotenpunkte(g);
     return np === null ? '' : String(np);
@@ -2986,6 +3055,16 @@ export const migrateStoredGradeString = (raw, fromSystem, toSystem) => {
   const to = normalizeCourseGradeSystem(toSystem);
   if (from === to) return raw === undefined || raw === null ? '' : String(raw).trim();
   if (raw === undefined || raw === null || String(raw).trim() === '') return '';
+
+  if (from === 'points' && to === 'points_half') {
+    const np = storedGradeStringToNotenpunkte(raw, 'points');
+    return np === null ? '' : np.toFixed(1);
+  }
+  if (from === 'points_half' && to === 'points') {
+    const np = storedGradeStringToNotenpunkte(raw, 'points_half');
+    return np === null ? '' : String(Math.round(np));
+  }
+
   const classic = storedGradeStringToClassic(raw, from);
   if (classic === null) return String(raw).trim();
   return classicGradeToStoredString(classic, to);
@@ -2998,11 +3077,27 @@ export const migrateOralGradeEntry = (prevData, fromSystem, toSystem) => {
   if (from === to) return prevData;
   if (prevData === undefined || prevData === null) return prevData;
   if (typeof prevData === 'object') {
-    const v = prevData.value;
-    if (v === '' || v === undefined || v === null) return prevData;
-    const nv = migrateStoredGradeString(String(v), from, to);
-    if (nv === String(v)) return prevData;
-    return { ...prevData, value: nv };
+    let changed = false;
+    let nextValue = prevData.value;
+    if (nextValue !== '' && nextValue !== undefined && nextValue !== null) {
+      const nv = migrateStoredGradeString(String(nextValue), from, to);
+      if (nv !== String(nextValue)) {
+        nextValue = nv;
+        changed = true;
+      }
+    }
+    let nextWeekGrades = prevData.weekGrades;
+    if (Array.isArray(nextWeekGrades)) {
+      const migratedWg = nextWeekGrades.map((wg) => (wg == null || wg === '' ? wg : migrateStoredGradeString(String(wg), from, to)));
+      if (JSON.stringify(migratedWg) !== JSON.stringify(nextWeekGrades)) {
+        nextWeekGrades = migratedWg;
+        changed = true;
+      }
+    }
+    if (changed) {
+      return { ...prevData, value: nextValue, ...(nextWeekGrades ? { weekGrades: nextWeekGrades } : {}) };
+    }
+    return prevData;
   }
   const nv = migrateStoredGradeString(String(prevData), from, to);
   if (nv === String(prevData)) return prevData;
@@ -3014,7 +3109,7 @@ export const isGradeWorseThan4 = (grade, gradeSystem = 'classic', opts) => {
   if (grade === null || grade === undefined) return false;
   const g = typeof grade === 'number' ? grade : parseFloat(grade);
   if (Number.isNaN(g)) return false;
-  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
+  if (isPointsBasedGradeSystem(gradeSystem)) {
     const np = opts?.inputScale === 'notenpunkte'
       ? Math.round(Math.min(15, Math.max(0, g)))
       : gradeToNotenpunkte(g);
@@ -3054,7 +3149,7 @@ const GRADE_CELL_TEXT = {
 function gradeColorTier(grade, gradeSystem = 'classic', opts) {
   const g = typeof grade === 'number' ? grade : parseFloat(grade);
   if (Number.isNaN(g)) return null;
-  if (normalizeCourseGradeSystem(gradeSystem) === 'points') {
+  if (isPointsBasedGradeSystem(gradeSystem)) {
     const np = opts?.inputScale === 'notenpunkte'
       ? Math.round(Math.min(15, Math.max(0, g)))
       : gradeToNotenpunkte(g);
@@ -3088,13 +3183,13 @@ export const getGradeTextColor = (grade, gradeSystem = 'classic', opts) => {
   const tier = gradeColorTier(grade, gradeSystem, opts);
   if (!tier) return undefined;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (!isDark) return undefined;
+  if (isDark) return undefined;
   return GRADE_CELL_TEXT[tier];
 };
 
 /**
  * @param {unknown} grade — Note 1–6 (Viertel), oder bei `opts.inputScale === 'notenpunkte'` bereits 0–15
- * @param {'classic'|'points'} [gradeSystem] — bei `points` Anzeige als Notenpunkte 0–15
+ * @param {'classic'|'points'|'points_half'} [gradeSystem] — bei `points` / `points_half` Anzeige als Notenpunkte 0–15
  * @param {{ inputScale?: 'classic'|'notenpunkte' }} [opts] — `notenpunkte`: Wert ist schon NP-Skala (z. B. Abitur-Mündlich)
  */
 export const formatGrade = (grade, gradeSystem = 'classic', opts) => {
@@ -3104,6 +3199,14 @@ export const formatGrade = (grade, gradeSystem = 'classic', opts) => {
   const g = typeof grade === 'number' ? grade : parseFloat(String(grade).replace(',', '.'));
   if (Number.isNaN(g)) return '-';
   const inputScale = o.inputScale === 'notenpunkte' ? 'notenpunkte' : 'classic';
+  if (gs === 'points_half') {
+    if (inputScale === 'notenpunkte') {
+      const clamped = Math.min(15, Math.max(0, g));
+      return (Math.round(clamped * 2) / 2).toFixed(1);
+    }
+    const np = gradeToNotenpunkte(g);
+    return np === null ? '-' : (Math.round(np * 2) / 2).toFixed(1);
+  }
   if (gs === 'points') {
     if (inputScale === 'notenpunkte') {
       const n = Math.round(Math.min(15, Math.max(0, g)));
@@ -3124,7 +3227,7 @@ export const formatGrade = (grade, gradeSystem = 'classic', opts) => {
 export const formatCalculatedGradeValue = (value, gradeSystem = 'classic', valuesAreNotenpunkte = false, opts) => {
   if (value === null || value === undefined) return '-';
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (valuesAreNotenpunkte && gs === 'points') {
+  if (valuesAreNotenpunkte && isPointsBasedGradeSystem(gs)) {
     const dec = opts?.notenpunkteDecimals;
     if (dec !== undefined && dec >= 0) {
       const g = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
@@ -3132,14 +3235,18 @@ export const formatCalculatedGradeValue = (value, gradeSystem = 'classic', value
       const clamped = Math.min(15, Math.max(0, g));
       return dec === 0 ? String(Math.round(clamped)) : clamped.toFixed(dec);
     }
-    return formatGrade(value, 'points', { inputScale: 'notenpunkte' });
+    return formatGrade(value, gs, { inputScale: 'notenpunkte' });
   }
   return formatGrade(value, gradeSystem);
 };
 
-/** Schriftlich, Mündlich, Endnote (Exakt) in der Übersicht — NP mit 2 Dezimalstellen. */
+/** Schriftlich, Mündlich, Endnote (Exakt) in der Übersicht — NP mit 1 Dezimalstelle (points_half) bzw. 2 (points). */
 export const formatOverviewCalculatedGrade = (value, gradeSystem = 'classic', valuesAreNotenpunkte = false) => {
-  if (valuesAreNotenpunkte && normalizeCourseGradeSystem(gradeSystem) === 'points') {
+  const gs = normalizeCourseGradeSystem(gradeSystem);
+  if (valuesAreNotenpunkte && gs === 'points_half') {
+    return formatCalculatedGradeValue(value, gradeSystem, true, { notenpunkteDecimals: 1 });
+  }
+  if (valuesAreNotenpunkte && gs === 'points') {
     return formatCalculatedGradeValue(value, gradeSystem, true, { notenpunkteDecimals: 2 });
   }
   return formatCalculatedGradeValue(value, gradeSystem, valuesAreNotenpunkte);
@@ -3147,7 +3254,7 @@ export const formatOverviewCalculatedGrade = (value, gradeSystem = 'classic', va
 
 /** Optionen für Farben/Anzeige bei Werten aus `calculateStudentGrades` im Punktesystem. */
 export const calculatedGradeDisplayOpts = (valuesAreNotenpunkte, gradeSystem = 'classic') =>
-  valuesAreNotenpunkte && normalizeCourseGradeSystem(gradeSystem) === 'points'
+  valuesAreNotenpunkte && isPointsBasedGradeSystem(gradeSystem)
     ? { inputScale: 'notenpunkte' }
     : undefined;
 
@@ -3155,7 +3262,7 @@ export const calculatedGradeDisplayOpts = (valuesAreNotenpunkte, gradeSystem = '
 export function resolveStoredGradeForCellColor(raw, gradeSystem = 'classic') {
   const gs = normalizeCourseGradeSystem(gradeSystem);
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
-  if (gs === 'points') {
+  if (isPointsBasedGradeSystem(gs)) {
     const np = storedGradeStringToNotenpunkte(raw, gs);
     return np === null ? null : { value: np, opts: { inputScale: 'notenpunkte' } };
   }

@@ -5,6 +5,8 @@ import {
   gradeCellColorsFromResolved,
   resolveStoredGradeForCellColor,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
+  isHalfPointsGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
@@ -14,8 +16,12 @@ import UserAuswertungshilfeButton from '../components/UserAuswertungshilfeButton
 import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from '../utils/gfsAuswertungConfig';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
-function gfsNotePointsDisplay(note) {
+function gfsNotePointsDisplay(note, gradeSys) {
   if (note == null || note === '') return '';
+  if (isHalfPointsGradeSystem(gradeSys)) {
+    const n = parseFloat(String(note).replace(',', '.'));
+    return Number.isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : String(note).trim();
+  }
   return String(note).trim();
 }
 
@@ -334,30 +340,37 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                         type="text"
                         inputMode={gradeSys === 'points' ? 'numeric' : 'decimal'}
                         value={
-                          gradeSys === 'points'
+                          isPointsBasedGradeSystem(gradeSys)
                             ? gfsNoteEditingId === row.id
                               ? gfsNoteDraft
-                              : gfsNotePointsDisplay(row.note)
+                              : gfsNotePointsDisplay(row.note, gradeSys)
                             : gfsNoteDisplay(row.note)
                         }
                         onFocus={() => {
-                          if (gradeSys === 'points') {
+                          if (isPointsBasedGradeSystem(gradeSys)) {
                             setGfsNoteEditingId(row.id);
-                            setGfsNoteDraft(gfsNotePointsDisplay(row.note));
+                            setGfsNoteDraft(gfsNotePointsDisplay(row.note, gradeSys));
                           }
                         }}
                         onChange={(e) => {
-                          if (gradeSys === 'points') {
+                          if (isPointsBasedGradeSystem(gradeSys)) {
                             if (gfsNoteEditingId === row.id) setGfsNoteDraft(e.target.value);
                           } else {
                             handleGfsNoteChange(row.id, e.target.value);
                           }
                         }}
                         onBlur={() => {
-                          if (gradeSys !== 'points' || gfsNoteEditingId !== row.id) return;
+                          if (!isPointsBasedGradeSystem(gradeSys) || gfsNoteEditingId !== row.id) return;
                           const t = gfsNoteDraft.trim().replace(',', '.');
                           if (t === '') {
                             updateGfsEntry(row.id, 'note', '');
+                          } else if (gradeSys === 'points_half') {
+                            const np = Math.round(parseFloat(t) * 2) / 2;
+                            if (!Number.isFinite(np) || np < 0 || np > 15) {
+                              /* bleibt unverändert */
+                            } else {
+                              updateGfsEntry(row.id, 'note', np.toFixed(1));
+                            }
                           } else {
                             const np = Math.round(parseFloat(t));
                             if (!Number.isFinite(np) || np < 0 || np > 15) {
@@ -401,7 +414,7 @@ export default function GfsView({ studentIdFilterSet = null, focusStudentId = nu
                           <span>
                             {auswertungSummary.sum}
                             {' Pkt.'}
-                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${gradeSys === 'points' ? ' NP' : ''}` : ''}
+                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${isPointsBasedGradeSystem(gradeSys) ? ' NP' : ''}` : ''}
                           </span>
                         ) : (
                           <span>Öffnen</span>

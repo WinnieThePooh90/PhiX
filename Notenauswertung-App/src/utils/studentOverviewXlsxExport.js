@@ -15,6 +15,7 @@ import {
   storedGradeStringToClassic,
   storedGradeStringToNotenpunkte,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
 } from './calculator';
 import { getCourseGradingKeysLookup } from './courseArchive';
 import {
@@ -85,7 +86,7 @@ function getStudentCategoryLines(student, ctx) {
     kursstufe = false,
   } = ctx;
 
-  const isPoints = normalizeCourseGradeSystem(gradeSys) === 'points';
+  const isPoints = isPointsBasedGradeSystem(gradeSys);
   const categories = kursstufe
     ? [{ label: 'Gesamt (Durchschnitt)', filter: null }]
     : GRADE_OVERVIEW_CATEGORIES;
@@ -159,7 +160,7 @@ function getStudentCategoryLines(student, ctx) {
       gfsEntries
         .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
         .forEach((e) => {
-          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, 'points') : storedGradeStringToClassic(e.note, 'classic');
+          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, gradeSys) : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null;
           lines.push({ label: `  GFS: ${e.thema || '—'}`, value: counted ? gfmtItem(gNum) : '-' });
         });
@@ -169,7 +170,7 @@ function getStudentCategoryLines(student, ctx) {
       referatEntries
         .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
         .forEach((e) => {
-          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, 'points') : storedGradeStringToClassic(e.note, 'classic');
+          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, gradeSys) : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null;
           lines.push({ label: `  Ref: ${e.thema || '—'}`, value: counted ? gfmtItem(gNum) : '-' });
         });
@@ -196,8 +197,8 @@ function getStudentCategoryLines(student, ctx) {
         const oralG =
           counted && value !== undefined && value !== null && value !== ''
             ? isPoints
-              ? storedGradeStringToNotenpunkte(String(value), 'points')
-              : storedGradeStringToClassic(String(value), 'classic')
+              ? storedGradeStringToNotenpunkte(String(value), gradeSys)
+              : storedGradeStringToClassic(String(value), gradeSys)
             : null;
         lines.push({ label: `  ${o.name || `Mündl. ${id}`}${counted ? '' : ' (n. gew.)'}`, value: counted && oralG !== null ? gfmtItem(oralG) : '-' });
       });
@@ -206,7 +207,7 @@ function getStudentCategoryLines(student, ctx) {
       referatEntries
         .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
         .forEach((e) => {
-          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, 'points') : storedGradeStringToClassic(e.note, 'classic');
+          const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, gradeSys) : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null;
           lines.push({ label: `  Ref: ${e.thema || '—'}`, value: counted ? gfmtItem(gNum) : '-' });
         });

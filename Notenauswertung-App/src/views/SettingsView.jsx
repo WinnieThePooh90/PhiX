@@ -2,7 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
 import { useDialog } from '../components/PhixDialog';
-import { normalizeCourseGradeSystem } from '../utils/calculator';
+import {
+  normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
+  isHalfPointsGradeSystem,
+  isSportSubject,
+} from '../utils/calculator';
 import { parseGradeFromClassCell } from '../utils/schoolRosterXlsxImport';
 import { distinctClassSections, formatRosterClassLabel, parseClassSectionFromClassCell } from '../utils/schoolRosterClass';
 import NotensystemHelpButton from '../components/NotensystemHelpButton';
@@ -139,8 +144,19 @@ export default function SettingsView() {
     return rows;
   }, [schoolRosterStudents, students, rosterGradeFilter, rosterSectionFilter, rosterTransferSearch]);
 
-  const handleConfigChange = (e) => {
+  const handleConfigChange = async (e) => {
     const { name, value } = e.target;
+    if (name === 'subject' && config?.kursstufe === true && isSportSubject(value)) {
+      const prev = normalizeCourseGradeSystem(config?.gradeSystem);
+      if (prev !== 'points_half') {
+        const ok = await confirmGradeSystemChange();
+        if (ok) {
+          await migrateGradingSystem(prev, 'points_half');
+          setConfig((c) => ({ ...c, subject: value, gradeSystem: 'points_half' }));
+          return;
+        }
+      }
+    }
     setConfig(prev => ({ ...prev, [name]: value }));
   };
 
@@ -168,13 +184,14 @@ export default function SettingsView() {
 
   const handleKursstufeChange = async (checked) => {
     const prev = normalizeCourseGradeSystem(config?.gradeSystem);
-    const gradeSystemWillChange = (checked && prev !== 'points') || (!checked && prev === 'points');
+    const targetPointsSystem = isSportSubject(config?.subject) ? 'points_half' : 'points';
+    const gradeSystemWillChange = (checked && prev !== targetPointsSystem) || (!checked && isPointsBasedGradeSystem(prev));
     if (gradeSystemWillChange) {
       const ok = await confirmGradeSystemChange();
       if (!ok) return;
     }
-    if (checked && prev !== 'points') {
-      await migrateGradingSystem(prev, 'points');
+    if (checked && prev !== targetPointsSystem) {
+      await migrateGradingSystem(prev, targetPointsSystem);
     }
     if (checked) {
       // Kursstufe = nur ein Schul-/Halbjahr: Alle bestehenden Einträge auf HJ1 setzen
@@ -199,13 +216,13 @@ export default function SettingsView() {
         if (row?.halbjahr !== '1') updateGfsEntry(row.id, 'halbjahr', '1');
       }
     }
-    if (!checked && prev === 'points') {
+    if (!checked && isPointsBasedGradeSystem(prev)) {
       await migrateGradingSystem(prev, 'classic');
     }
     setConfig((c) => ({
       ...c,
       kursstufe: checked,
-      ...(checked ? { gradeSystem: 'points' } : { gradeSystem: 'classic' }),
+      ...(checked ? { gradeSystem: targetPointsSystem } : { gradeSystem: 'classic' }),
     }));
   };
 
@@ -698,6 +715,7 @@ export default function SettingsView() {
                 >
                   <option value="classic">Klassisches Notensystem</option>
                   <option value="points">Punktesystem</option>
+                  <option value="points_half">Punktesystem in 0,5er Schritten</option>
                 </select>
               </div>
               <div className="settings-course-check-options">

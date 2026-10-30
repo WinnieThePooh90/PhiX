@@ -28,6 +28,7 @@ import {
   getNachschreiberFieldMaxPoints,
   EXAM_ABS_MAX_FIELDS,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   getCustomKeyDefinition,
   getTestGradeForStudent,
   isExamManualGradeActive,
@@ -355,7 +356,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                   onChange={(v) => updateTest(activeTest, 'keyType', v)}
                   course={config}
                   maxPoints={test.maxPoints}
-                  showNotenpunkte={gradeSys === 'points'}
+                  showNotenpunkte={isPointsBasedGradeSystem(gradeSys)}
                 />
               </div>
               <div className="course-meta-field">
@@ -529,7 +530,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                                 fontSize: '0.85rem',
                                 marginTop: '0.15rem',
                                 fontVariantNumeric: 'tabular-nums',
-                                color: isGradeWorseThan4(testClassAverage, gradeSys, gradeSys === 'points' ? { inputScale: 'notenpunkte' } : undefined) ? 'var(--danger)' : 'var(--foreground)',
+                                color: isGradeWorseThan4(testClassAverage, gradeSys, isPointsBasedGradeSystem(gradeSys) ? { inputScale: 'notenpunkte' } : undefined) ? 'var(--danger)' : 'var(--foreground)',
                               }}
                             >
                               {formatExamClassAverageDisplay(testClassAverage, gradeSys)}
@@ -998,7 +999,7 @@ export default function TestsView({ studentIdFilterSet = null }) {
                       isAbiBaWue2026Mathematik100BeFamilyId(sidebarCustomDef.id)))
                 }
                 titleWarningTooltip={abiTemplateSimulatedMaxMismatchTooltip(sidebarCustomDef?.id, test.maxPoints)}
-                showNotenpunkte={gradeSys === 'points'}
+                showNotenpunkte={isPointsBasedGradeSystem(gradeSys)}
               />
             </div>
           )}

@@ -1,5 +1,4 @@
-/** Kriterien aus GFS-Auswertungsbogen (Paulokat) – Spalten 4 bis 0. */
-import { gradeToNotenpunkte, normalizeCourseGradeSystem } from './calculator';
+import { gradeToNotenpunkte, normalizeCourseGradeSystem, isPointsBasedGradeSystem, isHalfPointsGradeSystem } from './calculator';
 
 export const GFS_AUSWERTUNG_POINT_LEVELS = [4, 3, 2, 1, 0];
 
@@ -249,8 +248,9 @@ export function sumGfsAuswertungScores(scores) {
 
 export function suggestGradeFromGfsAuswertungPoints(totalPoints, gradeSystem = 'classic') {
   const gs = normalizeCourseGradeSystem(gradeSystem);
-  if (gs === 'points') {
-    return String(suggestGfsAuswertungNotenpunkte(totalPoints));
+  if (isPointsBasedGradeSystem(gs)) {
+    const np = suggestGfsAuswertungNotenpunkte(totalPoints);
+    return isHalfPointsGradeSystem(gs) ? np.toFixed(1) : String(np);
   }
   return getGfsAuswertungClassicGradeString(totalPoints);
 }

@@ -17,6 +17,7 @@ import {
   storedGradeStringToClassic,
   storedGradeStringToNotenpunkte,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
 } from './calculator';
 import { getCourseGradingKeysLookup } from './courseArchive';
 import {
@@ -85,7 +86,7 @@ export function renderStudentOverviewPage(doc, {
   const margin = 12;
   const contentW = pw - margin * 2; // 273mm
 
-  const isPoints = normalizeCourseGradeSystem(gradeSys) === 'points';
+  const isPoints = isPointsBasedGradeSystem(gradeSys);
 
   // --- 1. HEADER ---
   let y = margin + 2;
@@ -229,8 +230,8 @@ export function renderStudentOverviewPage(doc, {
         .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
         .forEach((e) => {
           const gNum = isPoints
-            ? storedGradeStringToNotenpunkte(e.note, 'points')
-            : storedGradeStringToClassic(e.note, 'classic');
+            ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+            : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null;
           const valStr = counted ? gfmtItem(gNum) : '-';
           doc.text(`GFS: ${e.thema || '—'}`, colX + 3.5, curY);
@@ -245,8 +246,8 @@ export function renderStudentOverviewPage(doc, {
         .filter((e) => e.studentId === student.id && (!cat.filter || e.halbjahr === cat.filter))
         .forEach((e) => {
           const gNum = isPoints
-            ? storedGradeStringToNotenpunkte(e.note, 'points')
-            : storedGradeStringToClassic(e.note, 'classic');
+            ? storedGradeStringToNotenpunkte(e.note, gradeSys)
+            : storedGradeStringToClassic(e.note, gradeSys);
           const counted = e.gehalten === true && gNum !== null;
           const valStr = counted ? gfmtItem(gNum) : '-';
           doc.text(`Ref: ${e.thema || '—'}`, colX + 3.5, curY);
@@ -287,8 +288,8 @@ export function renderStudentOverviewPage(doc, {
         const oralG =
           counted && value !== undefined && value !== null && value !== ''
             ? isPoints
-              ? storedGradeStringToNotenpunkte(String(value), 'points')
-              : storedGradeStringToClassic(String(value), 'classic')
+              ? storedGradeStringToNotenpunkte(String(value), gradeSys)
+              : storedGradeStringToClassic(String(value), gradeSys)
             : null;
         const valStr = counted && oralG !== null ? gfmtItem(oralG) : '-';
         doc.text((o.name || `Mündl. ${id}`) + (counted ? ':' : ' (n. gew.):'), colX + 3.5, curY);
@@ -401,8 +402,8 @@ export function renderStudentOverviewPage(doc, {
       const oralG =
         counted && value !== undefined && value !== null && value !== ''
           ? isPoints
-            ? storedGradeStringToNotenpunkte(String(value), 'points')
-            : storedGradeStringToClassic(String(value), 'classic')
+            ? storedGradeStringToNotenpunkte(String(value), gradeSys)
+            : storedGradeStringToClassic(String(value), gradeSys)
           : null;
       if (counted && oralG !== null && Number.isFinite(oralG)) {
         oralList.push({ id: `oral-${id}`, type: 'oral', xIndex: oralList.length + 1, grade: oralG, color: COLORS.oral });
@@ -413,7 +414,7 @@ export function renderStudentOverviewPage(doc, {
     gfsEntries
       .filter((e) => e && e.studentId === student.id)
       .forEach((e) => {
-        const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, 'points') : storedGradeStringToClassic(e.note, 'classic');
+        const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, gradeSys) : storedGradeStringToClassic(e.note, gradeSys);
         if (e.gehalten === true && gNum !== null && Number.isFinite(gNum)) {
           gfsReferatList.push({ id: `gfs-${e.id}`, type: 'gfs_referat', xIndex: gfsReferatList.length + 1, grade: gNum, color: COLORS.gfs_referat });
         }
@@ -424,7 +425,7 @@ export function renderStudentOverviewPage(doc, {
     referatEntries
       .filter((e) => e && e.studentId === student.id)
       .forEach((e) => {
-        const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, 'points') : storedGradeStringToClassic(e.note, 'classic');
+        const gNum = isPoints ? storedGradeStringToNotenpunkte(e.note, gradeSys) : storedGradeStringToClassic(e.note, gradeSys);
         if (e.gehalten === true && gNum !== null && Number.isFinite(gNum)) {
           gfsReferatList.push({ id: `ref-${e.id}`, type: 'gfs_referat', xIndex: gfsReferatList.length + 1, grade: gNum, color: COLORS.gfs_referat });
         }

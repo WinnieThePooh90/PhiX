@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../store/DataContext';
-import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, storedGradeStringToClassic, storedGradeStringToNotenpunkte } from '../utils/calculator';
+import { calculateStudentGrades, formatGrade, formatCalculatedGradeValue, normalizeCourseGradeSystem, storedGradeStringToClassic, storedGradeStringToNotenpunkte, isPointsBasedGradeSystem } from '../utils/calculator';
 import { barColorForClassicDistributionGrade, barColorForNpBucket } from '../utils/gradeChartColors';
 import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent, usesReferatAsExam, usesReferatAsOral, usesReferatWrittenPercent, usesReferatOralPercent, usesReferatFinalPercent } from '../utils/courseWeightingOptions';
 import StudentGradesOverviewPanel from '../components/StudentGradesOverviewPanel';
@@ -9,7 +9,7 @@ import { getCourseGradingKeysLookup } from '../utils/courseArchive';
 
 function distributionBucket(finalGrade, gradeSys) {
   if (finalGrade === null || Number.isNaN(Number(finalGrade))) return null;
-  if (gradeSys === 'points') {
+  if (isPointsBasedGradeSystem(gradeSys)) {
     return Math.round(Math.min(15, Math.max(0, Number(finalGrade))));
   }
   return Math.min(6, Math.max(1, Math.round(Number(finalGrade))));
@@ -17,7 +17,7 @@ function distributionBucket(finalGrade, gradeSys) {
 
 /** Analyse: manuelle Endnote, sonst Note HJ1, sonst berechnete Gesamtnote (Verteilung + Klassendurchschnitt). */
 function resolveAnalysisGrade(student, calculatedFinalGrade, gradeSys) {
-  if (gradeSys === 'points') {
+  if (isPointsBasedGradeSystem(gradeSys)) {
     const manualEnd = storedGradeStringToNotenpunkte(student.summaryEndNote, gradeSys);
     if (manualEnd !== null) return manualEnd;
     const manualHj1 = storedGradeStringToNotenpunkte(student.summaryHJ1Note, gradeSys);
@@ -55,7 +55,7 @@ function sortStudentsByName(a, b) {
 function classAverageBorderColor(avg, gradeSys) {
   if (avg === null || Number.isNaN(Number(avg))) return 'var(--border)';
   const g = Number(avg);
-  if (gradeSys === 'points') {
+  if (isPointsBasedGradeSystem(gradeSys)) {
     if (g >= 8) return 'hsl(var(--success-hsl))';
     if (g >= 5) return '#f59e0b';
     return 'var(--danger)';
@@ -94,7 +94,7 @@ function RiskStudentsTable({
   testsAsOral = false,
   kursstufe = false,
 }) {
-  const npMode = gradeSystem === 'points';
+  const npMode = isPointsBasedGradeSystem(gradeSystem);
   return (
     <div className="table-container" style={{ margin: 0 }}>
       <table>
@@ -122,7 +122,7 @@ function RiskStudentsTable({
                   <td>{s.lastName}</td>
                   <td>{s.firstName}</td>
                   <td className="text-right" style={{ fontWeight: 600, color: gradeColor }}>
-                    {formatCalculatedGradeValue(finalGrade, gradeSystem, gradeSystem === 'points')}
+                    {formatCalculatedGradeValue(finalGrade, gradeSystem, isPointsBasedGradeSystem(gradeSystem))}
                   </td>
                 </tr>
                 {isExpanded && (
@@ -277,13 +277,13 @@ export default function AnalysisView() {
 
   const besondersGut = useMemo(() => {
     const sortBestFirst =
-      gradeSys === 'points'
+      isPointsBasedGradeSystem(gradeSys)
         ? (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0)
         : (a, b) => (a.finalGrade ?? 9) - (b.finalGrade ?? 9);
     return studentsWithCalculatedGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        if (gradeSys === 'points') return Math.round(g) >= BESONDERS_GUT_MIN_NP;
+        if (isPointsBasedGradeSystem(gradeSys)) return Math.round(g) >= BESONDERS_GUT_MIN_NP;
         return g <= BESONDERS_GUT_MAX_CLASSIC;
       })
       .sort(sortBestFirst);
@@ -292,14 +292,14 @@ export default function AnalysisView() {
   const { starkGefaehrdet, gefaehrdet } = useMemo(() => {
     if (!weighting) return { starkGefaehrdet: [], gefaehrdet: [] };
 
-    const sortWorstFirst = gradeSys === 'points'
+    const sortWorstFirst = isPointsBasedGradeSystem(gradeSys)
       ? (a, b) => (a.finalGrade ?? 16) - (b.finalGrade ?? 16)
       : (a, b) => (b.finalGrade ?? 0) - (a.finalGrade ?? 0);
 
     const stark = studentsWithCalculatedGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        if (gradeSys === 'points') return Math.round(g) < STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX;
+        if (isPointsBasedGradeSystem(gradeSys)) return Math.round(g) < STARK_GEFAEHRDET_NP_EXCLUSIVE_MAX;
         return g >= STARK_GEFAEHRDET_MIN;
       })
       .sort(sortWorstFirst);
@@ -307,7 +307,7 @@ export default function AnalysisView() {
     const gef = studentsWithCalculatedGrade
       .filter(({ finalGrade }) => {
         const g = Number(finalGrade);
-        if (gradeSys === 'points') {
+        if (isPointsBasedGradeSystem(gradeSys)) {
           const np = Math.round(g);
           return np === GEFAEHRDET_NP_A || np === GEFAEHRDET_NP_B;
         }
@@ -319,7 +319,7 @@ export default function AnalysisView() {
   }, [studentsWithCalculatedGrade, gradeSys, weighting]);
 
   const { gradeCounts, maxCount, classAverage, studentsWithGrade, distributionKeys, studentsByBucket } = useMemo(() => {
-    const isPoints = gradeSys === 'points';
+    const isPoints = isPointsBasedGradeSystem(gradeSys);
     const emptyCounts = () => (isPoints ? Array(16).fill(0) : [0, 0, 0, 0, 0, 0]);
     const emptyBuckets = () => {
       const map = {};
@@ -443,12 +443,12 @@ export default function AnalysisView() {
     barPopoverGeom;
 
   const barPortalBorder = showBarPortal
-    ? gradeSys === 'points'
+    ? isPointsBasedGradeSystem(gradeSys)
       ? barColorForNpBucket(distributionTooltipBucket)
       : barColorForClassicDistributionGrade(distributionTooltipBucket)
     : '';
   const barPortalTitle = showBarPortal
-    ? gradeSys === 'points'
+    ? isPointsBasedGradeSystem(gradeSys)
       ? `NP ${distributionTooltipBucket}`
       : `Note ${distributionTooltipBucket}`
     : '';
@@ -554,7 +554,7 @@ export default function AnalysisView() {
           <>
             <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Stark gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              {gradeSys === 'points'
+              {isPointsBasedGradeSystem(gradeSys)
                 ? 'Schüler mit berechneter Gesamtnote < 4 NP.'
                 : 'Schüler mit berechneter Gesamtnote ≥ 4,5.'}
             </p>
@@ -566,7 +566,7 @@ export default function AnalysisView() {
 
             <h4 style={{ margin: '1.25rem 0 0.35rem', fontSize: '0.95rem', fontWeight: 700 }}>Gefährdet</h4>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              {gradeSys === 'points'
+              {isPointsBasedGradeSystem(gradeSys)
                 ? 'Schüler mit berechneter Gesamtnote 4 NP oder 5 NP.'
                 : 'Schüler mit berechneter Gesamtnote ≥ 4,0 und < 4,5.'}
             </p>
@@ -593,7 +593,7 @@ export default function AnalysisView() {
         ) : (
           <>
             <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
-              {gradeSys === 'points'
+              {isPointsBasedGradeSystem(gradeSys)
                 ? 'Schüler mit berechneter Gesamtnote ≥ 13 NP.'
                 : 'Schüler mit berechneter Gesamtnote 1,25 oder besser.'}
             </p>
@@ -642,13 +642,13 @@ export default function AnalysisView() {
                 lineHeight: 1.1,
               }}
             >
-              {classAverage === null ? '—' : formatCalculatedGradeValue(classAverage, gradeSys, gradeSys === 'points')}
+              {classAverage === null ? '—' : formatCalculatedGradeValue(classAverage, gradeSys, isPointsBasedGradeSystem(gradeSys))}
             </span>
           </div>
         </div>
 
         <h3 style={{ margin: '1.5rem 0 0.75rem', fontSize: '1.05rem' }}>Notenverteilung</h3>
-        {gradeSys === 'points' ? (
+        {isPointsBasedGradeSystem(gradeSys) ? (
           <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.875rem' }}>
             Je Schüler: manuelle Endnote bzw. Note HJ1 aus der Übersicht, sonst berechnete Gesamtnote (als Notenpunkte 0–15). Klick auf einen Balken zeigt die zugehörigen Schüler.
           </p>
@@ -667,34 +667,34 @@ export default function AnalysisView() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 justifyContent: 'space-between',
-                gap: gradeSys === 'points' ? '0.12rem' : '0.5rem',
+                gap: isPointsBasedGradeSystem(gradeSys) ? '0.12rem' : '0.5rem',
                 height: 'min(300px, min(42dvh, 360px))',
                 padding: '0.35rem 0.25rem 0',
                 marginTop: '0.25rem',
-                overflowX: gradeSys === 'points' ? 'auto' : undefined,
+                overflowX: isPointsBasedGradeSystem(gradeSys) ? 'auto' : undefined,
                 overflowY: 'visible',
               }}
               role="img"
               aria-label={
-                gradeSys === 'points'
+                isPointsBasedGradeSystem(gradeSys)
                   ? `Notenpunkte-Verteilung: ${distributionKeys.map((k) => `NP ${k}: ${gradeCounts[k]}`).join(', ')}`
                   : `Notenverteilung: Note 1 ${gradeCounts[0]} Schüler, Note 2 ${gradeCounts[1]}, Note 3 ${gradeCounts[2]}, Note 4 ${gradeCounts[3]}, Note 5 ${gradeCounts[4]}, Note 6 ${gradeCounts[5]}`
               }
             >
               {distributionKeys.map((bucketKey) => {
                 const counts =
-                  gradeSys === 'points' ? gradeCounts[bucketKey] : gradeCounts[bucketKey - 1];
+                  isPointsBasedGradeSystem(gradeSys) ? gradeCounts[bucketKey] : gradeCounts[bucketKey - 1];
                 const heightPercent = counts > 0 ? (counts / maxCount) * 94 : 0;
                 const barColor =
-                  gradeSys === 'points' ? barColorForNpBucket(bucketKey) : barColorForClassicDistributionGrade(bucketKey);
+                  isPointsBasedGradeSystem(gradeSys) ? barColorForNpBucket(bucketKey) : barColorForClassicDistributionGrade(bucketKey);
                 const isTooltipActive = distributionTooltipBucket === bucketKey;
                 return (
                   <div
                     key={bucketKey}
                     data-analysis-distribution-anchor={String(bucketKey)}
                     style={{
-                      flex: gradeSys === 'points' ? '0 0 auto' : 1,
-                      minWidth: gradeSys === 'points' ? '1rem' : 0,
+                      flex: isPointsBasedGradeSystem(gradeSys) ? '0 0 auto' : 1,
+                      minWidth: isPointsBasedGradeSystem(gradeSys) ? '1rem' : 0,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -720,7 +720,7 @@ export default function AnalysisView() {
                           setDistributionTooltipBucket(isTooltipActive ? null : bucketKey)
                         }
                         style={{
-                          width: gradeSys === 'points' ? '72%' : '78%',
+                          width: isPointsBasedGradeSystem(gradeSys) ? '72%' : '78%',
                           height: counts > 0 ? `${heightPercent}%` : '4px',
                           minHeight: counts > 0 ? '6px' : undefined,
                           background: counts > 0 ? barColor : 'hsl(var(--muted))',
@@ -760,7 +760,7 @@ export default function AnalysisView() {
                       style={{
                         marginTop: '0.65rem',
                         fontWeight: 600,
-                        fontSize: gradeSys === 'points' ? '0.62rem' : '0.8rem',
+                        fontSize: isPointsBasedGradeSystem(gradeSys) ? '0.62rem' : '0.8rem',
                         borderTop: '2px solid var(--border)',
                         width: '100%',
                         textAlign: 'center',

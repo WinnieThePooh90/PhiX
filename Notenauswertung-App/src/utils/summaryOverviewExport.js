@@ -4,6 +4,7 @@ import {
   formatCalculatedGradeValue,
   formatOverviewCalculatedGrade,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
   storedGradeStringToClassic,
 } from './calculator';
 import { usesTestsAsHalfExam, usesTestsAsOral, resolveCourseWeighting, effectiveReferatEntriesForGrading, effectiveReferatEntriesForOralGrading, effectiveReferatEntriesForPartialWrittenGrading, effectiveReferatEntriesForPartialOralGrading, effectiveReferatEntriesForFinalPercentGrading, getReferatWrittenUnitWeight, getReferatOralUnitWeight, getReferatFinalPercent } from './courseWeightingOptions';
@@ -135,7 +136,7 @@ function buildSummaryOverviewExportDataInternal({
   config,
 }, withDetails) {
   const gradeSys = normalizeCourseGradeSystem(config?.gradeSystem);
-  const npSuffix = gradeSys === 'points' ? ' (NP)' : '';
+  const npSuffix = isPointsBasedGradeSystem(gradeSys) ? ' (NP)' : '';
   const showTests = config?.testsWritten !== false;
   const customGradingKeys = Array.isArray(config?.customGradingKeys) ? config.customGradingKeys : [];
   const weighting = resolveCourseWeighting(config?.weighting, config, exams, tests);

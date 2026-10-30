@@ -4,6 +4,15 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 Ältere Builds (vor 434): siehe Git-Historie (`git log --oneline`).
 
+## Build 566 (2026-10-30)
+
+Unterstützung für das Halbschritt-Punktesystem (0,5er Notenpunkte) in der Kursstufe (z. B. Fach Sport):
+- **Neues Notensystem „Punktesystem in 0,5er Schritten“ (`points_half`)**: In den Kurseinstellungen und beim Anlegen neuer Kurse kann neben dem klassischen Notensystem und dem ganzzahligen Punktesystem nun auch das Punktesystem in 0,5er Schritten ausgewählt werden.
+- **Automatische Vorbelegung für Sport in der Kursstufe**: Wird das Fach „Sport“ (bzw. Varianten mit Präfix „Sport“) ausgewählt und ist die Kursstufe aktiv, wird das Halbschritt-System automatisch voreingestellt.
+- **Einheitliche Anzeige mit einer Dezimalstelle**: Bei aktiver Halbschritt-Einstellung werden alle Notenpunkte mit genau einer Dezimalstelle dargestellt (z. B. `5.5`, `10.0`, `14.5`).
+- **Präzise Berechnung & Rundung**: Notenwerte (Klausuren, mündliche Noten, Tests, GFS/Referate, Projekte) werden mit den echten Halbschritten berechnet. Durchschnitte und exakte Endnoten werden mit einer Dezimalstelle ausgegeben; die offizielle Zeugnis-Endnote wird satzungskonform ganzzahlig (0–15 NP) gerundet.
+- **Konsistente Migration & Exporte**: Datenmigration beim Umschalten des Systems, Tabellen- und PDF-/Excel-Exporte sowie Chart-Visualisierungen unterstützen das neue Notensystem durchgängig.
+
 ## Build 565 (2026-10-30)
 
 Scrollposition in der linken Fächer-/Klassenleiste:

@@ -5,6 +5,8 @@ import {
   gradeCellColorsFromResolved,
   resolveStoredGradeForCellColor,
   normalizeCourseGradeSystem,
+  isPointsBasedGradeSystem,
+  isHalfPointsGradeSystem,
 } from '../utils/calculator';
 import MaximizableTableSection, { TableMaximizeToggle } from '../components/MaximizableTableSection';
 import { useDialog } from '../components/PhixDialog';
@@ -14,8 +16,12 @@ import UserAuswertungshilfeButton from '../components/UserAuswertungshilfeButton
 import { formatGfsAuswertungSummary, parseGfsAuswertungHilfe } from '../utils/gfsAuswertungConfig';
 
 /** Punktesystem: in der DB liegen die Notenpunkte als Text (0–15). */
-function referatNotePointsDisplay(note) {
+function referatNotePointsDisplay(note, gradeSys) {
   if (note == null || note === '') return '';
+  if (isHalfPointsGradeSystem(gradeSys)) {
+    const n = parseFloat(String(note).replace(',', '.'));
+    return Number.isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : String(note).trim();
+  }
   return String(note).trim();
 }
 
@@ -328,30 +334,37 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                         type="text"
                         inputMode={gradeSys === 'points' ? 'numeric' : 'decimal'}
                         value={
-                          gradeSys === 'points'
+                          isPointsBasedGradeSystem(gradeSys)
                             ? referatNoteEditingId === row.id
                               ? referatNoteDraft
-                              : referatNotePointsDisplay(row.note)
+                              : referatNotePointsDisplay(row.note, gradeSys)
                             : referatNoteDisplay(row.note)
                         }
                         onFocus={() => {
-                          if (gradeSys === 'points') {
+                          if (isPointsBasedGradeSystem(gradeSys)) {
                             setReferatNoteEditingId(row.id);
-                            setReferatNoteDraft(referatNotePointsDisplay(row.note));
+                            setReferatNoteDraft(referatNotePointsDisplay(row.note, gradeSys));
                           }
                         }}
                         onChange={(e) => {
-                          if (gradeSys === 'points') {
+                          if (isPointsBasedGradeSystem(gradeSys)) {
                             if (referatNoteEditingId === row.id) setReferatNoteDraft(e.target.value);
                           } else {
                             handleReferatNoteChange(row.id, e.target.value);
                           }
                         }}
                         onBlur={() => {
-                          if (gradeSys !== 'points' || referatNoteEditingId !== row.id) return;
+                          if (!isPointsBasedGradeSystem(gradeSys) || referatNoteEditingId !== row.id) return;
                           const t = referatNoteDraft.trim().replace(',', '.');
                           if (t === '') {
                             updateReferatEntry(row.id, 'note', '');
+                          } else if (gradeSys === 'points_half') {
+                            const np = Math.round(parseFloat(t) * 2) / 2;
+                            if (!Number.isFinite(np) || np < 0 || np > 15) {
+                              /* bleibt unverändert */
+                            } else {
+                              updateReferatEntry(row.id, 'note', np.toFixed(1));
+                            }
                           } else {
                             const np = Math.round(parseFloat(t));
                             if (!Number.isFinite(np) || np < 0 || np > 15) {
@@ -395,7 +408,7 @@ export default function ReferateView({ studentIdFilterSet = null, focusStudentId
                           <span>
                             {auswertungSummary.sum}
                             {' Pkt.'}
-                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${gradeSys === 'points' ? ' NP' : ''}` : ''}
+                            {auswertungSummary.grade ? ` → ${auswertungSummary.grade}${isPointsBasedGradeSystem(gradeSys) ? ' NP' : ''}` : ''}
                           </span>
                         ) : (
                           <span>Öffnen</span>
