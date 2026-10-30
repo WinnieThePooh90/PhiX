@@ -4,6 +4,12 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 Ältere Builds (vor 434): siehe Git-Historie (`git log --oneline`).
 
+## Build 567 (2026-10-30)
+
+Changelog-Button und Versionsverlauf im Login-Fenster:
+- **Button „Changelog“**: Oben rechts im Anmeldefenster (`LoginView`) wurde ein dezenter Button mit Dokumenten-Icon ergänzt.
+- **Modales Changelog-Overlay**: Ein Klick öffnet ein übersichtliches, scrollbares Overlay mit den letzten Releases ab der Notenschlüsselerstellung (kurz und knapp in Stichpunkten). Tastatursteuerung mit Esc und Klick-außerhalb zum Schließen unterstützt.
+
 ## Build 566 (2026-10-30)
 
 Unterstützung für das Halbschritt-Punktesystem (0,5er Notenpunkte) in der Kursstufe (z. B. Fach Sport):

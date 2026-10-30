@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { APP_NAME } from '../config/app';
 import { APP_VERSION } from '../config/appVersion';
 import AppLogo from '../components/AppLogo';
+import ChangelogModal from '../components/ChangelogModal';
 import { useAuth } from '../store/AuthContext';
 
 export default function LoginView({ onRecovery }) {
   const { login, setInitialPassword } = useAuth();
+  const [showChangelog, setShowChangelog] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -145,6 +147,25 @@ export default function LoginView({ onRecovery }) {
 
   return (
     <div className="app-login-screen">
+      <div className="app-login-top-bar">
+        <button
+          type="button"
+          className="app-login-changelog-btn"
+          onClick={() => setShowChangelog(true)}
+          title="Änderungen und Versionsverlauf anzeigen"
+          aria-haspopup="dialog"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          Changelog
+        </button>
+      </div>
+
       <div className="app-login-card">
         <div className="app-login-brand app-login-brand--solo">
           <AppLogo size={72} />
@@ -203,6 +224,8 @@ export default function LoginView({ onRecovery }) {
           </button>
         ) : null}
       </div>
+
+      <ChangelogModal open={showChangelog} onClose={() => setShowChangelog(false)} />
     </div>
   );
 }
