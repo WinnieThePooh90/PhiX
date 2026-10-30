@@ -4,7 +4,10 @@ Kurzbeschreibung der wesentlichen Änderungen pro **Build** (`PHIX_BUILD` in [`A
 
 Ältere Builds (vor 434): siehe Git-Historie (`git log --oneline`).
 
----
+## Build 565 (2026-10-30)
+
+Scrollposition in der linken Fächer-/Klassenleiste:
+- Bei der Auswahl einer Klasse bzw. eines Fachs in der Sidebar wird die Scrollposition der Navigationsleiste nicht mehr zurückgesetzt. Zudem wird das ausgewählte Fach per `scrollIntoView({ block: 'nearest' })` gezielt und barrierearm im sichtbaren Bereich gehalten, sodass auch bei vielen angelegten Klassen/Fächern das gewählte Element direkt sichtbar bleibt.
 
 ## Build 564 (2026-10-28)
 

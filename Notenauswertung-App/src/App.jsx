@@ -191,6 +191,21 @@ function App() {
   const settingsMenuRef = useRef(null);
   const settingsGearRef = useRef(null);
   const settingsDropdownRef = useRef(null);
+  const sidebarNavScrollRef = useRef(null);
+  const sidebarArchiveListRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!activeCourseId) return;
+    const itemInNav = sidebarNavScrollRef.current?.querySelector('.course-item.active');
+    if (itemInNav) {
+      itemInNav.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      return;
+    }
+    const itemInArchive = sidebarArchiveListRef.current?.querySelector('.course-item.active');
+    if (itemInArchive) {
+      itemInArchive.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [activeCourseId]);
 
   const hasActiveCourse = Boolean(config);
   const showTestsTab = config?.testsWritten !== false;
@@ -757,7 +772,7 @@ function App() {
               <div
                 className={`app-sidebar-lists${sidebarArchiveOpen && sidebarArchivedCourses.length > 0 ? ' app-sidebar-lists--archive-open' : ''}`}
               >
-                <div className="app-sidebar-nav-scroll">
+                <div className="app-sidebar-nav-scroll" ref={sidebarNavScrollRef}>
                 {uniqueYears.length > 0 && (
                   <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)' }}>
                     <select
@@ -864,7 +879,7 @@ function App() {
                       />
                     </button>
                     {sidebarArchiveOpen ? (
-                      <div id="app-sidebar-archive-list" className="app-sidebar-archive-list">
+                      <div id="app-sidebar-archive-list" className="app-sidebar-archive-list" ref={sidebarArchiveListRef}>
                         {sidebarArchivedCourses.map((course, idx) => {
                           const prevCourse = idx > 0 ? sidebarArchivedCourses[idx - 1] : null;
                           const showYearHeader = !selectedYearFilter && (!prevCourse || prevCourse.year !== course.year);
